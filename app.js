@@ -1840,3 +1840,127 @@ document.addEventListener('keydown',e=>{
     }
   }, true);
 })();
+
+/* ============================================================
+   FULL WICKET FLOW OVERRIDE — replaces existing function
+   Guarantees: new batter becomes striker, old striker is
+   cleared from non-striker slot, works even on over-end wickets
+   ============================================================ */
+window.confirmWicketDelivery = function(){
+  var method = document.getElementById('wktMethodSelect').value;
+  var fielder = document.getElementById('fielderCustomInput').value.trim();
+  if(['Caught','Run Out','Stumped'].indexOf(method) !== -1 && !fielder) {
+    fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
+  }
+
+  var typed = (document.getElementById('wktNewBatsmanInput').value || '').trim();
+  var selected = (document.getElementById('wktNewBatsmanSelect').value || '').trim();
+  var newBatter = (typed || selected || '').trim();
+  if(newBatter){
+    newBatter = newBatter.replace(/(^|\s|[\-'])\S/g, function(m){ return m.toUpperCase(); });
+  }
+
+  window.__suppressNextBatsmanModal = true;
+  closeModal('wicketTypeModal');
+
+  var dismissedBatter = match.striker;
+
+  // Record the wicket (this also may trigger over-end swapStrikers internally)
+  recordBall(0, null, true, "", 0, {method: method, fielder: fielder});
+
+  // Force-fix the striker AND clean the non-striker slot
+  function forceStriker(name){
+    if(!name) return false;
+    if(!match.batters[name]){
+      var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
+      if(team && team.squad && team.squad.indexOf(name) === -1) team.squad.push(name);
+      else if(!team) savedTeams.push({name: match.teamBatting, squad: [name]});
+      match.batters[name] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+      match.playerTeamMap[name] = match.teamBattingAbbr;
+    } else {
+      match.batters[name].status = 'batting';
+    }
+
+    // Make sure non-striker is NOT the dismissed batter
+    if(match.nonStriker === dismissedBatter){
+      // Find a valid partner from the squad (any dnb player)
+      var partner = '';
+      for(var k in match.batters){
+        if(k !== name && k !== dismissedBatter && match.batters[k].status === 'dnb'){
+          partner = k; break;
+        }
+      }
+      // If none found in match.batters, add one from squad
+      if(!partner){
+        var tm = savedTeams.find(function(t){ return t.name === match.teamBatting; });
+        if(tm && tm.squad){
+          for(var i=0;i<tm.squad.length;i++){
+            var p = tm.squad[i];
+            if(p !== name && p !== dismissedBatter && (!match.batters[p] || match.batters[p].status === 'dnb')){
+              partner = p; break;
+            }
+          }
+        }
+      }
+      if(partner){
+        if(!match.batters[partner]){
+          match.batters[partner] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+          match.playerTeamMap[partner] = match.teamBattingAbbr;
+        } else {
+          match.batters[partner].status = 'batting';
+        }
+        match.nonStriker = partner;
+      } else {
+        // Last resort: keep the dismissed batter name but mark as pending
+        match.nonStriker = '';
+      }
+    }
+
+    match.striker = name;
+    match.currentPartnership = {runs:0, balls:0, batters:[name, match.nonStriker]};
+    window.match = match;
+
+    if(typeof renderLive === 'function') renderLive();
+    if(typeof renderCommentary === 'function') renderCommentary();
+    if(typeof renderScorecard === 'function') renderScorecard();
+    if(typeof renderSummary === 'function') renderSummary();
+    if(typeof autoPersist === 'function') autoPersist();
+    if(typeof broadcastMatchState === 'function') broadcastMatchState();
+    return true;
+  }
+
+  // Immediate attempt
+  if(newBatter) forceStriker(newBatter);
+
+  // Watchdog — checks 3 times over ~2 seconds to ensure striker is correct
+  var checks = 0;
+  var watchdog = setInterval(function(){
+    checks++;
+    try {
+      var cur = match.striker;
+      var curStatus = (match.batters[cur] || {}).status || '';
+      var curIsOut = curStatus && curStatus !== 'batting' && curStatus !== 'dnb' && curStatus !== 'not out' && curStatus !== 'retired not out';
+      var bad = curIsOut || cur === dismissedBatter || !cur;
+      if(bad){
+        if(newBatter){
+          forceStriker(newBatter);
+          console.log('✅ Watchdog[' + checks + '] forced striker →', newBatter);
+        }
+      } else {
+        // Also verify non-striker isn't the dismissed batter
+        if(match.nonStriker === dismissedBatter && newBatter){
+          forceStriker(newBatter);
+          console.log('✅ Watchdog[' + checks + '] cleaned non-striker slot');
+        } else {
+          clearInterval(watchdog);
+        }
+      }
+      if(checks >= 4) clearInterval(watchdog);
+    } catch(e){ console.warn('Watchdog error:', e); clearInterval(watchdog); }
+  }, 600);
+
+  if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && newBatter){
+    speak('New batter in: ' + newBatter);
+  }
+};
+console.log('🔥 confirmWicketDelivery override loaded');
