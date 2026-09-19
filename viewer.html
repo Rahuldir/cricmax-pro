@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CricMax 3D Viewer</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #fff; }
+  #container { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #scorecard { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(0deg, rgba(10,14,26,.98), rgba(10,14,26,.85)); border-top: 1px solid rgba(255,255,255,.15); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); font-size: 12px; z-index: 100; }
+  .team { display: flex; align-items: center; gap: 8px; border-right: 1px solid rgba(255,255,255,.1); padding-right: 16px; }
+  .flag { background: #00e676; color: #0a0e1a; padding: 2px 8px; border-radius: 4px; font-weight: 900; font-size: 11px; }
+  .score { font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .overs { font-size: 11px; color: #94a3b8; font-weight: 700; }
+  .batsmen { display: flex; flex-direction: column; gap: 2px; flex: 1; padding: 0 16px; }
+  .bowler { display: flex; flex-direction: column; gap: 2px; border-left: 1px solid rgba(255,255,255,.1); padding-left: 16px; text-align: right; }
+  .row { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; }
+  .row.active { color: #00e676; }
+  #distance { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 36px; font-weight: 900; font-family: 'Arial Black', sans-serif; text-shadow: 0 0 20px #ff6d00, 0 0 40px #fbbf24, 0 6px 24px #000; display: none; pointer-events: none; z-index: 100; color: #fff; }
+  #live { position: absolute; top: 20px; right: 20px; background: #ef4444; padding: 5px 14px; border-radius: 12px; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; animation: blink 1.2s infinite; z-index: 15; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<div id="distance">0 m</div>
+<div id="live">🔴 LIVE</div>
+<div id="scorecard">
+  <div class="team">
+    <span class="flag" id="teamName">TEAM</span>
+    <span class="score" id="teamScore">0-0</span>
+    <span class="overs" id="teamOvers">(0.0)</span>
+  </div>
+  <div class="batsmen">
+    <div class="row active"><span id="strikerName">-</span> <b id="strikerScore">0(0)</b></div>
+    <div class="row"><span id="nonStrikerName">-</span> <b id="nonStrikerScore">0(0)</b></div>
+  </div>
+  <div class="bowler">
+    <div class="row"><span id="bowlerName">-</span> <b id="bowlerFigures">0.0-0-0-0</b></div>
+    <div class="row" style="color:#94a3b8;font-size:10px;">CRR: <b id="crr" style="color:#22d3ee;">0.00</b></div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+let scene, camera, renderer, controls;
+let ball, stumpsBatting, stumpsBowling;
+let shatterPieces = [];
+let clock = new THREE.Clock();
+let animState = 'idle'; // 'delivery', 'shot'
+let animTime = 0;
+let ballStartPos = new THREE.Vector3(0, 1.5, -11);
+let ballEndPos = new THREE.Vector3(0, 0.2, 11);
+let ballDistance = 0;
+let lastSeenBallCount = 0;
+let vppShot = null;
+const distanceEl = document.getElementById('distance');
+
+function init3D() {
+  const container = document.getElementById('container');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e1a);
+  scene.fog = new THREE.Fog(0x0a0e1a, 30, 120);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 15, 35);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambient);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  dirLight.position.set(20, 40, 20);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x2d6f38, roughness: 0.9 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const pitch = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 24), new THREE.MeshStandardMaterial({ color: 0xc2a077, roughness: 1.0 }));
+  pitch.rotation.x = -Math.PI / 2;
+  pitch.position.y = 0.01;
+  pitch.receiveShadow = true;
+  scene.add(pitch);
+
+  function createStumps(x, z) {
+    const group = new THREE.Group();
+    const stumpGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8);
+    const stumpMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+    for (let i = -1; i <= 1; i++) {
+      const stump = new THREE.Mesh(stumpGeo, stumpMat);
+      stump.position.set(i * 0.25, 0.6, 0);
+      stump.castShadow = true;
+      group.add(stump);
+    }
+    const bail = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.15), new THREE.MeshStandardMaterial({ color: 0xfbbf24 }));
+    bail.position.set(0, 1.25, 0);
+    bail.castShadow = true;
+    group.add(bail);
+    group.position.set(x, 0, z);
+    return group;
+  }
+
+  stumpsBowling = createStumps(0, -11);
+  stumpsBatting = createStumps(0, 11);
+  scene.add(stumpsBowling);
+  scene.add(stumpsBatting);
+
+  ball = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2 }));
+  ball.castShadow = true;
+  ball.position.copy(ballStartPos);
+  scene.add(ball);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1, 0);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI / 2 - 0.05;
+  controls.minDistance = 10;
+  controls.maxDistance = 80;
+
+  clock = new THREE.Clock();
+  animate();
+}
+
+function shatterStumps() {
+  stumpsBatting.visible = false;
+  for (let i = 0; i < 3; i++) {
+    const piece = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8), new THREE.MeshStandardMaterial({ color: 0xe2e8f0 }));
+    piece.position.copy(stumpsBatting.position);
+    piece.position.x += (i - 1) * 0.25;
+    piece.position.y = 0.6;
+    piece.userData = { velocity: new THREE.Vector3((Math.random() - 0.5) * 20, Math.random() * 15 + 5, -Math.random() * 15 - 5), rotationSpeed: new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10) };
+    scene.add(piece);
+    shatterPieces.push(piece);
+  }
+  const bail = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.15), new THREE.MeshStandardMaterial({ color: 0xfbbf24 }));
+  bail.position.copy(stumpsBatting.position);
+  bail.position.y = 1.25;
+  bail.userData = { velocity: new THREE.Vector3((Math.random() - 0.5) * 15, Math.random() * 20 + 10, -Math.random() * 20 - 10), rotationSpeed: new THREE.Vector3(Math.random() * 20, Math.random() * 20, Math.random() * 20) };
+  scene.add(bail);
+  shatterPieces.push(bail);
+}
+
+function resetScene() {
+  ball.position.copy(ballStartPos);
+  ball.visible = true;
+  stumpsBatting.visible = true;
+  distanceEl.style.display = 'none';
+  distanceEl.style.opacity = 1;
+  shatterPieces.forEach(p => scene.remove(p));
+  shatterPieces = [];
+  animState = 'idle';
+  animTime = 0;
+  ballDistance = 0;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = Math.min(clock.getDelta(), 0.1);
+
+  if (animState === 'delivery') {
+    animTime += delta;
+    const progress = Math.min(1, animTime / 4.0);
+    const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+    ball.position.lerpVectors(ballStartPos, ballEndPos, ease);
+    ball.position.y += Math.sin(progress * Math.PI) * 1.2;
+    if (progress >= 1) { animState = 'shot'; animTime = 0; }
+  } 
+  else if (animState === 'shot') {
+    animTime += delta;
+    const isSix = vppShot && vppShot.isSix;
+    const isFour = vppShot && vppShot.isFour;
+    const isWicket = vppShot && vppShot.isWicket;
+    const duration = isSix ? 7.0 : 5.0;
+    const progress = Math.min(1, animTime / duration);
+    const angle = (vppShot && vppShot.zoneIndex >= 0 ? vppShot.zoneIndex : 4) * (Math.PI / 4);
+
+    if (isWicket) {
+      ball.position.z -= 30 * delta;
+      ball.position.y += 5 * delta;
+      if (animTime < 0.1) shatterStumps();
+    } else {
+      const speed = isSix ? 30 : 18;
+      const dx = Math.cos(angle) * speed * delta;
+      const dz = Math.sin(angle) * speed * delta;
+      ball.position.x += dx;
+      ball.position.z += dz;
+      ballDistance += Math.sqrt(dx*dx + dz*dz);
+
+      if (isSix) {
+        ball.position.y += (Math.sin(progress * Math.PI) * 15 - progress * 10) * delta;
+        distanceEl.style.display = 'block';
+        distanceEl.innerText = Math.round(ballDistance * 1.5) + ' m';
+        if (progress > 0.8) distanceEl.style.opacity = 1 - (progress - 0.8) * 5;
+      } else {
+        const bounceCount = isFour ? 3 : 2;
+        const bounceHeight = Math.max(0, Math.sin(progress * Math.PI * bounceCount) * 2 * (1 - progress));
+        ball.position.y = bounceHeight;
+        ball.rotation.x += speed * delta * 0.5;
+        ball.rotation.z += speed * delta * 0.5;
+      }
+    }
+    if (progress >= 1) setTimeout(resetScene, 1000);
+  }
+
+  shatterPieces.forEach(p => {
+    p.position.x += p.userData.velocity.x * delta;
+    p.position.y += p.userData.velocity.y * delta;
+    p.position.z += p.userData.velocity.z * delta;
+    p.userData.velocity.y -= 30 * delta;
+    p.rotation.x += p.userData.rotationSpeed.x * delta;
+    p.rotation.y += p.userData.rotationSpeed.y * delta;
+    p.rotation.z += p.userData.rotationSpeed.z * delta;
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function updateScore() {
+  // Access the match data from the parent window (index.html)
+  const m = window.parent.match; 
+  if (!m || !m.teamBatting) return;
+  
+  const ov = Math.floor(m.legalBalls/6) + '.' + (m.legalBalls%6);
+  const crr = m.legalBalls > 0 ? (m.runs / (m.legalBalls/6)).toFixed(2) : '0.00';
+  
+  document.getElementById('teamName').innerText = m.teamBattingAbbr || m.teamBatting;
+  document.getElementById('teamScore').innerText = m.runs + '-' + m.wickets;
+  document.getElementById('teamOvers').innerText = '(' + ov + ')';
+  document.getElementById('crr').innerText = crr;
+  
+  const st = m.batters[m.striker] || {runs:0, balls:0};
+  const ns = m.batters[m.nonStriker] || {runs:0, balls:0};
+  document.getElementById('strikerName').innerText = m.striker || '-';
+  document.getElementById('strikerScore').innerText = st.runs + '(' + st.balls + ')';
+  document.getElementById('nonStrikerName').innerText = m.nonStriker || '-';
+  document.getElementById('nonStrikerScore').innerText = ns.runs + '(' + ns.balls + ')';
+  
+  const bw = m.bowlers[m.currentBowler] || {balls:0, maidens:0, runs:0, wickets:0};
+  document.getElementById('bowlerName').innerText = m.currentBowler || '-';
+  document.getElementById('bowlerFigures').innerText = Math.floor(bw.balls/6) + '.' + (bw.balls%6) + '-' + bw.maidens + '-' + bw.runs + '-' + bw.wickets;
+}
+
+// Initialize the 3D scene immediately
+init3D();
+
+// Poll the parent window for new balls every 500ms
+setInterval(() => {
+  updateScore();
+  const m = window.parent.match;
+  if (m && m.shotLog && m.shotLog.length > lastSeenBallCount) {
+    const last = m.shotLog[m.shotLog.length - 1];
+    lastSeenBallCount = m.shotLog.length;
+    vppShot = last;
+    resetScene();
+    animState = 'delivery';
+  }
+  if (m && m.shotLog) lastSeenBallCount = Math.max(lastSeenBallCount, m.shotLog.length);
+}, 500);
+
+window.addEventListener('resize', () => {
+  if (camera && renderer) {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+});
+</script>
+</body>
+</html>
