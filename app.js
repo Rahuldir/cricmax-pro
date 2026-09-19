@@ -875,32 +875,104 @@ function confirmWicketDelivery(){
   if(['Caught','Run Out','Stumped'].indexOf(method) !== -1 && !fielder) {
     fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
   }
-  var typed = document.getElementById('wktNewBatsmanInput').value.trim();
-  var selected = document.getElementById('wktNewBatsmanSelect').value;
-  var newBatter = typed || selected;
+
+  var typed = (document.getElementById('wktNewBatsmanInput').value || '').trim();
+  var selected = (document.getElementById('wktNewBatsmanSelect').value || '').trim();
+  var newBatter = (typed || selected || '').trim();
+
+  // Capitalize properly: "mathi" -> "Mathi"
+  if(newBatter){
+    newBatter = newBatter.replace(/(^|\s|[\-'])\S/g, function(m){ return m.toUpperCase(); });
+  }
+
   window.__suppressNextBatsmanModal = true;
   closeModal('wicketTypeModal');
+
+  // Remember who was on strike BEFORE recordBall (they are the one getting out)
+  var dismissedBatter = match.striker;
+
+  // Record the wicket
   recordBall(0, null, true, "", 0, {method: method, fielder: fielder});
-  if(newBatter){
-    if(!match.batters[newBatter]){
+
+  // --------------------------
+  // FORCE-ASSIGN THE NEW STRIKER
+  // --------------------------
+  function forceStriker(name){
+    if(!name) return false;
+    // Ensure batter exists in match.batters
+    if(!match.batters[name]){
       var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
-      if(team && team.squad && team.squad.indexOf(newBatter) === -1) team.squad.push(newBatter);
-      else if(!team) savedTeams.push({name: match.teamBatting, squad: [newBatter]});
-      match.batters[newBatter] = {runs:0,balls:0,fours:0,sixes:0,dots:0,fifties:0,hundreds:0,status:'batting'};
-      match.playerTeamMap[newBatter] = match.teamBattingAbbr;
+      if(team && team.squad && team.squad.indexOf(name) === -1) team.squad.push(name);
+      else if(!team) savedTeams.push({name: match.teamBatting, squad: [name]});
+      match.batters[name] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+      match.playerTeamMap[name] = match.teamBattingAbbr;
     } else {
-      match.batters[newBatter].status = 'batting';
+      match.batters[name].status = 'batting';
     }
-    match.striker = newBatter;
-    match.currentPartnership = {runs:0, balls:0, batters:[newBatter, match.nonStriker]};
+    match.striker = name;
+    // Make sure the new batter isn't the dismissed one in the non-striker slot
+    if(match.nonStriker === dismissedBatter){
+      // Find a valid partner
+      match.nonStriker = ''; // fallback, will be set by user next
+    }
+    match.currentPartnership = {runs:0, balls:0, batters:[name, match.nonStriker]};
     window.match = match;
+
+    // Re-render everything
+    if(typeof renderLive === 'function') renderLive();
+    if(typeof renderCommentary === 'function') renderCommentary();
+    if(typeof renderScorecard === 'function') renderScorecard();
+    if(typeof renderSummary === 'function') renderSummary();
+    if(typeof autoPersist === 'function') autoPersist();
+    if(typeof broadcastMatchState === 'function') broadcastMatchState();
+    return true;
   }
-  renderLive();
-  renderCommentary();
-  renderScorecard();
-  autoPersist();
-  broadcastMatchState();
-  if(isCommentaryVoiceActive && newBatter) speak('New batter in: ' + newBatter);
+
+  // Immediate assignment
+  if(newBatter) forceStriker(newBatter);
+
+  // 600ms later - double check. If striker is STILL the dismissed batter OR marked out, force again
+  setTimeout(function(){
+    try {
+      var cur = match.striker;
+      var curStatus = (match.batters[cur] || {}).status || '';
+      var curIsOut = curStatus && curStatus !== 'batting' && curStatus !== 'dnb' && curStatus !== 'not out' && curStatus !== 'retired not out';
+      if(curIsOut || cur === dismissedBatter){
+        if(newBatter){
+          forceStriker(newBatter);
+          console.log('✅ Watchdog forced striker to:', newBatter);
+        } else {
+          // No name was provided — auto-pick first available dnb from squad
+          var auto = null;
+          for(var k in match.batters){
+            if(k !== dismissedBatter && k !== match.nonStriker && match.batters[k].status === 'dnb'){
+              auto = k; break;
+            }
+          }
+          if(!auto){
+            var t = savedTeams.find(function(x){ return x.name === match.teamBatting; });
+            if(t && t.squad){
+              for(var i=0;i<t.squad.length;i++){
+                var p = t.squad[i];
+                if(p !== dismissedBatter && p !== match.nonStriker && (!match.batters[p] || match.batters[p].status === 'dnb')){
+                  auto = p; break;
+                }
+              }
+            }
+          }
+          if(auto){
+            forceStriker(auto);
+            console.log('⚠️ No name typed — auto-assigned:', auto);
+          }
+        }
+      }
+    } catch(e){ console.warn('Wicket striker watchdog error:', e); }
+  }, 600);
+
+  // Voice commentary
+  if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && newBatter){
+    speak('New batter in: ' + newBatter);
+  }
 }
 
 /* ============ ALTERNATE BATTER/BOWLER MODALS ============ */
