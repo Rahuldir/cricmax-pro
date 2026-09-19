@@ -1940,7 +1940,7 @@ function renderSummary(){
   if(bb){bb.innerHTML='';for(const n in match.batters){const b=match.batters[n];if(b.status!=='dnb'){const sr=b.balls>0?((b.runs/b.balls)*100).toFixed(1):"0.0";bb.innerHTML+=`<tr><td><span class="player-link" onclick="openPlayerCareerModal('${n.replace(/'/g,"\\'")}')"><b>${n}${n===match.striker?' *':''}</b></span><br><small style="color:var(--muted);">${b.status}</small></td><td class="text-right"><b>${b.runs}</b></td><td class="text-right">${b.balls}</td><td class="text-right">${b.fours}</td><td class="text-right">${b.sixes}</td><td class="text-right">${sr}</td></tr>`;}}}
   const bl=document.getElementById('bowlingTableBody');
   if(bl){bl.innerHTML='';for(const n in match.bowlers){const b=match.bowlers[n];if(b.balls>0||n===match.currentBowler){const ov=`${Math.floor(b.balls/6)}.${b.balls%6}`;const eco=b.balls>0?(b.runs/(b.balls/6)).toFixed(2):"0.0";bl.innerHTML+=`<tr><td><span class="player-link" onclick="openPlayerCareerModal('${n.replace(/'/g,"\\'")}')"><b>${n}${n===match.currentBowler?' *':''}</b></span></td><td class="text-right">${ov}</td><td class="text-right">${b.maidens}</td><td class="text-right">${b.runs}</td><td class="text-right"><b>${b.wickets}</b></td><td class="text-right">${eco}</td></tr>`;}}}
-}
+
 function swapStrikers(){const t=match.striker;match.striker=match.nonStriker;match.nonStriker=t;renderLive();}
 function undoDelivery(){if(historyStack.length>0&&!isViewerMode){match=historyStack.pop();autoPersist();renderLive();renderCommentary();broadcastMatchState();}}
 
