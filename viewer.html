@@ -17,14 +17,20 @@
   .row { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; }
   .row.active { color: #00e676; }
   #distance { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 36px; font-weight: 900; font-family: 'Arial Black', sans-serif; text-shadow: 0 0 20px #ff6d00, 0 0 40px #fbbf24, 0 6px 24px #000; display: none; pointer-events: none; z-index: 100; color: #fff; }
-  #live { position: absolute; top: 20px; right: 20px; background: #ef4444; padding: 5px 14px; border-radius: 12px; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; animation: blink 1.2s infinite; z-index: 15; }
-  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+  .camera-btns { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 150; }
+  .camera-btns button { background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2); color: #fff; padding: 8px 14px; border-radius: 8px; font-weight: 800; cursor: pointer; backdrop-filter: blur(5px); }
+  .camera-btns button.active { background: #00e676; color: #000; }
 </style>
 </head>
 <body>
 <div id="container"></div>
 <div id="distance">0 m</div>
-<div id="live">🔴 LIVE</div>
+<div class="camera-btns">
+  <button id="cam-broadcast" class="active" onclick="setCamera('broadcast')">📺 Broadcast</button>
+  <button id="cam-side" onclick="setCamera('side')">🎬 Side</button>
+  <button id="cam-bowl" onclick="setCamera('bowl')">🎯 Behind Bowler</button>
+  <button id="cam-ball" onclick="setCamera('ball')">⚾ Ball Cam</button>
+</div>
 <div id="scorecard">
   <div class="team">
     <span class="flag" id="teamName">TEAM</span>
@@ -44,37 +50,45 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
   }
 }
 </script>
 
 <script type="module">
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-let scene, camera, renderer, controls;
-let ball, stumpsBatting, stumpsBowling;
+// --- 3D GLOBALS ---
+let scene, camera, renderer;
+let ball, bat, stumpsBatting, stumpsBowling;
 let shatterPieces = [];
 let clock = new THREE.Clock();
 let animState = 'idle'; // 'delivery', 'shot'
 let animTime = 0;
-let ballStartPos = new THREE.Vector3(0, 1.5, -11);
-let ballEndPos = new THREE.Vector3(0, 0.2, 11);
+let currentCam = 'broadcast';
 let ballDistance = 0;
-let lastSeenBallCount = 0;
 let vppShot = null;
-const distanceEl = document.getElementById('distance');
+
+// --- REAL-WORLD DIMENSIONS (in meters) ---
+const PITCH_LENGTH = 20.12;
+const STUMP_HEIGHT = 0.71;
+const STUMP_WIDTH = 0.23;
+const BALL_RADIUS = 0.04; // Slightly larger than real for visibility
+const POPPING_CREASE_DIST = 1.22;
+const BAT_LENGTH = 0.96;
+const BAT_WIDTH = 0.11;
+
+let ballStartPos = new THREE.Vector3(0, 2.0, -10.06); // Bowler release height
+let ballBouncePos = new THREE.Vector3(0, 0, 0); // Random pitch bounce point
+let ballEndPos = new THREE.Vector3(0, 0.8, 10.06); // Batsman contact point
 
 function init3D() {
   const container = document.getElementById('container');
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0e1a);
-  scene.fog = new THREE.Fog(0x0a0e1a, 50, 200);
+  scene.fog = new THREE.Fog(0x0a0e1a, 60, 200);
 
-  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 15, 35);
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -82,8 +96,8 @@ function init3D() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  scene.add(ambient);
+  // Lighting
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
   const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
   dirLight.position.set(20, 40, 20);
   dirLight.castShadow = true;
@@ -91,114 +105,132 @@ function init3D() {
   dirLight.shadow.mapSize.height = 2048;
   scene.add(dirLight);
 
-  // Ground
+  // Ground (Green)
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x2d6f38, roughness: 0.9 }));
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Pitch
-  const pitch = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 24), new THREE.MeshStandardMaterial({ color: 0xc2a077, roughness: 1.0 }));
+  // Pitch (Brown)
+  const pitch = new THREE.Mesh(new THREE.PlaneGeometry(3.05, PITCH_LENGTH), new THREE.MeshStandardMaterial({ color: 0x8B5A2B, roughness: 1.0 }));
   pitch.rotation.x = -Math.PI / 2;
   pitch.position.y = 0.01;
   pitch.receiveShadow = true;
   scene.add(pitch);
 
-  // Boundary Rope (Radius 45)
-  const boundaryGeo = new THREE.TorusGeometry(45, 0.4, 16, 100);
-  const boundaryMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  const boundary = new THREE.Mesh(boundaryGeo, boundaryMat);
+  // Boundary Rope (Radius 60)
+  const boundaryGeo = new THREE.TorusGeometry(60, 0.5, 16, 100);
+  const boundary = new THREE.Mesh(boundaryGeo, new THREE.MeshStandardMaterial({ color: 0xffffff }));
   boundary.rotation.x = Math.PI / 2;
   boundary.position.y = 0.1;
   scene.add(boundary);
 
-  // 3D Stumps (Dark & Visible)
+  // --- CREASE MARKINGS (White Lines) ---
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  
+  // Popping Crease (1.22m from stumps, 3.66m wide)
+  const popCreaseGeo = new THREE.PlaneGeometry(3.66, 0.05);
+  const popCreaseBat = new THREE.Mesh(popCreaseGeo, lineMat);
+  popCreaseBat.rotation.x = -Math.PI / 2;
+  popCreaseBat.position.set(0, 0.02, 10.06 - POPPING_CREASE_DIST);
+  scene.add(popCreaseBat);
+  
+  const popCreaseBowl = new THREE.Mesh(popCreaseGeo, lineMat);
+  popCreaseBowl.rotation.x = -Math.PI / 2;
+  popCreaseBowl.position.set(0, 0.02, -10.06 + POPPING_CREASE_DIST);
+  scene.add(popCreaseBowl);
+
+  // Return Creases (Extending backwards from popping crease)
+  const returnCreaseGeo = new THREE.PlaneGeometry(0.05, 1.5);
+  const returnBatL = new THREE.Mesh(returnCreaseGeo, lineMat);
+  returnBatL.rotation.x = -Math.PI / 2;
+  returnBatL.position.set(-1.83, 0.02, 10.06 - POPPING_CREASE_DIST + 0.75);
+  scene.add(returnBatL);
+  
+  const returnBatR = new THREE.Mesh(returnCreaseGeo, lineMat);
+  returnBatR.rotation.x = -Math.PI / 2;
+  returnBatR.position.set(1.83, 0.02, 10.06 - POPPING_CREASE_DIST + 0.75);
+  scene.add(returnBatR);
+
+  // Wide Lines (35 inches / 0.889m from center stump)
+  const wideLineGeo = new THREE.PlaneGeometry(0.05, 0.05);
+  const wideBatL = new THREE.Mesh(wideLineGeo, lineMat);
+  wideBatL.rotation.x = -Math.PI / 2;
+  wideBatL.position.set(-0.889, 0.02, 10.06 - POPPING_CREASE_DIST);
+  scene.add(wideBatL);
+  
+  const wideBatR = new THREE.Mesh(wideLineGeo, lineMat);
+  wideBatR.rotation.x = -Math.PI / 2;
+  wideBatR.position.set(0.889, 0.02, 10.06 - POPPING_CREASE_DIST);
+  scene.add(wideBatR);
+
+  // --- 3D STUMPS (Dark & Visible) ---
   function createStumps(x, z) {
     const group = new THREE.Group();
-    const stumpGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.4, 8);
-    const stumpMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a }); // Dark/Black
+    const stumpGeo = new THREE.CylinderGeometry(0.04, 0.04, STUMP_HEIGHT, 8);
+    const stumpMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
     for (let i = -1; i <= 1; i++) {
       const stump = new THREE.Mesh(stumpGeo, stumpMat);
-      stump.position.set(i * 0.3, 0.7, 0);
+      stump.position.set(i * 0.08, STUMP_HEIGHT/2, 0); // Real width 22.86cm
       stump.castShadow = true;
       group.add(stump);
     }
-    // Glowing Bails
-    const bailGeo = new THREE.BoxGeometry(0.9, 0.08, 0.15);
+    const bailGeo = new THREE.BoxGeometry(0.24, 0.03, 0.05);
     const bailMat = new THREE.MeshStandardMaterial({ color: 0xffea00, emissive: 0x554400 }); 
     const bail = new THREE.Mesh(bailGeo, bailMat);
-    bail.position.set(0, 1.45, 0);
+    bail.position.set(0, STUMP_HEIGHT + 0.02, 0);
     bail.castShadow = true;
     group.add(bail);
     group.position.set(x, 0, z);
     return group;
   }
 
-  stumpsBowling = createStumps(0, -11);
-  stumpsBatting = createStumps(0, 11);
+  stumpsBowling = createStumps(0, -10.06);
+  stumpsBatting = createStumps(0, 10.06);
   scene.add(stumpsBowling);
   scene.add(stumpsBatting);
 
-  // Ball
-  ball = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2 }));
+  // --- BATSMAN & BAT ---
+  bat = new THREE.Group();
+  const batHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0x3a2a1a }));
+  batHandle.position.y = -0.15;
+  bat.add(batHandle);
+  const batBlade = new THREE.Mesh(new THREE.BoxGeometry(BAT_WIDTH, BAT_LENGTH * 0.6, 0.04), new THREE.MeshStandardMaterial({ color: 0xd4b686 }));
+  batBlade.position.y = -0.15 - BAT_LENGTH * 0.3;
+  bat.add(batBlade);
+  bat.position.set(0.5, 0.8, 10.06); // At batting crease
+  bat.rotation.z = -0.3;
+  scene.add(bat);
+
+  // --- BALL ---
+  ball = new THREE.Mesh(new THREE.SphereGeometry(BALL_RADIUS, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2 }));
   ball.castShadow = true;
   ball.position.copy(ballStartPos);
   scene.add(ball);
 
-  // Camera Controls
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 1, 0);
-  controls.enableDamping = true;
-  controls.maxPolarAngle = Math.PI / 2 - 0.05;
-  controls.minDistance = 10;
-  controls.maxDistance = 100;
-
   clock = new THREE.Clock();
+  setCamera('broadcast');
   animate();
 }
 
-function shatterStumps() {
-  stumpsBatting.visible = false;
-  // Shatter 3 Stumps
-  for (let i = 0; i < 3; i++) {
-    const piece = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.7, 8), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
-    piece.position.copy(stumpsBatting.position);
-    piece.position.x += (i - 1) * 0.3;
-    piece.position.y = 0.7;
-    piece.userData = { 
-      velocity: new THREE.Vector3((Math.random() - 0.5) * 25, Math.random() * 20 + 10, -Math.random() * 25 - 10), 
-      rotationSpeed: new THREE.Vector3(Math.random() * 15, Math.random() * 15, Math.random() * 15) 
-    };
-    scene.add(piece);
-    shatterPieces.push(piece);
-  }
-  // Shatter 2 Bails
-  for (let i = 0; i < 2; i++) {
-    const bail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.15), new THREE.MeshStandardMaterial({ color: 0xffea00, emissive: 0x554400 }));
-    bail.position.copy(stumpsBatting.position);
-    bail.position.x += (i === 0 ? -0.2 : 0.2);
-    bail.position.y = 1.45;
-    bail.userData = { 
-      velocity: new THREE.Vector3((Math.random() - 0.5) * 20, Math.random() * 25 + 15, -Math.random() * 25 - 15), 
-      rotationSpeed: new THREE.Vector3(Math.random() * 25, Math.random() * 25, Math.random() * 25) 
-    };
-    scene.add(bail);
-    shatterPieces.push(bail);
-  }
-}
+// --- CAMERA CONTROLS (No Manual Pan/Zoom) ---
+window.setCamera = function(view) {
+  currentCam = view;
+  document.querySelectorAll('.camera-btns button').forEach(b => b.classList.remove('active'));
+  document.getElementById('cam-' + view).classList.add('active');
 
-function resetScene() {
-  ball.position.copy(ballStartPos);
-  ball.visible = true;
-  stumpsBatting.visible = true;
-  distanceEl.style.display = 'none';
-  distanceEl.style.opacity = 1;
-  shatterPieces.forEach(p => scene.remove(p));
-  shatterPieces = [];
-  animState = 'idle';
-  animTime = 0;
-  ballDistance = 0;
-}
+  if (view === 'broadcast') {
+    camera.position.set(0, 10, 25);
+    camera.lookAt(0, 0, 0);
+  } else if (view === 'side') {
+    camera.position.set(25, 5, 0);
+    camera.lookAt(0, 0, 0);
+  } else if (view === 'bowl') {
+    camera.position.set(0, 3, -18);
+    camera.lookAt(0, 0, 10.06);
+  }
+  // 'ball' camera is handled in the animation loop
+};
 
 function animate() {
   requestAnimationFrame(animate);
@@ -206,29 +238,45 @@ function animate() {
 
   if (animState === 'delivery') {
     animTime += delta;
-    // 5 seconds slow motion delivery
-    const progress = Math.min(1, animTime / 5.0);
-    const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-    ball.position.lerpVectors(ballStartPos, ballEndPos, ease);
-    ball.position.y += Math.sin(progress * Math.PI) * 1.5;
-    if (progress >= 1) { animState = 'shot'; animTime = 0; }
+    // 2 seconds for ball to bounce on pitch
+    const progress = Math.min(1, animTime / 2.0);
+    
+    // Phase 1: Bowler to Pitch (Drop)
+    if (progress < 0.5) {
+      const p = progress / 0.5;
+      ball.position.lerpVectors(ballStartPos, ballBouncePos, p);
+      ball.position.y = THREE.MathUtils.lerp(ballStartPos.y, 0, p);
+    } 
+    // Phase 2: Pitch to Batsman (Bounce)
+    else {
+      const p = (progress - 0.5) / 0.5;
+      ball.position.lerpVectors(ballBouncePos, ballEndPos, p);
+      ball.position.y = THREE.MathUtils.lerp(0, ballEndPos.y, p);
+    }
+
+    if (progress >= 1) { 
+      animState = 'shot'; 
+      animTime = 0; 
+      bat.rotation.z = 0.5; // Bat swing animation
+    }
   } 
   else if (animState === 'shot') {
     animTime += delta;
     const isSix = vppShot && vppShot.isSix;
     const isFour = vppShot && vppShot.isFour;
     const isWicket = vppShot && vppShot.isWicket;
-    // 7 seconds for six, 6 seconds for others
-    const duration = isSix ? 7.0 : 6.0;
+    
+    // 3 seconds for ball to reach boundary
+    const duration = 3.0;
     const progress = Math.min(1, animTime / duration);
     const angle = (vppShot && vppShot.zoneIndex >= 0 ? vppShot.zoneIndex : 4) * (Math.PI / 4);
 
     if (isWicket) {
-      ball.position.z -= 40 * delta;
-      ball.position.y += 10 * delta;
-      if (animTime < 0.1) shatterStumps();
+      // Shatter logic handled below
+      ball.position.z -= 20 * delta;
+      ball.position.y += 5 * delta;
     } else {
-      const speed = isSix ? 35 : 22;
+      const speed = isSix ? 40 : 25;
       const dx = Math.cos(angle) * speed * delta;
       const dz = Math.sin(angle) * speed * delta;
       ball.position.x += dx;
@@ -236,37 +284,75 @@ function animate() {
       ballDistance += Math.sqrt(dx*dx + dz*dz);
 
       if (isSix) {
-        // High flying arc out of boundary
-        ball.position.y += (Math.sin(progress * Math.PI) * 25 - progress * 15) * delta;
-        distanceEl.style.display = 'block';
-        distanceEl.innerText = Math.round(ballDistance * 1.5) + ' m';
-        if (progress > 0.8) distanceEl.style.opacity = 1 - (progress - 0.8) * 5;
+        // Six flies high
+        ball.position.y += (Math.sin(progress * Math.PI) * 15) * delta;
+        
+        // Show distance ONLY for Six, using wagon wheel data
+        const sixDist = vppShot.distance > 0 ? vppShot.distance : Math.round(90 + Math.random() * 30);
+        document.getElementById('distance').style.display = 'block';
+        document.getElementById('distance').innerText = sixDist + ' m';
       } else {
-        // Bouncing and rolling for 4s, 3s, 2s, 1s
-        const bounceCount = isFour ? 3 : 2;
-        const bounceHeight = Math.max(0, Math.sin(progress * Math.PI * bounceCount) * 2 * (1 - progress));
+        // Four rolls/bounces
+        const bounceHeight = Math.max(0, Math.sin(progress * Math.PI * 2) * 0.5 * (1 - progress));
         ball.position.y = bounceHeight;
-        ball.rotation.x += speed * delta * 0.8;
-        ball.rotation.z += speed * delta * 0.8;
       }
     }
-    if (progress >= 1) setTimeout(resetScene, 1500);
+    
+    // Ball Cam: Follow the ball automatically
+    if (currentCam === 'ball') {
+      camera.position.copy(ball.position).add(new THREE.Vector3(-2, 3, -2));
+      camera.lookAt(ball.position);
+    }
+
+    if (progress >= 1) {
+      document.getElementById('distance').style.display = 'none';
+      setTimeout(resetScene, 1500);
+    }
   }
 
+  // Shatter Pieces Animation
   shatterPieces.forEach(p => {
     p.position.x += p.userData.velocity.x * delta;
     p.position.y += p.userData.velocity.y * delta;
     p.position.z += p.userData.velocity.z * delta;
-    p.userData.velocity.y -= 40 * delta; // Gravity
+    p.userData.velocity.y -= 20 * delta; // Gravity
     p.rotation.x += p.userData.rotationSpeed.x * delta;
     p.rotation.y += p.userData.rotationSpeed.y * delta;
     p.rotation.z += p.userData.rotationSpeed.z * delta;
   });
 
-  controls.update();
   renderer.render(scene, camera);
 }
 
+function shatterStumps() {
+  stumpsBatting.visible = false;
+  for (let i = 0; i < 3; i++) {
+    const piece = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+    piece.position.copy(stumpsBatting.position);
+    piece.position.x += (i - 1) * 0.08;
+    piece.position.y = 0.35;
+    piece.userData = { 
+      velocity: new THREE.Vector3((Math.random() - 0.5) * 15, Math.random() * 10 + 5, -Math.random() * 15 - 5), 
+      rotationSpeed: new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10) 
+    };
+    scene.add(piece);
+    shatterPieces.push(piece);
+  }
+}
+
+function resetScene() {
+  ball.position.copy(ballStartPos);
+  ball.visible = true;
+  stumpsBatting.visible = true;
+  bat.rotation.z = -0.3;
+  shatterPieces.forEach(p => scene.remove(p));
+  shatterPieces = [];
+  animState = 'idle';
+  animTime = 0;
+  ballDistance = 0;
+}
+
+// --- DATA SYNC FROM MAIN APP ---
 function updateScore() {
   const m = window.parent.match; 
   if (!m || !m.teamBatting) return;
@@ -301,6 +387,12 @@ setInterval(() => {
     vppShot = last;
     resetScene();
     animState = 'delivery';
+    
+    // Randomize bounce point
+    ballBouncePos.set((Math.random() - 0.5) * 2, 0, (Math.random() * 4) + 2); // Between 2m and 6m from bowler
+    ballEndPos.set((Math.random() - 0.5) * 1.5, 0.8, 10.06);
+    
+    if(vppShot.isWicket) setTimeout(shatterStumps, 2000); // Trigger shatter after ball hits stumps
   }
   if (m && m.shotLog) lastSeenBallCount = Math.max(lastSeenBallCount, m.shotLog.length);
 }, 500);
