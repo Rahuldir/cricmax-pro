@@ -988,17 +988,37 @@ function promptNextBatterModal(out){
   const m=document.getElementById('nextBatterModal');if(m)m.style.display='flex';
 }
 function confirmNextBatter(){
-  const t=document.getElementById('newBatterNameInput').value.trim();
-  const s=document.getElementById('existingBatterSelect').value;
-  let n=t||s;if(!n)return alert('Please specify next batter');
-  if(t)autoAddPlayerToTeam(t,match.teamBatting);
-  if(!match.batters[n]){match.batters[n]={runs:0,balls:0,fours:0,sixes:0,dots:0,fifties:0,hundreds:0,status:"batting"};match.playerTeamMap[n]=match.teamBattingAbbr;}
-  else match.batters[n].status='batting';
-  match.striker=n;
-  closeModal('nextBatterModal');
+  const t=document.getElementById('newBatterNameInput');
+  const s=document.getElementById('existingBatterSelect');
+  const typed=t?t.value.trim():'';
+  const selected=s?s.value:'';
+  let n=typed||selected;
+  if(!n)return alert('Please specify next batter');
+  if(typed&&typeof autoAddPlayerToTeam==='function')autoAddPlayerToTeam(typed,match.teamBatting);
+  if(!match.batters[n]){
+    match.batters[n]={runs:0,balls:0,fours:0,sixes:0,dots:0,fifties:0,hundreds:0,status:"batting"};
+    match.playerTeamMap[n]=match.teamBattingAbbr;
+  } else {
+    match.batters[n].status='batting';
+  }
+
+  // Auto-detect whether the dismissed batter is at non-striker or striker
+  if(match.batters[match.nonStriker] && match.batters[match.nonStriker].status !== 'batting'){
+    match.nonStriker = n;
+  } else {
+    match.striker = n;
+  }
+
+  if(typeof closeModal==='function') closeModal('nextBatterModal');
   match.currentPartnership={runs:0,balls:0,batters:[match.striker,match.nonStriker]};
-  renderLive();renderCommentary();autoPersist();broadcastMatchState();
-  if(isCommentaryVoiceActive)speak('New batter in: '+n+'.');
+  if(typeof renderLive==='function') renderLive();
+  if(typeof renderScorecard==='function') renderScorecard();
+  if(typeof renderCommentary==='function') renderCommentary();
+  if(typeof autoPersist==='function') autoPersist();
+  if(typeof broadcastMatchState==='function') broadcastMatchState();
+  if(typeof isCommentaryVoiceActive!=='undefined'&&isCommentaryVoiceActive&&typeof speak==='function'){
+    speak('New batter in: '+n+'.');
+  }
 }
 function promptNextBowlerModal(){
   if(!match.isActive||isViewerMode)return;
