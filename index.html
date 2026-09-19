@@ -2645,16 +2645,30 @@ document.addEventListener('keydown',e=>{
   }
   window.vppFit=ready;
 
-  window.vppStart=function(){
-    vppOn=true;
-    var el=document.getElementById('vpp'); if(!el) return;
-    el.classList.add('on');
-    var tb=document.querySelector('.top-bar'); if(tb)tb.style.display='none';
-    var bn=document.querySelector('.bottom-match-nav'); if(bn)bn.style.display='none';
-    var h=document.getElementById('view-home'); if(h)h.style.display='none';
-    var d=document.getElementById('view-dashboard'); if(d)d.style.display='none';
-    ready(); vppScore(); vppBalls();
-  };
+  window.vppStart = function(){
+  // Show the VPP container
+  var el = document.getElementById('vpp');
+  if(el) el.classList.add('on');
+  
+  // Hide main app UI
+  var tb = document.querySelector('.top-bar'); if(tb) tb.style.display = 'none';
+  var bn = document.querySelector('.bottom-match-nav'); if(bn) bn.style.display = 'none';
+  var h = document.getElementById('view-home'); if(h) h.style.display = 'none';
+  var d = document.getElementById('view-dashboard'); if(d) d.style.display = 'none';
+  
+  // Remove the old 2D canvas completely
+  var oldCanvas = document.getElementById('vppCv');
+  if(oldCanvas) oldCanvas.remove();
+  
+  // Inject the 3D viewer iframe
+  if (!document.getElementById('vppIframe')) {
+    var iframe = document.createElement('iframe');
+    iframe.id = 'vppIframe';
+    iframe.src = 'viewer.html'; 
+    iframe.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1;';
+    document.getElementById('vpp').appendChild(iframe);
+  }
+};;
 
   window.vppSetView=function(v){
     vppView=v;
