@@ -3024,4 +3024,64 @@ document.addEventListener('keydown',e=>{
 
   window.addEventListener('resize', function(){ if(vppOn) ready(); });
 })();
+</script
+<script>
+// ==========================================
+// 3D VIEWER INTEGRATION (Links to viewer.html)
+// ==========================================
+window.vppShowPane = function(pane){
+  // Update tab active state
+  var btns = document.querySelectorAll('.vpp-tabs button');
+  btns.forEach(function(b){ b.classList.remove('on'); });
+  var tabBtn = document.getElementById('vppTab' + pane.charAt(0).toUpperCase() + pane.slice(1));
+  if (tabBtn) tabBtn.classList.add('on');
+  
+  if (pane === 'pitch') {
+    // SHOW 3D VIEWER
+    document.getElementById('vpp').style.display = 'block';
+    document.getElementById('view-dashboard').style.display = 'none';
+    
+    // Hide main app UI
+    var tb = document.querySelector('.top-bar'); if (tb) tb.style.display = 'none';
+    var bn = document.querySelector('.bottom-match-nav'); if (bn) bn.style.display = 'none';
+    
+    var back = document.getElementById('vppBackBtn'); 
+    if (back) back.remove();
+    
+    // Inject the 3D viewer iframe if it doesn't exist
+    if (!document.getElementById('vppIframe')) {
+      var iframe = document.createElement('iframe');
+      iframe.id = 'vppIframe';
+      iframe.src = 'viewer.html'; 
+      iframe.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1;';
+      document.getElementById('vpp').appendChild(iframe);
+    }
+  } else {
+    // SHOW 2D DASHBOARD (Analysis, Card, Stats)
+    var iframe = document.getElementById('vppIframe');
+    if (iframe) iframe.remove(); // Remove iframe to save memory
+    
+    document.getElementById('vpp').style.display = 'none';
+    document.getElementById('view-dashboard').style.display = 'block';
+    
+    var tb = document.querySelector('.top-bar'); if (tb) tb.style.display = 'none';
+    var bn = document.querySelector('.bottom-match-nav'); if (bn) bn.style.display = 'none';
+    
+    // Trigger the main app's pane switcher
+    if (typeof selectSubPane === 'function') selectSubPane(pane);
+    
+    // Add a button to return to the 3D pitch
+    var back = document.getElementById('vppBackBtn');
+    if (!back) {
+      back = document.createElement('button');
+      back.id = 'vppBackBtn';
+      back.className = 'vpp-back-to-pitch';
+      back.innerText = '🏏 Return to Pitch';
+      back.onclick = function() { window.vppShowPane('pitch'); };
+      document.body.appendChild(back);
+    }
+  }
+};
 </script>
+</body>
+</html>
