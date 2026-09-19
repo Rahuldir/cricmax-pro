@@ -3298,5 +3298,110 @@ setTimeout(function(){
   try { if (typeof match !== 'undefined') window.match = match; } catch(e){}
 }, 100);
 </script>
+<script>
+// ==========================================
+// FOOLPROOF NEW BATSMAN AFTER WICKET FIX
+// ==========================================
+
+// 1. Restore the missing "New Batsman" modal function
+function promptNextBatterModal(out){
+  if(!window.match || !window.match.isActive || window.isViewerMode) return;
+  const notice = document.getElementById('dismissedNotice');
+  if(notice) notice.innerText = (out || 'Batter') + ' out! Next batter?';
+  
+  const s = document.getElementById('existingBatterSelect');
+  if(!s) return;
+  
+  // Populate dropdown with available (dnb) batters from the squad
+  s.innerHTML = '<option value="">-- Squad --</option>';
+  for(const n in window.match.batters){
+    if(window.match.batters[n].status === 'dnb' && n !== window.match.nonStriker){
+      s.innerHTML += `<option value="${n}">${n}</option>`;
+    }
+  }
+  
+  const inp = document.getElementById('newBatterNameInput');
+  if(inp) inp.value = '';
+  
+  const m = document.getElementById('nextBatterModal');
+  if(m) m.style.display = 'flex';
+}
+
+// 2. Restore the confirm batter function
+function confirmNextBatter(){
+  const t = document.getElementById('newBatterNameInput');
+  const s = document.getElementById('existingBatterSelect');
+  const typed = t ? t.value.trim() : '';
+  const selected = s ? s.value : '';
+  let n = typed || selected;
+  
+  if(!n) return alert('Please specify the next batter');
+  
+  if(typed && typeof autoAddPlayerToTeam === 'function') {
+    autoAddPlayerToTeam(typed, window.match.teamBatting);
+  }
+  
+  if(!window.match.batters[n]){
+    window.match.batters[n] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:"batting"};
+    window.match.playerTeamMap[n] = window.match.teamBattingAbbr;
+  } else {
+    window.match.batters[n].status = 'batting';
+  }
+  
+  window.match.striker = n;
+  if(typeof closeModal === 'function') closeModal('nextBatterModal');
+  
+  // Reset partnership for new pair
+  window.match.currentPartnership = {runs:0, balls:0, batters:[window.match.striker, window.match.nonStriker]};
+  
+  if(typeof renderLive === 'function') renderLive();
+  if(typeof renderCommentary === 'function') renderCommentary();
+  if(typeof autoPersist === 'function') autoPersist();
+  if(typeof broadcastMatchState === 'function') broadcastMatchState();
+  
+  if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && typeof speak === 'function') {
+    speak('New batter in: ' + n + '.');
+  }
+}
+
+// 3. AUTOMATIC WATCHER: Detects a wicket and opens the modal
+let lastCheckedWickets = 0;
+let lastCheckedInnings = 1;
+setInterval(function() {
+  if (window.match && window.match.isActive && !window.isViewerMode) {
+    // Reset tracker if a new innings starts
+    if (window.match.innings !== lastCheckedInnings) {
+      lastCheckedInnings = window.match.innings;
+      lastCheckedWickets = 0;
+    }
+    
+    // If wickets increased, we need a new batter
+    if (window.match.wickets > lastCheckedWickets) {
+      lastCheckedWickets = window.match.wickets;
+      
+      // Only open if the modal isn't already showing
+      const modal = document.getElementById('nextBatterModal');
+      if (modal && modal.style.display !== 'flex') {
+        // Small delay to let the wicket animation play first
+        setTimeout(function(){
+          // Re-check that user hasn't already selected someone
+          if (window.match && window.match.batters[window.match.striker] && window.match.batters[window.match.striker].status === 'batting') {
+            return; // New batter already chosen
+          }
+          // Find the dismissed player's name
+          let outPlayer = window.match.striker;
+          for (const k in window.match.batters) {
+            if (window.match.batters[k].status && window.match.batters[k].status.includes('out')) {
+              outPlayer = k;
+              break;
+            }
+          }
+          promptNextBatterModal(outPlayer);
+        }, 1200);
+      }
+    }
+  }
+}, 800);
+</script>
 </body>
 </html>
