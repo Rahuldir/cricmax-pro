@@ -2520,5 +2520,103 @@ setTimeout(function(){
   try { if (typeof match !== 'undefined') window.match = match; } catch(e){}
 }, 100);
 </script>
+<script>
+// ==========================================
+// WICKET STRIKER FIX — Forces new batter replacement
+// ==========================================
+(function(){
+  // Hook into confirmWicketDelivery to capture the typed/selected name
+  var _origConfirm = window.confirmWicketDelivery;
+  window.confirmWicketDelivery = function(){
+    try {
+      var typed = (document.getElementById('wktNewBatsmanInput') || {}).value || '';
+      typed = typed.trim();
+      var selected = (document.getElementById('wktNewBatsmanSelect') || {}).value || '';
+      window.__pendingStriker = typed || selected || null;
+    } catch(e){}
+    if(_origConfirm) _origConfirm();
+  };
+  
+  // Watchdog: every 700ms, check if striker is marked OUT. If yes, replace.
+  setInterval(function(){
+    try {
+      if(!window.match || !window.match.isActive) return;
+      var m = window.match;
+      var stStatus = (m.batters[m.striker] || {}).status || '';
+      var isOut = stStatus && 
+                  stStatus !== 'batting' && 
+                  stStatus !== 'dnb' && 
+                  stStatus !== 'not out' && 
+                  stStatus !== 'retired not out' && 
+                  stStatus !== 'retired hurt';
+      if(!isOut) return;
+      
+      // Don't interfere if user is actively choosing a new batter
+      var wkt = document.getElementById('wicketTypeModal');
+      if(wkt && wkt.style.display === 'flex') return;
+      
+      // Determine the replacement name
+      var replacement = window.__pendingStriker;
+      window.__pendingStriker = null;
+      
+      // Fallback: auto-pick first dnb player
+      if(!replacement){
+        for(var k in m.batters){
+          if(k !== m.nonStriker && k !== m.striker && m.batters[k].status === 'dnb'){
+            replacement = k;
+            break;
+          }
+        }
+        // Also try squad
+        if(!replacement && typeof savedTeams !== 'undefined'){
+          try {
+            var team = savedTeams.find(function(t){ return t.name === m.teamBatting; });
+            if(team && team.squad){
+              for(var i=0;i<team.squad.length;i++){
+                var p = team.squad[i];
+                if(p !== m.nonStriker && p !== m.striker && (!m.batters[p] || m.batters[p].status === 'dnb')){
+                  replacement = p;
+                  break;
+                }
+              }
+            }
+          } catch(e){}
+        }
+      }
+      
+      if(replacement){
+        // Ensure batter exists and is marked as batting
+        if(!m.batters[replacement]){
+          m.batters[replacement] = {runs:0,balls:0,fours:0,sixes:0,dots:0,fifties:0,hundreds:0,status:'batting'};
+          m.playerTeamMap[replacement] = m.teamBattingAbbr;
+          // Also add to squad
+          try {
+            var team2 = savedTeams.find(function(t){ return t.name === m.teamBatting; });
+            if(team2 && team2.squad && team2.squad.indexOf(replacement) === -1) team2.squad.push(replacement);
+          } catch(e){}
+        } else {
+          m.batters[replacement].status = 'batting';
+        }
+        
+        m.striker = replacement;
+        m.currentPartnership = {runs:0, balls:0, batters:[replacement, m.nonStriker]};
+        window.match = m;
+        
+        // Re-render
+        if(typeof renderLive === 'function') renderLive();
+        if(typeof renderCommentary === 'function') renderCommentary();
+        if(typeof renderScorecard === 'function') renderScorecard();
+        if(typeof autoPersist === 'function') autoPersist();
+        
+        console.log('✅ Auto-replaced out striker with:', replacement);
+      }
+    } catch(e) { console.warn('Striker fix error:', e); }
+  }, 700);
+  
+  console.log('✅ Wicket striker fix loaded');
+})();
+</script>
+</body>
+</html>
 </body>
 </html>
