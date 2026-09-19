@@ -995,18 +995,32 @@ function subscribeToMatch(code){
 function applyViewerState(newMatch){
   if(!newMatch||!newMatch.teamBatting)return;
   match=newMatch;
+  // ✅ CRITICAL FIX: Expose match to the global window so the Viewer script can read it
+  window.match = match;
+  
   if(!match.shotLog)match.shotLog=[];
   if(!match.innings1PartnerRuns)match.innings1PartnerRuns=[];
   if(!match.innings1Fow)match.innings1Fow=[];
   if(!match.innings1SectorRuns)match.innings1SectorRuns=[0,0,0,0,0,0,0,0];
   if(!match.innings2SectorRuns)match.innings2SectorRuns=[0,0,0,0,0,0,0,0];
-  if(document.getElementById('view-home').style.display!=='none'){document.getElementById('view-home').style.display='none';document.getElementById('view-dashboard').style.display='block';}
+  
+  if(document.getElementById('view-home').style.display!=='none'){
+    document.getElementById('view-home').style.display='none';
+    document.getElementById('view-dashboard').style.display='block';
+  }
+  
   document.getElementById('headerMainTitle').innerText=`${match.teamBatting} vs ${match.teamBowling}`;
   document.getElementById('headerSubTitle').innerText=`📺 LIVE • ${match.venue} • Innings ${match.innings}`;
-  renderLive();renderCommentary();renderScorecard();updateLiveShareBadge();
-try{vppScore();vppBalls();if(vppOn&&match.shotLog&&match.shotLog.length>0){const last=match.shotLog[match.shotLog.length-1];if(last&&(!vppShot||last.ball!==vppShot.ball||last.over!==vppShot.over))vppBall(last);}}catch(e){console.warn('vpp err:',e);}
+  
+  renderLive();
+  renderCommentary();
+  renderScorecard();
+  updateLiveShareBadge();
+  
+  // ✅ FIXED: Safely call the Viewer's score updater without triggering missing functions
+  if(typeof window.vppScore === 'function') window.vppScore();
+  if(typeof window.vppBalls === 'function') window.vppBalls();
 }
-function broadcastMatchState(){if(!broadcastChannel)return;try{broadcastChannel.postMessage({type:'match_state',match:JSON.parse(JSON.stringify(match))});}catch(e){}}
 
 /* ============ SHARE ============ */
 function shareViewerOnly(){
@@ -1037,6 +1051,7 @@ function copyCommentaryLink(){
 
 /* ============ STORAGE ============ */
 async function autoPersist(){
+  window.match = match;
   const d={currentTourn,currentTournId,tournamentsHistory,savedTeams,pastMatchesLedger,match,bowlerTypeMap,matchConfig,matchCode,timestamp:new Date().toISOString()};
   try{localStorage.setItem('CricMax_Data',JSON.stringify(d));}catch(e){}
   if(window.firebaseReady&&window.fbAuth&&window.fbAuth.currentUser&&matchCode){
