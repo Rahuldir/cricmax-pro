@@ -782,8 +782,10 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 
     <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
       <label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label>
-      <div id="wktBatsmanChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
-      <input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type a new batter name" style="margin-top:8px;">
+      <select id="wktNewBatsmanSelect" class="form-control" style="margin-bottom:6px;">
+        <option value="">-- Select from squad --</option>
+      </select>
+      <input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type new batter name">
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
@@ -1639,9 +1641,9 @@ function promptWicketTypeModal(){
 }
 
 function populateWicketBatsmanChips(){
-  var chipContainer = document.getElementById('wktBatsmanChips');
-  if(!chipContainer) return;
-  chipContainer.innerHTML = '';
+  var dd = document.getElementById('wktNewBatsmanSelect');
+  if(!dd) return;
+  dd.innerHTML = '<option value="">-- Select from squad --</option>';
 
   var squad = [];
   var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
@@ -1661,39 +1663,18 @@ function populateWicketBatsmanChips(){
     }
   }
 
-  if(available.length === 0){
-    chipContainer.innerHTML = '<span style="font-size:11px;color:var(--muted);font-style:italic;">No squad players available. Type a new name below.</span>';
-    return;
-  }
-
   available.forEach(function(p){
-    var chip = document.createElement('button');
-    chip.type = 'button';
-    chip.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid var(--card-border);color:var(--text);padding:6px 12px;border-radius:16px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;transition:.15s;';
-    chip.textContent = '👤 ' + p;
-    chip.onclick = function(){
-      chipContainer.querySelectorAll('button').forEach(function(c){
-        c.style.background = 'rgba(255,255,255,.06)';
-        c.style.borderColor = 'var(--card-border)';
-        c.style.color = 'var(--text)';
-        c.dataset.selected = '';
-      });
-      chip.style.background = 'var(--grad-primary)';
-      chip.style.borderColor = 'transparent';
-      chip.style.color = '#fff';
-      chip.dataset.selected = 'true';
-      document.getElementById('wktNewBatsmanInput').value = '';
-    };
-    chipContainer.appendChild(chip);
+    dd.innerHTML += '<option value="' + p + '">' + p + '</option>';
   });
 
+  // If user picks from dropdown, clear the typed input
+  dd.onchange = function(){
+    if(dd.value) document.getElementById('wktNewBatsmanInput').value = '';
+  };
+
+  // If user types a name, reset the dropdown
   document.getElementById('wktNewBatsmanInput').oninput = function(){
-    chipContainer.querySelectorAll('button').forEach(function(c){
-      c.style.background = 'rgba(255,255,255,.06)';
-      c.style.borderColor = 'var(--card-border)';
-      c.style.color = 'var(--text)';
-      c.dataset.selected = '';
-    });
+    dd.value = '';
   };
 }
 
@@ -3542,13 +3523,10 @@ function confirmWicketDelivery(){
     fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
   }
 
-  // Capture new batter selection
-  var newBatter = document.getElementById('wktNewBatsmanInput').value.trim();
-  if(!newBatter){
-    document.querySelectorAll('#wktBatsmanChips button').forEach(function(c){
-      if(c.dataset.selected === 'true') newBatter = c.textContent.replace('👤 ','').trim();
-    });
-  }
+  // Capture new batter: prefer typed name, fall back to dropdown
+  var typed = document.getElementById('wktNewBatsmanInput').value.trim();
+  var selected = document.getElementById('wktNewBatsmanSelect').value;
+  var newBatter = typed || selected;
 
   // Suppress the auto-watcher so it doesn't open a second modal
   window.__suppressNextBatsmanModal = true;
