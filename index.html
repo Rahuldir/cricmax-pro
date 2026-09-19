@@ -788,7 +788,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.body.classList.add('viewer-mode');
   document.getElementById('headerSubTitle').innerText='📺 Viewer Mode';
   setTimeout(()=>{if(typeof vppStart==='function')vppStart();},400);
-}
+}}
   const s=localStorage.getItem('CricMax_Data');
   if(s){try{const p=JSON.parse(s);
     currentTourn=p.currentTourn||null;currentTournId=p.currentTournId||null;
@@ -2373,6 +2373,150 @@ document.addEventListener('keydown',e=>{
   else if(k==='u'||k==='U')undoDelivery();
   else if(k==='s'||k==='S')openSettingsModal();
 });
+/* === VPP VIEWER === */
+let vppOn=false,vppRAF=null,vppShot=null,vppBg=null;
+function vppStart(){
+  vppOn=true;
+  var el=document.getElementById('vpp');
+  if(!el){console.warn('VPP: no #vpp element');return;}
+  el.classList.add('on');
+  var tb=document.querySelector('.top-bar');if(tb)tb.style.display='none';
+  var bn=document.querySelector('.bottom-match-nav');if(bn)bn.style.display='none';
+  var h=document.getElementById('view-home');if(h)h.style.display='none';
+  var d=document.getElementById('view-dashboard');if(d)d.style.display='none';
+  vppFit();vppScore();vppBalls();
+  window.addEventListener('resize',vppFit);
+  vppIdle();
+}
+function vppFit(){
+  var cv=document.getElementById('vppCv');if(!cv)return;
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;cv.dataset.dpr=dpr;
+  vppBg=null;if(vppRAF){cancelAnimationFrame(vppRAF);vppRAF=null;}
+  vppIdle();
+}
+function vppMakeBg(W,H,fcx,fcy,R){
+  var c=document.createElement('canvas');c.width=W;c.height=H;
+  var x=c.getContext('2d');
+  var sg=x.createLinearGradient(0,0,0,H*0.6);
+  sg.addColorStop(0,'#000308');sg.addColorStop(0.5,'#050b1c');sg.addColorStop(1,'#0a1e14');
+  x.fillStyle=sg;x.fillRect(0,0,W,H*0.7);
+  var tiers=['#040812','#0a1020','#141b30','#1c2338'];
+  for(var i=0;i<4;i++){var r=R*(1.9-i*0.22);x.fillStyle=tiers[i];x.beginPath();x.ellipse(fcx,fcy,r,r*1.02,0,0,Math.PI*2);x.fill();}
+  x.save();x.beginPath();x.ellipse(fcx,fcy,R*1.85,R*1.9,0,0,Math.PI*2);x.ellipse(fcx,fcy,R*1.02,R*1.05,0,0,Math.PI*2);x.clip('evenodd');
+  var pal=['#e5534b','#e8b04a','#48a8c4','#9b6dd0','#4eb87a','#d9629e','#dcc24a','#5f7fd9'];
+  var s=12345;var rng=function(){s=(s*9301+49297)%233280;return s/233280;};
+  for(var j=0;j<2000;j++){var a=rng()*Math.PI*2;var rr=R*(1.05+rng()*0.78);var px=fcx+Math.cos(a)*rr;var py=fcy+Math.sin(a)*rr*1.02;x.fillStyle=pal[Math.floor(rng()*pal.length)];x.globalAlpha=0.5+rng()*0.4;x.fillRect(px,py,2,2);}
+  x.globalAlpha=1;x.restore();
+  var fg=x.createRadialGradient(fcx,fcy-R*0.2,R*0.05,fcx,fcy,R*1.02);
+  fg.addColorStop(0,'#3a7c47');fg.addColorStop(0.5,'#2a6a35');fg.addColorStop(1,'#0f3718');
+  x.fillStyle=fg;x.beginPath();x.ellipse(fcx,fcy,R,R*1.04,0,0,Math.PI*2);x.fill();
+  x.strokeStyle='rgba(255,255,255,0.85)';x.lineWidth=2.5;x.beginPath();x.ellipse(fcx,fcy,R*0.97,R*1.01,0,0,Math.PI*2);x.stroke();
+  x.strokeStyle='rgba(255,255,255,0.22)';x.lineWidth=1.4;x.setLineDash([8,6]);x.beginPath();x.ellipse(fcx,fcy,R*0.58,R*0.6,0,0,Math.PI*2);x.stroke();x.setLineDash([]);
+  var pwT=R*0.15,pwB=R*0.22,ph=R*0.76,pyT=fcy-ph/2,pyB=fcy+ph/2;
+  x.beginPath();x.moveTo(fcx-pwT/2,pyT);x.lineTo(fcx+pwT/2,pyT);x.lineTo(fcx+pwB/2,pyB);x.lineTo(fcx-pwB/2,pyB);x.closePath();
+  var pg=x.createLinearGradient(0,pyT,0,pyB);pg.addColorStop(0,'rgba(200,170,130,0.55)');pg.addColorStop(0.5,'rgba(220,190,150,0.7)');pg.addColorStop(1,'rgba(200,170,130,0.55)');
+  x.fillStyle=pg;x.fill();
+  x.strokeStyle='rgba(255,255,255,0.4)';x.lineWidth=1.2;x.stroke();
+  return c;
+}
+function vppDraw(t,shot){
+  var cv=document.getElementById('vppCv');if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.setTransform(1,0,0,1,0,0);
+  var fcx=W/2,fcy=H*0.6,R=Math.min(W*0.42,H*0.32);
+  if(!vppBg||vppBg.width!==W)vppBg=vppMakeBg(W,H,fcx,fcy,R);
+  ctx.drawImage(vppBg,0,0);
+  var ph=R*0.76,pyT=fcy-ph/2,pyB=fcy+ph/2;
+  var batX=fcx,batY=pyB-ph*0.15,bwY=pyT-ph*0.3,bS=1,bX=null,bY=null;
+  if(t&&shot){
+    if(t<500){bwY=pyT-ph*0.85+(pyT-ph*0.3-(pyT-ph*0.85))*(t/500);bX=fcx+R*0.02;bY=bwY-R*0.02;bS=0.9;}
+    else if(t<900){bwY=pyT-ph*0.3;var p=(t-500)/400;bX=fcx+(batX-fcx)*p;bY=bwY+(batY-bwY)*p;}
+    else if(t<1200){bX=batX;bY=batY;}
+    else if(t<1900){var p2=(t-1200)/700;var ang=shot.zoneIndex>=0?(shot.zoneIndex*Math.PI/4):(Math.PI*0.65);var dist=R*0.95*Math.min(1,p2*1.4);bX=fcx+Math.cos(ang)*dist;bY=fcy+Math.sin(ang)*dist;if(shot.isSix)bY-=Math.sin(p2*Math.PI)*R*0.25;}
+  }
+  if(shot&&shot.zoneIndex>=0&&t>1100){
+    var ang2=shot.zoneIndex*Math.PI/4;
+    var col=shot.isSix?'#d946ef':(shot.isFour?'#22d3ee':'#94a3b8');
+    ctx.strokeStyle=col;ctx.lineWidth=shot.isBoundary?2.5:1.3;ctx.shadowColor=col;ctx.shadowBlur=shot.isBoundary?14:0;
+    ctx.beginPath();ctx.moveTo(fcx,fcy);ctx.lineTo(fcx+Math.cos(ang2)*R*0.95,fcy+Math.sin(ang2)*R*0.95);ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+  ctx.fillStyle='#00e676';ctx.shadowColor='#00e676';ctx.shadowBlur=14;
+  ctx.beginPath();ctx.arc(fcx,bwY,R*0.028,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#22d3ee';ctx.shadowColor='#22d3ee';
+  ctx.beginPath();ctx.arc(batX,batY,R*0.028,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  if(bX!==null){
+    var br=R*0.021*bS;
+    var bg=ctx.createRadialGradient(bX-br*0.3,bY-br*0.3,0,bX,bY,br);
+    bg.addColorStop(0,'#ff3333');bg.addColorStop(0.6,'#c00');bg.addColorStop(1,'#500');
+    ctx.fillStyle=bg;ctx.beginPath();ctx.arc(bX,bY,br,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(bX,bY,br*0.7,0,Math.PI*2);ctx.stroke();
+  }
+  if(shot&&shot.isWicket&&t>900&&t<1900){
+    var a=1-(t-900)/1000;
+    ctx.fillStyle='rgba(239,68,68,'+(a*0.7)+')';
+    ctx.beginPath();ctx.arc(batX,batY,R*0.15*(1-a*0.5),0,Math.PI*2);ctx.fill();
+  }
+}
+function vppIdle(){if(!vppOn)return;if(vppRAF)cancelAnimationFrame(vppRAF);vppRAF=requestAnimationFrame(function l(){vppDraw(0,null);vppRAF=requestAnimationFrame(l);});}
+function vppBall(shot){
+  if(!vppOn)return;if(vppRAF)cancelAnimationFrame(vppRAF);
+  vppShot=shot;var start=performance.now();
+  function l(now){var t=now-start;vppDraw(t,shot);if(t<1900)vppRAF=requestAnimationFrame(l);else{vppRAF=null;setTimeout(vppIdle,80);}}
+  vppRAF=requestAnimationFrame(l);
+  setTimeout(function(){vppShowAnim(shot);},1000);
+}
+function vppShowAnim(shot){
+  var el=document.getElementById('vppAnim');if(!el)return;
+  var txt='',cls='run';
+  if(shot.isWicket){txt='WICKET!';cls='wkt';}
+  else if(shot.isSix){txt='SIX!';cls='six';}
+  else if(shot.isFour){txt='FOUR!';cls='four';}
+  else if(shot.extra==='WD'){txt='WIDE';cls='run';}
+  else if(shot.extra==='NB'){txt='NO BALL';cls='run';}
+  else if(shot.runs===0){txt='DOT BALL';cls='dot';}
+  else if(shot.runs===1){txt='1 RUN';cls='run';}
+  else{txt=shot.runs+' RUNS';cls='run';}
+  el.innerText=txt;el.className='vpp-anim '+cls+' on';
+  setTimeout(function(){el.className='vpp-anim';},2300);
+}
+function vppScore(){
+  if(!match||!match.teamBatting)return;
+  var ov=Math.floor(match.legalBalls/6)+'.'+(match.legalBalls%6);
+  var crr=match.legalBalls>0?(match.runs/(match.legalBalls/6)).toFixed(2):'0.00';
+  var a=document.getElementById('vppT');if(a)a.innerText=match.teamBattingAbbr||match.teamBatting||'TEAM';
+  var b=document.getElementById('vppRun');if(b)b.innerText=match.runs+'/'+match.wickets;
+  var c=document.getElementById('vppOv');if(c)c.innerText='('+ov+')';
+  var d=document.getElementById('vppCrr');if(d)d.innerText=crr;
+  var st=match.batters[match.striker]||{runs:0,balls:0};
+  var ns=match.batters[match.nonStriker]||{runs:0,balls:0};
+  var e=document.getElementById('vppSt');if(e)e.innerText=match.striker||'-';
+  var f=document.getElementById('vppStR');if(f)f.innerText=st.runs+'('+st.balls+')';
+  var g=document.getElementById('vppNs');if(g)g.innerText=match.nonStriker||'-';
+  var h=document.getElementById('vppNsR');if(h)h.innerText=ns.runs+'('+ns.balls+')';
+  var bw=match.bowlers[match.currentBowler]||{balls:0,maidens:0,runs:0,wickets:0};
+  var i=document.getElementById('vppBw');if(i)i.innerText=match.currentBowler||'-';
+  var j=document.getElementById('vppBwF');if(j)j.innerText=Math.floor(bw.balls/6)+'.'+(bw.balls%6)+'-'+bw.maidens+'-'+bw.runs+'-'+bw.wickets;
+  var cp=match.currentPartnership||{runs:0,balls:0};
+  var k=document.getElementById('vppPs');if(k)k.innerHTML='Partnership <b>'+cp.runs+' ('+(cp.balls||0)+'b)</b>';
+}
+function vppBalls(){
+  var c=document.getElementById('vppStrip');if(!c)return;
+  var recent=(match.recentBalls||[]).slice(-6);c.innerHTML='';
+  for(var i=0;i<6;i++){
+    var it=document.createElement('i');var b=recent[i];
+    if(b){it.innerText=b;if(b==='W'||b.indexOf('W')>=0)it.className='wkt';else if(b==='4')it.className='four';else if(b==='6')it.className='six';else if(!isNaN(parseInt(b)))it.className='run';}
+    else it.innerText='–';
+    c.appendChild(it);
+  }
+}
+function vppSound(){isCommentaryVoiceActive=!isCommentaryVoiceActive;if(speechSynth&&!isCommentaryVoiceActive){try{speechSynth.cancel();}catch(e){}}}
+function vppReplay(){if(!vppShot)return;vppBall(vppShot);}
+function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenElement){if(el.requestFullscreen)el.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();}}
+/* === END VPP === */
 </script>
 </body>
 </html>
