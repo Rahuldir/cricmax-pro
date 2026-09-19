@@ -2524,7 +2524,79 @@ document.addEventListener('keydown',e=>{
 (function(){
   'use strict';
   var vppOn=false, vppRAF=null, vppShot=null, vppBg=null, vppSnd=true, vppView='broadcast';
-  var lastSeenBallCount=0, vppBallTrack=[], vppCameraX=0, vppCameraY=0;
+  var lastSeenBallCount=0;
+
+  function vppIdle(){
+    if(!vppOn) return;
+    if(vppRAF) cancelAnimationFrame(vppRAF);
+    vppRAF=requestAnimationFrame(function loop(){
+      draw(0, null);
+      vppRAF=requestAnimationFrame(loop);
+    });
+  }
+
+  function vppScore(){
+    var m = window.match;
+    if(!m || !m.teamBatting) return;
+    var ov = Math.floor(m.legalBalls/6)+'.'+(m.legalBalls%6);
+    var crr = m.legalBalls>0 ? (m.runs/(m.legalBalls/6)).toFixed(2) : '0.00';
+    var el;
+    
+    // TV Scorecard Update
+    el=document.getElementById('vppTvTeam1'); if(el) el.innerText=m.teamBattingAbbr||m.teamBatting||'TEAM';
+    el=document.getElementById('vppTvScore1'); if(el) el.innerText=m.runs+'-'+m.wickets;
+    el=document.getElementById('vppTvOvers1'); if(el) el.innerText='('+ov+')';
+    el=document.getElementById('vppTvCrr'); if(el) el.innerText=crr;
+    
+    var st=m.batters[m.striker]||{runs:0,balls:0};
+    var ns=m.batters[m.nonStriker]||{runs:0,balls:0};
+    el=document.getElementById('vppTvStriker'); if(el) el.innerText=m.striker||'-';
+    el=document.getElementById('vppTvStrikerRuns'); if(el) el.innerText=st.runs+'('+st.balls+')';
+    el=document.getElementById('vppTvNonStriker'); if(el) el.innerText=m.nonStriker||'-';
+    el=document.getElementById('vppTvNonStrikerRuns'); if(el) el.innerText=ns.runs+'('+ns.balls+')';
+    
+    var bw=m.bowlers[m.currentBowler]||{balls:0,maidens:0,runs:0,wickets:0};
+    el=document.getElementById('vppTvBowler'); if(el) el.innerText=m.currentBowler||'-';
+    el=document.getElementById('vppTvBowlerFigs');
+    if(el) el.innerText=Math.floor(bw.balls/6)+'.'+(bw.balls%6)+'-'+bw.maidens+'-'+bw.runs+'-'+bw.wickets;
+    
+    // Phase Update
+    var ovNum=Math.floor(m.legalBalls/6);
+    var phEl=document.getElementById('vppPhase');
+    if(phEl){
+      var label='POWERPLAY', col='#fbbf24';
+      if(m.totalOvers<=20){
+        if(ovNum>=15){ label='DEATH OVERS'; col='#ef4444'; }
+        else if(ovNum>=6){ label='MIDDLE'; col='#22d3ee'; }
+      } else {
+        if(ovNum>=m.totalOvers*0.75){ label='DEATH OVERS'; col='#ef4444'; }
+        else if(ovNum>=m.totalOvers*0.3){ label='MIDDLE'; col='#22d3ee'; }
+      }
+      phEl.innerText=label;
+      phEl.style.color=col;
+      phEl.style.borderColor=col;
+    }
+  }
+
+  function vppBalls(){
+    var m = window.match;
+    var c=document.getElementById('vppStrip');
+    if(!c || !m) return;
+    var recent=(m.recentBalls||[]).slice(-6);
+    c.innerHTML='';
+    for(var i=0;i<6;i++){
+      var it=document.createElement('i');
+      var b=recent[i];
+      if(b){
+        it.innerText=b;
+        if(b==='W'||b.indexOf('W')>=0) it.className='wkt';
+        else if(b==='4') it.className='four';
+        else if(b==='6') it.className='six';
+        else if(!isNaN(parseInt(b))) it.className='run';
+      } else it.innerText='–';
+      c.appendChild(it);
+    }
+  }
 
   function ready(){
     var cv=document.getElementById('vppCv');
@@ -2549,8 +2621,8 @@ document.addEventListener('keydown',e=>{
     var h=document.getElementById('view-home'); if(h)h.style.display='none';
     var d=document.getElementById('view-dashboard'); if(d)d.style.display='none';
     ready();
-    vppUpdateScore();
-    vppUpdateBalls();
+    vppScore();
+    vppBalls();
   };
 
   window.vppSetView=function(v){
@@ -3002,15 +3074,6 @@ document.addEventListener('keydown',e=>{
     }
   }
 
-  function idle(){
-    if(!vppOn) return;
-    if(vppRAF) cancelAnimationFrame(vppRAF);
-    vppRAF=requestAnimationFrame(function loop(){
-      draw(0, null);
-      vppRAF=requestAnimationFrame(loop);
-    });
-  }
-
   function playBall(shot){
     if(!vppOn) return;
     if(vppRAF) cancelAnimationFrame(vppRAF);
@@ -3020,7 +3083,7 @@ document.addEventListener('keydown',e=>{
       var t=now-start;
       draw(t, shot);
       if(t<1900) vppRAF=requestAnimationFrame(loop);
-      else { vppRAF=null; setTimeout(idle, 80); }
+      else { vppRAF=null; setTimeout(vppIdle, 80); }
     }
     vppRAF=requestAnimationFrame(loop);
     setTimeout(function(){ showAnim(shot); }, 1000);
@@ -3041,69 +3104,6 @@ document.addEventListener('keydown',e=>{
     el.innerText=txt;
     el.className='vpp-anim '+cls+' on';
     setTimeout(function(){ el.className='vpp-anim'; }, 2300);
-  }
-
-  function updateScore(){
-    var m = window.match;
-    if(!m || !m.teamBatting) return;
-    var ov = Math.floor(m.legalBalls/6)+'.'+(m.legalBalls%6);
-    var crr = m.legalBalls>0 ? (m.runs/(m.legalBalls/6)).toFixed(2) : '0.00';
-    var el;
-    
-    // TV Scorecard Update
-    el=document.getElementById('vppTvTeam1'); if(el) el.innerText=m.teamBattingAbbr||m.teamBatting||'TEAM';
-    el=document.getElementById('vppTvScore1'); if(el) el.innerText=m.runs+'-'+m.wickets;
-    el=document.getElementById('vppTvOvers1'); if(el) el.innerText='('+ov+')';
-    el=document.getElementById('vppTvCrr'); if(el) el.innerText=crr;
-    
-    var st=m.batters[m.striker]||{runs:0,balls:0};
-    var ns=m.batters[m.nonStriker]||{runs:0,balls:0};
-    el=document.getElementById('vppTvStriker'); if(el) el.innerText=m.striker||'-';
-    el=document.getElementById('vppTvStrikerRuns'); if(el) el.innerText=st.runs+'('+st.balls+')';
-    el=document.getElementById('vppTvNonStriker'); if(el) el.innerText=m.nonStriker||'-';
-    el=document.getElementById('vppTvNonStrikerRuns'); if(el) el.innerText=ns.runs+'('+ns.balls+')';
-    
-    var bw=m.bowlers[m.currentBowler]||{balls:0,maidens:0,runs:0,wickets:0};
-    el=document.getElementById('vppTvBowler'); if(el) el.innerText=m.currentBowler||'-';
-    el=document.getElementById('vppTvBowlerFigs');
-    if(el) el.innerText=Math.floor(bw.balls/6)+'.'+(bw.balls%6)+'-'+bw.maidens+'-'+bw.runs+'-'+bw.wickets;
-    
-    // Phase Update
-    var ovNum=Math.floor(m.legalBalls/6);
-    var phEl=document.getElementById('vppPhase');
-    if(phEl){
-      var label='POWERPLAY', col='#fbbf24';
-      if(m.totalOvers<=20){
-        if(ovNum>=15){ label='DEATH OVERS'; col='#ef4444'; }
-        else if(ovNum>=6){ label='MIDDLE'; col='#22d3ee'; }
-      } else {
-        if(ovNum>=m.totalOvers*0.75){ label='DEATH OVERS'; col='#ef4444'; }
-        else if(ovNum>=m.totalOvers*0.3){ label='MIDDLE'; col='#22d3ee'; }
-      }
-      phEl.innerText=label;
-      phEl.style.color=col;
-      phEl.style.borderColor=col;
-    }
-  }
-
-  function updateBalls(){
-    var m = window.match;
-    var c=document.getElementById('vppStrip');
-    if(!c || !m) return;
-    var recent=(m.recentBalls||[]).slice(-6);
-    c.innerHTML='';
-    for(var i=0;i<6;i++){
-      var it=document.createElement('i');
-      var b=recent[i];
-      if(b){
-        it.innerText=b;
-        if(b==='W'||b.indexOf('W')>=0) it.className='wkt';
-        else if(b==='4') it.className='four';
-        else if(b==='6') it.className='six';
-        else if(!isNaN(parseInt(b))) it.className='run';
-      } else it.innerText='–';
-      c.appendChild(it);
-    }
   }
 
   // TV Innings Break Summary
@@ -3168,6 +3168,11 @@ document.addEventListener('keydown',e=>{
     else { if(document.exitFullscreen) document.exitFullscreen(); }
   };
 
+  // Expose internal functions to global scope so the main app can call them
+  window.vppIdle = vppIdle;
+  window.vppScore = vppScore;
+  window.vppBalls = vppBalls;
+
   // Auto-activate if ?viewer=1
   var params=new URLSearchParams(location.search);
   if(params.get('viewer')==='1'){
@@ -3177,8 +3182,8 @@ document.addEventListener('keydown',e=>{
   // Watch for new balls every 500ms
   setInterval(function(){
     if(!vppOn) return;
-    updateScore();
-    updateBalls();
+    vppScore();
+    vppBalls();
     var m=window.match;
     if(m && m.shotLog && m.shotLog.length > lastSeenBallCount){
       var last=m.shotLog[m.shotLog.length-1];
