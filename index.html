@@ -3223,5 +3223,44 @@ setInterval(function() {
   }
 }, 1000);
 </script>
+<script>
+// ==========================================
+// VIEWER BUTTON HANDLERS (Sound/Replay/Fullscreen)
+// ==========================================
+window.vppToggleSound = function(){
+  var iframe = document.getElementById('vppIframe');
+  if(iframe && iframe.contentWindow){
+    if(typeof iframe.contentWindow.toggleViewerSound === 'function') {
+      iframe.contentWindow.toggleViewerSound();
+    }
+  }
+  if(typeof isCommentaryVoiceActive !== 'undefined') {
+    isCommentaryVoiceActive = !isCommentaryVoiceActive;
+    if(typeof speak === 'function' && typeof primeSpeech === 'function' && isCommentaryVoiceActive) {
+      primeSpeech();
+    }
+    var b = document.getElementById('vppSnd');
+    if(b) b.innerText = isCommentaryVoiceActive ? '🔊' : '🔇';
+  }
+};
+
+window.vppReplay = function(){
+  var iframe = document.getElementById('vppIframe');
+  if(iframe && iframe.contentWindow && typeof iframe.contentWindow.replayLastBall === 'function'){
+    iframe.contentWindow.replayLastBall();
+  }
+};
+
+window.vppFullscreen = function(){
+  var el = document.getElementById('vpp');
+  if(!document.fullscreenElement){
+    if(el.requestFullscreen) el.requestFullscreen();
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } else {
+    if(document.exitFullscreen) document.exitFullscreen();
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
+};
+</script>
 </body>
 </html>
