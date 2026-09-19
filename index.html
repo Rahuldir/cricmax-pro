@@ -6,7 +6,6 @@
 <title>CricMax Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script type="module" src="firebase-config.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -347,7 +346,9 @@
     </div>
     <div class="form-group">
       <label>Team 1 *</label>
-      <select id="t1Dropdown" class="form-control" onchange="onTeamDropdownChange(1)"><option value="">-- Select from saved teams --</option></select>
+      <select id="t1Dropdown" class="form-control" onchange="onTeamDropdownChange(1)">
+        <option value="">-- Select from saved teams --</option>
+      </select>
     </div>
     <div class="form-group">
       <label style="color:var(--purple);">➕ Or Add New Team 1</label>
@@ -355,7 +356,9 @@
     </div>
     <div class="form-group" style="margin-top:16px;border-top:1px solid var(--card-border);padding-top:14px;">
       <label>Team 2 *</label>
-      <select id="t2Dropdown" class="form-control" onchange="onTeamDropdownChange(2)"><option value="">-- Select from saved teams --</option></select>
+      <select id="t2Dropdown" class="form-control" onchange="onTeamDropdownChange(2)">
+        <option value="">-- Select from saved teams --</option>
+      </select>
     </div>
     <div class="form-group">
       <label style="color:var(--purple);">➕ Or Add New Team 2</label>
@@ -379,7 +382,10 @@
 <div class="modal-overlay" id="wicketTypeModal">
   <div class="modal-card">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
-      <div><h3 style="font-size:16px;font-weight:900;color:var(--red);">🚨 WICKET!</h3><p style="font-size:11px;color:var(--muted);margin-top:2px;">Dismissal & new batter</p></div>
+      <div>
+        <h3 style="font-size:16px;font-weight:900;color:var(--red);">🚨 WICKET!</h3>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">Dismissal & new batter</p>
+      </div>
       <button class="btn-ui" onclick="closeModal('wicketTypeModal')">✕</button>
     </div>
     <div class="form-group">
@@ -399,7 +405,9 @@
     </div>
     <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
       <label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label>
-      <select id="wktNewBatsmanSelect" class="form-control" style="margin-bottom:6px;"><option value="">-- Select from squad --</option></select>
+      <select id="wktNewBatsmanSelect" class="form-control" style="margin-bottom:6px;">
+        <option value="">-- Select from squad --</option>
+      </select>
       <input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type new batter name">
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
@@ -412,6 +420,19 @@
 <div class="modal-overlay" id="i2Modal"><div class="modal-card"><h3 style="margin-bottom:6px;font-size:16px;color:var(--green);">2nd Innings Setup</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;" id="i2Subtitle"></p><div class="form-group"><label>Striker *</label><select id="i2Striker" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2StrikerNew').value=this.value"></select><input type="text" id="i2StrikerNew" class="form-control" placeholder="Or type new name"></div><div class="form-group"><label>Non-Striker *</label><select id="i2NonStriker" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2NonStrikerNew').value=this.value"></select><input type="text" id="i2NonStrikerNew" class="form-control" placeholder="Or type new name"></div><div class="form-group"><label>Opening Bowler *</label><select id="i2Bowler" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2BowlerNew').value=this.value"></select><input type="text" id="i2BowlerNew" class="form-control" placeholder="Or type new name"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;"><button class="btn-ui" onclick="closeModal('i2Modal')">Cancel</button><button class="btn-ui btn-primary" onclick="beginSecondInnings()">▶ Start 2nd Innings</button></div></div></div>
 
 <div class="modal-overlay" id="resultModal"><div class="modal-card" style="text-align:center;"><div style="font-size:60px;margin-bottom:8px;">🏆</div><div style="font-size:24px;font-weight:900;color:var(--gold);margin-bottom:4px;" id="resultWinner">Winner</div><div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="resultMargin"></div><div id="resultScores"></div><div style="margin-top:16px;"><button class="btn-ui btn-primary" onclick="closeModal('resultModal')">Close</button></div></div></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  const firebaseConfig = {apiKey:"AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",authDomain:"cricket-8cb1b.firebaseapp.com",projectId:"cricket-8cb1b",storageBucket:"cricket-8cb1b.firebasestorage.app",messagingSenderId:"489545634269",appId:"1:489545634269:web:2eaadaa0cee4e88270e634",measurementId:"G-HBFFJTJWG2"};
+  try{
+    const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getFirestore(app);
+    window.fbAuth=auth;window.fbDb=db;window.fbDoc=doc;window.fbSetDoc=setDoc;window.fbGetDoc=getDoc;
+    window.fbOnSnapshot=onSnapshot;window.fbSignInAnonymously=signInAnonymously;window.fbOnAuthStateChanged=onAuthStateChanged;
+    window.firebaseReady=false;console.log("🔥 Firebase SDK initialized");
+  }catch(e){console.error("Firebase init failed:",e);}
+</script>
 
 <script src="app.js"></script>
 <script src="viewer-bridge.js"></script>
