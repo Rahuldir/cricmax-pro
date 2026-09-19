@@ -2199,7 +2199,7 @@ if(document.readyState==='loading'){
 }else{
   setTimeout(upgradeSettingsDropdowns,300);
 }
-
+ document.addEventListener('keydown',e=>{
   if(!match.isActive||isViewerMode)return;
   const k=e.key;
   if(['0','1','2','3','4','6'].includes(k)){const r=parseInt(k);if(r===0)recordBall(0);else promptWagonWheel(r);}
