@@ -878,6 +878,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     pastMatchesLedger=p.pastMatchesLedger||[];bowlerTypeMap=p.bowlerTypeMap||{};
     if(p.matchConfig)matchConfig=Object.assign({},DEFAULT_CONFIG,p.matchConfig);
     if(!isViewerMode)match=p.match||emptyMatch();
+    window.match = match;
     matchCode=p.matchCode||(p.match&&p.match.shareCode)||'';
     if(!match.shotLog)match.shotLog=[];
     if(!match.innings1PartnerRuns)match.innings1PartnerRuns=[];
@@ -1015,12 +1016,17 @@ function subscribeToMatch(code){
   viewerUnsubscribe=window.fbOnSnapshot(docRef,(snap)=>{
     if(!snap.exists())return;
     const data=snap.data();
-    if(data&&data.matchState){applyViewerState(data.matchState);showLiveViewerPulse();}
+    if(data&&data.matchState){
+      window.match = data.matchState; // CRITICAL: Expose to iframe viewer
+      applyViewerState(data.matchState);
+      showLiveViewerPulse();
+    }
   },(err)=>console.error('Firestore sub error:',err));
 }
 function applyViewerState(newMatch){
   if(!newMatch||!newMatch.teamBatting)return;
   match=newMatch;
+  window.match = match;
   // ✅ CRITICAL FIX: Expose match to the global window so the Viewer script can read it
   window.match = match;
   
@@ -3261,6 +3267,36 @@ window.vppFullscreen = function(){
     else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
   }
 };
+</script>
+<script>
+// ==========================================
+// GLOBAL MATCH EXPOSER (For 3D Viewer)
+// ==========================================
+// This script exposes the match state to window.match so the iframe can read it.
+// It runs every 500ms and keeps window.match in sync automatically.
+
+setInterval(function(){
+  try {
+    // 'match' is declared with let/var in your main script - check if it exists
+    if (typeof match !== 'undefined' && match !== null) {
+      window.match = match;
+    }
+  } catch(e) {
+    // Silent fail - 'match' not defined yet
+  }
+  
+  // Also expose isViewerMode if it exists
+  try {
+    if (typeof isViewerMode !== 'undefined') {
+      window.isViewerMode = isViewerMode;
+    }
+  } catch(e) {}
+}, 500);
+
+// Immediate first-time set (before interval kicks in)
+setTimeout(function(){
+  try { if (typeof match !== 'undefined') window.match = match; } catch(e){}
+}, 100);
 </script>
 </body>
 </html>
