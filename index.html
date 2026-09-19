@@ -870,10 +870,18 @@ function broadcastMatchState(){if(!broadcastChannel)return;try{broadcastChannel.
 /* ============ SHARE ============ */
 function shareViewerOnly(){
   try{
+    const h=(location.hostname||'').toLowerCase();
+    const isPreview=h.includes('deepseek')||h.includes('localhost')||h.includes('127.0.0.1')||h===''||location.protocol==='file:';
+    if(isPreview){
+      showToast('⚠️ Sharing only works on your deployed app (Vercel). Open your Vercel URL to share.',6000);
+      // Still copy for convenience, but user is warned
+    }
     let url=location.origin+location.pathname+'?viewer=1';
     if(matchCode)url+='&code='+matchCode;
     if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(url).then(()=>showToast('✅ Viewer link copied!'+(matchCode?'  •  Code: '+matchCode:''))).catch(()=>fallbackCopy(url));
+      navigator.clipboard.writeText(url).then(()=>{
+        if(!isPreview)showToast('✅ Viewer link copied!'+(matchCode?'  •  Code: '+matchCode:''));
+      }).catch(()=>fallbackCopy(url));
     }else fallbackCopy(url);
   }catch(e){console.error('Share error:',e);showToast('⚠️ Unable to share.');}
 }
@@ -1599,6 +1607,13 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
     match.runs+=nbBase+runs;bowler.runs+=nbBase+runs;
     const totalNB=(nbBase+runs);tag=totalNB>1?`${totalNB}Nb`:`${nbBase}Nb`;
     if(matchConfig.autoFreeHitOnNB)match.isFreeHit=true;
+    // ✅ FIX: Credit runs scored off the bat to the striker (cricket rules).
+    // Balls faced is NOT incremented (no-ball is not a legal ball for over count).
+    if(runs>0 && striker){
+      striker.runs = (striker.runs||0) + runs;
+      if(runs===4) striker.fours = (striker.fours||0) + 1;
+      if(runs===6) striker.sixes = (striker.sixes||0) + 1;
+    }
   } else if(extra==='B'){
     match.runs+=runs;match.legalBalls+=1;bowler.balls+=1;striker.balls+=1;
     tag=`${runs}B`;if(runs%2!==0)swapStrikers();
