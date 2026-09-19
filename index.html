@@ -753,8 +753,45 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 
 <div class="modal-overlay" id="wagonModal"><div class="modal-card" style="text-align:center;position:relative;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:6px;"><span id="wagonTitle">MARK SHOT</span><span style="font-size:11px;opacity:.6;">Tap field</span></div><div style="position:relative;display:inline-block;"><canvas id="wagonCanvas" width="280" height="280"></canvas><div id="wagonFlashOverlay" class="wagon-flash-overlay"><div class="flash-title" id="flashOverlayTitle">CRACKING FOUR</div><div class="flash-subtitle" id="flashOverlaySub">Boundary Flash</div></div></div><div id="wagonFeedback" style="font-size:12px;font-weight:700;color:var(--muted);min-height:18px;margin-top:6px;">Tap field to place shot</div><div id="wagonBoundaryBanner" class="wagon-boundary-banner"><div class="banner-text-main" id="wagonBannerMainText">CRACKING FOUR!</div><div class="banner-text-sub" id="wagonBannerSubText">Pierces the Boundary Rope</div></div></div></div>
 
-<div class="modal-overlay" id="wicketTypeModal"><div class="modal-card"><h3 style="margin-bottom:6px;font-size:16px;color:var(--red);">Wicket Type</h3><div class="form-group"><label>Dismissal Method</label><select id="wktMethodSelect" class="form-control" onchange="handleWicketMethodChange(this.value)"><option value="Bowled">Bowled</option><option value="Caught">Caught</option><option value="Run Out">Run Out</option><option value="Stumped">Stumped</option><option value="LBW">LBW</option><option value="Hit Wicket">Hit Wicket</option></select></div><div class="form-group" id="fielderGroup" style="display:none;"><label id="fielderLabel">Fielder</label><input type="text" id="fielderCustomInput" class="form-control" placeholder="Fielder name"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;"><button class="btn-ui" onclick="closeModal('wicketTypeModal')">Cancel</button><button class="btn-ui btn-primary" onclick="confirmWicketDelivery()">Confirm 🚨</button></div></div></div>
+<div class="modal-overlay" id="wicketTypeModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:900;color:var(--red);">🚨 WICKET!</h3>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">Dismissal & new batter</p>
+      </div>
+      <button class="btn-ui" onclick="closeModal('wicketTypeModal')">✕</button>
+    </div>
 
+    <div class="form-group">
+      <label>Dismissal Method</label>
+      <select id="wktMethodSelect" class="form-control" onchange="handleWicketMethodChange(this.value)">
+        <option value="Bowled">Bowled</option>
+        <option value="Caught">Caught</option>
+        <option value="Run Out">Run Out</option>
+        <option value="Stumped">Stumped</option>
+        <option value="LBW">LBW</option>
+        <option value="Hit Wicket">Hit Wicket</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="fielderGroup" style="display:none;">
+      <label id="fielderLabel">Fielder</label>
+      <input type="text" id="fielderCustomInput" class="form-control" placeholder="Fielder name">
+    </div>
+
+    <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
+      <label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label>
+      <div id="wktBatsmanChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+      <input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type a new batter name" style="margin-top:8px;">
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="closeModal('wicketTypeModal')">Cancel</button>
+      <button class="btn-ui btn-primary" onclick="confirmWicketDelivery()">Confirm 🚨</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="i2Modal"><div class="modal-card"><h3 style="margin-bottom:6px;font-size:16px;color:var(--green);">2nd Innings Setup</h3><p style="font-size:11px;color:var(--muted);margin-bottom:12px;" id="i2Subtitle"></p><div class="form-group"><label>Striker *</label><select id="i2Striker" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2StrikerNew').value=this.value"></select><input type="text" id="i2StrikerNew" class="form-control" placeholder="Or type new name"></div><div class="form-group"><label>Non-Striker *</label><select id="i2NonStriker" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2NonStrikerNew').value=this.value"></select><input type="text" id="i2NonStrikerNew" class="form-control" placeholder="Or type new name"></div><div class="form-group"><label>Opening Bowler *</label><select id="i2Bowler" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2BowlerNew').value=this.value"></select><input type="text" id="i2BowlerNew" class="form-control" placeholder="Or type new name"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;"><button class="btn-ui" onclick="closeModal('i2Modal')">Cancel</button><button class="btn-ui btn-primary" onclick="beginSecondInnings()">▶ Start 2nd Innings</button></div></div></div>
 
 <div class="modal-overlay" id="resultModal"><div class="modal-card" style="text-align:center;"><div style="font-size:60px;margin-bottom:8px;">🏆</div><div style="font-size:24px;font-weight:900;color:var(--gold);margin-bottom:4px;" id="resultWinner">Winner</div><div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="resultMargin"></div><div id="resultScores"></div><div style="margin-top:16px;"><button class="btn-ui btn-primary" onclick="closeModal('resultModal')">Close</button></div></div></div>
@@ -1591,19 +1628,75 @@ function buildPlayerCareerStats(playerName){
   career.bowlSR=career.wickets>0?(career.bowlBalls/career.wickets).toFixed(1):'—';
   return career;
 }
-
-/* ============ WICKET ============ */
-function promptWicketTypeModal(){if(!match.isActive||isViewerMode)return;handleWicketMethodChange("Bowled");document.getElementById('wktMethodSelect').value="Bowled";document.getElementById('fielderCustomInput').value='';document.getElementById('wicketTypeModal').style.display='flex';}
-function handleWicketMethodChange(m){const fg=document.getElementById('fielderGroup'),fl=document.getElementById('fielderLabel');if(m==='Caught'){fg.style.display='block';fl.innerText='Catching Fielder';}else if(m==='Run Out'){fg.style.display='block';fl.innerText='Run-Out Fielder';}else if(m==='Stumped'){fg.style.display='block';fl.innerText='Wicketkeeper';}else fg.style.display='none';}
-function confirmWicketDelivery(){const m=document.getElementById('wktMethodSelect').value;let f=document.getElementById('fielderCustomInput').value.trim();if(['Caught','Run Out','Stumped'].includes(m)&&!f)f=m==='Stumped'?'Wicketkeeper':'Fielder';closeModal('wicketTypeModal');recordBall(0,null,true,"",0,{method:m,fielder:f});}
-function promptNextBatterModal(out){
-  document.getElementById('dismissedNotice').innerText=`${out} out! Next batter?`;
-  const s=document.getElementById('existingBatterSelect');
-  s.innerHTML='<option value="">-- Squad --</option>';
-  for(const n in match.batters){if(match.batters[n].status==='dnb'&&n!==match.nonStriker)s.innerHTML+=`<option value="${n}">${n}</option>`;}
-  document.getElementById('newBatterNameInput').value='';
-  document.getElementById('nextBatterModal').style.display='flex';
+function promptWicketTypeModal(){
+  if(!match.isActive || isViewerMode) return;
+  handleWicketMethodChange("Bowled");
+  document.getElementById('wktMethodSelect').value = "Bowled";
+  document.getElementById('fielderCustomInput').value = '';
+  document.getElementById('wktNewBatsmanInput').value = '';
+  populateWicketBatsmanChips();
+  document.getElementById('wicketTypeModal').style.display = 'flex';
 }
+
+function populateWicketBatsmanChips(){
+  var chipContainer = document.getElementById('wktBatsmanChips');
+  if(!chipContainer) return;
+  chipContainer.innerHTML = '';
+
+  var squad = [];
+  var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
+  if(team && team.squad) squad = team.squad;
+
+  var available = [];
+  squad.forEach(function(p){
+    if(p === match.nonStriker || p === match.striker) return;
+    var b = match.batters[p];
+    if(b && b.status && b.status !== 'dnb' && b.status !== 'batting') return;
+    if(available.indexOf(p) === -1) available.push(p);
+  });
+
+  for(var k in match.batters){
+    if(match.batters[k].status === 'dnb' && k !== match.nonStriker && k !== match.striker && available.indexOf(k) === -1){
+      available.push(k);
+    }
+  }
+
+  if(available.length === 0){
+    chipContainer.innerHTML = '<span style="font-size:11px;color:var(--muted);font-style:italic;">No squad players available. Type a new name below.</span>';
+    return;
+  }
+
+  available.forEach(function(p){
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid var(--card-border);color:var(--text);padding:6px 12px;border-radius:16px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;transition:.15s;';
+    chip.textContent = '👤 ' + p;
+    chip.onclick = function(){
+      chipContainer.querySelectorAll('button').forEach(function(c){
+        c.style.background = 'rgba(255,255,255,.06)';
+        c.style.borderColor = 'var(--card-border)';
+        c.style.color = 'var(--text)';
+        c.dataset.selected = '';
+      });
+      chip.style.background = 'var(--grad-primary)';
+      chip.style.borderColor = 'transparent';
+      chip.style.color = '#fff';
+      chip.dataset.selected = 'true';
+      document.getElementById('wktNewBatsmanInput').value = '';
+    };
+    chipContainer.appendChild(chip);
+  });
+
+  document.getElementById('wktNewBatsmanInput').oninput = function(){
+    chipContainer.querySelectorAll('button').forEach(function(c){
+      c.style.background = 'rgba(255,255,255,.06)';
+      c.style.borderColor = 'var(--card-border)';
+      c.style.color = 'var(--text)';
+      c.dataset.selected = '';
+    });
+  };
+}
+
 function confirmNextBatter(){
   const t=document.getElementById('newBatterNameInput').value.trim();
   const s=document.getElementById('existingBatterSelect').value;
@@ -3300,108 +3393,268 @@ setTimeout(function(){
 </script>
 <script>
 // ==========================================
-// FOOLPROOF NEW BATSMAN AFTER WICKET FIX
+// NEW BATSMAN AFTER WICKET — Immediate Prompt
 // ==========================================
 
-// 1. Restore the missing "New Batsman" modal function
-function promptNextBatterModal(out){
-  if(!window.match || !window.match.isActive || window.isViewerMode) return;
-  const notice = document.getElementById('dismissedNotice');
-  if(notice) notice.innerText = (out || 'Batter') + ' out! Next batter?';
+function showNewBatsmanPicker(dismissedPlayer) {
+  if (!window.match || !window.match.isActive || window.isViewerMode) return;
   
-  const s = document.getElementById('existingBatterSelect');
-  if(!s) return;
+  var m = window.match;
+  var teamName = m.teamBatting;
+  var teamAbbr = m.teamBattingAbbr || 'BAT';
   
-  // Populate dropdown with available (dnb) batters from the squad
-  s.innerHTML = '<option value="">-- Squad --</option>';
-  for(const n in window.match.batters){
-    if(window.match.batters[n].status === 'dnb' && n !== window.match.nonStriker){
-      s.innerHTML += `<option value="${n}">${n}</option>`;
+  // Find the team's squad from savedTeams
+  var squad = [];
+  try {
+    if (typeof savedTeams !== 'undefined' && Array.isArray(savedTeams)) {
+      var team = savedTeams.find(function(t){ return t.name === teamName; });
+      if (team && team.squad) squad = team.squad;
+    }
+  } catch(e) {}
+  
+  // Filter out already dismissed players and current non-striker
+  var dismissed = [];
+  for (var k in m.batters) {
+    var status = (m.batters[k].status || '').toLowerCase();
+    if (status && status !== 'dnb' && status !== 'not out' && status !== 'retired not out' && status !== 'batting') {
+      dismissed.push(k);
     }
   }
   
-  const inp = document.getElementById('newBatterNameInput');
-  if(inp) inp.value = '';
+  var availableFromSquad = squad.filter(function(p){
+    return p !== m.nonStriker && p !== m.striker && dismissed.indexOf(p) === -1;
+  });
   
-  const m = document.getElementById('nextBatterModal');
-  if(m) m.style.display = 'flex';
-}
+  // Also include any dnb players already in the match
+  for (var k2 in m.batters) {
+    if (m.batters[k2].status === 'dnb' && k2 !== m.nonStriker && k2 !== m.striker && availableFromSquad.indexOf(k2) === -1) {
+      availableFromSquad.push(k2);
+    }
+  }
+  
+  // Build the modal HTML dynamically
+  var modalHTML = `
+    <div id="newBatsmanPickerModal" style="position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:100000; display:flex; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(8px);">
+      <div style="background:linear-gradient(145deg,#1a2332,#0f1729); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:22px; width:min(94vw,520px); max-height:90vh; overflow-y:auto; color:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        
+        <div style="text-align:center; margin-bottom:16px;">
+          <div style="font-size:44px; margin-bottom:8px;">🚨</div>
+          <h3 style="font-size:18px; font-weight:900; color:#ef4444; margin-bottom:4px;">WICKET!</h3>
+          <p style="font-size:12px; color:#94a3b8;">${dismissedPlayer || 'Batter'} is out. Who comes in next?</p>
+        </div>
 
-// 2. Restore the confirm batter function
-function confirmNextBatter(){
-  const t = document.getElementById('newBatterNameInput');
-  const s = document.getElementById('existingBatterSelect');
-  const typed = t ? t.value.trim() : '';
-  const selected = s ? s.value : '';
-  let n = typed || selected;
-  
-  if(!n) return alert('Please specify the next batter');
-  
-  if(typed && typeof autoAddPlayerToTeam === 'function') {
-    autoAddPlayerToTeam(typed, window.match.teamBatting);
-  }
-  
-  if(!window.match.batters[n]){
-    window.match.batters[n] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:"batting"};
-    window.match.playerTeamMap[n] = window.match.teamBattingAbbr;
-  } else {
-    window.match.batters[n].status = 'batting';
-  }
-  
-  window.match.striker = n;
-  if(typeof closeModal === 'function') closeModal('nextBatterModal');
-  
-  // Reset partnership for new pair
-  window.match.currentPartnership = {runs:0, balls:0, batters:[window.match.striker, window.match.nonStriker]};
-  
-  if(typeof renderLive === 'function') renderLive();
-  if(typeof renderCommentary === 'function') renderCommentary();
-  if(typeof autoPersist === 'function') autoPersist();
-  if(typeof broadcastMatchState === 'function') broadcastMatchState();
-  
-  if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && typeof speak === 'function') {
-    speak('New batter in: ' + n + '.');
-  }
-}
+        <div style="background:rgba(0,230,118,.08); border:1px solid rgba(0,230,118,.3); border-radius:12px; padding:10px 14px; margin-bottom:14px; text-align:center;">
+          <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:800; letter-spacing:1px;">${teamName} Squad</div>
+          <div style="font-size:13px; color:#00e676; font-weight:900; margin-top:4px;">${availableFromSquad.length} available batter${availableFromSquad.length !== 1 ? 's' : ''}</div>
+        </div>
 
-// 3. AUTOMATIC WATCHER: Detects a wicket and opens the modal
-let lastCheckedWickets = 0;
-let lastCheckedInnings = 1;
-setInterval(function() {
-  if (window.match && window.match.isActive && !window.isViewerMode) {
-    // Reset tracker if a new innings starts
-    if (window.match.innings !== lastCheckedInnings) {
-      lastCheckedInnings = window.match.innings;
-      lastCheckedWickets = 0;
+        ${availableFromSquad.length > 0 ? `
+          <div style="margin-bottom:14px;">
+            <label style="display:block; font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin-bottom:8px;">📋 Select from ${teamAbbr} Squad</label>
+            <div id="batsmanChipGrid" style="display:flex; flex-wrap:wrap; gap:8px;">
+              ${availableFromSquad.map(function(p){
+                return `<button type="button" class="batsman-chip-btn" data-name="${p.replace(/"/g,'&quot;')}" style="background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); color:#f8fafc; padding:8px 14px; border-radius:20px; font-size:12px; font-weight:800; cursor:pointer; transition:all .15s; font-family:inherit;">👤 ${p}</button>`;
+              }).join('')}
+            </div>
+          </div>
+        ` : `
+          <div style="text-align:center; color:#94a3b8; font-size:12px; padding:12px; margin-bottom:14px; font-style:italic;">
+            No squad players available. Type a new name below.
+          </div>
+        `}
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin-bottom:6px;">✏️ Or Type a New Batter Name</label>
+          <input type="text" id="newBatsmanNameInput" placeholder="Enter new batter name" style="width:100%; padding:12px; background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.15); border-radius:10px; color:#fff; font-size:14px; font-family:inherit;" />
+          <div style="font-size:10px; color:#64748b; margin-top:6px; font-style:italic;">New name will be auto-added to ${teamAbbr} squad.</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button type="button" id="cancelBatsmanBtn" style="padding:14px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:10px; color:#f8fafc; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;">Cancel</button>
+          <button type="button" id="confirmBatsmanBtn" style="padding:14px; background:linear-gradient(135deg,#009270,#00e676); border:none; border-radius:10px; color:#fff; font-size:13px; font-weight:900; cursor:pointer; font-family:inherit;">✓ Confirm</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Remove any existing modal first
+  var existing = document.getElementById('newBatsmanPickerModal');
+  if (existing) existing.remove();
+  
+  // Inject
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  // Wire up chip buttons
+  var chips = document.querySelectorAll('.batsman-chip-btn');
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      chips.forEach(function(c){ c.style.background = 'rgba(255,255,255,.06)'; c.style.borderColor = 'rgba(255,255,255,.15)'; c.style.color = '#f8fafc'; });
+      chip.style.background = 'linear-gradient(135deg,#009270,#00e676)';
+      chip.style.borderColor = 'transparent';
+      chip.style.color = '#fff';
+      chip.dataset.selected = 'true';
+      document.getElementById('newBatsmanNameInput').value = '';
+    });
+  });
+
+  // Clear chip selection when typing
+  document.getElementById('newBatsmanNameInput').addEventListener('input', function(){
+    chips.forEach(function(c){ c.style.background = 'rgba(255,255,255,.06)'; c.style.borderColor = 'rgba(255,255,255,.15)'; c.style.color = '#f8fafc'; c.dataset.selected = ''; });
+  });
+
+  // Confirm handler
+  document.getElementById('confirmBatsmanBtn').addEventListener('click', function(){
+    var typed = document.getElementById('newBatsmanNameInput').value.trim();
+    var selected = '';
+    chips.forEach(function(c){ if (c.dataset.selected === 'true') selected = c.dataset.name; });
+    
+    var newBatter = typed || selected;
+    if (!newBatter) {
+      alert('Please select or type a new batter name');
+      return;
     }
     
-    // If wickets increased, we need a new batter
-    if (window.match.wickets > lastCheckedWickets) {
-      lastCheckedWickets = window.match.wickets;
-      
-      // Only open if the modal isn't already showing
-      const modal = document.getElementById('nextBatterModal');
-      if (modal && modal.style.display !== 'flex') {
-        // Small delay to let the wicket animation play first
-        setTimeout(function(){
-          // Re-check that user hasn't already selected someone
-          if (window.match && window.match.batters[window.match.striker] && window.match.batters[window.match.striker].status === 'batting') {
-            return; // New batter already chosen
-          }
-          // Find the dismissed player's name
-          let outPlayer = window.match.striker;
-          for (const k in window.match.batters) {
-            if (window.match.batters[k].status && window.match.batters[k].status.includes('out')) {
-              outPlayer = k;
-              break;
-            }
-          }
-          promptNextBatterModal(outPlayer);
-        }, 1200);
+    // Auto-add to squad if typed new
+    if (typed && typeof autoAddPlayerToTeam === 'function') {
+      try { autoAddPlayerToTeam(typed, window.match.teamBatting); } catch(e){}
+    }
+    
+    // Add to batters map
+    if (!window.match.batters[newBatter]) {
+      window.match.batters[newBatter] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+      window.match.playerTeamMap[newBatter] = window.match.teamBattingAbbr;
+    } else {
+      window.match.batters[newBatter].status = 'batting';
+    }
+    
+    // Set as striker
+    window.match.striker = newBatter;
+    
+    // Reset partnership
+    window.match.currentPartnership = { runs: 0, balls: 0, batters: [newBatter, window.match.nonStriker] };
+    
+    // Close modal
+    document.getElementById('newBatsmanPickerModal').remove();
+    
+    // Refresh UI
+    try { if (typeof renderLive === 'function') renderLive(); } catch(e){}
+    try { if (typeof renderCommentary === 'function') renderCommentary(); } catch(e){}
+    try { if (typeof renderScorecard === 'function') renderScorecard(); } catch(e){}
+    try { if (typeof autoPersist === 'function') autoPersist(); } catch(e){}
+    try { if (typeof broadcastMatchState === 'function') broadcastMatchState(); } catch(e){}
+    try { if (typeof speak === 'function' && isCommentaryVoiceActive) speak('New batter in: ' + newBatter); } catch(e){}
+  });
+
+  // Cancel handler
+  document.getElementById('cancelBatsmanBtn').addEventListener('click', function(){
+    document.getElementById('newBatsmanPickerModal').remove();
+  });
+}
+
+// ============ AUTO-WATCH FOR WICKETS ============
+var __lastWickets = 0;
+var __lastInnings = 1;
+var __wicketWatcher = setInterval(function(){
+  if (!window.match || !window.match.isActive || window.isViewerMode) return;
+  
+  // Reset on innings change
+  if (window.match.innings !== __lastInnings) {
+    __lastInnings = window.match.innings;
+    __lastWickets = 0;
+  }
+  
+  // Detect new wicket
+  if (window.match.wickets > __lastWickets) {
+  __lastWickets = window.match.wickets;
+  if (window.__suppressNextBatsmanModal) {
+    window.__suppressNextBatsmanModal = false;
+    return;
+  }
+    // Find dismissed player — one with status containing 'out' or 'bowled', 'caught', etc.
+    var dismissedPlayer = '';
+    for (var k in window.match.batters) {
+      var st = (window.match.batters[k].status || '').toLowerCase();
+      if (st && st !== 'batting' && st !== 'dnb' && st !== 'not out' && st !== 'retired not out' && k === window.match.striker) {
+        dismissedPlayer = k;
+        break;
       }
     }
+    if (!dismissedPlayer) {
+      for (var k2 in window.match.batters) {
+        var st2 = (window.match.batters[k2].status || '').toLowerCase();
+        if (st2 && st2 !== 'batting' && st2 !== 'dnb' && st2 !== 'not out' && st2 !== 'retired not out') {
+          dismissedPlayer = k2;
+          break;
+        }
+      }
+    }
+    
+    // Open modal after a short delay (let wicket animation show)
+    setTimeout(function(){
+      // Double check user hasn't already handled it
+      if (document.getElementById('newBatsmanPickerModal')) return;
+      var striker = window.match.striker;
+      var strikerStatus = (window.match.batters[striker] && window.match.batters[striker].status) || '';
+      if (strikerStatus.toLowerCase() === 'batting') return; // Already replaced
+      
+      showNewBatsmanPicker(dismissedPlayer);
+    }, 800);
   }
-}, 800);
+}, 500);
+</script>
+<script>
+// ==========================================
+// WICKET + NEW BATSMAN (Single modal handler)
+// ==========================================
+
+function confirmWicketDelivery(){
+  var method = document.getElementById('wktMethodSelect').value;
+  var fielder = document.getElementById('fielderCustomInput').value.trim();
+  if(['Caught','Run Out','Stumped'].indexOf(method) !== -1 && !fielder) {
+    fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
+  }
+
+  // Capture new batter selection
+  var newBatter = document.getElementById('wktNewBatsmanInput').value.trim();
+  if(!newBatter){
+    document.querySelectorAll('#wktBatsmanChips button').forEach(function(c){
+      if(c.dataset.selected === 'true') newBatter = c.textContent.replace('👤 ','').trim();
+    });
+  }
+
+  // Suppress the auto-watcher so it doesn't open a second modal
+  window.__suppressNextBatsmanModal = true;
+
+  closeModal('wicketTypeModal');
+
+  // Record the wicket
+  recordBall(0, null, true, "", 0, {method: method, fielder: fielder});
+
+  // Immediately set the new batsman as striker
+  if(newBatter){
+    if(!match.batters[newBatter]){
+      var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
+      if(team && team.squad && team.squad.indexOf(newBatter) === -1) team.squad.push(newBatter);
+      else if(!team) savedTeams.push({name: match.teamBatting, squad: [newBatter]});
+      match.batters[newBatter] = {runs:0,balls:0,fours:0,sixes:0,dots:0,fifties:0,hundreds:0,status:'batting'};
+      match.playerTeamMap[newBatter] = match.teamBattingAbbr;
+    } else {
+      match.batters[newBatter].status = 'batting';
+    }
+    match.striker = newBatter;
+    match.currentPartnership = {runs:0, balls:0, batters:[newBatter, match.nonStriker]};
+  }
+
+  renderLive();
+  renderCommentary();
+  renderScorecard();
+  autoPersist();
+  broadcastMatchState();
+
+  if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && newBatter) {
+    speak('New batter in: ' + newBatter);
+  }
+}
 </script>
 </body>
 </html>
