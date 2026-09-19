@@ -2,36 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>CricMax Pro - 3D Stadium</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CricMax Pro 3D Stadium</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body { background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #030712; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     #canvas-container { position: absolute; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+    /* Broadcast TV HUD */
+    .hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 14px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px; }
     
-    .hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 16px; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; }
-    .broadcast-badge { background: #ef4444; color: #fff; font-size: 11px; font-weight: 900; letter-spacing: 2px; padding: 5px 12px; border-radius: 6px; box-shadow: 0 0 15px rgba(239,68,68,.7); display: flex; align-items: center; gap: 6px; }
-    .broadcast-badge::before { content:''; width: 7px; height: 7px; background: #fff; border-radius: 50%; display: inline-block; }
-    
-    .cam-pills { display: flex; gap: 6px; pointer-events: auto; background: rgba(0,0,0,0.6); padding: 5px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); }
-    .cam-btn { background: transparent; border: 1px solid rgba(255,255,255,.18); color: #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .2s; }
-    .cam-btn.active, .cam-btn:hover { background: #00e676; color: #0a0e1a; border-color: transparent; box-shadow: 0 0 14px rgba(0,230,118,.5); }
-    
-    .event-banner { position: absolute; top: 18%; left: 50%; transform: translateX(-50%) scale(.7); font-size: clamp(38px, 7vw, 84px); font-weight: 900; font-style: italic; text-transform: uppercase; color: #fff; opacity: 0; transition: all .35s cubic-bezier(.175,.885,.32,1.275); text-align: center; line-height: 1; pointer-events: none; }
+    .live-badge { background: #ef4444; color: #fff; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; padding: 6px 12px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 0 15px rgba(239,68,68,.7); pointer-events: auto; }
+    .live-badge::before { content:''; width: 8px; height: 8px; background: #fff; border-radius: 50%; display: inline-block; animation: blink 1s infinite alternate; }
+    @keyframes blink { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+
+    .cam-cluster { display: flex; gap: 5px; background: rgba(10,14,26,.85); padding: 5px; border-radius: 12px; backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.15); pointer-events: auto; }
+    .cam-btn { background: transparent; border: 1px solid rgba(255,255,255,.15); color: #cbd5e1; padding: 7px 11px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; transition: all .15s ease; font-family: inherit; }
+    .cam-btn:hover { background: rgba(0,230,118,.2); color: #fff; }
+    .cam-btn.active { background: linear-gradient(135deg,#009270,#00e676); color: #0a0e1a; border-color: transparent; box-shadow: 0 0 14px rgba(0,230,118,.6); font-weight: 900; }
+
+    .ctrl-cluster { display: flex; gap: 6px; pointer-events: auto; }
+    .ctrl-btn { width: 36px; height: 36px; border-radius: 10px; background: rgba(10,14,26,.85); border: 1px solid rgba(255,255,255,.2); color: #fff; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(10px); transition: transform .15s; }
+    .ctrl-btn:active { transform: scale(0.92); }
+
+    .event-banner { position: absolute; top: 18%; left: 50%; transform: translateX(-50%) scale(.6); font-size: clamp(38px, 8vw, 84px); font-weight: 900; font-style: italic; text-transform: uppercase; color: #fff; opacity: 0; transition: all .35s cubic-bezier(.175,.885,.32,1.275); text-align: center; line-height: 1; pointer-events: none; }
     .event-banner.active { transform: translateX(-50%) scale(1); opacity: 1; }
     .event-banner.four { color: #22d3ee; text-shadow: 0 0 40px #0891b2, 0 6px 20px #000; }
     .event-banner.six { color: #ff6d00; text-shadow: 0 0 40px #fbbf24, 0 6px 20px #000; }
     .event-banner.wkt { color: #ef4444; text-shadow: 0 0 40px #7f1d1d, 0 6px 20px #000; }
 
-    .tv-scorecard { pointer-events: auto; background: linear-gradient(90deg, rgba(8,18,30,.96), rgba(3,8,15,.98)); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(16px); color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.8); max-width: 900px; margin: 0 auto; width: 100%; }
-    .tv-team { display: flex; align-items: center; gap: 10px; font-weight: 900; }
-    .tv-team-badge { background: #00e676; color: #0a0e1a; padding: 2px 7px; border-radius: 4px; font-size: 11px; }
-    .tv-score { font-size: 24px; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
-    .tv-overs { font-size: 12px; color: #94a3b8; font-weight: 700; margin-left: 4px; }
-    .tv-batsmen { display: flex; gap: 24px; font-size: 13px; font-weight: 700; }
-    .tv-batter.striker { color: #00e676; }
-    .tv-bowler { font-size: 13px; font-weight: 700; text-align: right; color: #22d3ee; }
+    .tv-scorecard { pointer-events: auto; background: linear-gradient(90deg, rgba(8,18,30,.96), rgba(3,8,15,.98)); border: 1px solid rgba(255,255,255,.18); border-radius: 12px; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(16px); color: #fff; box-shadow: 0 10px 35px rgba(0,0,0,.85); max-width: 900px; margin: 0 auto; width: 100%; gap: 12px; }
+    .tv-team { display: flex; align-items: center; gap: 8px; font-weight: 900; border-right: 1px solid rgba(255,255,255,.12); padding-right: 14px; }
+    .tv-team-badge { background: #00e676; color: #0a0e1a; padding: 3px 8px; border-radius: 4px; font-size: 11px; }
+    .tv-score { font-size: 22px; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
+    .tv-overs { font-size: 11px; color: #94a3b8; font-weight: 700; margin-left: 2px; }
+    .tv-batsmen { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .tv-bat-row { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; }
+    .tv-bat-row.striker { color: #00e676; }
+    .tv-bowler { font-size: 12px; font-weight: 700; text-align: right; color: #22d3ee; border-left: 1px solid rgba(255,255,255,.12); padding-left: 14px; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -40,12 +49,21 @@
 
   <div class="hud-layer">
     <div class="top-bar">
-      <div class="broadcast-badge">LIVE 3D BROADCAST</div>
-      <div class="cam-pills">
-        <button class="cam-btn active" id="btnCamBroadcast" onclick="setCameraMode('broadcast')">📺 TV</button>
-        <button class="cam-btn" id="btnCamBowler" onclick="setCameraMode('bowler')">🎯 Bowler</button>
-        <button class="cam-btn" id="btnCamSide" onclick="setCameraMode('side')">🎬 Side</button>
-        <button class="cam-btn" id="btnCamFollow" onclick="setCameraMode('follow')">⚾ Ball Cam</button>
+      <div class="live-badge">3D MATCH CAM</div>
+      
+      <!-- Working Camera Switchers -->
+      <div class="cam-cluster">
+        <button class="cam-btn active" id="btn-broadcast" onclick="switchCamera('broadcast')">📺 TV</button>
+        <button class="cam-btn" id="btn-bowler" onclick="switchCamera('bowler')">🎯 Bowler</button>
+        <button class="cam-btn" id="btn-side" onclick="switchCamera('side')">🎬 Side</button>
+        <button class="cam-btn" id="btn-follow" onclick="switchCamera('follow')">⚾ Ball Cam</button>
+      </div>
+
+      <!-- Working Mic, Replay, Fullscreen -->
+      <div class="ctrl-cluster">
+        <button class="ctrl-btn" id="btnMic" onclick="toggleAudio()" title="Live Commentary">🔊</button>
+        <button class="ctrl-btn" onclick="triggerReplay()" title="Replay Delivery">↻</button>
+        <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
     </div>
 
@@ -58,130 +76,229 @@
         <span class="tv-overs" id="tvOvers">(0.0)</span>
       </div>
       <div class="tv-batsmen">
-        <div class="tv-batter striker" id="tvStriker">Striker* 0(0)</div>
-        <div class="tv-batter" id="tvNonStriker">Non-Striker 0(0)</div>
+        <div class="tv-bat-row striker"><span id="tvStrikerName">Striker*</span><b id="tvStrikerRuns">0(0)</b></div>
+        <div class="tv-bat-row"><span id="tvNonStrikerName">Non-Striker</span><b id="tvNonStrikerRuns">0(0)</b></div>
       </div>
-      <div class="tv-bowler" id="tvBowler">Bowler: 0.0-0-0-0</div>
+      <div class="tv-bowler">
+        <div id="tvBowlerName">Bowler</div>
+        <div id="tvBowlerFigs" style="color:#fff;font-variant-numeric:tabular-nums;">0.0-0-0-0</div>
+      </div>
     </div>
   </div>
 
   <script>
+    /* =======================================================
+       1. SCENE, ATMOSPHERE & RENDERER SETUP
+       ======================================================= */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060b14);
-    scene.fog = new THREE.FogExp2(0x060b14, 0.007);
+    scene.background = new THREE.Color(0x040814);
+    scene.fog = new THREE.FogExp2(0x060e20, 0.006);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 800);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 700);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xdde8ff, 0.5);
+    // Ambient Lighting
+    const ambientLight = new THREE.AmbientLight(0xcfdcff, 0.45);
     scene.add(ambientLight);
 
-    // Floodlight Towers
-    const towerCoords = [{ x: -55, z: -55 }, { x: 55, z: -55 }, { x: -55, z: 55 }, { x: 55, z: 55 }];
-    towerCoords.forEach(pos => {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 38, 8), new THREE.MeshStandardMaterial({ color: 0x222a38, metalness: 0.8 }));
-      pole.position.set(pos.x, 19, pos.z);
-      scene.add(pole);
+    // 4 High-Intensity Floodlight Lattice Towers
+    const towerPositions = [
+      { x: -52, z: -52 }, { x: 52, z: -52 },
+      { x: -52, z: 52 },  { x: 52, z: 52 }
+    ];
 
-      const light = new THREE.SpotLight(0xfffae6, 1.4, 160, Math.PI / 3.5, 0.4, 1.2);
-      light.position.set(pos.x, 37, pos.z);
-      light.target.position.set(0, 0, 0);
-      light.castShadow = true;
-      light.shadow.mapSize.width = 1024;
-      light.shadow.mapSize.height = 1024;
-      scene.add(light);
-      scene.add(light.target);
+    towerPositions.forEach(pos => {
+      const towerGroup = new THREE.Group();
+      towerGroup.position.set(pos.x, 0, pos.z);
+
+      // Steel Truss Column
+      const pMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.1, 38, 6), pMat);
+      tower.position.y = 19;
+      towerGroup.add(tower);
+
+      // Floodlight Matrix Head
+      const headGeo = new THREE.BoxGeometry(8, 4.2, 1.2);
+      const headMat = new THREE.MeshBasicMaterial({ color: 0xfffbea });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.set(0, 38, 0);
+      head.lookAt(0, 0, 0);
+      towerGroup.add(head);
+
+      // Volumetric Light Flare Cone
+      const coneGeo = new THREE.ConeGeometry(36, 65, 16, 1, true);
+      const coneMat = new THREE.MeshBasicMaterial({ color: 0xfff8d6, transparent: true, opacity: 0.05, side: THREE.DoubleSide });
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cone.position.set(0, 20, 0);
+      cone.rotation.x = Math.PI / 2;
+      cone.lookAt(0, 0, 0);
+      towerGroup.add(cone);
+
+      const spot = new THREE.SpotLight(0xfff6dc, 1.35, 175, Math.PI / 3.2, 0.4, 1.2);
+      spot.position.set(pos.x, 38, pos.z);
+      spot.target.position.set(0, 0, 0);
+      spot.castShadow = true;
+      spot.shadow.mapSize.set(1024, 1024);
+      scene.add(spot);
+      scene.add(spot.target);
+
+      scene.add(towerGroup);
     });
 
-    // Ground & Pitch
-    function generateGrassTexture() {
+    /* =======================================================
+       2. PROCEDURAL GROUND, PITCH & CREASE LINES
+       ======================================================= */
+    function createTurfTexture() {
       const cv = document.createElement('canvas');
       cv.width = 1024; cv.height = 1024;
       const ctx = cv.getContext('2d');
       for (let r = 512; r > 0; r -= 32) {
         ctx.beginPath();
         ctx.arc(512, 512, r, 0, Math.PI * 2);
-        ctx.fillStyle = (r / 32) % 2 === 0 ? '#26632f' : '#2f7839';
+        ctx.fillStyle = (r / 32) % 2 === 0 ? '#1f5927' : '#276b30';
         ctx.fill();
       }
       return new THREE.CanvasTexture(cv);
     }
 
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(68, 64), new THREE.MeshStandardMaterial({ map: generateGrassTexture(), roughness: 0.9 }));
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(65, 64), new THREE.MeshStandardMaterial({ map: createTurfTexture(), roughness: 0.85 }));
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    const pitch = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 22.2), new THREE.MeshStandardMaterial({ color: 0xc4ab80, roughness: 0.85 }));
+    // 30-Yard Circle
+    const innerRing = new THREE.Mesh(new THREE.RingGeometry(27.4, 27.65, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.35, transparent: true, side: THREE.DoubleSide }));
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = 0.02;
+    scene.add(innerRing);
+
+    // Boundary Rope
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(60, 0.32, 12, 80), new THREE.MeshStandardMaterial({ color: 0xf1f5f9 }));
+    rope.rotation.x = -Math.PI / 2;
+    rope.position.y = 0.28;
+    scene.add(rope);
+
+    // Brown Clay Turf Pitch
+    const pitch = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 22.2), new THREE.MeshStandardMaterial({ color: 0x9f794c, roughness: 0.9 }));
     pitch.rotation.x = -Math.PI / 2;
     pitch.position.y = 0.03;
     pitch.receiveShadow = true;
     scene.add(pitch);
 
-    function addCrease(z) {
-      const line = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    // Pitch Footmark Patches
+    function addScuff(x, z, rX, rZ) {
+      const scuff = new THREE.Mesh(new THREE.PlaneGeometry(rX, rZ), new THREE.MeshBasicMaterial({ color: 0x6e502f, transparent: true, opacity: 0.5 }));
+      scuff.rotation.x = -Math.PI / 2;
+      scuff.position.set(x, 0.035, z);
+      scene.add(scuff);
+    }
+    addScuff(0.4, 8.2, 0.5, 1.2);
+    addScuff(-0.5, -7.8, 0.6, 1.4);
+
+    // Complete Chalk Markings: Popping, Bowling, Return & Wide Lines
+    function addCrease(x, z, w, h, col = 0xffffff) {
+      const line = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: col }));
       line.rotation.x = -Math.PI / 2;
-      line.position.set(0, 0.04, z);
+      line.position.set(x, 0.04, z);
       scene.add(line);
     }
-    addCrease(8.8); addCrease(-8.8); addCrease(10.0); addCrease(-10.0);
+    addCrease(0, 8.8, 3.6, 0.12);   // Striker Popping Crease
+    addCrease(0, -8.8, 3.6, 0.12);  // Non-Striker Popping Crease
+    addCrease(0, 10.0, 2.64, 0.08); // Bowling Crease
+    addCrease(0, -10.0, 2.64, 0.08);
+    // Wide Guidelines (0.89m on either side of stumps)
+    addCrease(-0.89, 9.4, 0.08, 1.2, 0xfef08a);
+    addCrease(0.89, 9.4, 0.08, 1.2, 0xfef08a);
+    addCrease(-0.89, -9.4, 0.08, 1.2, 0xfef08a);
+    addCrease(0.89, -9.4, 0.08, 1.2, 0xfef08a);
 
-    const rope = new THREE.Mesh(new THREE.TorusGeometry(62, 0.35, 12, 96), new THREE.MeshStandardMaterial({ color: 0xefefef }));
-    rope.rotation.x = -Math.PI / 2;
-    rope.position.y = 0.3;
-    scene.add(rope);
-
-    function createStumps(zPos) {
+    // Stumps & Bails
+    function createWickets(z) {
       const group = new THREE.Group();
-      const woodMat = new THREE.MeshStandardMaterial({ color: 0xf3ede2, roughness: 0.4 });
+      const wood = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.35 });
       for (let i = -1; i <= 1; i++) {
-        const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.76, 12), woodMat);
-        stump.position.set(i * 0.11, 0.38, 0);
-        stump.castShadow = true;
-        group.add(stump);
+        const s = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.76, 10), wood);
+        s.position.set(i * 0.11, 0.38, 0);
+        s.castShadow = true;
+        group.add(s);
       }
-      const bail = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.28, 8), woodMat);
-      bail.rotation.z = Math.PI / 2;
-      bail.position.set(0, 0.77, 0);
-      group.add(bail);
-      group.position.set(0, 0, zPos);
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.28, 8), wood);
+      b.rotation.z = Math.PI / 2;
+      b.position.set(0, 0.77, 0);
+      group.add(b);
+      group.position.set(0, 0, z);
       scene.add(group);
       return group;
     }
-    const strikerStumps = createStumps(10.0);
-    const bowlerStumps = createStumps(-10.0);
+    const strikerWickets = createWickets(10.0);
+    const bowlerWickets = createWickets(-10.0);
 
-    // Characters
+    // 3-Tier Grandstands
+    for (let t = 0; t < 3; t++) {
+      const stand = new THREE.Mesh(
+        new THREE.CylinderGeometry(68 + t * 5, 63 + t * 5, 4.2, 48, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a + (t * 0x060810), roughness: 0.8 })
+      );
+      stand.position.y = 2.1 + (t * 4.2);
+      scene.add(stand);
+    }
+
+    /* =======================================================
+       3. PLAYER RIGS (Batsman, Bowler, Umpire)
+       ======================================================= */
+    // Rigged Batsman
     function buildBatsman() {
       const rig = new THREE.Group();
       const jersey = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
-      const skin = new THREE.MeshLambertMaterial({ color: 0xd9a57a });
+      const pants = new THREE.MeshStandardMaterial({ color: 0xf8fafc });
+      const skin = new THREE.MeshLambertMaterial({ color: 0xd4a373 });
 
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.65, 10), jersey);
-      torso.position.y = 1.3;
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.72, 10), jersey);
+      torso.position.y = 1.25;
+      torso.castShadow = true;
       rig.add(torso);
 
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), skin);
-      head.position.y = 1.75;
+      head.position.y = 1.74;
       rig.add(head);
 
+      // Batting Helmet
+      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.7), new THREE.MeshStandardMaterial({ color: 0x0369a1 }));
+      helmet.position.y = 1.78;
+      rig.add(helmet);
+
+      // Legs with Pads
+      const padMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.76, 0.2), padMat);
+      legL.position.set(-0.16, 0.45, 0);
+      rig.add(legL);
+      const legR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.76, 0.2), padMat);
+      legR.position.set(0.16, 0.45, 0);
+      rig.add(legR);
+
+      // Shoulders & Bat Joint
       const shoulders = new THREE.Group();
-      shoulders.position.set(0, 1.5, 0);
+      shoulders.position.set(0, 1.48, 0);
       rig.add(shoulders);
 
       const batPivot = new THREE.Group();
-      batPivot.position.set(0, -0.45, 0.25);
+      batPivot.position.set(0, -0.4, 0.25);
       shoulders.add(batPivot);
 
-      const bat = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.85, 0.05), new THREE.MeshStandardMaterial({ color: 0xd4a373 }));
-      bat.position.y = -0.35;
-      batPivot.add(bat);
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      handle.position.y = 0.15;
+      batPivot.add(handle);
+
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.85, 0.05), new THREE.MeshStandardMaterial({ color: 0xd4a373 }));
+      blade.position.y = -0.35;
+      blade.castShadow = true;
+      batPivot.add(blade);
 
       rig.shoulders = shoulders;
       rig.batPivot = batPivot;
@@ -189,96 +306,152 @@
     }
     const batsman = buildBatsman();
     batsman.position.set(0.3, 0, 8.8);
-    batsman.rotation.y = -Math.PI / 2;
+    batsman.rotation.y = -Math.PI / 2; // Face the bowler
     scene.add(batsman);
 
+    // Rigged Umpire (Positioned directly behind non-striker stumps)
     function buildUmpire() {
       const rig = new THREE.Group();
-      const coat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+      const coat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
+      const white = new THREE.MeshStandardMaterial({ color: 0xffffff });
       const skin = new THREE.MeshLambertMaterial({ color: 0xd4a373 });
 
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.24, 0.85, 10), coat);
       torso.position.y = 1.25;
+      torso.castShadow = true;
       rig.add(torso);
 
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), skin);
       head.position.y = 1.82;
       rig.add(head);
 
+      const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.03, 16), white);
+      hat.position.y = 1.9;
+      rig.add(hat);
+
+      // Arm Joints for Signals
       const leftShoulder = new THREE.Group();
-      leftShoulder.position.set(-0.36, 1.6, 0);
+      leftShoulder.position.set(-0.36, 1.58, 0);
       rig.add(leftShoulder);
-      const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.65, 8), coat);
-      leftArm.position.y = -0.32;
-      leftShoulder.add(leftArm);
+      const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.65, 8), coat);
+      lArm.position.y = -0.32;
+      leftShoulder.add(lArm);
 
       const rightShoulder = new THREE.Group();
-      rightShoulder.position.set(0.36, 1.6, 0);
+      rightShoulder.position.set(0.36, 1.58, 0);
       rig.add(rightShoulder);
-      const rightArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.65, 8), coat);
-      rightArm.position.y = -0.32;
-      rightShoulder.add(rightArm);
+      const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.65, 8), coat);
+      rArm.position.y = -0.32;
+      rightShoulder.add(rArm);
 
       rig.leftShoulder = leftShoulder;
       rig.rightShoulder = rightShoulder;
       return rig;
     }
     const umpire = buildUmpire();
-    umpire.position.set(0, 0, -11.8);
+    umpire.position.set(0, 0, -11.6); // Directly behind stumps at z = -10
     scene.add(umpire);
 
-    const bowler = new THREE.Group();
-    const bTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.72, 8), new THREE.MeshStandardMaterial({ color: 0xdc2626 }));
-    bTorso.position.y = 1.05;
-    bowler.add(bTorso);
-    const bArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.6, 8), new THREE.MeshStandardMaterial({ color: 0xdc2626 }));
-    bArm.position.set(0.35, 1.25, 0);
-    bowler.add(bArm);
-    bowler.arm = bArm;
-    bowler.position.set(0, 0, -18.0);
+    // Rigged Bowler (Starting from Over the Wicket: behind & to one side of umpire)
+    function buildBowler() {
+      const rig = new THREE.Group();
+      const redJersey = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
+      const skin = new THREE.MeshLambertMaterial({ color: 0xd4a373 });
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.72, 8), redJersey);
+      torso.position.y = 1.15;
+      torso.castShadow = true;
+      rig.add(torso);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), skin);
+      head.position.y = 1.62;
+      rig.add(head);
+
+      const armJoint = new THREE.Group();
+      armJoint.position.set(0.35, 1.4, 0);
+      rig.add(armJoint);
+
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.65, 8), redJersey);
+      arm.position.y = -0.3;
+      armJoint.add(arm);
+
+      rig.armJoint = armJoint;
+      return rig;
+    }
+    const bowler = buildBowler();
+    // Start behind the umpire and off to the right side (Right-arm Over the Wicket)
+    const BOWLER_START_X = 1.4;
+    const BOWLER_START_Z = -22.0;
+    bowler.position.set(BOWLER_START_X, 0, BOWLER_START_Z);
     scene.add(bowler);
 
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 24), new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.3 }));
+    // Cricket Ball
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 24), new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.35 }));
     ball.castShadow = true;
     ball.visible = false;
     scene.add(ball);
 
     /* =======================================================
-       CAMERA MODES & DISPATCHER
+       4. CAMERA ENGINE & WORKING BUTTON HANDLERS
        ======================================================= */
     const cameraModes = {
       broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
-      bowler:    { pos: new THREE.Vector3(0, 4.2, -22), target: new THREE.Vector3(0, 1, 9) },
-      side:      { pos: new THREE.Vector3(26, 5, 8), target: new THREE.Vector3(0, 1, 8) },
+      bowler:    { pos: new THREE.Vector3(0, 4.2, -22), target: new THREE.Vector3(0, 1.0, 9) },
+      side:      { pos: new THREE.Vector3(26, 5, 8), target: new THREE.Vector3(0, 1.0, 8) },
       follow:    { pos: new THREE.Vector3(0, 8, -6), target: new THREE.Vector3(0, 0.5, 9) }
     };
 
-    let activeCam = 'broadcast';
-    let currentCamPos = cameraModes.broadcast.pos.clone();
-    let currentCamTarget = cameraModes.broadcast.target.clone();
+    let activeCamMode = 'broadcast';
+    let camPos = cameraModes.broadcast.pos.clone();
+    let camTarget = cameraModes.broadcast.target.clone();
 
-    window.setCameraMode = function(mode) {
+    window.switchCamera = function(mode) {
       if (!cameraModes[mode]) return;
-      activeCam = mode;
+      activeCamMode = mode;
 
       document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById('btnCam' + mode.charAt(0).toUpperCase() + mode.slice(1));
-      if (activeBtn) activeBtn.classList.add('active');
+      const btn = document.getElementById('btn-' + mode);
+      if (btn) btn.classList.add('active');
     };
 
-    // Expose for parent window buttons
-    window.setCamExternal = window.setCameraMode;
+    // Fullscreen Toggle
+    window.toggleFullscreen = function() {
+      const doc = window.document;
+      const el = doc.documentElement;
+      if (!doc.fullscreenElement && !doc.webkitFullscreenElement) {
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } else {
+        if (doc.exitFullscreen) doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+      }
+    };
 
-    let deliveryAnimId = null;
+    // Commentary & Audio Speech Hook
+    let isMuted = false;
+    window.toggleAudio = function() {
+      isMuted = !isMuted;
+      const btn = document.getElementById('btnMic');
+      if (btn) btn.innerText = isMuted ? '🔇' : '🔊';
+
+      if (window.parent && typeof window.parent.toggleCommentaryVoice === 'function') {
+        window.parent.toggleCommentaryVoice();
+      }
+    };
+
+    /* =======================================================
+       5. KINEMATIC DELIVERY, CONTACT & UMPIRE GESTURES
+       ======================================================= */
+    let deliveryAnim = null;
     let umpireSignal = 'idle';
-    let signalStartTime = 0;
-    let lastPlayedShot = null;
+    let signalStart = 0;
+    let lastShotData = null;
 
-    window.replayLastBall = function() {
-      if (lastPlayedShot) play3DDelivery(lastPlayedShot);
+    window.triggerReplay = function() {
+      if (lastShotData) playBall3D(lastShotData);
     };
 
-    function animateUmpireGesture(now) {
+    function updateUmpire(now) {
       if (umpireSignal === 'idle') {
         umpire.leftShoulder.rotation.z = THREE.MathUtils.lerp(umpire.leftShoulder.rotation.z, 0, 0.08);
         umpire.leftShoulder.rotation.x = THREE.MathUtils.lerp(umpire.leftShoulder.rotation.x, 0, 0.08);
@@ -287,78 +460,86 @@
         return;
       }
 
-      const elapsed = (now - signalStartTime) / 1000;
+      const t = (now - signalStart) / 1000;
 
       if (umpireSignal === 'wicket') {
+        // Out: Right index finger pointed straight to sky
         umpire.rightShoulder.rotation.z = THREE.MathUtils.lerp(umpire.rightShoulder.rotation.z, -Math.PI * 0.95, 0.12);
-        umpire.leftShoulder.rotation.z = THREE.MathUtils.lerp(umpire.leftShoulder.rotation.z, 0, 0.1);
       } else if (umpireSignal === 'six') {
+        // Six: Both arms raised straight up
         umpire.leftShoulder.rotation.z = THREE.MathUtils.lerp(umpire.leftShoulder.rotation.z, Math.PI * 0.95, 0.12);
         umpire.rightShoulder.rotation.z = THREE.MathUtils.lerp(umpire.rightShoulder.rotation.z, -Math.PI * 0.95, 0.12);
       } else if (umpireSignal === 'four') {
-        const wave = Math.sin(elapsed * 7.5);
-        umpire.rightShoulder.rotation.x = THREE.MathUtils.lerp(umpire.rightShoulder.rotation.x, -Math.PI / 2.3, 0.15);
+        // Four: Right arm sweeps horizontally side to side across torso
+        const wave = Math.sin(t * 7.5);
+        umpire.rightShoulder.rotation.x = -Math.PI / 2.2;
         umpire.rightShoulder.rotation.z = -Math.PI / 4 + (wave * 0.45);
-        umpire.leftShoulder.rotation.z = THREE.MathUtils.lerp(umpire.leftShoulder.rotation.z, 0, 0.1);
       }
 
-      if (elapsed > 4.2) umpireSignal = 'idle';
+      if (t > 4.0) umpireSignal = 'idle';
     }
 
-    function play3DDelivery(shotData) {
-      if (deliveryAnimId) cancelAnimationFrame(deliveryAnimId);
-      lastPlayedShot = shotData;
-
+    function playBall3D(shot) {
+      if (deliveryAnim) cancelAnimationFrame(deliveryAnim);
+      lastShotData = shot;
       ball.visible = true;
+
       const startTime = performance.now();
-      const pitchZ = 3.5 + ((shotData.ballRandom || 0.5) * 1.5);
+      const pitchZ = 3.5 + ((shot.ballRandom || 0.5) * 1.5);
       const pitchX = (Math.random() - 0.5) * 0.4;
-      const runs = shotData.runs || 0;
-      const isSix = shotData.isSix;
-      const isFour = shotData.isFour;
-      const isWicket = shotData.isWicket;
+      const isSix = shot.isSix;
+      const isFour = shot.isFour;
+      const isWicket = shot.isWicket;
 
-      const angle = shotData.zoneIndex >= 0 ? (shotData.zoneIndex * Math.PI / 4) : Math.PI / 2;
-      let finalDist = 18;
-      if (isSix) finalDist = 67;
-      else if (isFour) finalDist = 63;
-      else if (runs > 0) finalDist = runs * 9;
-
+      const angle = shot.zoneIndex >= 0 ? (shot.zoneIndex * Math.PI / 4) : Math.PI / 2;
+      let finalDist = shot.runs > 0 ? (isSix ? 67 : (isFour ? 62 : shot.runs * 9)) : 18;
       const hitX = Math.sin(angle) * finalDist;
       const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
 
       function loop(now) {
         const elapsed = now - startTime;
 
-        if (elapsed < 600) {
-          const t = elapsed / 600;
-          bowler.position.z = -18 + (t * 7.5);
-          bowler.arm.rotation.x = -Math.PI * 2 * t * 2;
-          ball.position.set(bowler.position.x + 0.35, 2.0, bowler.position.z);
-          batsman.batPivot.rotation.x = -Math.PI / 5;
-        } else if (elapsed < 1150) {
-          const t = (elapsed - 600) / 550;
+        // Phase 1: Bowler Run-Up (Over the wicket: angle inward past umpire) [0 - 750ms]
+        if (elapsed < 750) {
+          const t = elapsed / 750;
+          // Curve path: Starts wide (x = 1.4, z = -22), finishes near crease (x = 0.5, z = -9.8)
+          bowler.position.x = THREE.MathUtils.lerp(BOWLER_START_X, 0.55, t);
+          bowler.position.z = THREE.MathUtils.lerp(BOWLER_START_Z, -9.8, t);
+          bowler.armJoint.rotation.x = -Math.PI * 4 * t; // 2 complete arm rotations
+          ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
+
+          // Batsman stance movement
+          batsman.batPivot.rotation.x = -Math.PI / 5 + (Math.sin(t * 10) * 0.05);
+        }
+        // Phase 2: Delivery & Pitch Bounce [750ms - 1300ms]
+        else if (elapsed < 1300) {
+          const t = (elapsed - 750) / 550;
           if (t < 0.65) {
             const pt = t / 0.65;
-            ball.position.x = THREE.MathUtils.lerp(0, pitchX, pt);
-            ball.position.z = THREE.MathUtils.lerp(-10.5, pitchZ, pt);
-            ball.position.y = THREE.MathUtils.lerp(2.2, 0.14, pt * pt);
+            ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, pt);
+            ball.position.z = THREE.MathUtils.lerp(-9.8, pitchZ, pt);
+            ball.position.y = THREE.MathUtils.lerp(2.1, 0.14, pt * pt);
           } else {
             const pt = (t - 0.65) / 0.35;
             ball.position.x = THREE.MathUtils.lerp(pitchX, batsman.position.x - 0.1, pt);
             ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, pt);
             ball.position.y = 0.14 + (Math.sin(pt * Math.PI * 0.5) * 0.95);
           }
+          // Backlift
           batsman.batPivot.rotation.x = -Math.PI / 3;
-        } else if (elapsed < 3500) {
-          const t = (elapsed - 1150) / 2350;
+        }
+        // Phase 3: Bat Contact & Outfield Trajectory [1300ms - 3600ms]
+        else if (elapsed < 3600) {
+          const t = (elapsed - 1300) / 2300;
 
           if (isWicket) {
             batsman.batPivot.rotation.x = 0;
-            strikerStumps.rotation.z = Math.min(0.85, t * 2.5);
+            strikerWickets.rotation.z = Math.min(0.85, t * 3);
             ball.position.set(0.1, 0.3, 10.4);
           } else {
+            // Forward follow-through stroke
             batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
+
             ball.position.x = THREE.MathUtils.lerp(batsman.position.x, hitX, t);
             ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
 
@@ -367,25 +548,26 @@
             else ball.position.y = 0.14;
           }
 
-          // Follow Mode: Ball Cam directly tails the projectile
-          if (activeCam === 'follow') {
-            currentCamPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6.0);
-            currentCamTarget.copy(ball.position);
-          } else if (activeCam === 'broadcast' && (isSix || isFour)) {
-            currentCamTarget.lerp(ball.position, 0.05);
+          // Dynamic Camera: Ball Cam follows ball in flight
+          if (activeCamMode === 'follow') {
+            camPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6.0);
+            camTarget.copy(ball.position);
+          } else if (activeCamMode === 'broadcast' && (isSix || isFour)) {
+            camTarget.lerp(ball.position, 0.05);
           }
         } else {
-          deliveryAnimId = null;
+          deliveryAnim = null;
           return;
         }
 
-        deliveryAnimId = requestAnimationFrame(loop);
+        deliveryAnim = requestAnimationFrame(loop);
       }
 
-      deliveryAnimId = requestAnimationFrame(loop);
+      deliveryAnim = requestAnimationFrame(loop);
 
+      // Trigger Umpire Signal at moment of boundary/wicket
       setTimeout(() => {
-        signalStartTime = performance.now();
+        signalStart = performance.now();
         if (isWicket) umpireSignal = 'wicket';
         else if (isSix) umpireSignal = 'six';
         else if (isFour) umpireSignal = 'four';
@@ -393,16 +575,19 @@
 
         const b = document.getElementById('eventBanner');
         b.className = 'event-banner';
-        if (shotData.isWicket) { b.innerText = 'OUT / WICKET!'; b.classList.add('wkt', 'active'); }
-        else if (shotData.isSix) { b.innerText = 'MAXIMUM 6!'; b.classList.add('six', 'active'); }
-        else if (shotData.isFour) { b.innerText = 'CRACKING FOUR!'; b.classList.add('four', 'active'); }
-        else { b.innerText = shotData.runs > 0 ? `${shotData.runs} RUNS` : 'DOT BALL'; b.classList.add('active'); }
+        if (shot.isWicket) { b.innerText = 'OUT / WICKET!'; b.classList.add('wkt', 'active'); }
+        else if (shot.isSix) { b.innerText = 'MAXIMUM 6!'; b.classList.add('six', 'active'); }
+        else if (shot.isFour) { b.innerText = 'CRACKING FOUR!'; b.classList.add('four', 'active'); }
+        else { b.innerText = shot.runs > 0 ? `${shot.runs} RUNS` : 'DOT BALL'; b.classList.add('active'); }
         setTimeout(() => b.classList.remove('active'), 2400);
-      }, 1200);
+      }, 1300);
     }
 
-    let lastSeenBallCount = 0;
-    function pollMatchState() {
+    /* =======================================================
+       6. REAL-TIME DATA SYNC WITH MAIN SCORER
+       ======================================================= */
+    let lastSeenBall = 0;
+    function syncLiveMatch() {
       const m = window.parent ? window.parent.match : window.match;
       if (!m) return;
 
@@ -414,32 +599,39 @@
       const nst = (m.batters && m.batters[m.nonStriker]) || { runs: 0, balls: 0 };
       const bw = (m.bowlers && m.bowlers[m.currentBowler]) || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
 
-      document.getElementById('tvStriker').innerText = `${m.striker || 'Striker'}* ${st.runs}(${st.balls})`;
-      document.getElementById('tvNonStriker').innerText = `${m.nonStriker || 'Non-Striker'} ${nst.runs}(${nst.balls})`;
-      document.getElementById('tvBowler').innerText = `${m.currentBowler || 'Bowler'}: ${Math.floor(bw.balls / 6)}.${bw.balls % 6}-${bw.maidens}-${bw.runs}-${bw.wickets}`;
+      document.getElementById('tvStrikerName').innerText = `${m.striker || 'Striker'}*`;
+      document.getElementById('tvStrikerRuns').innerText = `${st.runs}(${st.balls})`;
+      document.getElementById('tvNonStrikerName').innerText = `${m.nonStriker || 'Non-Striker'}`;
+      document.getElementById('tvNonStrikerRuns').innerText = `${nst.runs}(${nst.balls})`;
 
-      if (m.shotLog && m.shotLog.length > lastSeenBallCount) {
-        const lastShot = m.shotLog[m.shotLog.length - 1];
-        lastSeenBallCount = m.shotLog.length;
-        play3DDelivery(lastShot);
+      document.getElementById('tvBowlerName').innerText = `${m.currentBowler || 'Bowler'}`;
+      document.getElementById('tvBowlerFigs').innerText = `${Math.floor(bw.balls / 6)}.${bw.balls % 6}-${bw.maidens}-${bw.runs}-${bw.wickets}`;
+
+      if (m.shotLog && m.shotLog.length > lastSeenBall) {
+        const shot = m.shotLog[m.shotLog.length - 1];
+        lastSeenBall = m.shotLog.length;
+        playBall3D(shot);
       }
     }
-    setInterval(pollMatchState, 400);
+    setInterval(syncLiveMatch, 350);
 
+    /* =======================================================
+       7. MAIN 60FPS RENDER LOOP
+       ======================================================= */
     function render(now) {
       requestAnimationFrame(render);
 
-      if (activeCam !== 'follow') {
-        currentCamPos.lerp(cameraModes[activeCam].pos, 0.05);
-        if (!deliveryAnimId || activeCam !== 'broadcast') {
-          currentCamTarget.lerp(cameraModes[activeCam].target, 0.05);
+      if (activeCamMode !== 'follow') {
+        camPos.lerp(cameraModes[activeCamMode].pos, 0.05);
+        if (!deliveryAnim || activeCamMode !== 'broadcast') {
+          camTarget.lerp(cameraModes[activeCamMode].target, 0.05);
         }
       }
 
-      camera.position.copy(currentCamPos);
-      camera.lookAt(currentCamTarget);
+      camera.position.copy(camPos);
+      camera.lookAt(camTarget);
 
-      animateUmpireGesture(now);
+      updateUmpire(now);
       renderer.render(scene, camera);
     }
     requestAnimationFrame(render);
