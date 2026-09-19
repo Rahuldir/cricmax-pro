@@ -1965,39 +1965,47 @@ window.confirmWicketDelivery = function(){
 };
 console.log('🔥 confirmWicketDelivery override loaded');
 
+
 /* ============================================================
-   COMBINED WICKET MODAL — adds Next Bowler to the same card
+   COMBINED WICKET MODAL OVERRIDE — full self-contained patch
+   Paste this at the very bottom of app.js. No other edits needed.
    ============================================================ */
 (function(){
+  'use strict';
+
+  /* -------- 1. Auto-capitalize helper -------- */
+  function cap(s){
+    if(!s) return '';
+    return s.replace(/(^|\s|[\-'])\S/g, function(m){ return m.toUpperCase(); });
+  }
+
+  /* -------- 2. Inject "Next Bowler" into the wicket modal -------- */
   function injectBowlerIntoWicketModal(){
     var modal = document.getElementById('wicketTypeModal');
     if(!modal) return;
-    if(modal.querySelector('#wktNextBowlerSelect')) return; // already injected
+    if(document.getElementById('wktNextBowlerSelect')) return;
 
-    // Find the new-batter form-group, insert the bowler section AFTER it
-    var batsmanGroup = document.getElementById('wktNewBatsmanInput');
-    if(!batsmanGroup) return;
-    var parentGroup = batsmanGroup.parentElement;
+    var batsmanInput = document.getElementById('wktNewBatsmanInput');
+    if(!batsmanInput) return;
+    var parentGroup = batsmanInput.parentElement;
     if(!parentGroup) return;
 
-    var html = `
-      <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
-        <label style="color:var(--cyan);font-weight:800;">⚾ Next Bowler (if over ends)</label>
-        <select id="wktNextBowlerSelect" class="form-control" style="margin-bottom:6px;">
-          <option value="">-- Select from squad --</option>
-        </select>
-        <input type="text" id="wktNextBowlerInput" class="form-control" placeholder="Or type new bowler name">
-      </div>
-    `;
+    var html = ''
+      + '<div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">'
+      +   '<label style="color:var(--cyan);font-weight:800;">⚾ Next Bowler (if over ends)</label>'
+      +   '<select id="wktNextBowlerSelect" class="form-control" style="margin-bottom:6px;">'
+      +     '<option value="">-- Select from squad --</option>'
+      +   '</select>'
+      +   '<input type="text" id="wktNextBowlerInput" class="form-control" placeholder="Or type new bowler name">'
+      + '</div>';
     parentGroup.insertAdjacentHTML('afterend', html);
 
-    // Auto-capitalize as they type
     var inp = document.getElementById('wktNextBowlerInput');
     if(inp){
       inp.addEventListener('input', function(){
         var v = inp.value;
         if(!v) return;
-        var nv = v.replace(/(^|\\s|[\\-'])\\S/g, function(m){ return m.toUpperCase(); });
+        var nv = cap(v);
         if(nv !== v){
           var s = inp.selectionStart, e = inp.selectionEnd;
           inp.value = nv;
@@ -2007,33 +2015,30 @@ console.log('🔥 confirmWicketDelivery override loaded');
     }
   }
 
-  // Inject when the modal opens
-  var _origPromptWkt = window.promptWicketTypeModal;
-  window.promptWicketTypeModal = function(){
-    if(_origPromptWkt) _origPromptWkt();
-    injectBowlerIntoWicketModal();
-    populateWicketBowlerDropdown();
-  };
-
+  /* -------- 3. Populate bowler dropdown -------- */
   function populateWicketBowlerDropdown(){
     var dd = document.getElementById('wktNextBowlerSelect');
     if(!dd) return;
     dd.innerHTML = '<option value="">-- Select from squad --</option>';
-    var squad = [];
-    var team = savedTeams.find(function(t){ return t.name === match.teamBowling; });
-    if(team && team.squad) squad = team.squad.slice();
 
+    var m = window.match || {};
+    var squad = [];
+    try {
+      var team = savedTeams.find(function(t){ return t.name === m.teamBowling; });
+      if(team && team.squad) squad = team.squad.slice();
+    } catch(e){}
+
+    var currentBowl = m.currentBowler || '';
     var available = [];
     squad.forEach(function(p){
       if(!p || typeof p !== 'string') return;
       var pl = p.trim();
       if(!pl) return;
-      if(pl === match.currentBowler) return; // exclude current bowler (can't bowl consecutive)
+      if(pl === currentBowl) return;
       if(available.indexOf(pl) === -1) available.push(pl);
     });
-
-    for(var k in match.bowlers){
-      if(k !== match.currentBowler && available.indexOf(k) === -1) available.push(k);
+    for(var k in (m.bowlers || {})){
+      if(k !== currentBowl && available.indexOf(k) === -1) available.push(k);
     }
 
     available.forEach(function(p){
@@ -2044,121 +2049,154 @@ console.log('🔥 confirmWicketDelivery override loaded');
       var inp = document.getElementById('wktNextBowlerInput');
       if(dd.value && inp) inp.value = '';
     };
-    var inp = document.getElementById('wktNextBowlerInput');
-    if(inp){
-      inp.oninput = function(){ dd.value = ''; };
-    }
+    var inp2 = document.getElementById('wktNextBowlerInput');
+    if(inp2){ inp2.oninput = function(){ dd.value = ''; }; }
   }
 
-  console.log('✅ Combined wicket modal injector loaded');
-})();
+  /* -------- 4. Hook into promptWicketTypeModal -------- */
+  var _origPromptWkt = window.promptWicketTypeModal;
+  window.promptWicketTypeModal = function(){
+    if(_origPromptWkt) _origPromptWkt();
+    injectBowlerIntoWicketModal();
+    populateWicketBowlerDropdown();
+  };
 
-/* ============================================================
-   OVERRIDE confirmWicketDelivery — captures both batter + bowler
-   ============================================================ */
-window.confirmWicketDelivery = function(){
-  var method = (document.getElementById('wktMethodSelect') || {}).value || 'Bowled';
-  var fielder = ((document.getElementById('fielderCustomInput') || {}).value || '').trim();
-  if(['Caught','Run Out','Stumped'].indexOf(method) !== -1 && !fielder) {
-    fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
-  }
-
-  var typedBat = ((document.getElementById('wktNewBatsmanInput') || {}).value || '').trim();
-  var selectedBat = ((document.getElementById('wktNewBatsmanSelect') || {}).value || '').trim();
-  var newBatter = (typedBat || selectedBat || '').trim();
-
-  var typedBowl = ((document.getElementById('wktNextBowlerInput') || {}).value || '').trim();
-  var selectedBowl = ((document.getElementById('wktNextBowlerSelect') || {}).value || '').trim();
-  var newBowler = (typedBowl || selectedBowl || '').trim();
-
-  // Auto-capitalize
-  if(newBatter) newBatter = newBatter.replace(/(^|\s|[\-'])\S/g, function(m){ return m.toUpperCase(); });
-  if(newBowler) newBowler = newBowler.replace(/(^|\s|[\-'])\S/g, function(m){ return m.toUpperCase(); });
-
-  window.__suppressNextBatsmanModal = true;
-  closeModal('wicketTypeModal');
-
-  var dismissedBatter = match.striker;
-  var wasLastBall = ((match.legalBalls % 6) === 5); // 5 balls bowled, next is over-end
-
-  // Record the wicket
-  recordBall(0, null, true, "", 0, {method: method, fielder: fielder});
-
-  // Apply new striker
-  if(newBatter){
-    if(!match.batters[newBatter]){
-      var teamB = savedTeams.find(function(t){ return t.name === match.teamBatting; });
-      if(teamB && teamB.squad && teamB.squad.indexOf(newBatter) === -1) teamB.squad.push(newBatter);
-      else if(!teamB) savedTeams.push({name: match.teamBatting, squad: [newBatter]});
-      match.batters[newBatter] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
-      match.playerTeamMap[newBatter] = match.teamBattingAbbr;
-    } else {
-      match.batters[newBatter].status = 'batting';
+  /* -------- 5. Override confirmWicketDelivery -------- */
+  window.confirmWicketDelivery = function(){
+    var method = (document.getElementById('wktMethodSelect') || {}).value || 'Bowled';
+    var fielder = ((document.getElementById('fielderCustomInput') || {}).value || '').trim();
+    if(['Caught','Run Out','Stumped'].indexOf(method) !== -1 && !fielder){
+      fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
     }
-    match.striker = newBatter;
 
-    // Fix non-striker if it was the dismissed batter
-    if(match.nonStriker === dismissedBatter){
-      var partner = '';
-      for(var k in match.batters){
-        if(k !== newBatter && k !== dismissedBatter && match.batters[k].status === 'dnb'){ partner = k; break; }
+    var typedBat = ((document.getElementById('wktNewBatsmanInput') || {}).value || '').trim();
+    var selectedBat = ((document.getElementById('wktNewBatsmanSelect') || {}).value || '').trim();
+    var newBatter = cap(typedBat || selectedBat || '');
+
+    var typedBowl = ((document.getElementById('wktNextBowlerInput') || {}).value || '').trim();
+    var selectedBowl = ((document.getElementById('wktNextBowlerSelect') || {}).value || '').trim();
+    var newBowler = cap(typedBowl || selectedBowl || '');
+
+    window.__suppressNextBatsmanModal = true;
+    if(newBowler) window.__bowlerAlreadySet = true;
+
+    if(typeof closeModal === 'function') closeModal('wicketTypeModal');
+
+    var dismissedBatter = window.match.striker;
+    var wasLastBall = ((window.match.legalBalls % 6) === 5);
+
+    if(typeof recordBall === 'function'){
+      recordBall(0, null, true, "", 0, {method: method, fielder: fielder});
+    }
+
+    /* Apply new striker */
+    if(newBatter){
+      var m = window.match;
+      if(!m.batters[newBatter]){
+        var teamB = savedTeams.find(function(t){ return t.name === m.teamBatting; });
+        if(teamB && teamB.squad && teamB.squad.indexOf(newBatter) === -1) teamB.squad.push(newBatter);
+        else if(!teamB) savedTeams.push({name: m.teamBatting, squad: [newBatter]});
+        m.batters[newBatter] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+        m.playerTeamMap[newBatter] = m.teamBattingAbbr;
+      } else {
+        m.batters[newBatter].status = 'batting';
       }
-      if(partner) match.nonStriker = partner;
-    }
-    match.currentPartnership = {runs:0, balls:0, batters:[newBatter, match.nonStriker]};
-    window.match = match;
-  }
+      m.striker = newBatter;
 
-  // Apply new bowler if over ended (or is about to end)
-  setTimeout(function(){
-    try {
-      var overEnded = (match.legalBalls % 6) === 0 && match.legalBalls > 0;
-      if(newBowler && (overEnded || wasLastBall)){
-        if(!match.bowlers[newBowler]){
-          var teamBW = savedTeams.find(function(t){ return t.name === match.teamBowling; });
-          if(teamBW && teamBW.squad && teamBW.squad.indexOf(newBowler) === -1) teamBW.squad.push(newBowler);
-          else if(!teamBW) savedTeams.push({name: match.teamBowling, squad: [newBowler]});
-          match.bowlers[newBowler] = {balls:0, maidens:0, runs:0, wickets:0, dots:0, threeW:0, fiveW:0};
-          match.playerTeamMap[newBowler] = match.teamBowlingAbbr;
+      if(m.nonStriker === dismissedBatter){
+        var partner = '';
+        for(var k in m.batters){
+          if(k !== newBatter && k !== dismissedBatter && m.batters[k].status === 'dnb'){ partner = k; break; }
         }
-        match.currentBowler = newBowler;
-        window.match = match;
-        // Close any auto-opened bowler modal since we already have the name
-        var bm = document.getElementById('bowlerModal');
-        if(bm) bm.style.display = 'none';
-        console.log('✅ New bowler applied:', newBowler);
+        if(partner) m.nonStriker = partner;
       }
-    } catch(e){ console.warn('Bowler assignment error:', e); }
-  }, 400);
+      m.currentPartnership = {runs:0, balls:0, batters:[newBatter, m.nonStriker]};
+      window.match = m;
+    }
 
-  // Re-render
-  if(typeof renderLive === 'function') renderLive();
-  if(typeof renderCommentary === 'function') renderCommentary();
-  if(typeof renderScorecard === 'function') renderScorecard();
-  if(typeof renderSummary === 'function') renderSummary();
-  if(typeof autoPersist === 'function') autoPersist();
-  if(typeof broadcastMatchState === 'function') broadcastMatchState();
+    /* Apply new bowler (shortly after — over-end processing) */
+    if(newBowler){
+      setTimeout(function(){
+        try {
+          var m2 = window.match;
+          var overEnded = (m2.legalBalls % 6) === 0 && m2.legalBalls > 0;
+          if(overEnded || wasLastBall){
+            if(!m2.bowlers[newBowler]){
+              var teamBW = savedTeams.find(function(t){ return t.name === m2.teamBowling; });
+              if(teamBW && teamBW.squad && teamBW.squad.indexOf(newBowler) === -1) teamBW.squad.push(newBowler);
+              else if(!teamBW) savedTeams.push({name: m2.teamBowling, squad: [newBowler]});
+              m2.bowlers[newBowler] = {balls:0, maidens:0, runs:0, wickets:0, dots:0, threeW:0, fiveW:0};
+              m2.playerTeamMap[newBowler] = m2.teamBowlingAbbr;
+            }
+            m2.currentBowler = newBowler;
+            window.match = m2;
+            var bm = document.getElementById('bowlerModal');
+            if(bm) bm.style.display = 'none';
+          }
+          if(typeof renderLive === 'function') renderLive();
+          if(typeof renderScorecard === 'function') renderScorecard();
+          if(typeof renderCommentary === 'function') renderCommentary();
+          if(typeof autoPersist === 'function') autoPersist();
+          if(typeof broadcastMatchState === 'function') broadcastMatchState();
+        } catch(e){ console.warn('Bowler assignment error:', e); }
+      }, 400);
+    }
 
-  if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && newBatter){
-    speak('New batter in: ' + newBatter + '.');
-  }
-};
-console.log('🔥 Combined wicket handler loaded');
+    /* Re-render immediately */
+    if(typeof renderLive === 'function') renderLive();
+    if(typeof renderScorecard === 'function') renderScorecard();
+    if(typeof renderCommentary === 'function') renderCommentary();
+    if(typeof renderSummary === 'function') renderSummary();
+    if(typeof autoPersist === 'function') autoPersist();
+    if(typeof broadcastMatchState === 'function') broadcastMatchState();
 
-/* ============================================================
-   BOWLER MODAL SUPPRESSOR — skips auto-opened bowler modal
-   if a bowler was already chosen from the wicket card.
-   ============================================================ */
-(function(){
-  var _origPrompt = window.promptNextBowlerModal;
+    if(typeof isCommentaryVoiceActive !== 'undefined' && isCommentaryVoiceActive && newBatter){
+      if(typeof speak === 'function') speak('New batter in: ' + newBatter + '.');
+    }
+
+    /* ---- Watchdog: 4 rapid checks over ~2s to guarantee striker is fixed ---- */
+    var checks = 0;
+    var watchdog = setInterval(function(){
+      checks++;
+      try {
+        var m3 = window.match;
+        var cur = m3.striker;
+        var curStatus = (m3.batters[cur] || {}).status || '';
+        var curIsOut = curStatus && curStatus !== 'batting' && curStatus !== 'dnb' && curStatus !== 'not out' && curStatus !== 'retired not out';
+        var bad = curIsOut || cur === dismissedBatter || !cur;
+        if(bad && newBatter){
+          m3.batters[newBatter].status = 'batting';
+          m3.striker = newBatter;
+          if(m3.nonStriker === dismissedBatter){
+            for(var kk in m3.batters){
+              if(kk !== newBatter && kk !== dismissedBatter && m3.batters[kk].status === 'dnb'){ m3.nonStriker = kk; break; }
+            }
+          }
+          m3.currentPartnership = {runs:0, balls:0, batters:[newBatter, m3.nonStriker]};
+          window.match = m3;
+          if(typeof renderLive === 'function') renderLive();
+          if(typeof renderScorecard === 'function') renderScorecard();
+          console.log('✅ Watchdog[' + checks + '] forced striker →', newBatter);
+        } else {
+          clearInterval(watchdog);
+        }
+        if(checks >= 4) clearInterval(watchdog);
+      } catch(e){ clearInterval(watchdog); }
+    }, 500);
+  };
+
+  /* -------- 6. Suppress auto-opened bowler modal if one was already chosen -------- */
+  var _origPromptBowl = window.promptNextBowlerModal;
   window.promptNextBowlerModal = function(){
-    // If the wicket modal already captured a bowler, skip opening
     if(window.__bowlerAlreadySet){
       window.__bowlerAlreadySet = false;
-      console.log('⏭️ Bowler already chosen — skipping auto-modal');
+      var bm = document.getElementById('bowlerModal');
+      if(bm) bm.style.display = 'none';
+      console.log('⏭️ Skipped bowler modal — already chosen');
       return;
     }
-    if(_origPrompt) _origPrompt();
+    if(_origPromptBowl) _origPromptBowl();
   };
+
+  console.log('🔥 Combined wicket modal + bowler suppressor loaded');
 })();
-console.log('✅ Bowler modal suppressor loaded');
