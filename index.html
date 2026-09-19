@@ -788,7 +788,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.body.classList.add('viewer-mode');
   document.getElementById('headerSubTitle').innerText='📺 Viewer Mode';
   setTimeout(()=>{if(typeof vppStart==='function')vppStart();},400);
-}}
+}
   const s=localStorage.getItem('CricMax_Data');
   if(s){try{const p=JSON.parse(s);
     currentTourn=p.currentTourn||null;currentTournId=p.currentTournId||null;
