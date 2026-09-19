@@ -447,50 +447,14 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
   </div>
 </section>
 
-<section id="vpp" class="vpp">
-  <canvas id="vppCv"></canvas>
-  <div class="vpp-hud">
-    <!-- TV Style Bottom Scorecard -->
-    <div class="vpp-tv-scorecard">
-      <div class="vpp-tv-team">
-        <span class="vpp-tv-flag" id="vppTvTeam1">TEAM</span>
-        <span class="vpp-tv-score" id="vppTvScore1">0-0</span>
-        <span class="vpp-tv-overs" id="vppTvOvers1">(0.0)</span>
-      </div>
-      <div class="vpp-tv-batsmen">
-        <div class="vpp-tv-row active"><span id="vppTvStriker">-</span> <b id="vppTvStrikerRuns">0(0)</b></div>
-        <div class="vpp-tv-row"><span id="vppTvNonStriker">-</span> <b id="vppTvNonStrikerRuns">0(0)</b></div>
-      </div>
-      <div class="vpp-tv-bowler">
-        <div class="vpp-tv-row"><span id="vppTvBowler">-</span> <b id="vppTvBowlerFigs">0.0-0-0-0</b></div>
-        <div class="vpp-tv-row" style="color:#94a3b8;font-size:10px;">CRR: <b id="vppTvCrr" style="color:#22d3ee;">0.00</b></div>
-      </div>
-    </div>
-
-    <div class="vpp-ctrls">
-      <button onclick="vppSound()" id="vppSnd">🔊</button>
-      <button onclick="vppReplay()">↻</button>
-      <button onclick="vppFs()">⛶</button>
-    </div>
-    
-    <div class="vpp-views">
-      <button id="vppViewBroadcast" class="on" onclick="vppSetView('broadcast')" title="Broadcast">📺</button>
-      <button id="vppViewBowl" onclick="vppSetView('bowl')" title="Behind Bowler">🎯</button>
-      <button id="vppViewSide" onclick="vppSetView('side')" title="Side View">🎬</button>
-      <button id="vppViewFollow" onclick="vppSetView('follow')" title="Ball Cam">⚾</button>
-    </div>
-    <div class="vpp-live-indicator">🔴 LIVE</div>
-    <div class="vpp-tabs">
-      <button id="vppTabPitch" class="on" onclick="vppShowPane('pitch')">🏏 Pitch</button>
-      <button onclick="vppShowPane('analytics')">📊 Analysis</button>
-      <button onclick="vppShowPane('scorecard')">🃏 Card</button>
-      <button onclick="vppShowPane('leaderboards')">📈 Stats</button>
-    </div>
+<section id="vpp" class="vpp" style="position:fixed;inset:0;z-index:99999;background:#000;display:none;">
+  <!-- Navigation Header to Jump Between 3D Pitch and 2D Cards -->
+  <div style="position:absolute;top:14px;right:14px;z-index:1000;display:flex;gap:6px;pointer-events:auto;">
+    <button onclick="vppNavTo('pitch')" class="btn-ui btn-primary" style="padding:8px 14px;font-weight:900;">🏏 3D Pitch</button>
+    <button onclick="vppNavTo('scorecard')" class="btn-ui" style="padding:8px 14px;font-weight:900;">🃏 Card</button>
+    <button onclick="vppNavTo('analytics')" class="btn-ui" style="padding:8px 14px;font-weight:900;">📊 Analysis</button>
+    <button onclick="vppNavTo('leaderboards')" class="btn-ui" style="padding:8px 14px;font-weight:900;">📈 Stats</button>
   </div>
-  <div class="vpp-anim" id="vppAnim"></div>
-  <div class="vpp-mile" id="vppMile"></div>
-  <div class="vpp-strip" id="vppStrip"></div>
-  <div class="vpp-phase" id="vppPhase">POWERPLAY</div>
 </section>
 
 <!-- VPP TV Match Summary Overlay -->
@@ -3681,6 +3645,66 @@ function confirmWicketDelivery(){
   console.log('✅ Cleanup script loaded');
 })();
 </script>
+<script>
+// Launches the 3D Pitch Fullscreen
+window.vppStart = function(){
+  var el = document.getElementById('vpp');
+  if(el) {
+    el.style.display = 'block';
+    el.classList.add('on');
+  }
+
+  // Hide 2D Dashboard and Top/Bottom navigation
+  var tb = document.querySelector('.top-bar'); if(tb) tb.style.display = 'none';
+  var bn = document.querySelector('.bottom-match-nav'); if(bn) bn.style.display = 'none';
+  var h = document.getElementById('view-home'); if(h) h.style.display = 'none';
+  var d = document.getElementById('view-dashboard'); if(d) d.style.display = 'none';
+
+  // Inject 3D iframe with hardware acceleration and fullscreen permissions
+  if (!document.getElementById('vppIframe')) {
+    var iframe = document.createElement('iframe');
+    iframe.id = 'vppIframe';
+    iframe.src = 'viewer.html';
+    iframe.setAttribute('allow', 'fullscreen; autoplay');
+    iframe.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1; pointer-events:auto;';
+    el.appendChild(iframe);
+  }
+};
+
+// Seamless Navigation Between 3D Stadium and 2D Stats
+window.vppNavTo = function(pane){
+  if (pane === 'pitch') {
+    document.getElementById('vpp').style.display = 'block';
+    document.getElementById('view-dashboard').style.display = 'none';
+    var returnBtn = document.getElementById('vppFloatingReturn');
+    if (returnBtn) returnBtn.remove();
+  } else {
+    document.getElementById('vpp').style.display = 'none';
+    document.getElementById('view-dashboard').style.display = 'block';
+    if (typeof selectSubPane === 'function') selectSubPane(pane);
+
+    // Floating Button to Jump Back to 3D Action
+    var returnBtn = document.getElementById('vppFloatingReturn');
+    if (!returnBtn) {
+      returnBtn = document.createElement('button');
+      returnBtn.id = 'vppFloatingReturn';
+      returnBtn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;background:linear-gradient(135deg,#009270,#00e676);color:#fff;border:none;padding:12px 22px;border-radius:30px;font-weight:900;box-shadow:0 8px 24px rgba(0,230,118,.45);cursor:pointer;font-size:13px;';
+      returnBtn.innerText = '🏏 Return to 3D Pitch';
+      returnBtn.onclick = function(){ window.vppNavTo('pitch'); };
+      document.body.appendChild(returnBtn);
+    }
+  }
+};
+
+// Continuously expose match state to the 3D viewer
+setInterval(function(){
+  if (typeof match !== 'undefined' && match !== null) {
+    window.match = match;
+  }
+}, 350);
+</script>
+</body>
+</html>
 </body>
 </html>
 </body>
