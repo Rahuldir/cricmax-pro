@@ -76,7 +76,7 @@ function doSpeak(text){
     speechSynth.speak(u);
   }catch(e){console.error('doSpeak error:',e);}
 }
-ffunction toggleCommentaryVoice(){
+function toggleCommentaryVoice(){
   isCommentaryVoiceActive = !isCommentaryVoiceActive;
   const b = document.getElementById('btnSoundToggle');
   const icon = document.getElementById('soundIcon');
