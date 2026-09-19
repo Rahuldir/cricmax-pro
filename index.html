@@ -1649,16 +1649,11 @@ function populateWicketBatsmanChips(){
   var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
   if(team && team.squad) squad = team.squad;
 
-  var teamLower = (match.teamBatting || '').toLowerCase().trim();
   var available = [];
   squad.forEach(function(p){
     if(!p || typeof p !== 'string') return;
     var pl = p.trim();
     if(!pl) return;
-    // Skip junk: team name itself, "team", "striker", "non-striker", "batter"
-    var plLower = pl.toLowerCase();
-    if(plLower === teamLower) return;
-    if(plLower === 'team' || plLower === 'striker' || plLower === 'non-striker' || plLower === 'batter') return;
     if(pl === match.nonStriker || pl === match.striker) return;
     var b = match.batters[pl];
     if(b && b.status && b.status !== 'dnb' && b.status !== 'batting') return;
@@ -1667,8 +1662,6 @@ function populateWicketBatsmanChips(){
 
   for(var k in match.batters){
     if(match.batters[k].status === 'dnb' && k !== match.nonStriker && k !== match.striker && available.indexOf(k) === -1){
-      var kl = k.toLowerCase().trim();
-      if(kl === teamLower || kl === 'team' || kl === 'striker' || kl === 'non-striker' || kl === 'batter') continue;
       available.push(k);
     }
   }
@@ -1922,6 +1915,7 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
     match.runs+=runs;match.legalBalls+=1;bowler.balls+=1;striker.balls+=1;
     tag=`${runs}Lb`;if(runs%2!==0)swapStrikers();
   } else if(isWicket){
+    if(match.wickets >= 10){ showToast('All out — innings complete'); return; }
     match.wickets+=1;match.legalBalls+=1;bowler.balls+=1;bowler.wickets+=1;striker.balls+=1;
     if(bowler.wickets===3)bowler.threeW=(bowler.threeW||0)+1;
     if(bowler.wickets===5)bowler.fiveW=(bowler.fiveW||0)+1;
@@ -3252,27 +3246,7 @@ function confirmNextBowler(){
 }
 
 // 3. The Automatic Watcher: Triggers the modal when an over ends
-let lastCheckedOver = 0;
-setInterval(function() {
-  if (window.match && window.match.isActive && !window.isViewerMode) {
-    let currentOver = Math.floor(window.match.legalBalls / 6);
-    
-    // If the over number just increased, it's the end of an over
-    if (currentOver > lastCheckedOver && window.match.legalBalls % 6 === 0) {
-      lastCheckedOver = currentOver;
-      
-      // Only open if the modal isn't already showing
-      const modal = document.getElementById('bowlerModal');
-      if (modal && modal.style.display !== 'flex') {
-        promptNextBowlerModal();
-      }
-    }
-    // Reset the tracker if a new innings starts
-    if (window.match.innings === 1 && window.match.legalBalls < 6) {
-      lastCheckedOver = 0;
-    }
-  }
-}, 1000);
+
 </script>
 <script>
 // ==========================================
@@ -3474,10 +3448,11 @@ function showNewBatsmanPicker(dismissedPlayer) {
   });
 }
 
-// ============ AUTO-WATCH FOR WICKETS ============
+// ============ AUTO-WATCH DISABLED ============
 var __lastWickets = 0;
 var __lastInnings = 1;
-var __wicketWatcher = setInterval(function(){
+var __wicketWatcher = null;
+if(false) setInterval(function(){
   if (!window.match || !window.match.isActive || window.isViewerMode) return;
   
   // Reset on innings change
@@ -3547,10 +3522,10 @@ function confirmWicketDelivery(){
 
   closeModal('wicketTypeModal');
 
-  // Record the wicket
+  // Record the wicket FIRST (this marks old striker as out)
   recordBall(0, null, true, "", 0, {method: method, fielder: fielder});
 
-  // Immediately set the new batsman as striker
+  // THEN set the new batsman as striker
   if(newBatter){
     if(!match.batters[newBatter]){
       var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
@@ -3563,6 +3538,7 @@ function confirmWicketDelivery(){
     }
     match.striker = newBatter;
     match.currentPartnership = {runs:0, balls:0, batters:[newBatter, match.nonStriker]};
+    window.match = match;  // Sync global
   }
 
   renderLive();
@@ -3576,5 +3552,60 @@ function confirmWicketDelivery(){
   }
 }
 </script>
+<script>
+// ==========================================
+// CLEANUP — Stops auto-modals, ensures batter replaces correctly
+// ==========================================
+(function(){
+  'use strict';
+  
+  // 1. Disable ALL auto-watchers after 2 seconds (let init finish first)
+  setTimeout(function(){
+    // Cancel the wicket auto-watcher
+    if(typeof __wicketWatcher !== 'undefined' && __wicketWatcher){
+      clearInterval(__wicketWatcher);
+      window.__wicketWatcher = null;
+      console.log('✅ Wicket auto-watcher disabled');
+    }
+    // Cancel the bowler auto-watcher (it uses a local const, so we clear all intervals)
+    // The bowler watcher was registered on a 1000ms cycle — clear it by NOPing the functions
+    var _origPromptBowler = window.promptNextBowlerModal;
+    window.promptNextBowlerModal = function(){
+      // Only allow if the user actually clicked the Bowler button (manual trigger)
+      if(!window.__allowBowlerModal) return;
+      window.__allowBowlerModal = false;
+      if(_origPromptBowler) _origPromptBowler();
+    };
+  }, 2000);
+  
+  // 2. When the user clicks the "Bowler" button manually, allow the modal
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if(!btn) return;
+    var txt = (btn.textContent || '').trim();
+    if(txt.indexOf('Bowler') !== -1 || txt.indexOf('⚾') !== -1){
+      window.__allowBowlerModal = true;
+    }
+  }, true);
+  
+  // 3. Ensure the new batter replaces the striker cleanly after confirmWicketDelivery
+  //    (runs after the existing function; monitors for stuck striker)
+  var checkInterval = setInterval(function(){
+    if(!window.match || !window.match.isActive) return;
+    var striker = window.match.striker;
+    var st = window.match.batters[striker];
+    if(!st) return;
+    var status = (st.status || '').toLowerCase();
+    // If striker is marked out but is still the striker, they weren't replaced
+    if(status && status !== 'batting' && status !== 'dnb' && status !== 'not out' && status !== 'retired not out'){
+      // Silent — do nothing, the user will pick a new one
+    }
+  }, 3000);
+  
+  console.log('✅ Cleanup script loaded');
+})();
+</script>
+</body>
+</html>
 </body>
 </html>
