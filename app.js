@@ -76,7 +76,33 @@ function doSpeak(text){
     speechSynth.speak(u);
   }catch(e){console.error('doSpeak error:',e);}
 }
-function toggleCommentaryVoice(){
+ffunction toggleCommentaryVoice(){
+  isCommentaryVoiceActive = !isCommentaryVoiceActive;
+  const b = document.getElementById('btnSoundToggle');
+  const icon = document.getElementById('soundIcon');
+  const vppIcon = document.getElementById('vppSoundIcon');
+  const vppBtn = document.getElementById('vppSoundToggle');
+
+  if(isCommentaryVoiceActive){
+    if(b) b.classList.add('active');
+    if(icon) icon.innerText = '🔊';
+    if(vppBtn) vppBtn.classList.add('active');
+    if(vppIcon) vppIcon.innerText = '🔊';
+    primeSpeech();
+    setTimeout(() => {
+      const team = match.teamBatting || 'the batting side';
+      const ovStr = `${Math.floor(match.legalBalls/6)}.${match.legalBalls%6}`;
+      const greeting = match.isActive ? `Commentary enabled. ${team} are ${match.runs} for ${match.wickets} in ${ovStr} overs.` : 'Commentary enabled.';
+      speak(greeting);
+    }, 150);
+  } else {
+    if(b) b.classList.remove('active');
+    if(icon) icon.innerText = '🔇';
+    if(vppBtn) vppBtn.classList.remove('active');
+    if(vppIcon) vppIcon.innerText = '🔇';
+    if(speechSynth){ try{ speechSynth.cancel(); }catch(e){} }
+  }
+}unction toggleCommentaryVoice(){
   isCommentaryVoiceActive=!isCommentaryVoiceActive;
   const b=document.getElementById('btnSoundToggle');
   const icon=document.getElementById('soundIcon');
