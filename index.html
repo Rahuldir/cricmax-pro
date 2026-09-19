@@ -1649,16 +1649,26 @@ function populateWicketBatsmanChips(){
   var team = savedTeams.find(function(t){ return t.name === match.teamBatting; });
   if(team && team.squad) squad = team.squad;
 
+  var teamLower = (match.teamBatting || '').toLowerCase().trim();
   var available = [];
   squad.forEach(function(p){
-    if(p === match.nonStriker || p === match.striker) return;
-    var b = match.batters[p];
+    if(!p || typeof p !== 'string') return;
+    var pl = p.trim();
+    if(!pl) return;
+    // Skip junk: team name itself, "team", "striker", "non-striker", "batter"
+    var plLower = pl.toLowerCase();
+    if(plLower === teamLower) return;
+    if(plLower === 'team' || plLower === 'striker' || plLower === 'non-striker' || plLower === 'batter') return;
+    if(pl === match.nonStriker || pl === match.striker) return;
+    var b = match.batters[pl];
     if(b && b.status && b.status !== 'dnb' && b.status !== 'batting') return;
-    if(available.indexOf(p) === -1) available.push(p);
+    if(available.indexOf(pl) === -1) available.push(pl);
   });
 
   for(var k in match.batters){
     if(match.batters[k].status === 'dnb' && k !== match.nonStriker && k !== match.striker && available.indexOf(k) === -1){
+      var kl = k.toLowerCase().trim();
+      if(kl === teamLower || kl === 'team' || kl === 'striker' || kl === 'non-striker' || kl === 'batter') continue;
       available.push(k);
     }
   }
@@ -1978,8 +1988,12 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
   if(isCommentaryVoiceActive)speak(desc);
   // --- FIXED MODALS FOR BATSMAN & BOWLER ---
   if(dism){
-    // Force open the next batter modal after a short delay
-    setTimeout(function(){ promptNextBatterModal(dismPlayer); }, 600);
+    // Skip opening the old modal if confirmWicketDelivery already handled it
+    if(window.__suppressNextBatsmanModal){
+      window.__suppressNextBatsmanModal = false;
+    } else {
+      setTimeout(function(){ promptNextBatterModal(dismPlayer); }, 600);
+    }
   } 
   else if(overEnded){
     // Force open the next bowler modal after the over is finished
