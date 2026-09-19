@@ -1719,3 +1719,27 @@ document.addEventListener('keydown',e=>{
   else if(k==='u'||k==='U')undoDelivery();
   else if(k==='s'||k==='S')openSettingsModal();
 });
+/* ============ AUTO-CAPITALIZE NAME INPUTS ============ */
+(function(){
+  document.addEventListener('input', function(e){
+    var el = e.target;
+    if(!el || !el.matches) return;
+    if(!el.matches('input[type="text"], input:not([type])')) return;
+
+    var val = el.value;
+    if(!val) return;
+
+    // Capitalize the first letter of every word
+    var newVal = val.replace(/(^|\s|[\-'])\S/g, function(match){
+      return match.toUpperCase();
+    });
+
+    if(newVal !== val){
+      var start = el.selectionStart;
+      var end = el.selectionEnd;
+      el.value = newVal;
+      // Keep the cursor where the user was typing
+      try { el.setSelectionRange(start, end); } catch(err) {}
+    }
+  }, true);
+})();
