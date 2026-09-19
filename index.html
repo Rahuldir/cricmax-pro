@@ -957,7 +957,7 @@ function setSegActive(groupId,val){
   const targetVal=(typeof val==='number')?val:parseInt(val,10);
   g.querySelectorAll('.seg-btn').forEach(b=>{const btnVal=parseInt(b.dataset.val,10);b.classList.toggle('active',btnVal===targetVal);});
 }
-function openSettingsModal(){syncSettingsUI();document.getElementById('settingsModal').style.display='flex';}
+function openSettingsModal(){upgradeSettingsDropdowns();syncSettingsUI();document.getElementById('settingsModal').style.display='flex';}
 function openExtrasModal(){document.getElementById('fhStateText').innerText=match.isFreeHit?'Yes':'No';document.getElementById('extrasModal').style.display='flex';}
 function saveSettingsAndClose(){autoPersist();closeModal('settingsModal');updateSettingsSummary();}
 function resetSettingsToDefaults(){matchConfig=Object.assign({},DEFAULT_CONFIG);syncSettingsUI();autoPersist();updateSettingsSummary();}
@@ -2156,7 +2156,50 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 }
 
 /* ============ KEYBOARD ============ */
-document.addEventListener('keydown',e=>{
+/* ============ RUNTIME: SETTINGS DROPDOWN INJECTOR ============ */
+function setConfigFromSelect(key,val){
+  matchConfig[key]=parseInt(val,10);
+  if(isNaN(matchConfig[key])) matchConfig[key]=0;
+  autoPersist();
+  updateSettingsSummary();
+}
+function upgradeSettingsDropdowns(){
+  function makeDropdown(selectId, values, current, onChange){
+    let html = '<select class="form-control" id="'+selectId+'" onchange="'+onChange+'" style="width:100px;padding:6px 8px;font-size:13px;font-weight:800;background:rgba(0,0,0,.4);border:1px solid var(--card-border);color:#fff;">';
+    values.forEach(function(v){
+      html += '<option value="'+v+'"'+(v===current?' selected':'')+'>'+v+'</option>';
+    });
+    html += '</select>';
+    return html;
+  }
+  var cfgW = document.getElementById('cfgWideRuns');
+  if(cfgW && cfgW.tagName!=='SELECT'){
+    var wr = (typeof matchConfig.wideRuns==='number')?matchConfig.wideRuns:1;
+    cfgW.outerHTML = makeDropdown('cfgWideRunsSelect',[0,1,2,3,4,5],wr,"setConfigFromSelect('wideRuns',this.value)");
+  }
+  var cfgN = document.getElementById('cfgNBRuns');
+  if(cfgN && cfgN.tagName!=='SELECT'){
+    var nr = (typeof matchConfig.nbRuns==='number')?matchConfig.nbRuns:1;
+    cfgN.outerHTML = makeDropdown('cfgNBRunsSelect',[0,1,2,3,4,5],nr,"setConfigFromSelect('nbRuns',this.value)");
+  }
+  var cfgB = document.getElementById('cfgByeRuns');
+  if(cfgB && cfgB.tagName!=='SELECT'){
+    var br = (typeof matchConfig.byeRunsDefault==='number')?matchConfig.byeRunsDefault:1;
+    cfgB.outerHTML = makeDropdown('cfgByeRunsSelect',[1,2,3,4,5,6],br,"setConfigFromSelect('byeRunsDefault',this.value)");
+  }
+  var cfgLB = document.getElementById('cfgLBRuns');
+  if(cfgLB && cfgLB.tagName!=='SELECT'){
+    var lbr = (typeof matchConfig.legByeRunsDefault==='number')?matchConfig.legByeRunsDefault:1;
+    cfgLB.outerHTML = makeDropdown('cfgLBRunsSelect',[1,2,3,4,5,6],lbr,"setConfigFromSelect('legByeRunsDefault',this.value)");
+  }
+}
+// Run once on page load
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(upgradeSettingsDropdowns,300);});
+}else{
+  setTimeout(upgradeSettingsDropdowns,300);
+}
+
   if(!match.isActive||isViewerMode)return;
   const k=e.key;
   if(['0','1','2','3','4','6'].includes(k)){const r=parseInt(k);if(r===0)recordBall(0);else promptWagonWheel(r);}
