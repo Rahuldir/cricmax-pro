@@ -102,24 +102,7 @@ function toggleCommentaryVoice(){
     if(vppIcon) vppIcon.innerText = '🔇';
     if(speechSynth){ try{ speechSynth.cancel(); }catch(e){} }
   }
-}unction toggleCommentaryVoice(){
-  isCommentaryVoiceActive=!isCommentaryVoiceActive;
-  const b=document.getElementById('btnSoundToggle');
-  const icon=document.getElementById('soundIcon');
-  if(isCommentaryVoiceActive){
-    if(b)b.classList.add('active');if(icon)icon.innerText='🔊';
-    primeSpeech();
-    setTimeout(()=>{
-      const team=match.teamBatting||'the batting side';
-      const ovStr=`${Math.floor(match.legalBalls/6)}.${match.legalBalls%6}`;
-      const greeting=match.isActive?`Commentary enabled. ${team} are ${match.runs} for ${match.wickets} in ${ovStr} overs.`:'Commentary enabled.';
-      speak(greeting);
-    },150);
-  }else{
-    if(b)b.classList.remove('active');if(icon)icon.innerText='🔇';
-    if(speechSynth){try{speechSynth.cancel();}catch(e){}}
-  }
-}
+
 
 /* ============ INIT ============ */
 window.addEventListener('DOMContentLoaded',()=>{
@@ -163,6 +146,14 @@ window.addEventListener('DOMContentLoaded',()=>{
 window.addEventListener('beforeunload',()=>{if(viewerUnsubscribe){try{viewerUnsubscribe();}catch(e){}}});
 
 /* ============ MATCH CODE ============ */
+function broadcastMatchState(){
+  try{
+    if(broadcastChannel && !isViewerMode){
+      broadcastChannel.postMessage({type:'match_state', match: match});
+    }
+  }catch(e){ console.warn('broadcastMatchState error:', e); }
+}
+
 function generateMatchCode(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(let i=0;i<6;i++){code+=chars.charAt(Math.floor(Math.random()*chars.length));}return code;}
 
 /* ============ TOURNAMENT ARCHIVE ============ */
@@ -499,7 +490,11 @@ function selectSubPane(paneId){
   else{updateBottomNavActive(null);}
 }
 function openMoreOptionsModal(){document.getElementById('moreOptionsModal').style.display='flex';}
-function closeModal(id){document.getElementById(id).style.display='none';}
+function closeModal(id){
+  if(id==='wagonModal'){ clearTimeout(window._wagonTimer); pendingRuns=0; }
+  const el=document.getElementById(id);
+  if(el) el.style.display='none';
+}
 function switchScorecardTab(el,tab){document.querySelectorAll('.sc-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.getElementById('sc-batting').style.display=tab==='batting'?'block':'none';document.getElementById('sc-bowling').style.display=tab==='bowling'?'block':'none';}
 
 /* ============ TOURNAMENT ============ */
@@ -1073,8 +1068,11 @@ function confirmNextBowler(){
 /* ============ FLASH ============ */
 function triggerFlashOverlay(titleText,subText){
   const overlay=document.getElementById('wagonFlashOverlay');
-  document.getElementById('flashOverlayTitle').innerText=titleText;
-  document.getElementById('flashOverlaySub').innerText=subText;
+  if(!overlay) return;
+  const t=document.getElementById('flashOverlayTitle');
+  const s=document.getElementById('flashOverlaySub');
+  if(t) t.innerText=titleText;
+  if(s) s.innerText=subText;
   overlay.className='wagon-flash-overlay active';
   clearTimeout(flashTimer);
   flashTimer=setTimeout(()=>{overlay.className='wagon-flash-overlay';},2000);
@@ -1115,7 +1113,7 @@ function drawScoringWagonShot(cx,cy,lx,ly,ballX,ballY){
   }
 }
 const cvWheel=document.getElementById('wagonCanvas');
-cvWheel.addEventListener('pointerdown',(e)=>{
+if(cvWheel) cvWheel.addEventListener('pointerdown',(e)=>{
   if(!match.isActive||isViewerMode)return;
   const rect=cvWheel.getBoundingClientRect();
   const scaleX=cvWheel.width/rect.width,scaleY=cvWheel.height/rect.height;
@@ -1159,8 +1157,11 @@ cvWheel.addEventListener('pointerdown',(e)=>{
 });
 function triggerBanner(t,s,c){
   const b=document.getElementById('topCinematicBanner');
-  document.getElementById('topBannerTitle').innerText=t;
-  document.getElementById('topBannerSub').innerText=s;
+  if(!b) return;
+  const bt=document.getElementById('topBannerTitle');
+  const bs=document.getElementById('topBannerSub');
+  if(bt) bt.innerText=t;
+  if(bs) bs.innerText=s;
   b.className='top-cinematic-banner';void b.offsetWidth;b.classList.add(c,'active');
   clearTimeout(window._bannerTimer);
   window._bannerTimer=setTimeout(()=>{b.className='top-cinematic-banner';},2400);
@@ -1542,7 +1543,8 @@ function renderLive(){
   if(oc){oc.innerHTML='';if(match.currentOverBalls.length>0){const b=document.createElement('div');b.className='over-block';b.innerHTML=`<div class="over-block-num">Current</div><div class="over-block-balls">${match.currentOverBalls.map(x=>`<span class="ball-pill" style="width:22px;height:22px;font-size:9px;">${x}</span>`).join('')}</div>`;oc.appendChild(b);}}
   renderScorecard();
   renderSummary();
-  if(document.getElementById('tvMode').classList.contains('active'))renderTVMode();
+  const _tvMode = document.getElementById('tvMode');
+  if(_tvMode && _tvMode.classList.contains('active')) renderTVMode();
 }
 function renderCommentary(){
   const c=document.getElementById('commentaryContainer');if(!c)return;
@@ -2246,3 +2248,27 @@ console.log('🔥 confirmWicketDelivery override loaded');
 
   console.log('🔥 Combined wicket modal + bowler suppressor loaded');
 })();
+
+/* ============ VIEWER CONTROLS ============ */
+function toggleFullScreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(err=>console.warn(err));
+  }else{
+    if(document.exitFullscreen)document.exitFullscreen();
+  }
+}
+
+function triggerReplay(){
+  if(!match.shotLog||match.shotLog.length===0){
+    showToast('No balls to replay yet');
+    return;
+  }
+  const lastShot=match.shotLog[match.shotLog.length-1];
+  if(typeof window.vppPlayDelivery==='function'){
+    window.vppPlayDelivery(lastShot);
+  }else if(typeof window.playBallAnimation==='function'){
+    window.playBallAnimation(lastShot);
+  }else{
+    showToast(`Replaying Ball ${lastShot.over}.${lastShot.ball}: ${lastShot.runs} runs`);
+  }
+}
