@@ -576,7 +576,7 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 
 <div class="modal-overlay" id="wideRunsModal"><div class="modal-card"><h3 style="margin-bottom:6px;font-size:16px;color:var(--gold);">Wide + Runs</h3><p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Select total extras added by this wide ball.</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal');recordBall(0,'WD')">Wide 1</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal');recordBall(1,'WD')">Wide 2</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal');recordBall(2,'WD')">Wide 3</button><button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="closeModal('wideRunsModal');recordBall(3,'WD')">Wide 4</button><button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="closeModal('wideRunsModal');recordBall(4,'WD')">Wide 5</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal')">Cancel</button></div></div></div>
 
-<div class="modal-overlay" id="nbRunsModal"><div class="modal-card"><h3 style="margin-bottom:6px;font-size:16px;color:var(--orange);">No Ball + Runs</h3><p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Runs off the bat on this no-ball (extras auto-added on top).</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(0,'NB')">NB+0</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(1,'NB')">NB+1</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(2,'NB')">NB+2</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(3,'NB')">NB+3</button><button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="closeModal('nbRunsModal');recordBall(4,'NB')">NB+4</button><button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="closeModal('nbRunsModal');recordBall(6,'NB')">NB+6</button></div><div style="text-align:right;margin-top:14px;"><button class="btn-ui" onclick="closeModal('nbRunsModal')">Cancel</button></div></div></div>
+<div class="modal-overlay" id="nbRunsModal"><div class="modal-card"><h3 style="margin-bottom:6px;font-size:16px;color:var(--orange);">No Ball + Runs</h3><p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Select runs scored off the bat. Extra 1 run auto-added; batsman gets the bat runs & faces 1 ball; over does not advance.</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(0,'NB')">NB+0</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(1,'NB')">NB+1</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(2,'NB')">NB+2</button><button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(3,'NB')">NB+3</button><button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="closeModal('nbRunsModal');recordBall(4,'NB')">NB+4</button><button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="closeModal('nbRunsModal');recordBall(6,'NB')">NB+6</button></div><div style="text-align:right;margin-top:14px;"><button class="btn-ui" onclick="closeModal('nbRunsModal')">Cancel</button></div></div></div>
 
 <div class="modal-overlay" id="endInningsModal"><div class="modal-card" style="text-align:center;"><div style="font-size:52px;margin-bottom:10px;">🏁</div><h3 style="font-size:18px;font-weight:900;color:var(--gold);margin-bottom:8px;" id="endInningsTitle">End Innings 1?</h3><p style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="endInningsDesc">Current score will be finalized.</p><div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px;margin-bottom:16px;"><div style="font-size:26px;font-weight:900;color:#fff;" id="endInningsScore">0/0</div><div style="font-size:12px;color:var(--muted);margin-top:4px;" id="endInningsOvers">0.0 overs</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><button class="btn-ui" style="padding:14px;" onclick="closeModal('endInningsModal')">Cancel</button><button class="btn-ui btn-primary" style="padding:14px;" onclick="confirmEndInnings()">✓ Confirm End</button></div></div></div>
 
@@ -1054,6 +1054,7 @@ function selectSubPane(paneId){
   if(paneId==='tournament'){renderPastMatchesList();renderPointsTable();updateContinueButton();}
   if(paneId==='teams')renderTeamsList();
   if(paneId==='live'){renderCommentary();updateSettingsSummary();updateLiveShareBadge();}
+  if(paneId==='summary')renderSummary();
   if(paneId==='analytics')renderNzcAnalytics();
   if(paneId==='leaderboards')renderStatsCategory(currentStatsCategory);
   if(['live','scorecard','analytics','leaderboards'].includes(paneId)){updateBottomNavActive(paneId);}
@@ -1594,6 +1595,16 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
   let tag=runs.toString();let dism=false;const dismPlayer=match.striker;
   const desc=genComm(runs,extra,isWicket,region,distance,dd);
   const prevRuns=striker?striker.runs:0;const prevTeam=match.runs;const wasFH=match.isFreeHit;
+
+  // ✅ Partnership ball counter:
+  // - Wide → not a ball faced by batsman → skip here
+  // - No-ball → IS faced → counted inside the NB branch
+  // - Legal / bye / leg-bye / wicket → counted here
+  if(extra!=='WD' && extra!=='NB'){
+    if(!match.currentPartnership) match.currentPartnership={runs:0,balls:0,batters:[match.striker,match.nonStriker]};
+    if(!match.currentPartnership.balls) match.currentPartnership.balls = 0;
+    match.currentPartnership.balls += 1;
+  }
   const zoneIndex=region?["Point","Third Man","Fine Leg","Square Leg","Mid-Wicket","Long-on","Long-off","Cover"].indexOf(region):-1;
   const overNum=Math.floor(match.legalBalls/6)+1;const bowlerType=detectBowlerType(match.currentBowler);
   match.shotLog.push({inns:match.innings,over:overNum,ball:match.legalBalls+1,batter:match.striker,bowler:match.currentBowler,runs:runs||0,zone:region||'',zoneIndex:zoneIndex,isWicket:!!isWicket,isFour:runs===4,isSix:runs===6,isBoundary:runs===4||runs===6,isDot:runs===0&&!extra,extra:extra||null,bowlerType:bowlerType,distance:distance||0});
@@ -1603,17 +1614,35 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
     const totalWide=(wideBase+runs);tag=totalWide>1?`${totalWide}Wd`:`${wideBase}Wd`;
     if(matchConfig.wideCountsAsBall){match.legalBalls+=1;bowler.balls+=1;if(!isWicket){striker.balls+=1;}}
   } else if(extra==='NB'){
+    // ⚡ NO-BALL HANDLING (correct cricket rules):
+    // - Team total += nbBase (extra) + runs off bat
+    // - Bowler concedes: nbBase + runs
+    // - Bowler balls: NOT incremented (no-ball is not a legal delivery)
+    // - Batsman balls: INCREMENTED (batsman faced the delivery)
+    // - Batsman runs: += runs off bat; 4s/6s tracked
+    // - Legal ball counter: NOT incremented (over does not advance)
+    // - Partnership balls: INCREMENTED (batsman faced a ball)
     const nbBase=(typeof matchConfig.nbRuns==='number')?matchConfig.nbRuns:1;
-    match.runs+=nbBase+runs;bowler.runs+=nbBase+runs;
-    const totalNB=(nbBase+runs);tag=totalNB>1?`${totalNB}Nb`:`${nbBase}Nb`;
-    if(matchConfig.autoFreeHitOnNB)match.isFreeHit=true;
-    // ✅ FIX: Credit runs scored off the bat to the striker (cricket rules).
-    // Balls faced is NOT incremented (no-ball is not a legal ball for over count).
-    if(runs>0 && striker){
-      striker.runs = (striker.runs||0) + runs;
-      if(runs===4) striker.fours = (striker.fours||0) + 1;
-      if(runs===6) striker.sixes = (striker.sixes||0) + 1;
+    match.runs += nbBase + runs;
+    bowler.runs += nbBase + runs;
+    // ✅ Bowler does NOT get a legal ball counted for no-ball
+    // ✅ Striker DOES face the ball and gets runs credited
+    if(striker){
+      striker.balls = (striker.balls||0) + 1;
+      if(runs>0){
+        striker.runs = (striker.runs||0) + runs;
+        if(runs===4) striker.fours = (striker.fours||0) + 1;
+        if(runs===6) striker.sixes = (striker.sixes||0) + 1;
+      }
     }
+    // Partnership tracks the ball faced
+    if(match.currentPartnership){
+      if(!match.currentPartnership.balls) match.currentPartnership.balls = 0;
+      match.currentPartnership.balls += 1;
+    }
+    const totalNB = nbBase + runs;
+    tag = totalNB > 1 ? `${totalNB}Nb` : `${nbBase}Nb`;
+    if(matchConfig.autoFreeHitOnNB) match.isFreeHit = true;
   } else if(extra==='B'){
     match.runs+=runs;match.legalBalls+=1;bowler.balls+=1;striker.balls+=1;
     tag=`${runs}B`;if(runs%2!==0)swapStrikers();
@@ -1683,7 +1712,7 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
     const summaryDesc=`<span class="sum-line"><b>End of Over ${overNumber}</b> — <span class="sum-team">${match.teamBattingAbbr} ${match.runs}/${match.wickets}</span> • ${overRunsThisOver} run${overRunsThisOver!==1?'s':''} this over</span><span class="sum-line">🏏 ${match.striker} <b>${stStats.runs}</b>(${stStats.balls}) • ${match.nonStriker} <b>${nsStats.runs}</b>(${nsStats.balls})</span><span class="sum-line">⚾ <span class="sum-bowler">${match.currentBowler}</span> ${ovStr}-${bwlStats.maidens}-${bwlStats.runs}-<b>${bwlStats.wickets}</b></span>`;
     match.commentary.unshift({ball:`End Ov ${overNumber}`,desc:summaryDesc,type:'summary',html:true});
   }
-  renderLive();renderCommentary();broadcastMatchState();
+  renderLive();renderCommentary();renderSummary();broadcastMatchState();
   if(isCommentaryVoiceActive)speak(desc);
   // Reliable next batter/bowler modal trigger
   if(dism){setTimeout(()=>promptNextBatterModal(dismPlayer),250);}
@@ -1879,6 +1908,7 @@ function renderLive(){
   const oc=document.getElementById('overCommentaryStrip');
   if(oc){oc.innerHTML='';if(match.currentOverBalls.length>0){const b=document.createElement('div');b.className='over-block';b.innerHTML=`<div class="over-block-num">Current</div><div class="over-block-balls">${match.currentOverBalls.map(x=>`<span class="ball-pill" style="width:22px;height:22px;font-size:9px;">${x}</span>`).join('')}</div>`;oc.appendChild(b);}}
   renderScorecard();
+  renderSummary();
   if(document.getElementById('tvMode').classList.contains('active'))renderTVMode();
 }
 function renderCommentary(){
@@ -1893,7 +1923,17 @@ function renderCommentary(){
     c.appendChild(it);
   });
 }
-function renderScorecard(){
+function renderSummary(){
+  const cp = match.currentPartnership || {runs:0,balls:0,batters:[]};
+  const st = match.batters[match.striker] || {runs:0,balls:0};
+  const nst = match.batters[match.nonStriker] || {runs:0,balls:0};
+  const pr = document.getElementById('partRuns');
+  const pd = document.getElementById('partDetails');
+  const fw = document.getElementById('fowContainer');
+  if(pr) pr.innerText = `${cp.runs||0} runs (${cp.balls||0} balls)`;
+  if(pd) pd.innerText = `${match.striker||'-'}: ${st.runs} (${st.balls}) | ${match.nonStriker||'-'}: ${nst.runs} (${nst.balls})`;
+  if(fw) fw.innerHTML = (match.fow && match.fow.length>0) ? match.fow.join('<br>') : 'No wickets yet.';
+}
   const bt=document.getElementById('battingTeamTitle');if(bt)bt.innerText=`Batting — ${match.teamBatting}`;
   const bwt=document.getElementById('bowlingTeamTitle');if(bwt)bwt.innerText=`Bowling — ${match.teamBowling}`;
   const bb=document.getElementById('battingTableBody');
