@@ -407,24 +407,14 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
   </div>
 </section>
 
-<section id="vpp" class="vpp">
-  <canvas id="vppCv"></canvas>
-  <div class="vpp-hud">
-    <div class="vpp-ctrls">
-      <button onclick="vppToggleSound()" id="vppSnd">🔊</button>
-      <button onclick="vppReplay()">↻</button>
-      <button onclick="vppFullscreen()">⛶</button>
-    </div>
-    <div class="vpp-views">
-      <button id="vppViewBroadcast" class="on" onclick="vppSetView('broadcast')" title="Broadcast">📺</button>
-      <button id="vppViewBowl" onclick="vppSetView('bowl')" title="Behind Bowler">🎯</button>
-      <button id="vppViewSide" onclick="vppSetView('side')" title="Side View">🎬</button>
-    </div>
-    <div class="vpp-live-indicator">🔴 LIVE</div>
+<!-- Clean container: renders iframe cleanly without duplicate button overlays -->
+<section id="vpp" class="vpp" style="position:fixed;inset:0;z-index:99999;background:#000;display:none;">
+  <div style="position:absolute;top:14px;right:14px;z-index:100001;display:flex;gap:6px;background:rgba(8,14,28,0.85);padding:5px 8px;border-radius:14px;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);pointer-events:auto;">
+    <button onclick="vppNavTo('pitch')" class="btn-ui btn-primary" style="padding:7px 13px;font-weight:900;border-radius:8px;">🏏 Pitch</button>
+    <button onclick="vppNavTo('scorecard')" class="btn-ui" style="padding:7px 13px;font-weight:900;border-radius:8px;">🃏 Card</button>
+    <button onclick="vppNavTo('analytics')" class="btn-ui" style="padding:7px 13px;font-weight:900;border-radius:8px;">📊 Analysis</button>
+    <button onclick="vppNavTo('leaderboards')" class="btn-ui" style="padding:7px 13px;font-weight:900;border-radius:8px;">📈 Stats</button>
   </div>
-  <div class="vpp-anim" id="vppAnim"></div>
-  <div class="vpp-strip" id="vppStrip"></div>
-  <div class="vpp-phase" id="vppPhase">POWERPLAY</div>
 </section>
 
 <div id="vppMatchSummary" class="vpp-summary-overlay">
