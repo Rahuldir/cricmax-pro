@@ -363,6 +363,31 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 .ipl-countdown{position:absolute;bottom:110px;left:50%;transform:translateX(-50%);font-size:clamp(36px,10vw,72px);font-weight:900;font-style:italic;color:#fff;opacity:0;text-shadow:0 0 30px #00e676,0 0 60px #22d3ee;}
 .ipl-countdown.active{animation:countdownPulse 1s ease-out infinite;}
 @keyframes countdownPulse{0%{transform:translateX(-50%) scale(.8);opacity:0;}20%{transform:translateX(-50%) scale(1.2);opacity:1;}100%{transform:translateX(-50%) scale(1);opacity:.9;}}
+/* VPP Upgrades */
+.vpp-phase {
+  bottom: 75px !important; /* Pushes it above the scorecard */
+}
+.vpp-live-indicator {
+  position: absolute;
+  top: 60px;
+  right: 14px;
+  background: #ef4444;
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(239,68,68,.6);
+  animation: vppBlink 1.2s infinite;
+  z-index: 15;
+  pointer-events: none;
+}
+@keyframes vppBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
 </style>
 </head>
 <body>
@@ -454,6 +479,7 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
       <button id="vppViewSide" onclick="vppSetView('side')" title="Side View">🎬</button>
       <button id="vppViewFollow" onclick="vppSetView('follow')" title="Ball Cam">⚾</button>
     </div>
+    <div class="vpp-live-indicator">🔴 LIVE</div>
     <div class="vpp-tabs">
       <button id="vppTabPitch" class="on" onclick="vppShowPane('pitch')">🏏 Pitch</button>
       <button onclick="vppShowPane('analytics')">📊 Analysis</button>
@@ -1763,7 +1789,7 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
   }
   const zoneIndex=region?["Point","Third Man","Fine Leg","Square Leg","Mid-Wicket","Long-on","Long-off","Cover"].indexOf(region):-1;
   const overNum=Math.floor(match.legalBalls/6)+1;const bowlerType=detectBowlerType(match.currentBowler);
-  match.shotLog.push({inns:match.innings,over:overNum,ball:match.legalBalls+1,batter:match.striker,bowler:match.currentBowler,runs:runs||0,zone:region||'',zoneIndex:zoneIndex,isWicket:!!isWicket,isFour:runs===4,isSix:runs===6,isBoundary:runs===4||runs===6,isDot:runs===0&&!extra,extra:extra||null,bowlerType:bowlerType,distance:distance||0});
+  match.shotLog.push({inns:match.innings,over:overNum,ball:match.legalBalls+1,batter:match.striker,bowler:match.currentBowler,runs:runs||0,zone:region||'',zoneIndex:zoneIndex,isWicket:!!isWicket,isFour:runs===4,isSix:runs===6,isBoundary:runs===4||runs===6,isDot:runs===0&&!extra,extra:extra||null,bowlerType:bowlerType,distance:distance||0,ballRandom:Math.random()});
   if(extra==='WD'){
     const wideBase=(typeof matchConfig.wideRuns==='number')?matchConfig.wideRuns:1;
     match.runs+=wideBase+runs;bowler.runs+=wideBase+runs;
@@ -2652,7 +2678,6 @@ document.addEventListener('keydown',e=>{
     vppIdle();
   };
 
-  // This is the missing function that makes the tabs work
   window.vppShowPane=function(pane){
     var btns=document.querySelectorAll('.vpp-tabs button');
     btns.forEach(function(b){b.classList.remove('on');});
@@ -2673,7 +2698,6 @@ document.addEventListener('keydown',e=>{
       document.querySelector('.top-bar').style.display='none';
       document.querySelector('.bottom-match-nav').style.display='none';
       
-      // Call the main script's selectSubPane function
       if(typeof selectSubPane === 'function') selectSubPane(pane);
       
       var back=document.getElementById('vppBackBtn');
@@ -2693,65 +2717,34 @@ document.addEventListener('keydown',e=>{
     var dpr=parseFloat(cv.dataset.dpr)||1;
     var w=cv.width/dpr, h=cv.height/dpr;
     if(vppView==='bowl'){
-      return{
-        fcx:w*0.5,horizon:h*0.24,
-        pitch:{topY:h*0.42,botY:h*0.92,topW:w*0.07,botW:w*0.26},
-        batsman:{x:w*0.52,y:h*0.46,r:h*0.018},
-        bowler:{x:w*0.48,y:h*0.82,r:h*0.034},
-        keeper:{x:w*0.56,y:h*0.42,r:h*0.016},
-        umpire:{x:w*0.44,y:h*0.86,r:h*0.02},
-        field:{cx:w*0.5,cy:h*0.55,rx:w*0.55,ry:h*0.42}
-      };
+      return{fcx:w*0.5,horizon:h*0.24,pitch:{topY:h*0.42,botY:h*0.92,topW:w*0.07,botW:w*0.26},batsman:{x:w*0.52,y:h*0.46,r:h*0.018},bowler:{x:w*0.48,y:h*0.82,r:h*0.034},keeper:{x:w*0.56,y:h*0.42,r:h*0.016},umpire:{x:w*0.44,y:h*0.86,r:h*0.02},field:{cx:w*0.5,cy:h*0.55,rx:w*0.55,ry:h*0.42}};
     } else if(vppView==='side'){
-      return{
-        fcx:w*0.5,horizon:h*0.3,
-        pitch:{topY:h*0.62,botY:h*0.74,topW:w*0.74,botW:w*0.86},
-        batsman:{x:w*0.84,y:h*0.6,r:h*0.032},
-        bowler:{x:w*0.14,y:h*0.6,r:h*0.03},
-        keeper:{x:w*0.93,y:h*0.62,r:h*0.026},
-        umpire:{x:w*0.5,y:h*0.58,r:h*0.024},
-        field:{cx:w*0.5,cy:h*0.78,rx:w*0.55,ry:h*0.28}
-      };
+      return{fcx:w*0.5,horizon:h*0.3,pitch:{topY:h*0.62,botY:h*0.74,topW:w*0.74,botW:w*0.86},batsman:{x:w*0.84,y:h*0.6,r:h*0.032},bowler:{x:w*0.14,y:h*0.6,r:h*0.03},keeper:{x:w*0.93,y:h*0.62,r:h*0.026},umpire:{x:w*0.5,y:h*0.58,r:h*0.024},field:{cx:w*0.5,cy:h*0.78,rx:w*0.55,ry:h*0.28}};
     }
-    return{
-      fcx:w*0.5,horizon:h*0.26,
-      pitch:{topY:h*0.42,botY:h*0.9,topW:w*0.06,botW:w*0.24},
-      batsman:{x:w*0.53,y:h*0.84,r:h*0.034},
-      bowler:{x:w*0.48,y:h*0.44,r:h*0.012},
-      keeper:{x:w*0.58,y:h*0.94,r:h*0.028},
-      umpire:{x:w*0.42,y:h*0.44,r:h*0.012},
-      field:{cx:w*0.5,cy:h*0.68,rx:w*0.55,ry:h*0.32}
-    };
+    return{fcx:w*0.5,horizon:h*0.26,pitch:{topY:h*0.42,botY:h*0.9,topW:w*0.06,botW:w*0.24},batsman:{x:w*0.53,y:h*0.84,r:h*0.034},bowler:{x:w*0.48,y:h*0.44,r:h*0.012},keeper:{x:w*0.58,y:h*0.94,r:h*0.028},umpire:{x:w*0.42,y:h*0.44,r:h*0.012},field:{cx:w*0.5,cy:h*0.68,rx:w*0.55,ry:h*0.32}};
   }
 
   function buildBg(){
     var cv=document.getElementById('vppCv');
     var dpr=parseFloat(cv.dataset.dpr)||1;
-    var W=cv.width, H=cv.height;
-    var w=W/dpr, h=H/dpr;
+    var W=cv.width, H=cv.height, w=W/dpr, h=H/dpr;
     var L=layout();
-    var c=document.createElement('canvas');
-    c.width=W; c.height=H;
-    var x=c.getContext('2d');
-    x.scale(dpr,dpr);
+    var c=document.createElement('canvas'); c.width=W; c.height=H;
+    var x=c.getContext('2d'); x.scale(dpr,dpr);
 
     var sg=x.createLinearGradient(0,0,0,L.horizon*1.9);
     sg.addColorStop(0,'#000308'); sg.addColorStop(0.5,'#050b1c'); sg.addColorStop(1,'#0a1e14');
     x.fillStyle=sg; x.fillRect(0,0,w,L.horizon*1.9);
 
-    for(var i=0;i<80;i++){
-      var sx=(i*137.5)%w; var sy=(i*89.3)%(L.horizon*1.4);
-      x.fillStyle='rgba(255,255,255,'+(0.15+((i*17)%10)/18)+')'; x.fillRect(sx,sy,1.2,1.2);
-    }
+    for(var i=0;i<80;i++){ x.fillStyle='rgba(255,255,255,'+(0.15+((i*17)%10)/18)+')'; x.fillRect((i*137.5)%w,(i*89.3)%(L.horizon*1.4),1.2,1.2); }
 
     var poles=[{x:w*0.07,y:L.horizon*0.75},{x:w*0.93,y:L.horizon*0.75},{x:w*0.12,y:L.horizon*1.15},{x:w*0.88,y:L.horizon*1.15}];
     poles.forEach(function(p){
       x.fillStyle='#0f1420'; x.fillRect(p.x-3, p.y-h*0.11, 6, h*0.11);
-      var hw=w*0.055, hh=h*0.05;
-      x.fillStyle='#0a0f1c'; x.fillRect(p.x-hw/2, p.y-h*0.15, hw, hh);
+      var hw=w*0.055, hh=h*0.05; x.fillStyle='#0a0f1c'; x.fillRect(p.x-hw/2, p.y-h*0.15, hw, hh);
       x.strokeStyle='#2a3550'; x.lineWidth=1; x.strokeRect(p.x-hw/2, p.y-h*0.15, hw, hh);
       for(var ii=0;ii<3;ii++) for(var jj=0;jj<2;jj++){
-        var bx=p.x-hw/2+w*0.013+ii*w*0.016; var by=p.y-h*0.15+h*0.014+jj*h*0.018;
+        var bx=p.x-hw/2+w*0.013+ii*w*0.016, by=p.y-h*0.15+h*0.014+jj*h*0.018;
         var g=x.createRadialGradient(bx,by,0,bx,by,w*0.025);
         g.addColorStop(0,'rgba(255,255,210,1)'); g.addColorStop(0.5,'rgba(255,240,180,.65)'); g.addColorStop(1,'rgba(255,255,200,0)');
         x.fillStyle=g; x.beginPath(); x.arc(bx,by,w*0.025,0,Math.PI*2); x.fill();
@@ -2759,10 +2752,9 @@ document.addEventListener('keydown',e=>{
       }
     });
 
-    var tiers=['#040812','#0a1020','#141b30','#1c2338'];
-    var fr=L.field;
+    var tiers=['#040812','#0a1020','#141b30','#1c2338']; var fr=L.field;
     for(var ti=0;ti<4;ti++){
-      var rx=fr.rx*(1.45+ti*0.18); var ry=fr.ry*(1.25+ti*0.15);
+      var rx=fr.rx*(1.45+ti*0.18), ry=fr.ry*(1.25+ti*0.15);
       x.fillStyle=tiers[ti]; x.beginPath(); x.ellipse(fr.cx, fr.cy+ry*0.35, rx, ry, 0, 0, Math.PI*2); x.fill();
     }
 
@@ -2770,8 +2762,7 @@ document.addEventListener('keydown',e=>{
     var pal=['#e5534b','#e8b04a','#48a8c4','#9b6dd0','#4eb87a','#d9629e','#dcc24a','#5f7fd9','#c96e3a'];
     var s=12345; var rng=function(){s=(s*9301+49297)%233280;return s/233280;};
     for(var k=0;k<1800;k++){
-      var a=rng()*Math.PI*2; var rr=fr.rx*(1.05+rng()*0.9);
-      var px=fr.cx+Math.cos(a)*rr; var py=fr.cy+Math.sin(a)*rr*(fr.ry/fr.rx)*1.05;
+      var a=rng()*Math.PI*2, rr=fr.rx*(1.05+rng()*0.9), px=fr.cx+Math.cos(a)*rr, py=fr.cy+Math.sin(a)*rr*(fr.ry/fr.rx)*1.05;
       if(py>fr.cy+fr.ry*0.9 && py<fr.cy+fr.ry*1.1) continue;
       x.fillStyle=pal[Math.floor(rng()*pal.length)]; x.globalAlpha=0.45+rng()*0.45; x.fillRect(px,py,1.8,1.8);
     }
@@ -2779,9 +2770,9 @@ document.addEventListener('keydown',e=>{
 
     var ads=['#ff6d00','#22d3ee','#a855f7','#00e676','#ef4444','#fbbf24'];
     for(var ai=0;ai<40;ai++){
-      var aa=(ai/40)*Math.PI*2; var abx=fr.cx+Math.cos(aa)*fr.rx*1.02; var aby=fr.cy+Math.sin(aa)*fr.ry*1.02;
+      var aa=(ai/40)*Math.PI*2, abx=fr.cx+Math.cos(aa)*fr.rx*1.02, aby=fr.cy+Math.sin(aa)*fr.ry*1.02;
       x.save(); x.translate(abx,aby); x.rotate(aa+Math.PI/2);
-      var aw=w*0.055, ah=5; x.fillStyle=ads[ai%ads.length]; x.globalAlpha=0.85; x.fillRect(-aw/2,-ah/2,aw,ah); x.globalAlpha=1; x.restore();
+      x.fillStyle=ads[ai%ads.length]; x.globalAlpha=0.85; x.fillRect(-w*0.0275,-2.5,w*0.055,5); x.globalAlpha=1; x.restore();
     }
 
     var fg=x.createRadialGradient(fr.cx, fr.cy-fr.ry*0.4, fr.ry*0.1, fr.cx, fr.cy, fr.rx);
@@ -2790,12 +2781,9 @@ document.addEventListener('keydown',e=>{
 
     x.save(); x.beginPath(); x.ellipse(fr.cx, fr.cy, fr.rx, fr.ry, 0, 0, Math.PI*2); x.clip();
     for(var mi=-5;mi<=5;mi++){ x.fillStyle='rgba(255,255,255,0.045)'; x.fillRect(fr.cx+mi*fr.rx*0.15, fr.cy-fr.ry, fr.rx*0.075, fr.ry*2); }
-    var vg=x.createRadialGradient(fr.cx, fr.cy, fr.rx*0.3, fr.cx, fr.cy, fr.rx);
-    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.4)');
-    x.fillStyle=vg; x.beginPath(); x.ellipse(fr.cx, fr.cy, fr.rx, fr.ry, 0, 0, Math.PI*2); x.fill(); x.restore();
+    x.restore();
 
     x.strokeStyle='rgba(255,255,255,0.85)'; x.lineWidth=2; x.beginPath(); x.ellipse(fr.cx, fr.cy, fr.rx*0.97, fr.ry*0.97, 0, 0, Math.PI*2); x.stroke();
-
     x.strokeStyle='rgba(255,255,255,0.22)'; x.lineWidth=1.2; x.setLineDash([6,5]); x.beginPath(); x.ellipse(fr.cx, fr.cy, fr.rx*0.58, fr.ry*0.58, 0, 0, Math.PI*2); x.stroke(); x.setLineDash([]);
 
     var p=L.pitch;
@@ -2821,16 +2809,42 @@ document.addEventListener('keydown',e=>{
     return c;
   }
 
-  function drawPlayer(ctx,x,y,r,jersey,border,helmet){
-    ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(x+r*0.3, y+r*0.75, r*1.3, r*0.55, 0, 0, Math.PI*2); ctx.fill();
-    var bg=ctx.createRadialGradient(x-r*0.3, y-r*0.4, 0, x, y, r);
+  function drawPlayer(ctx,x,y,r,jersey,border,helmet,pose){
+    pose = pose || 'stand';
+    ctx.save();
+    ctx.translate(x, y);
+    
+    ctx.fillStyle='rgba(0,0,0,0.4)';
+    ctx.beginPath(); ctx.ellipse(r*0.3, r*0.75, r*1.3, r*0.55, 0, 0, Math.PI*2); ctx.fill();
+    
+    var bg=ctx.createRadialGradient(-r*0.3, -r*0.4, 0, 0, 0, r);
     bg.addColorStop(0, border); bg.addColorStop(0.65, jersey); bg.addColorStop(1, jersey);
-    ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.stroke();
+    
     if(helmet){
-      ctx.fillStyle='#0a0e1a'; ctx.beginPath(); ctx.arc(x, y-r*0.15, r*0.55, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=0.9; ctx.beginPath(); ctx.arc(x, y-r*0.15, r*0.55, Math.PI*1.1, Math.PI*1.9); ctx.stroke();
+      ctx.fillStyle='#0a0e1a'; ctx.beginPath(); ctx.arc(0, -r*0.15, r*0.55, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=0.9; ctx.beginPath(); ctx.arc(0, -r*0.15, r*0.55, Math.PI*1.1, Math.PI*1.9); ctx.stroke();
     }
+    
+    ctx.strokeStyle = jersey; ctx.lineWidth = r*0.25; ctx.lineCap = 'round';
+    
+    if (pose === 'batting') {
+      ctx.save(); ctx.translate(r*0.5, r*0.2); ctx.rotate(-Math.PI*0.3);
+      ctx.fillStyle='#3a2a1a'; ctx.fillRect(-r*0.12, 0, r*0.24, r*0.75);
+      ctx.fillStyle='#d4b686'; ctx.fillRect(-r*0.28, r*0.75, r*0.56, r*1.7);
+      ctx.restore();
+    } else if (pose === 'bowling') {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r*1.5, -r*1.5); ctx.stroke();
+    } else if (pose === 'umpire-four') {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(r*2.5, 0); ctx.stroke();
+    } else if (pose === 'umpire-six') {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-r*1.5, -r*2); ctx.moveTo(0, 0); ctx.lineTo(r*1.5, -r*2); ctx.stroke();
+    } else if (pose === 'umpire-wicket') {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -r*2.5); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -r*2.5, r*0.3, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
   }
 
   function draw(t,shot){
@@ -2845,66 +2859,77 @@ document.addEventListener('keydown',e=>{
     var w=W/dpr, h=H/dpr;
     var L=layout();
 
-    if (vppView === 'follow' && t && t > 1200 && t < 1900) {
-        var camShiftX = (vppShot && vppShot.zoneIndex >= 0) ? Math.cos(vppShot.zoneIndex * Math.PI/4) * 50 : 0;
-        var camShiftY = (vppShot && vppShot.zoneIndex >= 0) ? Math.sin(vppShot.zoneIndex * Math.PI/4) * 30 : 0;
+    if (vppView === 'follow' && t && t > 900) {
+        var camShiftX = (vppShot && vppShot.zoneIndex >= 0) ? Math.cos(vppShot.zoneIndex * Math.PI/4) * 60 : 0;
+        var camShiftY = (vppShot && vppShot.zoneIndex >= 0) ? Math.sin(vppShot.zoneIndex * Math.PI/4) * 40 : 0;
         ctx.translate(-camShiftX, -camShiftY);
     }
 
-    drawPlayer(ctx, L.umpire.x, L.umpire.y, L.umpire.r, '#e8ecf4', '#fff', false);
-    drawPlayer(ctx, L.keeper.x, L.keeper.y, L.keeper.r, '#f59e0b', '#fbbf24', true);
+    // Umpires
+    drawPlayer(ctx, L.umpire.x, L.umpire.y, L.umpire.r, '#e8ecf4', '#fff', false, 'stand');
+    drawPlayer(ctx, L.batsman.x + w*0.15, L.batsman.y - h*0.05, L.batsman.r*0.8, '#e8ecf4', '#fff', false, 'stand');
+    // Keeper & Slips
+    drawPlayer(ctx, L.keeper.x, L.keeper.y, L.keeper.r, '#f59e0b', '#fbbf24', true, 'stand');
     if(vppView==='broadcast'){
-      drawPlayer(ctx, L.keeper.x+w*0.03, L.keeper.y+h*0.01, L.keeper.r*0.75, '#06b6d4', '#22d3ee', false);
-      drawPlayer(ctx, L.keeper.x+w*0.055, L.keeper.y+h*0.02, L.keeper.r*0.7, '#06b6d4', '#22d3ee', false);
+      drawPlayer(ctx, L.keeper.x+w*0.03, L.keeper.y+h*0.01, L.keeper.r*0.75, '#06b6d4', '#22d3ee', false, 'stand');
+      drawPlayer(ctx, L.keeper.x+w*0.055, L.keeper.y+h*0.02, L.keeper.r*0.7, '#06b6d4', '#22d3ee', false, 'stand');
     }
+    // Non-Striker
+    drawPlayer(ctx, L.batsman.x - w*0.05, L.batsman.y - h*0.02, L.batsman.r*0.9, '#1e40af', '#3b82f6', true, 'stand');
+    // Striker
+    drawPlayer(ctx, L.batsman.x, L.batsman.y, L.batsman.r, '#1e40af', '#3b82f6', true, 'batting');
 
-    var batSwing=0;
-    if(t && t>900 && t<1200) batSwing=(t-900)/300;
-    else if(t && t>=1200) batSwing=1;
-    drawPlayer(ctx, L.batsman.x, L.batsman.y, L.batsman.r, '#1e40af', '#3b82f6', true);
-
-    ctx.save(); ctx.translate(L.batsman.x, L.batsman.y);
-    var batAng = vppView==='side' ? -Math.PI*0.2 - batSwing*Math.PI*0.7 : -Math.PI*0.3 + batSwing*Math.PI*0.9;
-    ctx.rotate(batAng);
-    ctx.fillStyle='#3a2a1a'; ctx.fillRect(-L.batsman.r*0.12, 0, L.batsman.r*0.24, L.batsman.r*0.75);
-    ctx.fillStyle='#d4b686'; ctx.fillRect(-L.batsman.r*0.28, L.batsman.r*0.75, L.batsman.r*0.56, L.batsman.r*1.7);
-    ctx.strokeStyle='rgba(120,90,60,0.7)'; ctx.lineWidth=0.9; ctx.strokeRect(-L.batsman.r*0.28, L.batsman.r*0.75, L.batsman.r*0.56, L.batsman.r*1.7);
-    ctx.restore();
-
-    var bwX=L.bowler.x, bwY=L.bowler.y, bwSwing=0;
-    if(t){
-      if(t<500){ var p=t/500; var runupDist = vppView==='side' ? w*0.1 : h*0.06; if(vppView==='side') bwX=L.bowler.x - runupDist*(1-p); else bwY=L.bowler.y + runupDist*(1-p); }
-      else if(t<900){ bwSwing=(t-500)/400; } else bwSwing=1;
+    // Bowler
+    var bwX=L.bowler.x, bwY=L.bowler.y;
+    if(t && t<500){
+      var p=t/500; var runupDist = vppView==='side' ? w*0.1 : h*0.06;
+      if(vppView==='side') bwX=L.bowler.x - runupDist*(1-p); else bwY=L.bowler.y + runupDist*(1-p);
     }
-    drawPlayer(ctx, bwX, bwY, L.bowler.r, '#dc2626', '#ef4444', false);
-    ctx.strokeStyle='#dc2626'; ctx.lineWidth=L.bowler.r*0.4; ctx.lineCap='round';
-    var bArmAng = vppView==='side' ? Math.PI*0.2 + bwSwing*Math.PI*0.9 : -Math.PI*0.7 + bwSwing*Math.PI*1.3;
-    ctx.beginPath(); ctx.moveTo(bwX, bwY); ctx.lineTo(bwX+Math.cos(bArmAng)*L.bowler.r*1.7, bwY+Math.sin(bArmAng)*L.bowler.r*1.7); ctx.stroke(); ctx.lineCap='butt';
+    drawPlayer(ctx, bwX, bwY, L.bowler.r, '#dc2626', '#ef4444', false, 'bowling');
 
-    var bX=null, bY=null, bS=1;
+    // Ball Physics
+    var bX=null, bY=null, bS=1, bShadowX=null, bShadowY=null, bShadowAlpha=0;
     if(t && shot){
       var batX=L.batsman.x, batY=L.batsman.y;
-      if(t<500){ bX=bwX; bY=bwY-L.bowler.r; bS=vppView==='side'?1:0.6; }
-      else if(t<900){ var p2=(t-500)/400; bX=bwX+(batX-bwX)*p2; bY=bwY+(batY-bwY)*p2; bS=vppView==='side'?1:(0.6+p2*0.4); }
-      else if(t<1200){ bX=batX; bY=batY; }
+      if(t<500){ bX=bwX; bY=bwY-L.bowler.r; bS=0.5; }
+      else if(t<900){
+        var p2=(t-500)/400;
+        var bouncePoint = 0.4 + ((shot.ballRandom||0.5) * 0.2);
+        var bounceY = h * 0.75;
+        if (p2 < bouncePoint) {
+          bX = bwX + (batX - bwX) * (p2 / bouncePoint);
+          bY = (bwY - L.bowler.r) + (bounceY - (bwY - L.bowler.r)) * (p2 / bouncePoint);
+          bS = 0.5 + (p2 / bouncePoint) * 0.3;
+        } else {
+          var p3 = (p2 - bouncePoint) / (1 - bouncePoint);
+          bX = bwX + (batX - bwX) * p2;
+          bY = bounceY - (bounceY - batY) * p3;
+          bS = 0.8 + p3 * 0.2;
+        }
+        bShadowX = bX; bShadowY = bounceY; bShadowAlpha = 0.3;
+      } else if(t<1200){ bX=batX; bY=batY; bS=1.0; }
       else if(t<1900){
-        var p3=(t-1200)/700;
+        var p4=(t-1200)/700;
         var ang = (shot.zoneIndex>=0) ? (shot.zoneIndex*Math.PI/4) : (Math.PI*0.65);
-        var dist = (vppView==='side'?w*0.4:h*0.35)*Math.min(1,p3*1.4);
+        if (shot.isSix || shot.isFour) p4 = Math.pow(p4, 1.5);
+        var dist = (vppView==='side'?w*0.4:h*0.35)*Math.min(1,p4*1.4);
         if(vppView==='side'){ bX=batX+dist*0.8; bY=batY-dist*0.3; }
         else { bX=L.fcx+Math.cos(ang)*dist; bY=L.batsman.y+Math.sin(ang)*dist*0.6; }
-        if(vppView==='broadcast' && shot.isSix) { bY -= Math.sin(p3*Math.PI)*h*0.25; bX += Math.sin(p3*Math.PI)*Math.cos(ang)*w*0.1; }
-        if(!shot.isSix && !shot.isFour && shot.runs > 0) { bY += Math.sin(p3*Math.PI)*h*0.02; }
+        if(shot.isSix) { bY -= Math.sin(p4*Math.PI)*h*0.35; bX += Math.sin(p4*Math.PI)*Math.cos(ang)*w*0.15; bS = 1.0 + Math.sin(p4*Math.PI)*0.5; }
+        else if (shot.isFour) { bY -= Math.sin(p4 * Math.PI) * h * 0.08; bS = 1.0 - p4*0.3; }
+        else { bY += Math.sin(p4*Math.PI)*h*0.02; bS = 1.0 - p4*0.2; }
+        bShadowX = bX; bShadowY = batY + h*0.05; bShadowAlpha = 0.2;
       }
     }
 
+    if (bShadowX !== null) {
+      ctx.fillStyle = 'rgba(0,0,0,' + bShadowAlpha + ')'; ctx.beginPath(); ctx.ellipse(bShadowX, bShadowY, bS * h * 0.02, bS * h * 0.01, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
     if(shot && shot.zoneIndex>=0 && t>1100){
-      var ang2=shot.zoneIndex*Math.PI/4;
-      var col = shot.isSix ? '#d946ef' : (shot.isFour ? '#22d3ee' : '#94a3b8');
-      ctx.strokeStyle=col; ctx.lineWidth=shot.isBoundary?2.5:1.3; ctx.shadowColor=col; ctx.shadowBlur=shot.isBoundary?14:0;
-      ctx.globalAlpha=t>1500?0.85:0.5;
-      var wx=L.batsman.x+Math.cos(ang2)*w*0.35; var wy=L.batsman.y+Math.sin(ang2)*h*0.28;
-      ctx.beginPath(); ctx.moveTo(L.batsman.x, L.batsman.y); ctx.lineTo(wx, wy); ctx.stroke();
+      var ang2=shot.zoneIndex*Math.PI/4; var col = shot.isSix ? '#d946ef' : (shot.isFour ? '#22d3ee' : '#94a3b8');
+      ctx.strokeStyle=col; ctx.lineWidth=shot.isBoundary?2.5:1.3; ctx.shadowColor=col; ctx.shadowBlur=shot.isBoundary?14:0; ctx.globalAlpha=t>1500?0.85:0.5;
+      ctx.beginPath(); ctx.moveTo(L.batsman.x, L.batsman.y); ctx.lineTo(L.batsman.x+Math.cos(ang2)*w*0.35, L.batsman.y+Math.sin(ang2)*h*0.28); ctx.stroke();
       ctx.shadowBlur=0; ctx.globalAlpha=1;
     }
 
@@ -2918,9 +2943,15 @@ document.addEventListener('keydown',e=>{
       ctx.strokeStyle='#fff8f0'; ctx.lineWidth=0.9; ctx.beginPath(); ctx.arc(bX, bY, br*0.68, Math.PI*0.1, Math.PI*0.9); ctx.stroke();
     }
 
+    // Umpire Signals
+    if(shot && t > 1200 && t < 2500){
+        if(shot.isWicket) drawPlayer(ctx, L.umpire.x, L.umpire.y, L.umpire.r, '#e8ecf4', '#fff', false, 'umpire-wicket');
+        else if (shot.isSix) drawPlayer(ctx, L.umpire.x, L.umpire.y, L.umpire.r, '#e8ecf4', '#fff', false, 'umpire-six');
+        else if (shot.isFour) drawPlayer(ctx, L.umpire.x, L.umpire.y, L.umpire.r, '#e8ecf4', '#fff', false, 'umpire-four');
+    }
+
     if(shot && shot.isWicket && t>900 && t<1900){
-      var a=1-(t-900)/1000;
-      ctx.fillStyle='rgba(239,68,68,'+(a*0.6)+')'; ctx.beginPath(); ctx.arc(L.batsman.x, L.batsman.y, h*0.12*(1-a*0.6), 0, Math.PI*2); ctx.fill();
+      var a=1-(t-900)/1000; ctx.fillStyle='rgba(239,68,68,'+(a*0.6)+')'; ctx.beginPath(); ctx.arc(L.batsman.x, L.batsman.y, h*0.12*(1-a*0.6), 0, Math.PI*2); ctx.fill();
     }
   }
 
@@ -2955,8 +2986,7 @@ document.addEventListener('keydown',e=>{
   }
 
   window.vppShowInningsBreak = function() {
-    var m = window.match;
-    if (!m || !m.innings1Score) return;
+    var m = window.match; if (!m || !m.innings1Score) return;
     var overlay = document.getElementById('vppMatchSummary'); if (!overlay) return;
     var i1 = m.innings1Score;
     document.getElementById('vppSummaryMatchTitle').innerText = m.teamBatting + ' vs ' + m.teamBowling;
@@ -2978,8 +3008,7 @@ document.addEventListener('keydown',e=>{
     document.getElementById('vppSumTeam2Score').innerText = m.runs + '-' + m.wickets;
     document.getElementById('vppSumTeam2Overs').innerText = '(' + m.totalOvers + ' Overs)';
     document.getElementById('vppSumFooter').innerText = m.teamBatting + ' NEED ' + m.target + ' RUNS TO WIN';
-    overlay.classList.add('on');
-    setTimeout(function(){ overlay.classList.remove('on'); }, 10000);
+    overlay.classList.add('on'); setTimeout(function(){ overlay.classList.remove('on'); }, 10000);
   };
 
   window.vppToggleSound=function(){ vppSnd=!vppSnd; if(typeof isCommentaryVoiceActive!=='undefined') isCommentaryVoiceActive=vppSnd; var b=document.getElementById('vppSnd'); if(b) b.innerText=vppSnd?'🔊':'🔇'; if(!vppSnd && window.speechSynthesis){ try{window.speechSynthesis.cancel();}catch(e){} } };
@@ -2995,8 +3024,7 @@ document.addEventListener('keydown',e=>{
 
   setInterval(function(){
     if(!vppOn) return;
-    vppScore();
-    vppBalls();
+    vppScore(); vppBalls();
     var m=window.match;
     if(m && m.shotLog && m.shotLog.length > lastSeenBallCount){
       var last=m.shotLog[m.shotLog.length-1];
