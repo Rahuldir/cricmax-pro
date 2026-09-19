@@ -1896,14 +1896,14 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
   }
   renderLive();renderCommentary();renderSummary();broadcastMatchState();
   if(isCommentaryVoiceActive)speak(desc);
-  // Reliable next batter/bowler modal trigger
-  if(dism){setTimeout(()=>promptNextBatterModal(dismPlayer),250);}
+  // --- FIXED MODALS FOR BATSMAN & BOWLER ---
+  if(dism){
+    // Force open the next batter modal after a short delay
+    setTimeout(function(){ promptNextBatterModal(dismPlayer); }, 600);
+  } 
   else if(overEnded){
-    setTimeout(()=>{
-      const wagonOpen=document.getElementById('wagonModal').style.display==='flex';
-      if(wagonOpen){setTimeout(()=>promptNextBowlerModal(),900);}
-      else{promptNextBowlerModal();}
-    },300);
+    // Force open the next bowler modal after the over is finished
+    setTimeout(function(){ promptNextBowlerModal(); }, 800);
   }
   checkMatchEnd();
 }
