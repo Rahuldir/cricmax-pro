@@ -267,32 +267,25 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 .career-match-row .cmr-line{display:flex;justify-content:space-between;gap:8px;margin-top:4px;flex-wrap:wrap;}
 .ipl-opening{position:fixed;inset:0;z-index:9999998;display:none;background:radial-gradient(ellipse at center, #0a1830 0%, #000 70%);overflow:hidden;align-items:center;justify-content:center;flex-direction:column;opacity:1;transition:opacity 1s ease-out;}
 .ipl-opening.active{display:flex;}
-/* ===== VIEWER PITCH PAGE — REALISTIC STADIUM ===== */
+/* ===== VIEWER PITCH PAGE — TV BROADCAST STYLE ===== */
 .vpp{position:fixed;inset:0;z-index:99999;background:#000;display:none;overflow:hidden;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
 .vpp.on{display:block;}
 .vpp canvas{position:absolute;inset:0;width:100%;height:100%;}
 .vpp-hud{position:absolute;inset:0;pointer-events:none;z-index:5;}
-.vpp-sc{position:absolute;top:14px;right:14px;width:min(44vw,220px);background:linear-gradient(150deg,rgba(8,18,30,.92),rgba(3,8,15,.97));border:1px solid rgba(0,230,118,.35);border-radius:14px;padding:11px 14px;backdrop-filter:blur(14px);box-shadow:0 10px 40px rgba(0,0,0,.7);pointer-events:auto;}
-.vpp-t{font-size:12px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;text-shadow:0 0 10px rgba(0,230,118,.7);}
-.vpp-r{display:flex;align-items:baseline;gap:6px;margin-top:1px;}
-.vpp-r b{font-size:28px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}
-.vpp-r i{font-size:12px;color:#94a3b8;font-weight:700;font-style:normal;}
-.vpp-tg{font-size:10px;color:#fbbf24;font-weight:800;margin-top:3px;background:rgba(251,191,36,.14);padding:2px 8px;border-radius:6px;display:none;}
-.vpp-tg.on{display:inline-block;}
-.vpp-b{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-top:1px solid rgba(255,255,255,.06);margin-top:6px;}
-.vpp-b span{color:#cbd5e1;font-weight:700;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.vpp-b b{color:#fff;font-weight:900;font-variant-numeric:tabular-nums;}
-.vpp-b:first-of-type span{color:#00e676;}
-.vpp-b:first-of-type span::after{content:' ●';font-size:8px;color:#00e676;}
-.vpp-b.owl span{color:#22d3ee;}
-.vpp-crr{display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;font-weight:800;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06);}
-.vpp-crr b{color:#22d3ee;}
-.vpp-ps{font-size:10px;color:#94a3b8;font-weight:700;text-align:center;margin-top:4px;}
-.vpp-ps b{color:#fff;}
-.vpp-ctrls{position:absolute;top:14px;left:14px;display:flex;gap:8px;pointer-events:auto;}
-.vpp-ctrls button{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:17px;cursor:pointer;backdrop-filter:blur(10px);transition:.2s;}
-.vpp-ctrls button:hover{background:rgba(0,230,118,.25);border-color:#00e676;}
-.vpp-ctrls button.off{opacity:.45;}
+
+/* TV Bottom Scorecard */
+.vpp-tv-scorecard{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(10,14,26,.98),rgba(10,14,26,.85));border-top:1px solid rgba(255,255,255,.15);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px);font-size:12px;pointer-events:auto;z-index:100;}
+.vpp-tv-team{display:flex;align-items:center;gap:8px;border-right:1px solid rgba(255,255,255,.1);padding-right:16px;}
+.vpp-tv-flag{background:#00e676;color:#0a0e1a;padding:2px 8px;border-radius:4px;font-weight:900;font-size:11px;}
+.vpp-tv-score{font-size:20px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}
+.vpp-tv-overs{font-size:11px;color:#94a3b8;font-weight:700;}
+.vpp-tv-batsmen{display:flex;flex-direction:column;gap:2px;flex:1;padding:0 16px;}
+.vpp-tv-bowler{display:flex;flex-direction:column;gap:2px;border-left:1px solid rgba(255,255,255,.1);padding-left:16px;text-align:right;}
+.vpp-tv-row{display:flex;justify-content:space-between;gap:10px;font-weight:700;}
+.vpp-tv-row.active{color:#00e676;}
+.vpp-tv-row b{font-variant-numeric:tabular-nums;}
+
+/* Animations & Overlays */
 .vpp-anim{position:absolute;top:12%;left:50%;transform:translateX(-50%);font-size:clamp(52px,13vw,120px);font-weight:900;font-style:italic;letter-spacing:5px;text-transform:uppercase;pointer-events:none;opacity:0;z-index:20;text-align:center;line-height:1;white-space:nowrap;}
 .vpp-anim.on{animation:vppPop 2.2s cubic-bezier(.175,.885,.32,1.275) forwards;}
 .vpp-anim.four{color:#22d3ee;text-shadow:0 0 30px #22d3ee,0 0 70px #0891b2,0 6px 24px #000;}
@@ -301,39 +294,43 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 .vpp-anim.run{color:#00e676;text-shadow:0 0 30px #00e676,0 0 70px #009270,0 6px 24px #000;}
 .vpp-anim.dot{color:#94a3b8;font-size:clamp(30px,7vw,64px);text-shadow:0 6px 24px #000;}
 @keyframes vppPop{0%{opacity:0;transform:translateX(-50%) scale(.3) rotate(-15deg);}18%{opacity:1;transform:translateX(-50%) scale(1.25) rotate(4deg);}35%{transform:translateX(-50%) scale(1) rotate(0);}78%{opacity:1;transform:translateX(-50%) scale(1.02);}100%{opacity:0;transform:translateX(-50%) scale(1.4);}}
-.vpp-mile{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(40px,10vw,90px);font-weight:900;font-style:italic;color:#fbbf24;text-shadow:0 0 30px #fbbf24,0 0 60px #f59e0b,0 0 100px #d97706;letter-spacing:4px;opacity:0;z-index:21;pointer-events:none;display:none;text-transform:uppercase;white-space:nowrap;}
-.vpp-mile.on{display:block;animation:vppMile 3s cubic-bezier(.175,.885,.32,1.275) forwards;}
-@keyframes vppMile{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-20deg);}15%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(8deg);}30%{transform:translate(-50%,-50%) scale(1) rotate(0);}75%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6);}}
-.vpp-strip{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;background:rgba(0,0,0,.55);padding:8px 12px;border-radius:24px;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);z-index:10;pointer-events:auto;}
-.vpp-strip i{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#94a3b8;font-style:normal;transition:.3s;}
+
+.vpp-strip{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);display:flex;gap:7px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:24px;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);z-index:10;}
+.vpp-strip i{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#94a3b8;font-style:normal;transition:.3s;}
 .vpp-strip i.four{background:rgba(34,211,238,.25);border-color:#22d3ee;color:#22d3ee;}
 .vpp-strip i.six{background:rgba(255,109,0,.25);border-color:#ff6d00;color:#ff6d00;}
 .vpp-strip i.wkt{background:rgba(239,68,68,.32);border-color:#ef4444;color:#fff;}
 .vpp-strip i.run{background:rgba(0,230,118,.15);border-color:rgba(0,230,118,.5);color:#00e676;}
-.vpp-phase{position:absolute;bottom:26px;right:22px;font-size:10px;font-weight:900;letter-spacing:3px;color:#fbbf24;text-transform:uppercase;padding:7px 14px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);border-radius:18px;backdrop-filter:blur(10px);z-index:10;transition:.3s;}
-.vpp-views{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.55);padding:5px;border-radius:12px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);z-index:12;}
+
+.vpp-ctrls{position:absolute;top:14px;left:14px;display:flex;gap:8px;pointer-events:auto;}
+.vpp-ctrls button{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:17px;cursor:pointer;backdrop-filter:blur(10px);transition:.2s;}
+.vpp-ctrls button:hover{background:rgba(0,230,118,.25);border-color:#00e676;}
+
+.vpp-views{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.55);padding:5px;border-radius:12px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);z-index:12;pointer-events:auto;}
 .vpp-views button{width:36px;height:36px;border-radius:9px;background:transparent;border:1px solid rgba(255,255,255,.15);color:#fff;font-size:16px;cursor:pointer;transition:.2s;padding:0;font-family:inherit;}
 .vpp-views button:hover{background:rgba(0,230,118,.2);}
 .vpp-views button.on{background:var(--grad-primary);border-color:transparent;box-shadow:0 0 14px rgba(0,230,118,.5);}
-.vpp-tabs{position:absolute;top:14px;right:250px;display:flex;gap:5px;background:rgba(0,0,0,.55);padding:4px;border-radius:11px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);z-index:12;}
+
+.vpp-tabs{position:absolute;top:14px;right:14px;display:flex;gap:5px;background:rgba(0,0,0,.55);padding:4px;border-radius:11px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);z-index:12;pointer-events:auto;}
 .vpp-tabs button{padding:7px 11px;border-radius:8px;background:transparent;border:none;color:#cbd5e1;font-size:11px;font-weight:800;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap;}
 .vpp-tabs button:hover{background:rgba(0,230,118,.15);color:#fff;}
 .vpp-tabs button.on{background:var(--grad-primary);color:#fff;}
-.vpp-back-to-pitch{position:fixed;top:14px;right:14px;z-index:100001;padding:10px 16px;background:var(--grad-primary);border:none;color:#fff;font-size:12px;font-weight:900;border-radius:12px;cursor:pointer;box-shadow:0 6px 24px rgba(0,230,118,.5);}
-@media(max-width:560px){
-  .vpp-tabs{top:auto;bottom:88px;right:auto;left:50%;transform:translateX(-50%);}
-  .vpp-tabs button{padding:6px 8px;font-size:10px;}
-  .vpp-views{top:60px;}
-}font-size:10px;font-weight:900;letter-spacing:3px;color:#fbbf24;text-transform:uppercase;padding:7px 14px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);border-radius:18px;backdrop-filter:blur(10px);z-index:10;transition:.3s;}
-@media(max-width:560px){
-  .vpp-sc{width:56vw;top:10px;right:10px;padding:9px 12px;}
-  .vpp-r b{font-size:24px;}
-  .vpp-t{font-size:10px;}
-  .vpp-ctrls button{width:34px;height:34px;font-size:15px;}
-  .vpp-strip i{width:28px;height:28px;font-size:11px;}
-  .vpp-strip{bottom:18px;padding:6px 10px;gap:5px;}
-  .vpp-phase{bottom:22px;right:12px;font-size:9px;padding:5px 10px;}
-}
+
+/* VPP Match Summary Overlay */
+.vpp-summary-overlay{position:fixed;inset:0;z-index:100002;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
+.vpp-summary-overlay.on{display:flex;}
+.vpp-summary-card{background:linear-gradient(135deg,#0a1e3a,#1e3a8a);border:2px solid #3b82f6;border-radius:16px;padding:20px;width:min(90vw,600px);box-shadow:0 20px 60px rgba(0,0,0,.9);}
+.vpp-summary-header{text-align:center;border-bottom:2px solid rgba(255,255,255,.2);padding-bottom:10px;margin-bottom:15px;}
+.vpp-summary-header h2{font-size:24px;font-weight:900;letter-spacing:3px;color:#fff;text-shadow:0 0 20px rgba(59,130,246,.8);}
+.vpp-summary-header span{font-size:12px;color:#93c5fd;font-weight:700;text-transform:uppercase;}
+.vpp-summary-team{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px;margin-bottom:8px;}
+.vpp-summary-team-name{font-size:16px;font-weight:900;color:#fff;}
+.vpp-summary-team-score{font-size:22px;font-weight:900;color:#fbbf24;}
+.vpp-summary-overs{font-size:11px;color:#94a3b8;font-weight:700;margin-left:6px;}
+.vpp-summary-players{display:flex;flex-direction:column;gap:4px;}
+.vpp-summary-player-row{display:flex;justify-content:space-between;font-size:13px;color:#e2e8f0;padding:4px 8px;background:rgba(255,255,255,.05);border-radius:4px;}
+.vpp-summary-player-row b{color:#fff;}
+.vpp-summary-footer{text-align:center;margin-top:15px;padding-top:10px;border-top:2px solid rgba(255,255,255,.2);font-size:16px;font-weight:900;color:#00e676;text-transform:uppercase;letter-spacing:2px;}
 /* ===== END VIEWER PITCH CSS ===== */
 .ipl-bg-glow{position:absolute;width:140vw;height:140vh;border-radius:50%;background:radial-gradient(circle, rgba(0,230,118,.22) 0%, transparent 55%);animation:iplPulseGlow 2s ease-in-out infinite;pointer-events:none;}
 @keyframes iplPulseGlow{0%,100%{transform:scale(1);opacity:.5;}50%{transform:scale(1.15);opacity:1;}}
@@ -428,38 +425,72 @@ body.light-mode .nzc-wagon-tab.active{background:#1e293b;}
 <section id="vpp" class="vpp">
   <canvas id="vppCv"></canvas>
   <div class="vpp-hud">
-    <div class="vpp-sc" id="vppSc">
-      <div class="vpp-t" id="vppT">TEAM</div>
-      <div class="vpp-r"><b id="vppRun">0/0</b><i id="vppOv">(0.0)</i></div>
-      <div class="vpp-tg" id="vppTg"></div>
-      <div class="vpp-b"><span id="vppSt">-</span><b id="vppStR">0(0)</b></div>
-      <div class="vpp-b"><span id="vppNs">-</span><b id="vppNsR">0(0)</b></div>
-      <div class="vpp-b owl"><span id="vppBw">-</span><b id="vppBwF">0.0-0-0-0</b></div>
-      <div class="vpp-crr">CRR <b id="vppCrr">0.00</b></div>
-      <div class="vpp-ps" id="vppPs"></div>
+    <!-- TV Style Bottom Scorecard -->
+    <div class="vpp-tv-scorecard">
+      <div class="vpp-tv-team">
+        <span class="vpp-tv-flag" id="vppTvTeam1">TEAM</span>
+        <span class="vpp-tv-score" id="vppTvScore1">0-0</span>
+        <span class="vpp-tv-overs" id="vppTvOvers1">(0.0)</span>
+      </div>
+      <div class="vpp-tv-batsmen">
+        <div class="vpp-tv-row active"><span id="vppTvStriker">-</span> <b id="vppTvStrikerRuns">0(0)</b></div>
+        <div class="vpp-tv-row"><span id="vppTvNonStriker">-</span> <b id="vppTvNonStrikerRuns">0(0)</b></div>
+      </div>
+      <div class="vpp-tv-bowler">
+        <div class="vpp-tv-row"><span id="vppTvBowler">-</span> <b id="vppTvBowlerFigs">0.0-0-0-0</b></div>
+        <div class="vpp-tv-row" style="color:#94a3b8;font-size:10px;">CRR: <b id="vppTvCrr" style="color:#22d3ee;">0.00</b></div>
+      </div>
     </div>
+
     <div class="vpp-ctrls">
       <button onclick="vppSound()" id="vppSnd">🔊</button>
       <button onclick="vppReplay()">↻</button>
       <button onclick="vppFs()">⛶</button>
+    </div>
+    
+    <div class="vpp-views">
+      <button id="vppViewBroadcast" class="on" onclick="vppSetView('broadcast')" title="Broadcast">📺</button>
+      <button id="vppViewBowl" onclick="vppSetView('bowl')" title="Behind Bowler">🎯</button>
+      <button id="vppViewSide" onclick="vppSetView('side')" title="Side View">🎬</button>
+      <button id="vppViewFollow" onclick="vppSetView('follow')" title="Ball Cam">⚾</button>
+    </div>
+    <div class="vpp-tabs">
+      <button id="vppTabPitch" class="on" onclick="vppShowPane('pitch')">🏏 Pitch</button>
+      <button onclick="vppShowPane('analytics')">📊 Analysis</button>
+      <button onclick="vppShowPane('scorecard')">🃏 Card</button>
+      <button onclick="vppShowPane('leaderboards')">📈 Stats</button>
     </div>
   </div>
   <div class="vpp-anim" id="vppAnim"></div>
   <div class="vpp-mile" id="vppMile"></div>
   <div class="vpp-strip" id="vppStrip"></div>
   <div class="vpp-phase" id="vppPhase">POWERPLAY</div>
-<div class="vpp-views">
-  <button id="vppViewBroadcast" class="on" onclick="vppSetView('broadcast')" title="Broadcast">📺</button>
-  <button id="vppViewBowl" onclick="vppSetView('bowl')" title="Behind Bowler">🎯</button>
-  <button id="vppViewSide" onclick="vppSetView('side')" title="Side View">🎬</button>
-</div>
-<div class="vpp-tabs">
-  <button id="vppTabPitch" class="on" onclick="vppShowPane('pitch')">🏏 Pitch</button>
-  <button onclick="vppShowPane('analytics')">📊 Analysis</button>
-  <button onclick="vppShowPane('scorecard')">🃏 Card</button>
-  <button onclick="vppShowPane('leaderboards')">📈 Stats</button>
-</div>
 </section>
+
+<!-- VPP TV Match Summary Overlay -->
+<div id="vppMatchSummary" class="vpp-summary-overlay">
+  <div class="vpp-summary-card">
+    <div class="vpp-summary-header">
+      <h2>MATCH SUMMARY</h2>
+      <span id="vppSummaryMatchTitle">INNINGS BREAK</span>
+    </div>
+    <div class="vpp-summary-body">
+      <div class="vpp-summary-team">
+        <div class="vpp-summary-team-name" id="vppSumTeam1Name">Team 1</div>
+        <div class="vpp-summary-team-score" id="vppSumTeam1Score">0-0</div>
+        <div class="vpp-summary-overs" id="vppSumTeam1Overs">(20 Overs)</div>
+      </div>
+      <div class="vpp-summary-players" id="vppSumTeam1Players"></div>
+      <div class="vpp-summary-team" style="margin-top:15px;">
+        <div class="vpp-summary-team-name" id="vppSumTeam2Name">Team 2</div>
+        <div class="vpp-summary-team-score" id="vppSumTeam2Score">0-0</div>
+        <div class="vpp-summary-overs" id="vppSumTeam2Overs">(20 Overs)</div>
+      </div>
+      <div class="vpp-summary-players" id="vppSumTeam2Players"></div>
+    </div>
+    <div class="vpp-summary-footer" id="vppSumFooter">MATCH IN PROGRESS</div>
+  </div>
+</div>
 
 <section id="view-dashboard">
   <nav class="tab-nav" id="topTabNav">
@@ -1892,6 +1923,10 @@ function showInningsBreakModal(){
   else{fowBox.innerHTML='No wickets fell.';}
   document.getElementById('inningsBreakModal').style.display='flex';
   if(isCommentaryVoiceActive)speak(`First innings concluded. ${s.team} scored ${s.runs} for ${s.wickets}. ${match.teamBatting} need ${match.target} to win.`);
+  // Trigger VPP TV Summary if viewer is active
+  if(typeof vppShowInningsBreak === 'function' && document.getElementById('vpp').classList.contains('on')) {
+    vppShowInningsBreak();
+  }
 }
 function proceedToSecondInningsSetup(){closeModal('inningsBreakModal');openInnings2Setup();}
 function endInningsPrompt(){
@@ -2398,500 +2433,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='u'||k==='U')undoDelivery();
   else if(k==='s'||k==='S')openSettingsModal();
 });
-/* === VPP VIEWER === */
-let vppOn=false,vppRAF=null,vppShot=null,vppBg=null;
-function vppStart(){
-  vppOn=true;
-  var el=document.getElementById('vpp');
-  if(!el){console.warn('VPP: no #vpp element');return;}
-  el.classList.add('on');
-  var tb=document.querySelector('.top-bar');if(tb)tb.style.display='none';
-  var bn=document.querySelector('.bottom-match-nav');if(bn)bn.style.display='none';
-  var h=document.getElementById('view-home');if(h)h.style.display='none';
-  var d=document.getElementById('view-dashboard');if(d)d.style.display='none';
-  vppFit();vppScore();vppBalls();
-  window.addEventListener('resize',vppFit);
-  vppIdle();
-}
-function vppFit(){
-  var cv=document.getElementById('vppCv');if(!cv)return;
-  var dpr=Math.min(window.devicePixelRatio||1,2);
-  cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;cv.dataset.dpr=dpr;
-  vppBg=null;if(vppRAF){cancelAnimationFrame(vppRAF);vppRAF=null;}
-  vppIdle();
-}
-function vppMakeBg(W,H,fcx,fcy,R){
-  var c=document.createElement('canvas');c.width=W;c.height=H;
-  var x=c.getContext('2d');
-  var sg=x.createLinearGradient(0,0,0,H*0.6);
-  sg.addColorStop(0,'#000308');sg.addColorStop(0.5,'#050b1c');sg.addColorStop(1,'#0a1e14');
-  x.fillStyle=sg;x.fillRect(0,0,W,H*0.7);
-  var tiers=['#040812','#0a1020','#141b30','#1c2338'];
-  for(var i=0;i<4;i++){var r=R*(1.9-i*0.22);x.fillStyle=tiers[i];x.beginPath();x.ellipse(fcx,fcy,r,r*1.02,0,0,Math.PI*2);x.fill();}
-  x.save();x.beginPath();x.ellipse(fcx,fcy,R*1.85,R*1.9,0,0,Math.PI*2);x.ellipse(fcx,fcy,R*1.02,R*1.05,0,0,Math.PI*2);x.clip('evenodd');
-  var pal=['#e5534b','#e8b04a','#48a8c4','#9b6dd0','#4eb87a','#d9629e','#dcc24a','#5f7fd9'];
-  var s=12345;var rng=function(){s=(s*9301+49297)%233280;return s/233280;};
-  for(var j=0;j<2000;j++){var a=rng()*Math.PI*2;var rr=R*(1.05+rng()*0.78);var px=fcx+Math.cos(a)*rr;var py=fcy+Math.sin(a)*rr*1.02;x.fillStyle=pal[Math.floor(rng()*pal.length)];x.globalAlpha=0.5+rng()*0.4;x.fillRect(px,py,2,2);}
-  x.globalAlpha=1;x.restore();
-  var fg=x.createRadialGradient(fcx,fcy-R*0.2,R*0.05,fcx,fcy,R*1.02);
-  fg.addColorStop(0,'#3a7c47');fg.addColorStop(0.5,'#2a6a35');fg.addColorStop(1,'#0f3718');
-  x.fillStyle=fg;x.beginPath();x.ellipse(fcx,fcy,R,R*1.04,0,0,Math.PI*2);x.fill();
-  x.strokeStyle='rgba(255,255,255,0.85)';x.lineWidth=2.5;x.beginPath();x.ellipse(fcx,fcy,R*0.97,R*1.01,0,0,Math.PI*2);x.stroke();
-  x.strokeStyle='rgba(255,255,255,0.22)';x.lineWidth=1.4;x.setLineDash([8,6]);x.beginPath();x.ellipse(fcx,fcy,R*0.58,R*0.6,0,0,Math.PI*2);x.stroke();x.setLineDash([]);
-  var pwT=R*0.15,pwB=R*0.22,ph=R*0.76,pyT=fcy-ph/2,pyB=fcy+ph/2;
-  x.beginPath();x.moveTo(fcx-pwT/2,pyT);x.lineTo(fcx+pwT/2,pyT);x.lineTo(fcx+pwB/2,pyB);x.lineTo(fcx-pwB/2,pyB);x.closePath();
-  var pg=x.createLinearGradient(0,pyT,0,pyB);pg.addColorStop(0,'rgba(200,170,130,0.55)');pg.addColorStop(0.5,'rgba(220,190,150,0.7)');pg.addColorStop(1,'rgba(200,170,130,0.55)');
-  x.fillStyle=pg;x.fill();
-  x.strokeStyle='rgba(255,255,255,0.4)';x.lineWidth=1.2;x.stroke();
-  return c;
-}
-var vppView='broadcast';
-function vppSetView(v){
-  vppView=v;
-  ['broadcast','bowl','side'].forEach(function(k){
-    var b=document.getElementById('vppView'+k.charAt(0).toUpperCase()+k.slice(1));
-    if(b)b.classList.toggle('on',k===v);
-  });
-  vppBg=null;
-  if(vppRAF){cancelAnimationFrame(vppRAF);vppRAF=null;}
-  vppIdle();
-}
-function vppLayout(){
-  var cv=document.getElementById('vppCv');
-  var dpr=parseFloat(cv.dataset.dpr)||1;
-  var w=cv.width/dpr, h=cv.height/dpr;
-  if(vppView==='bowl'){
-    return{
-      fcx:w*0.5,horizon:h*0.24,
-      pitch:{topY:h*0.42,botY:h*0.92,topW:w*0.07,botW:w*0.26},
-      batsman:{x:w*0.52,y:h*0.44,r:h*0.018},
-      bowler:{x:w*0.48,y:h*0.82,r:h*0.032},
-      keeper:{x:w*0.56,y:h*0.40,r:h*0.015},
-      umpire:{x:w*0.44,y:h*0.86,r:h*0.018},
-      field:{cx:w*0.5,cy:h*0.55,rx:w*0.55,ry:h*0.42},
-      ballDir:1
-    };
-  } else if(vppView==='side'){
-    return{
-      fcx:w*0.5,horizon:h*0.30,
-      pitch:{topY:h*0.62,botY:h*0.74,topW:w*0.74,botW:w*0.86,isSide:true,leftX:w*0.13},
-      batsman:{x:w*0.84,y:h*0.60,r:h*0.030},
-      bowler:{x:w*0.14,y:h*0.60,r:h*0.028},
-      keeper:{x:w*0.93,y:h*0.62,r:h*0.025},
-      umpire:{x:w*0.50,y:h*0.58,r:h*0.024},
-      field:{cx:w*0.5,cy:h*0.78,rx:w*0.55,ry:h*0.28},
-      ballDir:1
-    };
-  }
-  return{
-    fcx:w*0.5,horizon:h*0.26,
-    pitch:{topY:h*0.42,botY:h*0.90,topW:w*0.06,botW:w*0.24},
-    batsman:{x:w*0.53,y:h*0.84,r:h*0.032},
-    bowler:{x:w*0.48,y:h*0.44,r:h*0.011},
-    keeper:{x:w*0.58,y:h*0.94,r:h*0.026},
-    umpire:{x:w*0.42,y:h*0.44,r:h*0.011},
-    field:{cx:w*0.5,cy:h*0.68,rx:w*0.55,ry:h*0.32},
-    ballDir:1
-  };
-}
-function vppMakeBgReal(W,H){
-  var cv=document.getElementById('vppCv');
-  var dpr=parseFloat(cv.dataset.dpr)||1;
-  var w=W/dpr, h=H/dpr;
-  var c=document.createElement('canvas');c.width=W;c.height=H;
-  var x=c.getContext('2d');
-  x.scale(dpr,dpr);
-  var L=vppLayout();
-  // Sky
-  var sg=x.createLinearGradient(0,0,0,L.horizon*1.6);
-  sg.addColorStop(0,'#000308');sg.addColorStop(0.5,'#050b1c');sg.addColorStop(1,'#0a1e14');
-  x.fillStyle=sg;x.fillRect(0,0,w,L.horizon*1.6);
-  // Stars
-  for(var i=0;i<80;i++){
-    var sx=(i*137.5)%w, sy=(i*89.3)%(L.horizon*0.9);
-    x.fillStyle='rgba(255,255,255,'+(0.15+((i*17)%10)/18)+')';
-    x.fillRect(sx,sy,1.2,1.2);
-  }
-  // Floodlight poles
-  var poles=[
-    {x:w*0.06,y:L.horizon*0.85},
-    {x:w*0.94,y:L.horizon*0.85},
-    {x:w*0.10,y:L.horizon*1.15},
-    {x:w*0.90,y:L.horizon*1.15}
-  ];
-  poles.forEach(function(p){
-    x.fillStyle='#0f1420';x.fillRect(p.x-3,p.y-h*0.12,6,h*0.12);
-    var hw=w*0.05,hh=h*0.055;
-    x.fillStyle='#0a0f1c';x.fillRect(p.x-hw/2,p.y-h*0.16,hw,hh);
-    x.strokeStyle='#2a3550';x.lineWidth=1;x.strokeRect(p.x-hw/2,p.y-h*0.16,hw,hh);
-    for(var ii=0;ii<3;ii++)for(var jj=0;jj<2;jj++){
-      var bx=p.x-hw/2+w*0.012+ii*w*0.014;
-      var by=p.y-h*0.16+h*0.014+jj*h*0.02;
-      var g=x.createRadialGradient(bx,by,0,bx,by,w*0.02);
-      g.addColorStop(0,'rgba(255,255,210,1)');
-      g.addColorStop(0.5,'rgba(255,240,180,.6)');
-      g.addColorStop(1,'rgba(255,255,200,0)');
-      x.fillStyle=g;x.beginPath();x.arc(bx,by,w*0.02,0,Math.PI*2);x.fill();
-      x.fillStyle='#fff8c0';x.beginPath();x.arc(bx,by,w*0.004,0,Math.PI*2);x.fill();
-    }
-  });
-  // Crowd rings (perspective-aware)
-  var tiers=['#040812','#0a1020','#141b30','#1c2338'];
-  var fr=L.field;
-  for(var i=0;i<4;i++){
-    var rx=fr.rx*(1.55+i*0.15);
-    var ry=fr.ry*(1.35+i*0.12);
-    x.fillStyle=tiers[i];
-    x.beginPath();
-    x.ellipse(fr.cx,fr.cy+ry*0.4,rx,ry,0,Math.PI,0);
-    x.fill();
-    x.beginPath();
-    x.ellipse(fr.cx,fr.cy+ry*0.4,rx,ry,0,0,Math.PI);
-    x.fill();
-  }
-  // Crowd pixels — only above the field horizon
-  x.save();
-  x.beginPath();
-  x.ellipse(fr.cx,fr.cy+fr.ry*0.5,fr.rx*2.0,fr.ry*1.8,0,0,Math.PI*2);
-  x.ellipse(fr.cx,fr.cy,fr.rx,fr.ry,0,0,Math.PI*2);
-  x.clip('evenodd');
-  var pal=['#e5534b','#e8b04a','#48a8c4','#9b6dd0','#4eb87a','#d9629e','#dcc24a','#5f7fd9','#c96e3a'];
-  var s=12345;var rng=function(){s=(s*9301+49297)%233280;return s/233280;};
-  for(var k=0;k<1800;k++){
-    var a=rng()*Math.PI*2;
-    var rr=fr.rx*(1.05+rng()*0.85);
-    var px=fr.cx+Math.cos(a)*rr;
-    var py=fr.cy+Math.sin(a)*rr*(fr.ry/fr.rx)*1.05;
-    if(py<L.horizon+2)continue;
-    x.fillStyle=pal[Math.floor(rng()*pal.length)];
-    x.globalAlpha=0.45+rng()*0.45;
-    x.fillRect(px,py,1.8,1.8);
-  }
-  x.globalAlpha=1;
-  x.restore();
-  // Ad boards — follow perspective ellipse
-  var ads=['#ff6d00','#22d3ee','#a855f7','#00e676','#ef4444','#fbbf24'];
-  for(var i=0;i<40;i++){
-    var a=(i/40)*Math.PI*2;
-    var bx=fr.cx+Math.cos(a)*fr.rx*1.02;
-    var by=fr.cy+Math.sin(a)*fr.ry*1.02;
-    if(by<L.horizon+4)continue;
-    x.save();x.translate(bx,by);x.rotate(a+Math.PI/2);
-    var aw=w*0.055,ah=5;
-    x.fillStyle=ads[i%ads.length];x.globalAlpha=0.85;
-    x.fillRect(-aw/2,-ah/2,aw,ah);
-    x.globalAlpha=1;
-    x.restore();
-  }
-  // Field
-  var fg=x.createRadialGradient(fr.cx,fr.cy-fr.ry*0.4,fr.ry*0.1,fr.cx,fr.cy,fr.rx);
-  fg.addColorStop(0,'#3d8a4a');fg.addColorStop(0.5,'#2d6f38');
-  fg.addColorStop(1,'#12421c');
-  x.fillStyle=fg;
-  x.beginPath();
-  x.ellipse(fr.cx,fr.cy,fr.rx,fr.ry,0,0,Math.PI*2);
-  x.fill();
-  // Mowing stripes (perspective)
-  x.save();
-  x.beginPath();x.ellipse(fr.cx,fr.cy,fr.rx,fr.ry,0,0,Math.PI*2);x.clip();
-  for(var i=-4;i<=4;i++){
-    x.fillStyle='rgba(255,255,255,0.04)';
-    x.fillRect(fr.cx+i*fr.rx*0.18,fr.cy-fr.ry,fr.rx*0.09,fr.ry*2);
-  }
-  // Vignette
-  var vg=x.createRadialGradient(fr.cx,fr.cy,fr.rx*0.3,fr.cx,fr.cy,fr.rx);
-  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.4)');
-  x.fillStyle=vg;x.beginPath();x.ellipse(fr.cx,fr.cy,fr.rx,fr.ry,0,0,Math.PI*2);x.fill();
-  x.restore();
-  // Boundary rope
-  x.strokeStyle='rgba(255,255,255,0.85)';x.lineWidth=2;
-  x.beginPath();x.ellipse(fr.cx,fr.cy,fr.rx*0.97,fr.ry*0.97,0,0,Math.PI*2);x.stroke();
-  // 30-yard circle
-  x.strokeStyle='rgba(255,255,255,0.22)';x.lineWidth=1.2;
-  x.setLineDash([6,5]);
-  x.beginPath();x.ellipse(fr.cx,fr.cy,fr.rx*0.58,fr.ry*0.58,0,0,Math.PI*2);x.stroke();
-  x.setLineDash([]);
-  // Pitch
-  var p=L.pitch;
-  x.beginPath();
-  x.moveTo(L.fcx-p.topW/2,p.topY);
-  x.lineTo(L.fcx+p.topW/2,p.topY);
-  x.lineTo(L.fcx+p.botW/2,p.botY);
-  x.lineTo(L.fcx-p.botW/2,p.botY);
-  x.closePath();
-  var pg=x.createLinearGradient(0,p.topY,0,p.botY);
-  pg.addColorStop(0,'rgba(190,160,120,0.5)');
-  pg.addColorStop(0.5,'rgba(220,190,150,0.75)');
-  pg.addColorStop(1,'rgba(200,170,130,0.6)');
-  x.fillStyle=pg;x.fill();
-  x.strokeStyle='rgba(255,255,255,0.35)';x.lineWidth=1.2;x.stroke();
-  // Creases (perspective)
-  x.strokeStyle='rgba(255,255,255,0.7)';x.lineWidth=1.5;
-  x.beginPath();x.moveTo(L.fcx-p.topW*0.6,p.topY+(p.botY-p.topY)*0.12);x.lineTo(L.fcx+p.topW*0.6,p.topY+(p.botY-p.topY)*0.12);x.stroke();
-  x.beginPath();x.moveTo(L.fcx-p.botW*0.6,p.botY-(p.botY-p.topY)*0.12);x.lineTo(L.fcx+p.botW*0.6,p.botY-(p.botY-p.topY)*0.12);x.stroke();
-  return c;
-}
-function vppPlayerReal(ctx,x,y,r,jersey,border,helmet){
-  // Shadow
-  ctx.fillStyle='rgba(0,0,0,0.4)';
-  ctx.beginPath();ctx.ellipse(x+r*0.3,y+r*0.75,r*1.3,r*0.55,0,0,Math.PI*2);ctx.fill();
-  // Body
-  var bg=ctx.createRadialGradient(x-r*0.3,y-r*0.4,0,x,y,r);
-  bg.addColorStop(0,border);bg.addColorStop(0.65,jersey);bg.addColorStop(1,jersey);
-  ctx.fillStyle=bg;
-  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();
-  // Helmet
-  if(helmet){
-    ctx.fillStyle='#0a0e1a';
-    ctx.beginPath();ctx.arc(x,y-r*0.15,r*0.55,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=0.9;
-    ctx.beginPath();ctx.arc(x,y-r*0.15,r*0.55,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
-    // Visor
-    ctx.fillStyle='rgba(80,100,140,0.6)';
-    ctx.fillRect(x-r*0.55,y-r*0.2,r*1.1,r*0.15);
-  }
-}
-function vppDraw(t,shot){
-  var cv=document.getElementById('vppCv');if(!cv)return;
-  var ctx=cv.getContext('2d');
-  var W=cv.width,H=cv.height;
-  var dpr=parseFloat(cv.dataset.dpr)||1;
-  ctx.setTransform(1,0,0,1,0,0);
-  if(!vppBg||vppBg.width!==W)vppBg=vppMakeBgReal(W,H);
-  ctx.drawImage(vppBg,0,0);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  var w=W/dpr,h=H/dpr;
-  var L=vppLayout();
-  var tms=performance.now()*0.001;
-  // Ambient light flicker
-  if(vppSpark){
-    vppSpark.forEach(function(sp){
-      var a=0.25+0.5*Math.abs(Math.sin(tms*2+sp.ph));
-      ctx.fillStyle='rgba(255,250,200,'+a+')';
-      ctx.fillRect(sp.x,sp.y,1.6,1.6);
-    });
-  } else {
-    vppSpark=[];var s=9876;var rng=function(){s=(s*9301+49297)%233280;return s/233280;};
-    for(var i=0;i<40;i++){vppSpark.push({x:rng()*w,y:rng()*L.horizon*1.2,ph:rng()*6});}
-  }
-  // Umpire at bowler's end
-  vppPlayerReal(ctx,L.umpire.x,L.umpire.y,L.umpire.r,'#e8ecf4','#fff',false);
-  // Keeper
-  vppPlayerReal(ctx,L.keeper.x,L.keeper.y,L.keeper.r,'#f59e0b','#fbbf24',true);
-  // Slip fielders (broadcast view only)
-  if(vppView==='broadcast'){
-    vppPlayerReal(ctx,L.keeper.x+w*0.03,L.keeper.y+h*0.01,L.keeper.r*0.75,'#06b6d4','#22d3ee',false);
-    vppPlayerReal(ctx,L.keeper.x+w*0.055,L.keeper.y+h*0.02,L.keeper.r*0.7,'#06b6d4','#22d3ee',false);
-  }
-  // Batsman
-  var batSwing=0;
-  if(t&&t>900&&t<1200)batSwing=(t-900)/300;
-  else if(t&&t>=1200)batSwing=1;
-  vppPlayerReal(ctx,L.batsman.x,L.batsman.y,L.batsman.r,'#1e40af','#3b82f6',true);
-  // Bat
-  ctx.save();
-  ctx.translate(L.batsman.x,L.batsman.y);
-  var batAng = vppView==='side'? -Math.PI*0.2 - batSwing*Math.PI*0.7 : -Math.PI*0.3 + batSwing*Math.PI*0.9;
-  ctx.rotate(batAng);
-  ctx.fillStyle='#3a2a1a';
-  ctx.fillRect(-L.batsman.r*0.12,0,L.batsman.r*0.24,L.batsman.r*0.75);
-  ctx.fillStyle='#d4b686';
-  ctx.fillRect(-L.batsman.r*0.28,L.batsman.r*0.75,L.batsman.r*0.56,L.batsman.r*1.7);
-  ctx.strokeStyle='rgba(120,90,60,0.7)';ctx.lineWidth=0.9;
-  ctx.strokeRect(-L.batsman.r*0.28,L.batsman.r*0.75,L.batsman.r*0.56,L.batsman.r*1.7);
-  ctx.restore();
-  // Bowler animation
-  var bwX=L.bowler.x, bwY=L.bowler.y, bwSwing=0;
-  var runupDist = vppView==='side'? w*0.1 : h*0.06;
-  if(t){
-    if(t<500){
-      var p=t/500;
-      if(vppView==='side') bwX=L.bowler.x - runupDist*(1-p);
-      else bwY=L.bowler.y + runupDist*(1-p);
-    } else if(t<900){
-      bwSwing=(t-500)/400;
-    } else bwSwing=1;
-  }
-  // Bowler shadow
-  ctx.fillStyle='rgba(0,0,0,0.4)';
-  ctx.beginPath();ctx.ellipse(bwX+L.bowler.r*0.3,bwY+L.bowler.r*0.75,L.bowler.r*1.3,L.bowler.r*0.55,0,0,Math.PI*2);ctx.fill();
-  // Bowler body
-  var bbg=ctx.createRadialGradient(bwX-L.bowler.r*0.3,bwY-L.bowler.r*0.4,0,bwX,bwY,L.bowler.r);
-  bbg.addColorStop(0,'#ef4444');bbg.addColorStop(0.7,'#dc2626');bbg.addColorStop(1,'#991b1b');
-  ctx.fillStyle=bbg;
-  ctx.beginPath();ctx.arc(bwX,bwY,L.bowler.r,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.arc(bwX,bwY,L.bowler.r,0,Math.PI*2);ctx.stroke();
-  // Bowler arm
-  ctx.strokeStyle='#dc2626';ctx.lineWidth=L.bowler.r*0.4;ctx.lineCap='round';
-  var bArmAng = vppView==='side'? Math.PI*0.2 + bwSwing*Math.PI*0.9 : -Math.PI*0.7 + bwSwing*Math.PI*1.3;
-  ctx.beginPath();ctx.moveTo(bwX,bwY);
-  ctx.lineTo(bwX+Math.cos(bArmAng)*L.bowler.r*1.7, bwY+Math.sin(bArmAng)*L.bowler.r*1.7);
-  ctx.stroke();ctx.lineCap='butt';
-  // Ball trajectory
-  var bX=null,bY=null,bS=1;
-  if(t&&shot){
-    var batX=L.batsman.x, batY=L.batsman.y;
-    if(t<500){bX=bwX;bY=bwY-L.bowler.r;bS=vppView==='side'?1:0.6;}
-    else if(t<900){
-      var p=(t-500)/400;
-      bX=bwX+(batX-bwX)*p;
-      bY=bwY+(batY-bwY)*p;
-      bS=vppView==='side'?1:(0.6+p*0.4);
-    }
-    else if(t<1200){bX=batX;bY=batY;}
-    else if(t<1900){
-      var p=(t-1200)/700;
-      var ang=(shot.zoneIndex>=0)?(shot.zoneIndex*Math.PI/4):(Math.PI*0.65);
-      var dist=(vppView==='side'?w*0.4:h*0.35)*Math.min(1,p*1.4);
-      // Direction depends on view
-      if(vppView==='side'){bX=batX+dist*0.8;bY=batY-dist*0.3;}
-      else{bX=L.fcx+Math.cos(ang)*dist;bY=L.fcy?L.fcy+Math.sin(ang)*dist:L.batsman.y-Math.sin(ang)*dist*0.6;}
-      if(vppView==='broadcast'&&shot.isSix)bY-=Math.sin(p*Math.PI)*h*0.15;
-    }
-  }
-  // Wagon wheel line
-  if(shot&&shot.zoneIndex>=0&&t>1100){
-    var ang2=shot.zoneIndex*Math.PI/4;
-    var col=shot.isSix?'#d946ef':(shot.isFour?'#22d3ee':'#94a3b8');
-    ctx.strokeStyle=col;ctx.lineWidth=shot.isBoundary?2.5:1.3;
-    ctx.shadowColor=col;ctx.shadowBlur=shot.isBoundary?14:0;
-    ctx.globalAlpha=t>1500?0.85:0.5;
-    var wx=L.batsman.x+Math.cos(ang2)*w*0.35;
-    var wy=L.batsman.y+Math.sin(ang2)*h*0.28;
-    ctx.beginPath();ctx.moveTo(L.batsman.x,L.batsman.y);
-    ctx.lineTo(wx,wy);
-    ctx.stroke();
-    ctx.shadowBlur=0;ctx.globalAlpha=1;
-  }
-  // Ball trail + ball
-  if(bX!==null){
-    var br=(vppView==='side'?h*0.016:h*0.014)*bS;
-    // Trail
-    for(var i=1;i<=4;i++){
-      ctx.globalAlpha=0.15*(5-i);
-      ctx.fillStyle='#ff0000';
-      ctx.beginPath();ctx.arc(bX-i*2.5,bY-i*1.2,br*(1-i*0.15),0,Math.PI*2);ctx.fill();
-    }
-    ctx.globalAlpha=1;
-    var ballGrad=ctx.createRadialGradient(bX-br*0.3,bY-br*0.3,0,bX,bY,br);
-    ballGrad.addColorStop(0,'#ff4444');ballGrad.addColorStop(0.6,'#c00');ballGrad.addColorStop(1,'#500');
-    ctx.fillStyle=ballGrad;
-    ctx.beginPath();ctx.arc(bX,bY,br,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#fff8f0';ctx.lineWidth=0.9;
-    ctx.beginPath();ctx.arc(bX,bY,br*0.68,Math.PI*0.1,Math.PI*0.9);ctx.stroke();
-    // Highlight
-    ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.beginPath();ctx.arc(bX-br*0.4,bY-br*0.4,br*0.25,0,Math.PI*2);ctx.fill();
-  }
-  // Wicket burst
-  if(shot&&shot.isWicket&&t>900&&t<1900){
-    var a=1-(t-900)/1000;
-    ctx.fillStyle='rgba(239,68,68,'+(a*0.6)+')';
-    ctx.beginPath();ctx.arc(L.batsman.x,L.batsman.y,h*0.12*(1-a*0.6),0,Math.PI*2);ctx.fill();
-    // Bails flying
-    for(var i=0;i<3;i++){
-      var ang3=(i-1)*0.6;
-      var d=h*0.15*(1-a);
-      ctx.save();ctx.translate(L.batsman.x+Math.cos(ang3)*d,L.batsman.y-Math.sin(ang3)*d);
-      ctx.rotate(a*8+i);
-      ctx.fillStyle='#fff';ctx.fillRect(-3,-1,6,2);
-      ctx.restore();
-    }
-  }
-}
-function vppShowPane(pane){
-  var tabs=['vppTabPitch'];
-  var btns=document.querySelectorAll('.vpp-tabs button');
-  btns.forEach(function(b){b.classList.remove('on');});
-  document.getElementById('vppTabPitch').classList.toggle('on',pane==='pitch');
-  if(pane==='pitch'){
-    // return to pitch
-    document.getElementById('vpp').style.display='block';
-    document.getElementById('view-dashboard').style.display='none';
-    document.querySelector('.top-bar').style.display='none';
-    document.querySelector('.bottom-match-nav').style.display='none';
-    var back=document.getElementById('vppBackBtn');if(back)back.remove();
-    if(!vppRAF)vppIdle();
-  } else {
-    // hide vpp, show dashboard pane
-    if(vppRAF){cancelAnimationFrame(vppRAF);vppRAF=null;}
-    document.getElementById('vpp').style.display='none';
-    document.getElementById('view-dashboard').style.display='block';
-    document.querySelector('.top-bar').style.display='none';
-    document.querySelector('.bottom-match-nav').style.display='none';
-    selectSubPane(pane);
-    // Add a return button
-    var back=document.getElementById('vppBackBtn');
-    if(!back){
-      back=document.createElement('button');
-      back.id='vppBackBtn';
-      back.className='vpp-back-to-pitch';
-      back.innerText='🏏 Return to Pitch';
-      back.onclick=function(){vppShowPane('pitch');};
-      document.body.appendChild(back);
-    }
-  }
-}
 
-function vppIdle(){if(!vppOn)return;if(vppRAF)cancelAnimationFrame(vppRAF);vppRAF=requestAnimationFrame(function l(){vppDraw(0,null);vppRAF=requestAnimationFrame(l);});}
-function vppBall(shot){
-  if(!vppOn)return;if(vppRAF)cancelAnimationFrame(vppRAF);
-  vppShot=shot;var start=performance.now();
-  function l(now){var t=now-start;vppDraw(t,shot);if(t<1900)vppRAF=requestAnimationFrame(l);else{vppRAF=null;setTimeout(vppIdle,80);}}
-  vppRAF=requestAnimationFrame(l);
-  setTimeout(function(){vppShowAnim(shot);},1000);
-}
-function vppShowAnim(shot){
-  var el=document.getElementById('vppAnim');if(!el)return;
-  var txt='',cls='run';
-  if(shot.isWicket){txt='WICKET!';cls='wkt';}
-  else if(shot.isSix){txt='SIX!';cls='six';}
-  else if(shot.isFour){txt='FOUR!';cls='four';}
-  else if(shot.extra==='WD'){txt='WIDE';cls='run';}
-  else if(shot.extra==='NB'){txt='NO BALL';cls='run';}
-  else if(shot.runs===0){txt='DOT BALL';cls='dot';}
-  else if(shot.runs===1){txt='1 RUN';cls='run';}
-  else{txt=shot.runs+' RUNS';cls='run';}
-  el.innerText=txt;el.className='vpp-anim '+cls+' on';
-  setTimeout(function(){el.className='vpp-anim';},2300);
-}
-function vppScore(){
-  if(!match||!match.teamBatting)return;
-  var ov=Math.floor(match.legalBalls/6)+'.'+(match.legalBalls%6);
-  var crr=match.legalBalls>0?(match.runs/(match.legalBalls/6)).toFixed(2):'0.00';
-  var a=document.getElementById('vppT');if(a)a.innerText=match.teamBattingAbbr||match.teamBatting||'TEAM';
-  var b=document.getElementById('vppRun');if(b)b.innerText=match.runs+'/'+match.wickets;
-  var c=document.getElementById('vppOv');if(c)c.innerText='('+ov+')';
-  var d=document.getElementById('vppCrr');if(d)d.innerText=crr;
-  var st=match.batters[match.striker]||{runs:0,balls:0};
-  var ns=match.batters[match.nonStriker]||{runs:0,balls:0};
-  var e=document.getElementById('vppSt');if(e)e.innerText=match.striker||'-';
-  var f=document.getElementById('vppStR');if(f)f.innerText=st.runs+'('+st.balls+')';
-  var g=document.getElementById('vppNs');if(g)g.innerText=match.nonStriker||'-';
-  var h=document.getElementById('vppNsR');if(h)h.innerText=ns.runs+'('+ns.balls+')';
-  var bw=match.bowlers[match.currentBowler]||{balls:0,maidens:0,runs:0,wickets:0};
-  var i=document.getElementById('vppBw');if(i)i.innerText=match.currentBowler||'-';
-  var j=document.getElementById('vppBwF');if(j)j.innerText=Math.floor(bw.balls/6)+'.'+(bw.balls%6)+'-'+bw.maidens+'-'+bw.runs+'-'+bw.wickets;
-  var cp=match.currentPartnership||{runs:0,balls:0};
-  var k=document.getElementById('vppPs');if(k)k.innerHTML='Partnership <b>'+cp.runs+' ('+(cp.balls||0)+'b)</b>';
-}
-function vppBalls(){
-  var c=document.getElementById('vppStrip');if(!c)return;
-  var recent=(match.recentBalls||[]).slice(-6);c.innerHTML='';
-  for(var i=0;i<6;i++){
-    var it=document.createElement('i');var b=recent[i];
-    if(b){it.innerText=b;if(b==='W'||b.indexOf('W')>=0)it.className='wkt';else if(b==='4')it.className='four';else if(b==='6')it.className='six';else if(!isNaN(parseInt(b)))it.className='run';}
-    else it.innerText='–';
-    c.appendChild(it);
-  }
-}
-function vppSound(){isCommentaryVoiceActive=!isCommentaryVoiceActive;if(speechSynth&&!isCommentaryVoiceActive){try{speechSynth.cancel();}catch(e){}}}
-function vppReplay(){if(!vppShot)return;vppBall(vppShot);}
-function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenElement){if(el.requestFullscreen)el.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();}}
-/* === END VPP === */
 </script>
 <!-- ============ VIEWER PITCH PAGE — SELF-CONTAINED ============ -->
 <style>
@@ -2978,12 +2520,11 @@ function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenEl
   <div class="vpp-strip" id="vppStrip"></div>
   <div class="vpp-phase" id="vppPhase">POWERPLAY</div>
 </section>
-
 <script>
 (function(){
   'use strict';
   var vppOn=false, vppRAF=null, vppShot=null, vppBg=null, vppSnd=true, vppView='broadcast';
-  var lastSeenBallCount=0;
+  var lastSeenBallCount=0, vppBallTrack=[], vppCameraX=0, vppCameraY=0;
 
   function ready(){
     var cv=document.getElementById('vppCv');
@@ -3014,7 +2555,7 @@ function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenEl
 
   window.vppSetView=function(v){
     vppView=v;
-    var map={broadcast:'vppViewBroadcast',bowl:'vppViewBowl',side:'vppViewSide'};
+    var map={broadcast:'vppViewBroadcast',bowl:'vppViewBowl',side:'vppViewSide',follow:'vppViewFollow'};
     for(var k in map){
       var el=document.getElementById(map[k]);
       if(el) el.classList.toggle('on', k===v);
@@ -3049,6 +2590,7 @@ function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenEl
         field:{cx:w*0.5,cy:h*0.78,rx:w*0.55,ry:h*0.28}
       };
     }
+    // Default Broadcast & Follow
     return{
       fcx:w*0.5,horizon:h*0.26,
       pitch:{topY:h*0.42,botY:h*0.9,topW:w*0.06,botW:w*0.24},
@@ -3229,6 +2771,24 @@ function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenEl
     x.lineWidth=1.2;
     x.stroke();
 
+    // Draw Stumps Function
+    function drawStumps(cx, cy, scale) {
+      x.fillStyle = '#e2e8f0';
+      x.shadowColor = '#000'; x.shadowBlur = 4;
+      // 3 Stumps
+      x.fillRect(cx - scale*0.15, cy - scale, scale*0.1, scale);
+      x.fillRect(cx - scale*0.05, cy - scale, scale*0.1, scale);
+      x.fillRect(cx + scale*0.05, cy - scale, scale*0.1, scale);
+      // Bails
+      x.fillStyle = '#fbbf24';
+      x.fillRect(cx - scale*0.15, cy - scale - 2, scale*0.3, 3);
+      x.shadowBlur = 0;
+    }
+
+    // Draw Stumps at both ends
+    drawStumps(L.fcx, p.topY + (p.botY-p.topY)*0.1, h*0.025);
+    drawStumps(L.fcx, p.botY - (p.botY-p.topY)*0.1, h*0.035);
+
     // Creases
     x.strokeStyle='rgba(255,255,255,0.7)';
     x.lineWidth=1.5;
@@ -3260,4 +2820,375 @@ function vppFs(){var el=document.getElementById('vpp');if(!document.fullscreenEl
     ctx.strokeStyle='rgba(0,0,0,0.4)';
     ctx.lineWidth=1;
     ctx.beginPath();
-    ctx.arc(
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.stroke();
+    if(helmet){
+      ctx.fillStyle='#0a0e1a';
+      ctx.beginPath();
+      ctx.arc(x, y-r*0.15, r*0.55, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.35)';
+      ctx.lineWidth=0.9;
+      ctx.beginPath();
+      ctx.arc(x, y-r*0.15, r*0.55, Math.PI*1.1, Math.PI*1.9);
+      ctx.stroke();
+    }
+  }
+
+  function draw(t,shot){
+    var cv=document.getElementById('vppCv');
+    if(!cv) return;
+    var ctx=cv.getContext('2d');
+    var W=cv.width, H=cv.height;
+    var dpr=parseFloat(cv.dataset.dpr)||1;
+    ctx.setTransform(1,0,0,1,0,0);
+    if(!vppBg || vppBg.width!==W) vppBg=buildBg();
+    ctx.drawImage(vppBg, 0, 0);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    var w=W/dpr, h=H/dpr;
+    var L=layout();
+
+    // Camera Follow Logic (Ball Cam)
+    if (vppView === 'follow' && t && t > 1200 && t < 1900) {
+        var camShiftX = (vppShot && vppShot.zoneIndex >= 0) ? Math.cos(vppShot.zoneIndex * Math.PI/4) * 50 : 0;
+        var camShiftY = (vppShot && vppShot.zoneIndex >= 0) ? Math.sin(vppShot.zoneIndex * Math.PI/4) * 30 : 0;
+        ctx.translate(-camShiftX, -camShiftY);
+    }
+
+    // Umpire
+    drawPlayer(ctx, L.umpire.x, L.umpire.y, L.umpire.r, '#e8ecf4', '#fff', false);
+    // Keeper
+    drawPlayer(ctx, L.keeper.x, L.keeper.y, L.keeper.r, '#f59e0b', '#fbbf24', true);
+    // Slips
+    if(vppView==='broadcast'){
+      drawPlayer(ctx, L.keeper.x+w*0.03, L.keeper.y+h*0.01, L.keeper.r*0.75, '#06b6d4', '#22d3ee', false);
+      drawPlayer(ctx, L.keeper.x+w*0.055, L.keeper.y+h*0.02, L.keeper.r*0.7, '#06b6d4', '#22d3ee', false);
+    }
+
+    // Batsman
+    var batSwing=0;
+    if(t && t>900 && t<1200) batSwing=(t-900)/300;
+    else if(t && t>=1200) batSwing=1;
+    drawPlayer(ctx, L.batsman.x, L.batsman.y, L.batsman.r, '#1e40af', '#3b82f6', true);
+
+    // Bat
+    ctx.save();
+    ctx.translate(L.batsman.x, L.batsman.y);
+    var batAng = vppView==='side' ? -Math.PI*0.2 - batSwing*Math.PI*0.7 : -Math.PI*0.3 + batSwing*Math.PI*0.9;
+    ctx.rotate(batAng);
+    ctx.fillStyle='#3a2a1a';
+    ctx.fillRect(-L.batsman.r*0.12, 0, L.batsman.r*0.24, L.batsman.r*0.75);
+    ctx.fillStyle='#d4b686';
+    ctx.fillRect(-L.batsman.r*0.28, L.batsman.r*0.75, L.batsman.r*0.56, L.batsman.r*1.7);
+    ctx.strokeStyle='rgba(120,90,60,0.7)';
+    ctx.lineWidth=0.9;
+    ctx.strokeRect(-L.batsman.r*0.28, L.batsman.r*0.75, L.batsman.r*0.56, L.batsman.r*1.7);
+    ctx.restore();
+
+    // Bowler
+    var bwX=L.bowler.x, bwY=L.bowler.y, bwSwing=0;
+    if(t){
+      if(t<500){
+        var p=t/500;
+        var runupDist = vppView==='side' ? w*0.1 : h*0.06;
+        if(vppView==='side') bwX=L.bowler.x - runupDist*(1-p);
+        else bwY=L.bowler.y + runupDist*(1-p);
+      } else if(t<900){
+        bwSwing=(t-500)/400;
+      } else bwSwing=1;
+    }
+    drawPlayer(ctx, bwX, bwY, L.bowler.r, '#dc2626', '#ef4444', false);
+    ctx.strokeStyle='#dc2626';
+    ctx.lineWidth=L.bowler.r*0.4;
+    ctx.lineCap='round';
+    var bArmAng = vppView==='side' ? Math.PI*0.2 + bwSwing*Math.PI*0.9 : -Math.PI*0.7 + bwSwing*Math.PI*1.3;
+    ctx.beginPath();
+    ctx.moveTo(bwX, bwY);
+    ctx.lineTo(bwX+Math.cos(bArmAng)*L.bowler.r*1.7, bwY+Math.sin(bArmAng)*L.bowler.r*1.7);
+    ctx.stroke();
+    ctx.lineCap='butt';
+
+    // Ball trajectory
+    var bX=null, bY=null, bS=1;
+    if(t && shot){
+      var batX=L.batsman.x, batY=L.batsman.y;
+      if(t<500){
+        bX=bwX; bY=bwY-L.bowler.r; bS=vppView==='side'?1:0.6;
+      } else if(t<900){
+        var p2=(t-500)/400;
+        bX=bwX+(batX-bwX)*p2;
+        bY=bwY+(batY-bwY)*p2;
+        bS=vppView==='side'?1:(0.6+p2*0.4);
+      } else if(t<1200){
+        bX=batX; bY=batY;
+      } else if(t<1900){
+        var p3=(t-1200)/700;
+        var ang = (shot.zoneIndex>=0) ? (shot.zoneIndex*Math.PI/4) : (Math.PI*0.65);
+        var dist = (vppView==='side'?w*0.4:h*0.35)*Math.min(1,p3*1.4);
+        
+        // Determine ball direction based on runs
+        if(vppView==='side'){
+          bX=batX+dist*0.8;
+          bY=batY-dist*0.3;
+        } else {
+          bX=L.fcx+Math.cos(ang)*dist;
+          bY=L.batsman.y+Math.sin(ang)*dist*0.6;
+        }
+        
+        // Add flight animation for Six
+        if(vppView==='broadcast' && shot.isSix) {
+            bY -= Math.sin(p3*Math.PI)*h*0.25; // Parabolic arc
+            bX += Math.sin(p3*Math.PI)*Math.cos(ang)*w*0.1;
+        }
+        // Lower bounce for 4s and less
+        if(!shot.isSix && !shot.isFour && shot.runs > 0) {
+            bY += Math.sin(p3*Math.PI)*h*0.02;
+        }
+      }
+    }
+
+    // Wagon line
+    if(shot && shot.zoneIndex>=0 && t>1100){
+      var ang2=shot.zoneIndex*Math.PI/4;
+      var col = shot.isSix ? '#d946ef' : (shot.isFour ? '#22d3ee' : '#94a3b8');
+      ctx.strokeStyle=col;
+      ctx.lineWidth=shot.isBoundary?2.5:1.3;
+      ctx.shadowColor=col;
+      ctx.shadowBlur=shot.isBoundary?14:0;
+      ctx.globalAlpha=t>1500?0.85:0.5;
+      var wx=L.batsman.x+Math.cos(ang2)*w*0.35;
+      var wy=L.batsman.y+Math.sin(ang2)*h*0.28;
+      ctx.beginPath();
+      ctx.moveTo(L.batsman.x, L.batsman.y);
+      ctx.lineTo(wx, wy);
+      ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.globalAlpha=1;
+    }
+
+    // Ball
+    if(bX!==null){
+      var br=(vppView==='side'?h*0.016:h*0.014)*bS;
+      for(var i=1;i<=4;i++){
+        ctx.globalAlpha=0.15*(5-i);
+        ctx.fillStyle='#ff0000';
+        ctx.beginPath();
+        ctx.arc(bX-i*2.5, bY-i*1.2, br*(1-i*0.15), 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha=1;
+      var ballGrad=ctx.createRadialGradient(bX-br*0.3, bY-br*0.3, 0, bX, bY, br);
+      ballGrad.addColorStop(0, '#ff4444');
+      ballGrad.addColorStop(0.6, '#c00');
+      ballGrad.addColorStop(1, '#500');
+      ctx.fillStyle=ballGrad;
+      ctx.beginPath();
+      ctx.arc(bX, bY, br, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle='#fff8f0';
+      ctx.lineWidth=0.9;
+      ctx.beginPath();
+      ctx.arc(bX, bY, br*0.68, Math.PI*0.1, Math.PI*0.9);
+      ctx.stroke();
+    }
+
+    // Wicket burst
+    if(shot && shot.isWicket && t>900 && t<1900){
+      var a=1-(t-900)/1000;
+      ctx.fillStyle='rgba(239,68,68,'+(a*0.6)+')';
+      ctx.beginPath();
+      ctx.arc(L.batsman.x, L.batsman.y, h*0.12*(1-a*0.6), 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  function idle(){
+    if(!vppOn) return;
+    if(vppRAF) cancelAnimationFrame(vppRAF);
+    vppRAF=requestAnimationFrame(function loop(){
+      draw(0, null);
+      vppRAF=requestAnimationFrame(loop);
+    });
+  }
+
+  function playBall(shot){
+    if(!vppOn) return;
+    if(vppRAF) cancelAnimationFrame(vppRAF);
+    vppShot=shot;
+    var start=performance.now();
+    function loop(now){
+      var t=now-start;
+      draw(t, shot);
+      if(t<1900) vppRAF=requestAnimationFrame(loop);
+      else { vppRAF=null; setTimeout(idle, 80); }
+    }
+    vppRAF=requestAnimationFrame(loop);
+    setTimeout(function(){ showAnim(shot); }, 1000);
+  }
+
+  function showAnim(shot){
+    var el=document.getElementById('vppAnim');
+    if(!el) return;
+    var txt='', cls='run';
+    if(shot.isWicket){ txt='WICKET!'; cls='wkt'; }
+    else if(shot.isSix){ txt='SIX!'; cls='six'; }
+    else if(shot.isFour){ txt='FOUR!'; cls='four'; }
+    else if(shot.extra==='WD'){ txt='WIDE'; cls='run'; }
+    else if(shot.extra==='NB'){ txt='NO BALL'; cls='run'; }
+    else if(shot.runs===0){ txt='DOT BALL'; cls='dot'; }
+    else if(shot.runs===1){ txt='1 RUN'; cls='run'; }
+    else { txt=shot.runs+' RUNS'; cls='run'; }
+    el.innerText=txt;
+    el.className='vpp-anim '+cls+' on';
+    setTimeout(function(){ el.className='vpp-anim'; }, 2300);
+  }
+
+  function updateScore(){
+    var m = window.match;
+    if(!m || !m.teamBatting) return;
+    var ov = Math.floor(m.legalBalls/6)+'.'+(m.legalBalls%6);
+    var crr = m.legalBalls>0 ? (m.runs/(m.legalBalls/6)).toFixed(2) : '0.00';
+    var el;
+    
+    // TV Scorecard Update
+    el=document.getElementById('vppTvTeam1'); if(el) el.innerText=m.teamBattingAbbr||m.teamBatting||'TEAM';
+    el=document.getElementById('vppTvScore1'); if(el) el.innerText=m.runs+'-'+m.wickets;
+    el=document.getElementById('vppTvOvers1'); if(el) el.innerText='('+ov+')';
+    el=document.getElementById('vppTvCrr'); if(el) el.innerText=crr;
+    
+    var st=m.batters[m.striker]||{runs:0,balls:0};
+    var ns=m.batters[m.nonStriker]||{runs:0,balls:0};
+    el=document.getElementById('vppTvStriker'); if(el) el.innerText=m.striker||'-';
+    el=document.getElementById('vppTvStrikerRuns'); if(el) el.innerText=st.runs+'('+st.balls+')';
+    el=document.getElementById('vppTvNonStriker'); if(el) el.innerText=m.nonStriker||'-';
+    el=document.getElementById('vppTvNonStrikerRuns'); if(el) el.innerText=ns.runs+'('+ns.balls+')';
+    
+    var bw=m.bowlers[m.currentBowler]||{balls:0,maidens:0,runs:0,wickets:0};
+    el=document.getElementById('vppTvBowler'); if(el) el.innerText=m.currentBowler||'-';
+    el=document.getElementById('vppTvBowlerFigs');
+    if(el) el.innerText=Math.floor(bw.balls/6)+'.'+(bw.balls%6)+'-'+bw.maidens+'-'+bw.runs+'-'+bw.wickets;
+    
+    // Phase Update
+    var ovNum=Math.floor(m.legalBalls/6);
+    var phEl=document.getElementById('vppPhase');
+    if(phEl){
+      var label='POWERPLAY', col='#fbbf24';
+      if(m.totalOvers<=20){
+        if(ovNum>=15){ label='DEATH OVERS'; col='#ef4444'; }
+        else if(ovNum>=6){ label='MIDDLE'; col='#22d3ee'; }
+      } else {
+        if(ovNum>=m.totalOvers*0.75){ label='DEATH OVERS'; col='#ef4444'; }
+        else if(ovNum>=m.totalOvers*0.3){ label='MIDDLE'; col='#22d3ee'; }
+      }
+      phEl.innerText=label;
+      phEl.style.color=col;
+      phEl.style.borderColor=col;
+    }
+  }
+
+  function updateBalls(){
+    var m = window.match;
+    var c=document.getElementById('vppStrip');
+    if(!c || !m) return;
+    var recent=(m.recentBalls||[]).slice(-6);
+    c.innerHTML='';
+    for(var i=0;i<6;i++){
+      var it=document.createElement('i');
+      var b=recent[i];
+      if(b){
+        it.innerText=b;
+        if(b==='W'||b.indexOf('W')>=0) it.className='wkt';
+        else if(b==='4') it.className='four';
+        else if(b==='6') it.className='six';
+        else if(!isNaN(parseInt(b))) it.className='run';
+      } else it.innerText='–';
+      c.appendChild(it);
+    }
+  }
+
+  // TV Innings Break Summary
+  window.vppShowInningsBreak = function() {
+    var m = window.match;
+    if (!m || !m.innings1Score) return;
+    var overlay = document.getElementById('vppMatchSummary');
+    if (!overlay) return;
+    
+    var i1 = m.innings1Score;
+    document.getElementById('vppSummaryMatchTitle').innerText = m.teamBatting + ' vs ' + m.teamBowling;
+    document.getElementById('vppSumTeam1Name').innerText = i1.team;
+    document.getElementById('vppSumTeam1Score').innerText = i1.runs + '-' + i1.wickets;
+    document.getElementById('vppSumTeam1Overs').innerText = '(' + Math.floor(i1.balls/6) + '.' + (i1.balls%6) + ' Overs)';
+    
+    // Top Batters
+    var batHtml = '';
+    var batSnap = m.innings1BattingSnapshot || {};
+    var sortedBat = Object.keys(batSnap).map(function(k){ return {name:k, data:batSnap[k]}; })
+      .filter(function(x){ return x.data.status && x.data.status !== 'dnb'; })
+      .sort(function(a,b){ return b.data.runs - a.data.runs; })
+      .slice(0, 4);
+    sortedBat.forEach(function(x){
+      batHtml += '<div class="vpp-summary-player-row"><span>' + x.name + '</span><b>' + x.data.runs + (x.data.status.includes('not out')?'*':'') + ' (' + x.data.balls + ')</b></div>';
+    });
+    document.getElementById('vppSumTeam1Players').innerHTML = batHtml;
+    
+    // Bottom Bowlers (Team 2)
+    var bowlHtml = '';
+    var bowlSnap = m.innings1BowlingSnapshot || {};
+    var sortedBowl = Object.keys(bowlSnap).map(function(k){ return {name:k, data:bowlSnap[k]}; })
+      .filter(function(x){ return x.data.balls > 0; })
+      .sort(function(a,b){ return b.data.wickets - a.data.wickets; })
+      .slice(0, 4);
+    sortedBowl.forEach(function(x){
+      bowlHtml += '<div class="vpp-summary-player-row"><span>' + x.name + '</span><b>' + x.data.wickets + '-' + x.data.runs + '</b></div>';
+    });
+    document.getElementById('vppSumTeam2Players').innerHTML = bowlHtml;
+    
+    document.getElementById('vppSumTeam2Name').innerText = m.teamBowling;
+    document.getElementById('vppSumTeam2Score').innerText = m.runs + '-' + m.wickets; // Current 2nd innings score (0-0 at start)
+    document.getElementById('vppSumTeam2Overs').innerText = '(' + m.totalOvers + ' Overs)';
+    document.getElementById('vppSumFooter').innerText = m.teamBatting + ' NEED ' + m.target + ' RUNS TO WIN';
+    
+    overlay.classList.add('on');
+    
+    // Auto hide after 10 seconds
+    setTimeout(function(){ overlay.classList.remove('on'); }, 10000);
+  };
+
+  window.vppToggleSound=function(){
+    vppSnd=!vppSnd;
+    if(typeof isCommentaryVoiceActive!=='undefined') isCommentaryVoiceActive=vppSnd;
+    var b=document.getElementById('vppSnd');
+    if(b) b.innerText=vppSnd?'🔊':'🔇';
+    if(!vppSnd && window.speechSynthesis){ try{window.speechSynthesis.cancel();}catch(e){} }
+  };
+  window.vppReplay=function(){ if(!vppShot) return; playBall(vppShot); };
+  window.vppFullscreen=function(){
+    var el=document.getElementById('vpp');
+    if(!document.fullscreenElement){ if(el.requestFullscreen) el.requestFullscreen(); }
+    else { if(document.exitFullscreen) document.exitFullscreen(); }
+  };
+
+  // Auto-activate if ?viewer=1
+  var params=new URLSearchParams(location.search);
+  if(params.get('viewer')==='1'){
+    setTimeout(function(){ window.vppStart(); }, 400);
+  }
+
+  // Watch for new balls every 500ms
+  setInterval(function(){
+    if(!vppOn) return;
+    updateScore();
+    updateBalls();
+    var m=window.match;
+    if(m && m.shotLog && m.shotLog.length > lastSeenBallCount){
+      var last=m.shotLog[m.shotLog.length-1];
+      lastSeenBallCount=m.shotLog.length;
+      playBall(last);
+    }
+    if(m && m.shotLog) lastSeenBallCount=Math.max(lastSeenBallCount, m.shotLog.length);
+  }, 500);
+
+  // Resize handler
+  window.addEventListener('resize', function(){ if(vppOn) ready(); });
+})();
+</script>
