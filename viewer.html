@@ -270,13 +270,14 @@ const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() 
 /* Optional module hooks — called repeatedly until each one loads.
    If a module never arrives, we stop after ~5 s and move on. */
 (function bootOptionalModules(){
-  const HOOKS = [
-    ['CricMaxEnvironment',  'build'],
-    ['CricMaxCrowd',        'build'],
-    ['CricMaxParticles',    'build'],
-    ['CricMaxPostFX',       'build'],
-    ['CricMaxStadiumDetail','build']
-  ];
+ const HOOKS = [
+  ['CricMaxRenderBoost',  'build'],   // ← NEW — runs FIRST, biggest impact
+  ['CricMaxEnvironment',  'build'],
+  ['CricMaxCrowd',        'build'],
+  ['CricMaxParticles',    'build'],
+  ['CricMaxPostFX',       'build'],
+  ['CricMaxStadiumDetail','build']
+];
   let attempts = 0;
   const timer = setInterval(function(){
     attempts++;
