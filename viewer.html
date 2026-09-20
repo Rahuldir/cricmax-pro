@@ -79,7 +79,7 @@
 
       <div class="ctrl-cluster">
         <button class="ctrl-btn" id="btnWagon" onclick="toggleWagonWheel()" title="Toggle Wagon Wheel">🕸️</button>
-        <button class="ctrl-btn" onclick="simRandomDelivery()" title="Bowl Delivery">⚡</button>
+        <button class="ctrl-btn" onclick="simRandomDelivery()" title="Test Simulated Ball">⚡</button>
         <button class="ctrl-btn" id="btnMic" onclick="toggleAudio()" title="Live Sound FX">🔊</button>
         <button class="ctrl-btn" onclick="triggerReplay()" title="Replay Delivery">↻</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
@@ -92,26 +92,27 @@
 
     <div id="eventBanner" class="event-banner">FOUR!</div>
 
+    <!-- Synchronized Lower-Third Scorecard -->
     <div class="tv-scorecard">
       <div class="tv-team">
-        <span class="tv-team-badge" id="tvAbbr">IND</span>
-        <span class="tv-score" id="tvScore">142/2</span>
-        <span class="tv-overs" id="tvOvers">(15.4)</span>
+        <span class="tv-team-badge" id="tvAbbr">BAT</span>
+        <span class="tv-score" id="tvScore">0/0</span>
+        <span class="tv-overs" id="tvOvers">(0.0)</span>
       </div>
       <div class="tv-batsmen">
-        <div class="tv-bat-row striker"><span id="tvStrikerName">Striker*</span><b id="tvStrikerRuns">54(32)</b></div>
-        <div class="tv-bat-row"><span id="tvNonStrikerName">Non-Striker</span><b id="tvNonStrikerRuns">38(24)</b></div>
+        <div class="tv-bat-row striker"><span id="tvStrikerName">Striker*</span><b id="tvStrikerRuns">0(0)</b></div>
+        <div class="tv-bat-row"><span id="tvNonStrikerName">Non-Striker</span><b id="tvNonStrikerRuns">0(0)</b></div>
       </div>
       <div class="tv-bowler">
-        <div id="tvBowlerName">Pace Bowler</div>
-        <div id="tvBowlerFigs" style="color:#fff;font-variant-numeric:tabular-nums;">3.4-0-28-1</div>
+        <div id="tvBowlerName">Bowler</div>
+        <div id="tvBowlerFigs" style="color:#fff;font-variant-numeric:tabular-nums;">0.0-0-0-0</div>
       </div>
     </div>
   </div>
 
   <script>
     /* =======================================================
-       1. SYNTHESIZED WEB AUDIO API
+       1. SYNTHESIZED PROCEDURAL WEB AUDIO
        ======================================================= */
     let audioCtx = null;
     let isAudioOn = true;
@@ -343,7 +344,7 @@
     function updateLedTexture(time) {
       ledCtx.fillStyle = '#090d16';
       ledCtx.fillRect(0, 0, 2048, 128);
-      const brands = ['CRICMAX PRO', 'TATA IPL', 'FLY EMIRATES', 'APOLLO TYRES', 'JIO CINEMA'];
+      const brands = ['CRICMAX PRO', 'LIVE SCORING', 'MATCH HUB', 'WAGON WHEEL PRO', 'ULTRA BROADCAST'];
       ledCtx.font = 'bold 44px sans-serif';
       const offset = (time * 120) % 2048;
       brands.forEach((brand, idx) => {
@@ -538,7 +539,7 @@
     ];
 
     /* =======================================================
-       6. BATSMAN & BOWLER MODELS
+       6. BATSMAN & BOWLER RIGS
        ======================================================= */
     function buildBatsman() {
       const rig = new THREE.Group();
@@ -609,7 +610,7 @@
     scene.add(ball);
 
     /* =======================================================
-       7. CAMERAS & WAGON WHEEL
+       7. CAMERAS & WAGON WHEEL OVERLAY
        ======================================================= */
     const cameraModes = {
       broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
@@ -651,7 +652,7 @@
       if (btn) btn.innerText = isAudioOn ? '🔊' : '🔇';
     };
 
-    // 2D Wagon Wheel Overlay
+    // Wagon Wheel 2D Sync Display
     const wagonCanvas = document.getElementById('wagonWheelCanvas');
     const wagonCtx = wagonCanvas.getContext('2d');
     const historicalShots = [];
@@ -682,7 +683,113 @@
     }
 
     /* =======================================================
-       8. DELIVERY SIMULATION
+       8. TWO-WAY SCORING TAB & WAGON WHEEL SYNCHRONIZATION
+       ======================================================= */
+    let lastProcessedShotIndex = -1;
+
+    // Helper: Safely get the match object from parent or local window
+    function getSyncMatchObject() {
+      try {
+        if (window.parent && window.parent.match) return window.parent.match;
+        if (window.match) return window.match;
+      } catch (e) {
+        // Cross-origin access fallback
+      }
+      return null;
+    }
+
+    // Direct cross-origin listener via window.postMessage
+    window.addEventListener('message', (event) => {
+      if (!event.data) return;
+      if (event.data.type === 'SYNC_MATCH_STATE' && event.data.payload) {
+        applyMatchDataToScorecard(event.data.payload);
+      }
+      if (event.data.type === 'TRIGGER_DELIVERY' && event.data.shot) {
+        playBall(event.data.shot);
+      }
+    });
+
+    function applyMatchDataToScorecard(m) {
+      if (!m) return;
+
+      // 1. Team & Score
+      const abbrEl = document.getElementById('tvAbbr');
+      const scoreEl = document.getElementById('tvScore');
+      const oversEl = document.getElementById('tvOvers');
+
+      const teamName = m.teamBattingAbbr || m.battingTeam || m.teamBatting || (m.batting && m.batting.name) || 'BAT';
+      const totalRuns = m.runs !== undefined ? m.runs : (m.totalRuns !== undefined ? m.totalRuns : (m.score || 0));
+      const wickets = m.wickets !== undefined ? m.wickets : (m.totalWickets || 0);
+      const legalBalls = m.legalBalls !== undefined ? m.legalBalls : (m.ballsBowled || 0);
+
+      if (abbrEl) abbrEl.innerText = teamName;
+      if (scoreEl) scoreEl.innerText = `${totalRuns}/${wickets}`;
+      if (oversEl) oversEl.innerText = `(${Math.floor(legalBalls / 6)}.${legalBalls % 6})`;
+
+      // 2. Batters Striker & Non-Striker
+      const strikerKey = m.striker || (m.currentStriker && m.currentStriker.name) || 'Striker';
+      const nonStrikerKey = m.nonStriker || (m.currentNonStriker && m.currentNonStriker.name) || 'Non-Striker';
+
+      let strikerStats = { runs: 0, balls: 0 };
+      let nonStrikerStats = { runs: 0, balls: 0 };
+
+      if (m.batters) {
+        if (m.batters[strikerKey]) strikerStats = m.batters[strikerKey];
+        if (m.batters[nonStrikerKey]) nonStrikerStats = m.batters[nonStrikerKey];
+      } else if (m.currentStriker && m.currentNonStriker) {
+        strikerStats = m.currentStriker;
+        nonStrikerStats = m.currentNonStriker;
+      }
+
+      const stNameEl = document.getElementById('tvStrikerName');
+      const stRunsEl = document.getElementById('tvStrikerRuns');
+      const nstNameEl = document.getElementById('tvNonStrikerName');
+      const nstRunsEl = document.getElementById('tvNonStrikerRuns');
+
+      if (stNameEl) stNameEl.innerText = `${strikerKey}*`;
+      if (stRunsEl) stRunsEl.innerText = `${strikerStats.runs || 0}(${strikerStats.balls || 0})`;
+      if (nstNameEl) nstNameEl.innerText = `${nonStrikerKey}`;
+      if (nstRunsEl) nstRunsEl.innerText = `${nonStrikerStats.runs || 0}(${nonStrikerStats.balls || 0})`;
+
+      // 3. Bowler
+      const bowlerKey = m.currentBowler || (m.bowler && m.bowler.name) || 'Bowler';
+      let bowlerStats = { balls: 0, maidens: 0, runs: 0, wickets: 0 };
+
+      if (m.bowlers && m.bowlers[bowlerKey]) {
+        bowlerStats = m.bowlers[bowlerKey];
+      } else if (m.bowler) {
+        bowlerStats = m.bowler;
+      }
+
+      const bwBalls = bowlerStats.balls || bowlerStats.legalBalls || 0;
+      const bwOversStr = `${Math.floor(bwBalls / 6)}.${bwBalls % 6}`;
+
+      const bwNameEl = document.getElementById('tvBowlerName');
+      const bwFigsEl = document.getElementById('tvBowlerFigs');
+      if (bwNameEl) bwNameEl.innerText = bowlerKey;
+      if (bwFigsEl) bwFigsEl.innerText = `${bwOversStr}-${bowlerStats.maidens || 0}-${bowlerStats.runs || 0}-${bowlerStats.wickets || 0}`;
+
+      // 4. Shot Log & Dynamic Wagon Wheel Sync
+      const log = m.shotLog || m.ballsLog || m.deliveries;
+      if (log && Array.isArray(log) && log.length > 0) {
+        const latestIndex = log.length - 1;
+        if (latestIndex > lastProcessedShotIndex) {
+          lastProcessedShotIndex = latestIndex;
+          playBall(log[latestIndex]);
+        }
+      }
+    }
+
+    // High frequency 200ms polling loop with parent scoring tab
+    setInterval(() => {
+      const matchObj = getSyncMatchObject();
+      if (matchObj) {
+        applyMatchDataToScorecard(matchObj);
+      }
+    }, 200);
+
+    /* =======================================================
+       9. REAL-TIME BALL DELIVERY & WAGON WHEEL FLIGHT
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
@@ -692,15 +799,16 @@
     };
 
     window.simRandomDelivery = function() {
-      const outcomes = [
-        { runs: 4, isFour: true, isSix: false, isWicket: false, zoneIndex: 1 },
-        { runs: 6, isFour: false, isSix: true, isWicket: false, zoneIndex: 3 },
-        { runs: 0, isFour: false, isSix: false, isWicket: true, zoneIndex: 0 },
-        { runs: 1, isFour: false, isSix: false, isWicket: false, zoneIndex: 6 },
-        { runs: 2, isFour: false, isSix: false, isWicket: false, zoneIndex: 5 }
-      ];
-      const shot = outcomes[Math.floor(Math.random() * outcomes.length)];
-      shot.ballRandom = Math.random();
+      const angles = [0.4, 0.9, 1.6, 2.2, 3.4, 4.2, 5.1];
+      const selectedAngle = angles[Math.floor(Math.random() * angles.length)];
+      const shot = {
+        runs: 4,
+        isFour: true,
+        isSix: false,
+        isWicket: false,
+        angle: selectedAngle, // Radial angle in radians
+        ballSpeed: 141.2
+      };
       playBall(shot);
     };
 
@@ -712,23 +820,48 @@
       ball.visible = true;
       lastRecordedShot = shot;
 
+      // Speed Radar update from scoring tab or procedural generator
       const speedRadar = document.getElementById('speedRadar');
-      const deliverySpeed = (136 + Math.random() * 11).toFixed(1);
-      speedRadar.innerText = `RADAR: ${deliverySpeed} KM/H`;
+      const deliverySpeed = shot.ballSpeed || shot.speed || (136 + Math.random() * 11).toFixed(1);
+      speedRadar.innerText = `SPEED: ${deliverySpeed} KM/H`;
       speedRadar.classList.add('active');
 
       const startTime = performance.now();
-      const pitchZ = 3.5 + ((shot.ballRandom || 0.5) * 1.5);
+      const pitchZ = 3.5 + ((shot.ballRandom !== undefined ? shot.ballRandom : Math.random()) * 1.5);
       const seamDeviation = (Math.random() - 0.5) * 0.35;
-      const pitchX = (Math.random() - 0.5) * 0.4;
-      const angle = shot.zoneIndex >= 0 ? (shot.zoneIndex * Math.PI / 4) : Math.PI / 2;
-      const finalDist = shot.runs > 0 ? (shot.isSix ? 67 : (shot.isFour ? 62 : shot.runs * 9)) : 18;
+      const pitchX = shot.pitchX !== undefined ? shot.pitchX : (Math.random() - 0.5) * 0.4;
+
+      /* ==============================================
+         SYNCHRONIZED WAGON WHEEL DIRECTION VECTOR LOGIC
+         Accepts:
+         1. shot.angle (radians or degrees)
+         2. shot.wagonX and shot.wagonY (coordinates)
+         3. shot.zoneIndex (0 - 7 standard 8-slice compass)
+         ============================================== */
+      let angle = Math.PI / 2;
+      if (shot.angle !== undefined) {
+        // If angle is supplied in degrees (> 2*PI), convert to radians
+        angle = shot.angle > (Math.PI * 2) ? (shot.angle * Math.PI / 180) : shot.angle;
+      } else if (shot.wagonX !== undefined && shot.wagonY !== undefined) {
+        // Derived from a 2D canvas wagon wheel drag or click point
+        angle = Math.atan2(shot.wagonX, shot.wagonY);
+      } else if (shot.zoneIndex !== undefined && shot.zoneIndex >= 0) {
+        angle = (shot.zoneIndex * Math.PI / 4);
+      }
+
+      const runs = shot.runs !== undefined ? shot.runs : 0;
+      const isSix = shot.isSix || runs === 6;
+      const isFour = shot.isFour || runs === 4;
+      const isWicket = shot.isWicket || shot.isOut || false;
+
+      let finalDist = shot.dist || (runs > 0 ? (isSix ? 67 : (isFour ? 62 : runs * 9)) : 18);
       const hitX = Math.sin(angle) * finalDist;
       const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
 
       let bouncedSoundPlayed = false;
       let contactSoundPlayed = false;
 
+      // Identify closest fielder for pursuit vector
       let nearestFielder = fielders[0];
       let minFielderDist = 999;
       fielders.forEach(f => {
@@ -739,7 +872,7 @@
       function loop(now) {
         const elapsed = now - startTime;
 
-        // Bowler Run-up
+        // Phase 1: Bowler Run-up (0 - 700ms)
         if (elapsed < 700) {
           const t = elapsed / 700;
           bowler.position.x = THREE.MathUtils.lerp(BOWLER_START_X, 0.55, t);
@@ -751,7 +884,7 @@
           batsman.rotation.y = -Math.PI / 2;
           batsman.legL.position.set(-0.16, 0.45, 0);
         }
-        // Pitch Bounce & Flight
+        // Phase 2: Delivery & Pitch Bounce (700ms - 1200ms)
         else if (elapsed < 1200) {
           const t = (elapsed - 700) / 500;
           if (t < 0.65) {
@@ -771,36 +904,41 @@
             ball.position.y = 0.14 + (Math.sin(pt * Math.PI * 0.5) * 0.95);
           }
         }
-        // Bat Stroke & Shot Execution
+        // Phase 3: Bat Stroke & Real-time Wagon Wheel Vector Flight (1200ms - 3400ms)
         else if (elapsed < 3400) {
           const t = (elapsed - 1200) / 2200;
 
           if (!contactSoundPlayed) {
-            if (shot.isWicket) {
+            if (isWicket) {
               playSoundStumpsShatter();
               strikerWickets.triggerShatter();
             } else {
-              playSoundWillowBat(shot.isSix ? 1.0 : (shot.isFour ? 0.8 : 0.5));
-              if (shot.isSix || shot.isFour) playSoundCrowdCheer();
+              playSoundWillowBat(isSix ? 1.0 : (isFour ? 0.8 : 0.5));
+              if (isSix || isFour) playSoundCrowdCheer();
             }
-            historicalShots.push({ angle, dist: finalDist, runs: shot.runs, isWkt: shot.isWicket });
+            // Add to live wagon wheel register
+            historicalShots.push({ angle, dist: finalDist, runs, isWkt: isWicket });
             drawWagonWheel();
             contactSoundPlayed = true;
 
-            if (!shot.isSix && shot.runs > 0) nearestFielder.pursue(new THREE.Vector3(hitX, 0, hitZ));
+            if (!isSix && runs > 0) nearestFielder.pursue(new THREE.Vector3(hitX, 0, hitZ));
           }
 
-          if (shot.isWicket) {
+          if (isWicket) {
             batsman.batPivot.rotation.x = 0;
             ball.position.set(0.1, 0.3, 10.4);
           } else {
-            if (shot.zoneIndex === 1 || shot.zoneIndex === 2) {
+            // Adaptive batting animation matched to wagon direction
+            if (angle > 0.3 && angle < 1.9) {
+              // Off-side cover drive
               batsman.legL.position.z = THREE.MathUtils.lerp(0, 0.35, Math.min(1, t * 5));
               batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.7);
-            } else if (shot.zoneIndex >= 5) {
+            } else if (angle >= 1.9) {
+              // Leg-side pull / hook
               batsman.rotation.y = -Math.PI / 2 + (Math.min(1, t * 4) * Math.PI * 0.45);
               batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
             } else {
+              // Straight drive
               batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
             }
 
@@ -808,15 +946,15 @@
             ball.position.x = THREE.MathUtils.lerp(batsman.position.x, hitX * dragFactor, t);
             ball.position.z = THREE.MathUtils.lerp(8.8, hitZ * dragFactor, t);
 
-            if (shot.isSix) ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 22.0 * dragFactor);
-            else if (shot.isFour) ball.position.y = 0.2 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * (1 - t));
+            if (isSix) ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 22.0 * dragFactor);
+            else if (isFour) ball.position.y = 0.2 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * (1 - t));
             else ball.position.y = 0.14;
           }
 
           if (activeCamMode === 'follow') {
             camPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6.0);
             camTarget.copy(ball.position);
-          } else if (activeCamMode === 'broadcast' && (shot.isSix || shot.isFour)) {
+          } else if (activeCamMode === 'broadcast' && (isSix || isFour)) {
             camTarget.lerp(ball.position, 0.05);
           }
         } else {
@@ -833,16 +971,16 @@
       setTimeout(() => {
         const b = document.getElementById('eventBanner');
         b.className = 'event-banner';
-        if (shot.isWicket) { b.innerText = 'OUT / WICKET!'; b.classList.add('wkt', 'active'); }
-        else if (shot.isSix) { b.innerText = 'MAXIMUM 6!'; b.classList.add('six', 'active'); }
-        else if (shot.isFour) { b.innerText = 'CRACKING FOUR!'; b.classList.add('four', 'active'); }
-        else { b.innerText = shot.runs > 0 ? `${shot.runs} RUNS` : 'DOT BALL'; b.classList.add('active'); }
+        if (isWicket) { b.innerText = 'OUT / WICKET!'; b.classList.add('wkt', 'active'); }
+        else if (isSix) { b.innerText = 'MAXIMUM 6!'; b.classList.add('six', 'active'); }
+        else if (isFour) { b.innerText = 'CRACKING FOUR!'; b.classList.add('four', 'active'); }
+        else { b.innerText = runs > 0 ? `${runs} RUNS` : 'DOT BALL'; b.classList.add('active'); }
         setTimeout(() => b.classList.remove('active'), 2200);
       }, 1200);
     }
 
     /* =======================================================
-       9. MASTER RENDER ENGINE LOOP
+       10. MASTER RENDER ENGINE LOOP
        ======================================================= */
     let lastTime = 0;
     function animate(time) {
