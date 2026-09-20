@@ -839,8 +839,53 @@ function playBall(shot){
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
     } else if (elapsed < 3400){
-      const t = (elapsed - 1250) / 2150;
-      if (!contacted){
+         const t = (elapsed - 1250) / 2150;
+
+    /* ===== DATA-DRIVEN SHOT ANIMATION ===== */
+    if (!window.__activeShot){
+      const _data = window.CricMaxData;
+      const _shots = window.CricMaxShots;
+      const _bowlerType = shot.bowlerType === 'spin' ? 'off_spin' : 'fast_pace';
+      const _deliveryType = shot.deliveryType || (_data ? _data.pickDelivery(_bowlerType) : 'length_ball');
+      const _shotDetail = _data ? _data.pickShot(shot.runs || 0, _bowlerType, _deliveryType, 'hard') : null;
+      const _shotAnim = _shots ? _shots.get(_shotDetail ? _shotDetail.shotType : 'defend') : null;
+      window.__activeShot = { detail: _shotDetail, anim: _shotAnim, startedAt: performance.now() };
+      if (_shotDetail) console.log('🎯 Shot:', _shotDetail.shotType, '| Sector:', _shotDetail.sector, '| Dist:', _shotDetail.distance.toFixed(1)+'m');
+    }
+    const _as = window.__activeShot;
+    if (_as && _as.anim && strikerBat.batPivot){
+      const se = performance.now() - _as.startedAt;
+      const pose = _as.anim.pose;
+      let batRotX, batRotZ, torsoY, headY;
+      if (se < 350){
+        const p = se / 350;
+        batRotX = THREE.MathUtils.lerp(-Math.PI / 4, pose.batStart.rotX, p);
+        batRotZ = THREE.MathUtils.lerp(0, pose.batStart.rotZ, p);
+        torsoY = 0; headY = 0;
+      } else if (se < 600){
+        const p = (se - 350) / 250;
+        batRotX = THREE.MathUtils.lerp(pose.batStart.rotX, pose.batContact.rotX, p);
+        batRotZ = THREE.MathUtils.lerp(pose.batStart.rotZ, pose.batContact.rotZ, p);
+        torsoY = THREE.MathUtils.lerp(0, pose.torsoRotY, p);
+        headY = THREE.MathUtils.lerp(0, pose.headRotY, p);
+      } else {
+        const p = Math.min(1, (se - 600) / 400);
+        batRotX = THREE.MathUtils.lerp(pose.batContact.rotX, pose.batEnd.rotX, p);
+        batRotZ = THREE.MathUtils.lerp(pose.batContact.rotZ, pose.batEnd.rotZ, p);
+        torsoY = THREE.MathUtils.lerp(pose.torsoRotY, pose.torsoRotY * 0.7, p);
+        headY = THREE.MathUtils.lerp(pose.headRotY, pose.headRotY * 0.8, p);
+      }
+      strikerBat.batPivot.rotation.x = batRotX;
+      strikerBat.batPivot.rotation.z = batRotZ;
+      strikerBat.torso.rotation.y = torsoY;
+      strikerBat.head.rotation.y = headY;
+      if (pose.legStride){
+        strikerBat.legL.rotation.x = -pose.legStride * 0.6;
+        strikerBat.legR.rotation.x = pose.legStride * 0.3;
+      }
+    }
+
+    if (!contacted){
         contacted = true;
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else playBatCrack(isSix ? 1 : isFour ? 0.85 : 0.5);
