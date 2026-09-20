@@ -918,8 +918,9 @@ function playBall(shot){
         camPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6);
         camTarget.copy(ball.position);
       }
-    } else {
+       } else {
       anim = null;
+      window.__activeShot = null;
       speedTag.classList.remove('on');
       ball.visible = false;
       return;
