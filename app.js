@@ -2194,6 +2194,10 @@ if (cvWheel) {
 
     let deg = Math.atan2(dy, dx) * (180 / Math.PI);
     if (deg < 0) deg += 360;
+
+    // --- NEW: Exact angle for the 3D Viewer ---
+    window._tempExactAngle = Math.atan2(dx, -dy);
+
     const sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
     const sectorNames = ["Point", "Third Man", "Fine Leg", "Square Leg", "Mid-Wicket", "Long-on", "Long-off", "Cover"];
     const region = sectorNames[sectorIdx];
@@ -2397,6 +2401,7 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     bowler: match.currentBowler,
     runs: runs || 0,
     zone: region || '',
+    angle: window._tempExactAngle !== undefined ? window._tempExactAngle : null,
     zoneIndex: zoneIndex,
     isWicket: !!isWicket,
     isFour: runs === 4,
