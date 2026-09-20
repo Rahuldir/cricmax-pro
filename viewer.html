@@ -209,6 +209,17 @@ document.body.appendChild(renderer.domElement);
 const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
+/* ==== REALISM MODULES ==== */
+const env           = window.CricMaxEnvironment    ? window.CricMaxEnvironment.build(scene, renderer) : null;
+const crowd         = window.CricMaxCrowd          ? window.CricMaxCrowd.build(scene)                : null;
+const particles     = window.CricMaxParticles      ? window.CricMaxParticles.build(scene)            : null;
+const postFX        = window.CricMaxPostFX         ? window.CricMaxPostFX.build(renderer, scene, camera) : null;
+const stadiumDetail = window.CricMaxStadiumDetail  ? window.CricMaxStadiumDetail.build(scene, renderer) : null;
+
+if (postFX) postFX.setIntensity({ bloom: 0.85, vignette: 0.38, grain: 0.06, aberration: 1.4 });
+
+console.log('🎨 All realism modules loaded');
+
 /* ============================================================
    3. UI HANDLERS
    ============================================================ */
@@ -238,6 +249,7 @@ function setSky(mode){
     if (b) b.classList.toggle('on', m === mode);
   });
   if (stadium && stadium.setSky) stadium.setSky(mode);
+  if (env && env.setTimeOfDay) env.setTimeOfDay(mode);
 }
 setSky('day');
 
@@ -1025,6 +1037,16 @@ function playBall(shot){
 
       if (!contacted){
         contacted = true;
+
+        // Particle FX
+        if (particles) particles.chalkPuff(strikerBat.position.x, 0.6, 8.8);
+        if (particles) particles.burstGrass(strikerBat.position.x, 0.05, 8.8, 25);
+        if (particles) particles.puffDust(bowler.position.x, 0.02, bowler.position.z, 15);
+        if (particles && isSix) particles.confetti(0, 8, 8.8, 200);
+        if (particles && isWkt) particles.confetti(0, 6, 10, 100);
+        // Crowd reaction
+        if (crowd) crowd.cheer(isSix || isWkt ? 1.0 : isFour ? 0.85 : 0.5);
+
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else playBatCrack(isSix ? 1 : isFour ? 0.85 : 0.5);
         if (isSix || isFour || isCatch || isWkt) playCrowdRoar();
@@ -1083,9 +1105,16 @@ function animate(t){
   const elapsed = t * 0.001;
   lastT = t;
 
-  if (stadium && stadium.update) stadium.update(dt, elapsed);
+    if (stadium && stadium.update) stadium.update(dt, elapsed);
+  if (env && env.update) env.update(dt, elapsed);
+  if (crowd && crowd.update) crowd.update(dt, elapsed);
+  if (particles && particles.update) particles.update(dt);
+  if (stadiumDetail && stadiumDetail.update) stadiumDetail.update(dt, elapsed);
+  if (postFX && postFX.update) postFX.update(elapsed);
+  updateSparks(dt);
+  strikerWicket.update(dt);
+  bowlerWicket.update(dt);
   fielders.forEach(f => f.update(dt, elapsed));
-  RunningState.update(dt);
 
   if (!anim && !RunningState.active){
     strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
