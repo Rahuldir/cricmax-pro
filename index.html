@@ -444,10 +444,42 @@
       <div><h3 style="font-size:16px;font-weight:900;color:var(--red);">🚨 WICKET!</h3><p style="font-size:11px;color:var(--muted);margin-top:2px;">Dismissal & new batter</p></div>
       <button class="btn-ui" onclick="closeModal('wicketTypeModal')">✕</button>
     </div>
-    <div class="form-group"><label>Dismissal Method</label><select id="wktMethodSelect" class="form-control" onchange="handleWicketMethodChange(this.value)"><option value="Bowled">Bowled</option><option value="Caught">Caught</option><option value="Run Out">Run Out</option><option value="Stumped">Stumped</option><option value="LBW">LBW</option><option value="Hit Wicket">Hit Wicket</option></select></div>
-    <div class="form-group" id="fielderGroup" style="display:none;"><label id="fielderLabel">Fielder</label><input type="text" id="fielderCustomInput" class="form-control" placeholder="Fielder name"></div>
-    <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;"><label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label><select id="wktNewBatsmanSelect" class="form-control" style="margin-bottom:6px;"><option value="">-- Select from squad --</option></select><input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type new batter name"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;"><button class="btn-ui" onclick="closeModal('wicketTypeModal')">Cancel</button><button class="btn-ui btn-primary" onclick="confirmWicketDelivery()">Confirm 🚨</button></div>
+    <div class="form-group">
+      <label>Dismissal Method</label>
+      <select id="wktMethodSelect" class="form-control" onchange="handleWicketMethodChange(this.value)">
+        <option value="Bowled">Bowled</option>
+        <option value="Caught">Caught</option>
+        <option value="Run Out">Run Out</option>
+        <option value="Stumped">Stumped</option>
+        <option value="LBW">LBW</option>
+        <option value="Hit Wicket">Hit Wicket</option>
+      </select>
+    </div>
+    <div class="form-group" id="fielderGroup" style="display:none;">
+      <label id="fielderLabel">Fielder</label>
+      <input type="text" id="fielderCustomInput" class="form-control" placeholder="Fielder name">
+    </div>
+    <div class="form-group" id="runOutRunsGroup" style="display:none;">
+      <label style="color:var(--cyan);font-weight:800;">🏃 Runs Completed Before Run Out</label>
+      <select id="runOutRunsSelect" class="form-control">
+        <option value="0">0 runs (direct hit)</option>
+        <option value="1">1 run completed</option>
+        <option value="2">2 runs completed</option>
+        <option value="3">3 runs completed</option>
+      </select>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px;font-style:italic;">These runs count for the batsman & team before dismissal.</div>
+    </div>
+    <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
+      <label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label>
+      <select id="wktNewBatsmanSelect" class="form-control" style="margin-bottom:6px;">
+        <option value="">-- Select from squad --</option>
+      </select>
+      <input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type new batter name">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="closeModal('wicketTypeModal')">Cancel</button>
+      <button class="btn-ui btn-primary" onclick="confirmWicketDelivery()">Confirm 🚨</button>
+    </div>
   </div>
 </div>
 
