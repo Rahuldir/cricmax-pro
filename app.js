@@ -483,7 +483,7 @@ function selectSubPane(paneId){
   const ap=document.getElementById('pane-'+paneId);if(ap)ap.classList.add('active');
   if(paneId==='tournament'){renderPastMatchesList();renderPointsTable();updateContinueButton();}
   if(paneId==='teams')renderTeamsList();
-  if(paneId==='live'){renderCommentary();updateSettingsSummary();updateLiveShareBadge();}
+  if(paneId==='live'){renderLive();renderCommentary();updateSettingsSummary();updateLiveShareBadge();}
   if(paneId==='summary')renderSummary();
   if(paneId==='analytics')renderNzcAnalytics();
   if(paneId==='leaderboards')renderStatsCategory(currentStatsCategory);
@@ -1153,8 +1153,9 @@ if(cvWheel) cvWheel.addEventListener('pointerdown',(e)=>{
   if(pendingRuns===4){banner.className='wagon-boundary-banner is-four active';bannerMain.innerText='CRACKING FOUR! ⚡';bannerSub.innerText=`Races to the boundary rope towards ${region}!`;}
   else if(pendingRuns===6){banner.className='wagon-boundary-banner is-six active';bannerMain.innerText='MASSIVE SIX! 🔥';bannerSub.innerText=`Dispatched into the stands [${dm}m] over ${region}!`;}
   clearTimeout(window._wagonTimer);
+  const _runsToRecord = pendingRuns;
   const delay=(pendingRuns===4||pendingRuns===6)?2100:900;
-  window._wagonTimer=setTimeout(()=>{closeModal('wagonModal');recordBall(pendingRuns,null,false,region,dm);},delay);
+  window._wagonTimer=setTimeout(()=>{const _wm=document.getElementById('wagonModal');if(_wm)_wm.style.display='none';recordBall(_runsToRecord,null,false,region,dm);},delay);
 });
 function triggerBanner(t,s,c){
   const b=document.getElementById('topCinematicBanner');
