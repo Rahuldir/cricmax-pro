@@ -1,6 +1,6 @@
 /* ============================================================
    CricMax Pro — Viewer Bridge
-   Handles: VPP 3D viewer, iframe nav messages, toolbar
+   Handles: VPP 3D viewer iframe, nav messages, initial state sync
    ============================================================ */
 
 (function(){
@@ -40,6 +40,44 @@
     if (btn) btn.remove();
   }
 
+  /* ---------- SEND INITIAL STATE TO IFRAME ---------- */
+  function sendInitialState(iframe){
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+      var m = (typeof match !== 'undefined') ? match : null;
+      if (!m) return;
+      iframe.contentWindow.postMessage({ type: 'SYNC_MATCH_STATE', payload: m }, '*');
+      // Push the last shot so it visually catches up
+      if (m.shotLog && m.shotLog.length) {
+        iframe.contentWindow.postMessage({
+          type: 'TRIGGER_DELIVERY',
+          shot: m.shotLog[m.shotLog.length - 1]
+        }, '*');
+      }
+      console.log('📡 Initial state sent to viewer');
+    } catch(e){
+      console.warn('Initial state send failed:', e);
+    }
+  }
+
+  /* ---------- CREATE IFRAME (shared) ---------- */
+  function ensureIframe(parent){
+    var existing = document.getElementById('vppIframe');
+    if (existing) return existing;
+
+    var iframe = document.createElement('iframe');
+    iframe.id = 'vppIframe';
+    iframe.src = 'viewer.html';
+    iframe.setAttribute('allow', 'fullscreen; autoplay');
+    iframe.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1; pointer-events:auto;';
+    if (parent) parent.appendChild(iframe);
+
+    // Send initial state when iframe loads
+    iframe.onload = function(){ sendInitialState(iframe); };
+
+    return iframe;
+  }
+
   /* ---------- NAVIGATE (called by parent toolbar OR by iframe) ---------- */
   window.vppNavTo = function(pane){
     var vppEl = document.getElementById('vpp');
@@ -52,15 +90,10 @@
       if (homeEl) homeEl.style.display = 'none';
       showPitchUI();
       removeReturnButton();
-
-      if (!document.getElementById('vppIframe')) {
-        var iframe = document.createElement('iframe');
-        iframe.id = 'vppIframe';
-        iframe.src = 'viewer.html';
-        iframe.setAttribute('allow', 'fullscreen; autoplay');
-        iframe.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1;';
-        if (vppEl) vppEl.appendChild(iframe);
-      }
+      ensureIframe(vppEl);
+      // If iframe already loaded, resend current state
+      var ifr = document.getElementById('vppIframe');
+      if (ifr && ifr.contentWindow) sendInitialState(ifr);
     } else {
       if (vppEl) vppEl.style.display = 'none';
       if (homeEl) homeEl.style.display = 'none';
@@ -94,9 +127,13 @@
   /* ---------- MESSAGES FROM IFRAME ---------- */
   window.addEventListener('message', function(ev){
     var d = ev.data || {};
-    // Iframe menu asked parent to switch pane
     if (d.type === 'CM_NAV_TO' && d.pane){
       window.vppNavTo(d.pane);
+    }
+    // Iframe requests full state
+    if (d.type === 'CM_REQUEST_STATE'){
+      var ifr = document.getElementById('vppIframe');
+      if (ifr) sendInitialState(ifr);
     }
   });
 
@@ -111,21 +148,13 @@
     var d  = document.getElementById('view-dashboard'); if (d) d.style.display = 'none';
 
     showPitchUI();
-
-    if (!document.getElementById('vppIframe')){
-      var iframe = document.createElement('iframe');
-      iframe.id = 'vppIframe';
-      iframe.src = 'viewer.html';
-      iframe.setAttribute('allow', 'fullscreen; autoplay');
-      iframe.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1; pointer-events:auto;';
-      if (el) el.appendChild(iframe);
-    }
+    ensureIframe(el);
   };
 
-  /* ---------- LEGACY ALIAS ---------- */
+  /* ---------- LEGACY ---------- */
   window.vppShowPane = function(pane){ window.vppNavTo(pane); };
 
-  /* ---------- BUTTON HANDLERS (parent toolbar — kept for backward compat) ---------- */
+  /* ---------- PARENT TOOLBAR HANDLERS ---------- */
   window.vppToggleSound = function(){
     var iframe = document.getElementById('vppIframe');
     if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'toggleSound' }, '*');
