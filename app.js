@@ -3852,7 +3852,7 @@ function triggerReplay() {
   const lastShot = match.shotLog[match.shotLog.length - 1];
 
   // Dispatch to 3D stadium iframe if connected
-  const stadiumFrame = document.getElementById('stadiumIframe') || document.querySelector('iframe');
+  const stadiumFrame = document.getElementById('vppIframe') || document.getElementById('stadiumIframe') || document.querySelector('iframe');
   if (stadiumFrame && stadiumFrame.contentWindow) {
     stadiumFrame.contentWindow.postMessage({
       type: 'TRIGGER_DELIVERY',
