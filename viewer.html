@@ -185,8 +185,13 @@
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     MODULE SCRIPTS — player-upgrades + shot-fx added
+     ═══════════════════════════════════════════════════════════════ -->
 <script src="stadium.js"></script>
 <script src="render-boost.js"></script>
+<script src="player-upgrades.js"></script>
+<script src="shot-fx.js"></script>
 
 <script>
 (function(){
@@ -252,15 +257,18 @@ document.body.appendChild(renderer.domElement);
 const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
-/* Optional module hooks — runs LAST module first so light governor works */
+/* ═══════════════════════════════════════════════════════════
+   BOOT HOOKS — PlayerUpgrades + Particles added
+   ═══════════════════════════════════════════════════════════ */
 (function bootOptionalModules(){
   const HOOKS = [
-    ['CricMaxEnvironment',  'build'],
-    ['CricMaxCrowd',        'build'],
-    ['CricMaxParticles',    'build'],
-    ['CricMaxPostFX',       'build'],
-    ['CricMaxStadiumDetail','build'],
-    ['CricMaxRenderBoost',  'build']   /* render-boost runs LAST so its light governor sweeps the others */
+    ['CricMaxEnvironment',    'build'],
+    ['CricMaxCrowd',          'build'],
+    ['CricMaxPlayerUpgrades', 'build'],
+    ['CricMaxParticles',      'build'],
+    ['CricMaxPostFX',         'build'],
+    ['CricMaxStadiumDetail',  'build'],
+    ['CricMaxRenderBoost',    'build']
   ];
   let attempts = 0;
   const timer = setInterval(function(){
@@ -386,10 +394,10 @@ function makePlayer(opts){
   torso.position.y = 0.91;
   const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), PAD);
   pelvis.castShadow = true; torso.add(pelvis);
-
+  
   const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.jerseyMat);
   chest.position.y = 0.34; chest.castShadow = true; torso.add(chest);
-
+  
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), rig.skinMat);
   head.position.y = 0.77; head.castShadow = true; torso.add(head);
   if (isBat || isKeeper){
@@ -427,7 +435,7 @@ function makePlayer(opts){
   rig.add(torso);
   rig.torso = torso;
   rig.head = head;
-
+  
   const s = 0.96 + Math.random() * 0.08;
   rig.scale.set(s, s, s);
   return rig;
@@ -747,13 +755,63 @@ function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle) {
 }
 
 /* ============================================================
-   8. CORE DELIVERY ENGINE  (RUNNING TIMING FIXED)
+   8. INNINGS / MATCH END DETECTION
+   ============================================================ */
+function isInningsOrMatchOver(m){
+  if (!m) return false;
+  if (m.matchOver === true)       return true;
+  if (m.isMatchOver === true)     return true;
+  if (m.matchEnded === true)      return true;
+  if (m.matchCompleted === true)  return true;
+  if (m.inningsOver === true)     return true;
+  if (m.isInningsOver === true)   return true;
+  if (m.inningsEnded === true)    return true;
+  if (m.inningsComplete === true) return true;
+  if (m.ended === true)           return true;
+  if (m.isComplete === true)      return true;
+
+  if (typeof m.status === 'string'){
+    const s = m.status.toLowerCase().trim();
+    if (s === 'completed' || s === 'finished' || s === 'ended' ||
+        s === 'over'      || s === 'abandoned' || s === 'complete' ||
+        s === 'match over'|| s === 'innings over' || s === 'result') {
+      return true;
+    }
+  }
+  if (typeof m.result === 'string' && m.result.length > 0){
+    const r = m.result.toLowerCase();
+    if (r !== 'in progress' && r !== 'live' && r !== 'tbd') return true;
+  }
+  if (typeof m.wickets === 'number' && m.wickets >= 10) return true;
+  if (typeof m.oversLimit === 'number' && typeof m.legalBalls === 'number'){
+    if (m.legalBalls >= m.oversLimit * 6) return true;
+  }
+  if (typeof m.target === 'number' && typeof m.runs === 'number'){
+    if (m.runs >= m.target) return true;
+  }
+  return false;
+}
+
+window.__cricmaxInningsOver = false;
+let currentMatchState = null;
+
+/* ============================================================
+   9. CORE DELIVERY ENGINE
+      ⚠ WIRING ADDED: fxTrailStop, fxDustPuff, fxSparkBurst,
+        fxTrailStart, __cricmaxBallPos
    ============================================================ */
 let anim = null;
 let lastShot = null;
 let currentShotAngle = 0;
 
 function playBall(shot){
+  const isReplay = shot && shot.__isReplay === true;
+  if (window.__cricmaxInningsOver === true && !isReplay){
+    console.info('[CricMax] Blocked new delivery — innings/match has ended');
+    return;
+  }
+  if (shot && shot.__isReplay) delete shot.__isReplay;
+
   if (anim) cancelAnimationFrame(anim);
   initAudio();
   lastShot = shot;
@@ -762,7 +820,9 @@ function playBall(shot){
   fielders.forEach(f => f.reset());
   ball.visible = true;
 
-  /* Reset striker to crease A, ready position */
+  /* ▼ NEW: reset trail on every delivery */
+  if (window.fxTrailStop) window.fxTrailStop();
+
   strikerBat.position.set(0.35, 0, 8.8);
   strikerBat.rotation.set(0, -Math.PI/2, 0);
   if (strikerBat.batPivot) strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
@@ -791,7 +851,7 @@ function playBall(shot){
 
   const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
   const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
-
+  
   const pitchZ = phys.length.pZ;
   const pitchX = (Math.random() - 0.5) * 0.4;
   const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
@@ -799,22 +859,10 @@ function playBall(shot){
 
   recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
 
-  /* ═══════════════════════════════════════════════════════════
-     ⚠️ RUNNING FIX ⚠️
-     Previously, RunningState was activated HERE, at the top of
-     playBall(), which made the batsman start running the instant
-     the bowler released — before the ball even arrived.
-     Now it is armed as a "pending" flag and only fired inside the
-     animation loop at T_CONTACT + 200ms, AFTER the batsman has
-     physically played his shot.
-     ═══════════════════════════════════════════════════════════ */
   let runningPending = (runs > 0 && runs < 4 && !isWkt);
   let runningStarted = false;
-  const RUNNING_START_DELAY = 200;  /* ms after contact before legs move */
+  const RUNNING_START_DELAY = 200;
 
-  /* Fielder chases the ball only after it's hit — set up the target now,
-     but the fielder's state machine only reacts when we call chase()
-     after contact. */
   const hitPoint = new THREE.Vector3(hitX, 0, hitZ);
   let fielderDispatched = false;
 
@@ -840,7 +888,7 @@ function playBall(shot){
   function loop(now){
     const elapsed = now - start;
 
-    /* ── 1. Bat Swing Kinematics ──────────────────────────────── */
+    /* Bat Swing Kinematics */
     if (strikerBat.batPivot && !isWkt){
       const pose = animPose.pose;
       if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
@@ -859,7 +907,7 @@ function playBall(shot){
       }
     }
 
-    /* ── 2. Ball Trajectory ───────────────────────────────────── */
+    /* Ball Trajectory */
     if (elapsed < T_RELEASE){
       const t = elapsed / T_RELEASE;
       bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
@@ -877,7 +925,12 @@ function playBall(shot){
     }
     else if (elapsed < T_CONTACT){
       const t = (elapsed - T_PITCH) / (T_CONTACT - T_PITCH);
-      if (!bounced){ playThud(1.0); bounced = true; }
+      /* ▼ NEW: dust puff on pitch bounce */
+      if (!bounced){
+        playThud(1.0);
+        bounced = true;
+        if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z);
+      }
       ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBat.position.x - 0.1, t);
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
@@ -889,8 +942,14 @@ function playBall(shot){
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
 
-        /* Dispatch nearest fielder to chase the ball — only now,
-           not at the moment of release */
+        /* ▼ NEW: spark burst + trail start on contact */
+        const sparkColor = isWkt ? 0xff4444
+                         : runs >= 6 ? 0xff6d00
+                         : runs >= 4 ? 0x22d3ee
+                         : 0xffcc44;
+        if (window.fxSparkBurst) window.fxSparkBurst(ball.position.x, ball.position.y, ball.position.z, sparkColor);
+        if (runs > 0 && window.fxTrailStart) window.fxTrailStart();
+
         if (runs > 0 && runs < 4 && !isWkt && !fielderDispatched){
           fielderDispatched = true;
           let closest = fielders[0], minD = 9999;
@@ -902,11 +961,6 @@ function playBall(shot){
         }
       }
 
-      /* ════════════════════════════════════════════════════════
-         🏃 RUNNING STARTS HERE — 200ms AFTER CONTACT 🏃
-         The batsman has now physically played his shot. Only
-         now do his legs start to move toward the other crease.
-         ════════════════════════════════════════════════════════ */
       if (runningPending && !runningStarted && elapsed >= T_CONTACT + RUNNING_START_DELAY){
         runningStarted = true;
         RunningState.active = true;
@@ -932,26 +986,27 @@ function playBall(shot){
         ball.position.y = 0.05 + 4 * phys.peakHeight * t * (1 - t);
       }
     } else {
-      /* ── 3. Animation finished ─────────────────────────────── */
-      /* If running is still active, let it finish naturally.
-         Otherwise, hide ball and stop. */
       if (!RunningState.active){
         anim = null; ball.visible = false;
+        if (window.fxTrailStop) window.fxTrailStop();
         if (sTag) sTag.classList.remove('on');
         return;
       }
-      /* Keep the ball frozen at final position until running ends */
       if (elapsed >= T_END + 3000) {
         anim = null; ball.visible = false;
+        if (window.fxTrailStop) window.fxTrailStop();
         if (sTag) sTag.classList.remove('on');
         return;
       }
     }
+
+    /* ▼ NEW: publish ball position for trail sampling */
+    window.__cricmaxBallPos = ball.position;
+
     anim = requestAnimationFrame(loop);
   }
   anim = requestAnimationFrame(loop);
 
-  /* ── 4. Banner trigger at contact (visual feedback) ───────── */
   setTimeout(() => {
     const b = document.getElementById('banner');
     if (!b) return;
@@ -966,7 +1021,7 @@ function playBall(shot){
 }
 
 /* ============================================================
-   9. SCORECARD & OVER SUMMARY
+   10. SCORECARD & OVER SUMMARY
    ============================================================ */
 function renderOverDots(ballTags){
   const container = document.getElementById('overDotsContainer');
@@ -1009,6 +1064,18 @@ function renderOverDots(ballTags){
 
 function applyMatch(m){
   if (!m) return;
+  currentMatchState = m;
+
+  const over = isInningsOrMatchOver(m);
+  if (over !== window.__cricmaxInningsOver){
+    window.__cricmaxInningsOver = over;
+    if (over){
+      console.info('[CricMax] 🏁 Innings/Match ended — new deliveries blocked');
+    } else {
+      console.info('[CricMax] ▶ Innings/Match active — deliveries enabled');
+    }
+  }
+
   const abbr = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');
   const balls = m.legalBalls || 0;
   const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
@@ -1040,7 +1107,7 @@ function applyMatch(m){
 }
 
 /* ============================================================
-   10. UNIVERSAL MULTI-CHANNEL DATA SYNC
+   11. UNIVERSAL MULTI-CHANNEL DATA SYNC
    ============================================================ */
 let lastSeenBalls = -1;
 function handleNewMatchData(m) {
@@ -1048,6 +1115,7 @@ function handleNewMatchData(m) {
   applyMatch(m);
   const shots = m.shotLog || [];
   const total = shots.length;
+
   if (lastSeenBalls < 0) {
     lastSeenBalls = total;
     return;
@@ -1055,7 +1123,11 @@ function handleNewMatchData(m) {
   if (total > lastSeenBalls) {
     lastSeenBalls = total;
     const last = shots[total - 1];
-    if (last) playBall(last);
+    if (last && !window.__cricmaxInningsOver){
+      playBall(last);
+    } else if (last){
+      console.info('[CricMax] Skipped new shot — innings/match is over');
+    }
   }
 }
 
@@ -1065,7 +1137,11 @@ window.addEventListener('message', ev => {
     applyMatch(d.payload || d.match);
   }
   if (d.type === 'TRIGGER_DELIVERY' && d.shot) {
-    playBall(d.shot);
+    if (!window.__cricmaxInningsOver) {
+      playBall(d.shot);
+    } else {
+      console.info('[CricMax] Ignored TRIGGER_DELIVERY — innings/match is over');
+    }
   }
 });
 
@@ -1111,7 +1187,7 @@ try {
 } catch(e){}
 
 /* ============================================================
-   11. CAMERAS & RENDER LOOP
+   12. CAMERAS & RENDER LOOP
    ============================================================ */
 const CAM_MODES = {
   broadcast: { pos: new THREE.Vector3(0,16,32), target: new THREE.Vector3(0,1.2,2) },
@@ -1147,9 +1223,21 @@ function toggleDirector(){
   if (directorOn){ activeCam = 'broadcast'; }
 }
 
-function triggerReplay(){ if (lastShot) playBall(lastShot); }
+function triggerReplay(){
+  if (lastShot){
+    const replayShot = Object.assign({}, lastShot, { __isReplay: true });
+    playBall(replayShot);
+  }
+}
 function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-function simFeedScoringTab(){ playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 }); }
+
+function simFeedScoringTab(){
+  if (window.__cricmaxInningsOver === true){
+    console.info('[CricMax] Feed disabled — innings/match is over');
+    return;
+  }
+  playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 });
+}
 
 /* ------------------------------------------------------------
    WAGON WHEEL
@@ -1235,14 +1323,19 @@ function animate(t){
     if (typeof window.updateSparks    === 'function') { try { window.updateSparks(dt);    } catch(e){} }
     if (typeof window.updateParticles === 'function') { try { window.updateParticles(dt); } catch(e){} }
     if (typeof window.updateCrowd     === 'function') { try { window.updateCrowd(dt);     } catch(e){} }
+    /* ▼ NEW: player upgrades per-frame (chatter, sweat) */
+    if (typeof window.updatePlayerUpgrades === 'function') { try { window.updatePlayerUpgrades(dt); } catch(e){} }
 
     fielders.forEach(f => f.update(dt, elapsed));
     RunningState.update(dt);
 
-    /* Idle animation only when nothing is happening */
     if (!anim && !RunningState.active){
       if (strikerBat.batPivot) strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
-      bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
+      if (!window.__cricmaxInningsOver){
+        bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
+      } else {
+        bowler.position.z = -22;
+      }
       if (directorOn){ camPos.lerp(CAM_MODES.broadcast.pos, 0.03); camTarget.lerp(CAM_MODES.broadcast.target, 0.03); }
     }
 
