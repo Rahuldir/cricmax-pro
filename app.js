@@ -3873,3 +3873,18 @@ function triggerReplay() {
     showToast(`Replaying Ball ${lastShot.over}.${lastShot.ball}: ${lastShot.runs} runs`);
   }
 }
+/* ============================================================
+   3D VIEWER NAVIGATION LISTENER
+   ============================================================ */
+window.addEventListener('message', function(ev) {
+  if (ev.data && ev.data.type === 'CM_NAV_TO') {
+    const pane = ev.data.pane;
+    // When the user clicks Card, Analysis, or Stats in the 3D viewer menu
+    if (['scorecard', 'analytics', 'leaderboards'].includes(pane)) {
+      if (typeof launchDashboard === 'function' && typeof selectSubPane === 'function') {
+        launchDashboard('live'); 
+        selectSubPane(pane);
+      }
+    }
+  }
+});
