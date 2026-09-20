@@ -269,7 +269,6 @@ function makePlayer(opts){
   rig.isBat = isBat;
   rig.isKeeper = isKeeper;
 
-  // Contact shadow
   const shadowCv = document.createElement('canvas');
   shadowCv.width = shadowCv.height = 64;
   const sctx = shadowCv.getContext('2d');
@@ -413,7 +412,7 @@ class Fielder {
     const dist = this.rig.position.distanceTo(this.target);
     if (dist > 0.5){
       const dir = new THREE.Vector3().subVectors(this.target, this.rig.position).normalize();
-      this.rig.position.addScaledVector(dir, 8 * dt); // slower for visibility
+      this.rig.position.addScaledVector(dir, 8 * dt);
       this.rig.lookAt(this.target.x, this.rig.position.y, this.target.z);
       const cycle = Math.sin(t * 14);
       this.rig.legL.userData.thigh.rotation.x = cycle * 0.6;
@@ -703,7 +702,6 @@ function renderOverDots(tags){
   }
   if (totalEl) totalEl.innerText = overRuns + ' RUNS';
 }
-renderOverDots([]);
 
 /* ============================================================
    11. APPLY MATCH
@@ -762,17 +760,16 @@ setTimeout(()=>{ try { window.parent.postMessage({ type: 'CM_REQUEST_STATE' }, '
 
 /* ============================================================
    12. REGION → 3D DIRECTION MAP
-   Matches scoring page's wagon wheel sector names
    ============================================================ */
 const ZONE_VECTORS = {
-  'Third Man':  { x:  0.65, z:  0.75 }, // behind, off side
-  'Point':      { x:  0.98, z:  0.20 }, // square, off side
-  'Cover':      { x:  0.80, z: -0.60 }, // forward, off side
-  'Mid-off':    { x:  0.35, z: -0.94 }, // forward, slightly off
-  'Mid-on':     { x: -0.35, z: -0.94 }, // forward, slightly leg
-  'Mid-Wicket': { x: -0.80, z: -0.60 }, // forward, leg side
-  'Square Leg': { x: -0.98, z:  0.20 }, // square, leg side
-  'Fine Leg':   { x: -0.65, z:  0.75 }  // behind, leg side
+  'Third Man':  { x:  0.65, z:  0.75 }, 
+  'Point':      { x:  0.98, z:  0.20 }, 
+  'Cover':      { x:  0.80, z: -0.60 }, 
+  'Mid-off':    { x:  0.35, z: -0.94 }, 
+  'Mid-on':     { x: -0.35, z: -0.94 }, 
+  'Mid-Wicket': { x: -0.80, z: -0.60 }, 
+  'Square Leg': { x: -0.98, z:  0.20 }, 
+  'Fine Leg':   { x: -0.65, z:  0.75 }  
 };
 
 /* ============================================================
@@ -792,13 +789,12 @@ const RunningState = {
   active: false,
   totalRuns: 0,
   progress: 0,
-  durationPerRun: 1.4, // seconds per single
+  durationPerRun: 1.4,
   update(dt){
     if (!this.active) return;
     this.progress += dt / this.durationPerRun;
 
     if (this.progress >= this.totalRuns){
-      // Snap to final positions
       this.active = false;
       const swapped = this.totalRuns % 2 === 1;
       if (swapped){
@@ -822,7 +818,6 @@ const RunningState = {
       return;
     }
 
-    // Running cycle
     const lap = this.progress;
     const currentLap = Math.floor(lap);
     const frac = lap - currentLap;
@@ -848,10 +843,17 @@ const RunningState = {
 };
 
 /* ============================================================
-   15. DELIVERY ENGINE
+   15. BULLETPROOF DELIVERY ENGINE
    ============================================================ */
 let anim = null;
 let lastShot = null;
+
+// Built-in hardcoded swing poses so it never fails even if CricMaxShots is missing.
+const GUARANTEED_SHOTS = {
+  defend: { prepTime: 200, contactTime: 250, followTime: 300, pose: { batStart: {rotX: -Math.PI/2.5, rotZ: 0}, batContact: {rotX: -Math.PI/8, rotZ: 0}, batEnd: {rotX: -Math.PI/10, rotZ: 0}, torsoRotY: 0.1, legStride: 0.15 } },
+  drive:  { prepTime: 300, contactTime: 250, followTime: 500, pose: { batStart: {rotX: -Math.PI/1.5, rotZ: 0.2}, batContact: {rotX: -Math.PI/5, rotZ: -0.2}, batEnd: {rotX: Math.PI/4, rotZ: -0.4}, torsoRotY: 0.4, legStride: 0.5 } },
+  pull:   { prepTime: 300, contactTime: 250, followTime: 600, pose: { batStart: {rotX: -Math.PI/1.5, rotZ: -0.5}, batContact: {rotX: 0, rotZ: 0}, batEnd: {rotX: Math.PI/2, rotZ: 0.5}, torsoRotY: -0.7, legStride: -0.2 } }
+};
 
 function playBall(shot){
   if (anim) cancelAnimationFrame(anim);
@@ -864,6 +866,7 @@ function playBall(shot){
   fielders.forEach(f => f.reset());
   ball.visible = true;
 
+  // Hard Reset Batsmen to stances
   strikerBat.position.set(0.35, 0, 8.8);
   strikerBat.rotation.set(0, -Math.PI/2, 0);
   strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
@@ -880,69 +883,52 @@ function playBall(shot){
   const isWkt = shot.isWicket || shot.isOut;
   const isCatch = shot.isCatch || shot.wicketType === 'caught';
   const isNB = shot.isNoBall || shot.extraType === 'nb';
-  const isWd = shot.extraType === 'wd';
   const isSix = runs === 6;
   const isFour = runs === 4;
   const bowlerType = shot.bowlerType || 'fast_pace';
   const isSpin = bowlerType === 'spin' || bowlerType === 'off_spin' || bowlerType === 'leg_spin';
 
-  /* --- Determine direction from shot zone name --- */
-  const zoneName = shot.zone || shot.region || '';
-  let dirVec = ZONE_VECTORS[zoneName];
-  if (!dirVec){
-    // random fallback
-    const keys = Object.keys(ZONE_VECTORS);
-    dirVec = ZONE_VECTORS[keys[Math.floor(Math.random()*keys.length)]];
+  // 1. Calculate Exact Direction & Distance
+  let hitX = 0, hitZ = 0;
+  let finalDist = isSix ? 75 : isFour ? 65 : isCatch ? 35 : runs > 0 ? 15 + runs * 10 : 10;
+  let wwAngle = 0;
+
+  if (shot.angle !== undefined && shot.angle !== null) {
+      // Parent sent explicit angle (e.g. 1.2 radians)
+      const angleNum = parseFloat(shot.angle);
+      hitX = 0.35 + Math.sin(angleNum) * finalDist;
+      hitZ = 8.8 + Math.cos(angleNum) * finalDist;
+      wwAngle = angleNum;
+  } else if (shot.zone || shot.region) {
+      // Parent sent region name (e.g. 'Cover')
+      const zName = shot.zone || shot.region;
+      const vec = ZONE_VECTORS[zName] || ZONE_VECTORS['Cover'];
+      hitX = 0.35 + vec.x * finalDist;
+      hitZ = 8.8 + vec.z * finalDist;
+      wwAngle = Math.atan2(vec.x, -vec.z);
+  } else {
+      // Completely random 360 fallback
+      wwAngle = Math.random() * Math.PI * 2;
+      hitX = 0.35 + Math.sin(wwAngle) * finalDist;
+      hitZ = 8.8 + Math.cos(wwAngle) * finalDist;
   }
-  console.log('🎯 Shot zone:', zoneName || '(random)', '| Direction:', dirVec);
 
-  /* --- Pick shot type from data --- */
-  let pickedShot = null;
-  let animPose = null;
-  try {
-    if (window.CricMaxData && window.CricMaxData.pickShot){
-      const dtype = window.CricMaxData.pickDelivery(isSpin ? 'off_spin' : 'fast_pace');
-      pickedShot = window.CricMaxData.pickShot(runs, isSpin ? 'off_spin' : 'fast_pace', dtype, 'hard');
-    }
-  } catch(e){}
-  if (!pickedShot){
-    pickedShot = { shotType: isSix ? 'pull_lofted' : isFour ? 'cover_drive' : 'defend',
-      peakHeight: isSix ? 14 : isFour ? 1.2 : 0.8, flightTime: isSix ? 4.5 : isFour ? 2.2 : 3 };
+  // 2. Select Bat Swing Animation
+  let animPose = GUARANTEED_SHOTS.defend;
+  if (isSix || isCatch || (wwAngle > 2 && wwAngle < 4)) {
+      animPose = GUARANTEED_SHOTS.pull;
+  } else if (runs > 0) {
+      animPose = GUARANTEED_SHOTS.drive;
   }
-  try {
-    if (window.CricMaxShots && window.CricMaxShots.get){
-      animPose = window.CricMaxShots.get(pickedShot.shotType);
-    }
-  } catch(e){}
-  if (!animPose){
-    animPose = {
-      prepTime: 250, contactTime: 500, followTime: 400,
-      pose: {
-        batStart:   { rotX: -Math.PI/3, rotZ: 0 },
-        batContact: { rotX: -Math.PI/5, rotZ: 0 },
-        batEnd:     { rotX: 0, rotZ: 0 },
-        torsoRotY: 0.4, legStride: 0.3, headRotY: 0.2
-      }
-    };
-  }
-  console.log('🎬 Shot:', pickedShot.shotType, '| Peak:', pickedShot.peakHeight + 'm');
 
-  /* --- Compute distance based on runs --- */
-  const finalDist = isSix ? 78 : isFour ? 66 : isCatch ? 38 : runs > 0 ? runs * 14 + 5 : 15;
-
-  /* --- Compute hit point from direction --- */
-  const startX = 0.35, startZ = 8.8;
-  const hitX = startX + dirVec.x * finalDist;
-  const hitZ = startZ + dirVec.z * finalDist;
-
-  /* --- Trigger batsmen running for 1/2/3 --- */
+  // 3. Trigger batsmen running for 1/2/3
   if (runs > 0 && runs < 4 && !isWkt){
     RunningState.active = true;
     RunningState.totalRuns = runs;
     RunningState.progress = 0;
   }
 
-  /* --- Find nearest fielder & send to chase --- */
+  // 4. Find nearest fielder & send to chase
   const hitPoint = new THREE.Vector3(hitX, 0, hitZ);
   if (runs > 0 && !isFour && !isSix && !isWkt){
     let closest = fielders[0], minD = 9999;
@@ -953,32 +939,28 @@ function playBall(shot){
     if (closest) closest.chase(hitPoint);
   }
 
-  /* --- Wagon wheel record --- */
-  const wwAngle = Math.atan2(dirVec.x, -dirVec.z); // angle from straight
   historicalShots.push({ angle: wwAngle, dist: finalDist, runs });
   drawWagonWheel();
 
-  /* --- Speed tag --- */
   const speedVal = shot.ballSpeed || (isSpin ? (85 + Math.random()*10).toFixed(1) : (135 + Math.random()*15).toFixed(1));
   const speedTag = document.getElementById('speedTag');
   speedTag.innerText = 'SPEED: ' + speedVal + ' KM/H';
   speedTag.classList.add('on');
 
-  /* --- Timing --- */
+  // Timings
   const T_RELEASE = 700;
   const T_PITCH   = 1000;
   const T_CONTACT = 1250;
-  const flightTime = (pickedShot.flightTime || 2.5) * 1000;
+  const flightTime = isSix ? 4500 : isFour ? 2500 : 3000;
   const T_END = T_CONTACT + Math.max(flightTime, animPose.followTime + 400);
 
-  /* --- Shot animation timing (independent of ball) --- */
-  const shotTotalTime = animPose.prepTime + animPose.contactTime + animPose.followTime;
-  const T_SHOT_START = Math.max(400, T_CONTACT - animPose.prepTime - animPose.contactTime);
-  const T_PREP_END = T_SHOT_START + animPose.prepTime;
+  // Exact Swing Match Times
+  const T_SHOT_START = T_CONTACT - animPose.prepTime;
   const T_FOLLOW_END = T_CONTACT + animPose.followTime;
 
   const pitchZ = isSpin ? 4.8 : (3.2 + Math.random() * 1.8);
   const pitchX = (Math.random() - 0.5) * 0.4;
+  const peakHeight = isSix ? 15 : isCatch ? 6 : isFour ? 1.5 : 0.8;
 
   const start = performance.now();
   let bounced = false;
@@ -988,51 +970,29 @@ function playBall(shot){
     const elapsed = now - start;
 
     /* =======================================================
-       BAT SWING ANIMATION — runs on its own timeline
-       NOT dependent on ball phase
+       BAT SWING ANIMATION 
        ======================================================= */
     if (strikerBat.batPivot && !isWkt){
       const pose = animPose.pose;
-      if (elapsed >= T_SHOT_START && elapsed < T_PREP_END){
-        // Backlift
+      if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
+        // PREP TO CONTACT
         const p = (elapsed - T_SHOT_START) / animPose.prepTime;
-        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(-Math.PI/4, pose.batStart.rotX, p);
-        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(0, pose.batStart.rotZ || 0, p);
-        strikerBat.torso.rotation.y = 0;
-      }
-      else if (elapsed >= T_PREP_END && elapsed < T_CONTACT){
-        // Swing forward to contact
-        const p = (elapsed - T_PREP_END) / animPose.contactTime;
         strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batStart.rotX, pose.batContact.rotX, p);
-        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(pose.batStart.rotZ || 0, pose.batContact.rotZ || 0, p);
-        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoRotY || 0, p);
-        strikerBat.head.rotation.y = THREE.MathUtils.lerp(0, pose.headRotY || 0, p);
-        // Front foot stride for drives
-        if (pose.legStride){
-          strikerBat.legL.userData.thigh.rotation.x = -pose.legStride * p * 0.7;
-        }
+        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(pose.batStart.rotZ, pose.batContact.rotZ, p);
+        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoRotY, p);
+        strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -pose.legStride, p);
       }
       else if (elapsed >= T_CONTACT && elapsed < T_FOLLOW_END){
-        // Follow-through
+        // FOLLOW THROUGH
         const p = (elapsed - T_CONTACT) / animPose.followTime;
         strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batContact.rotX, pose.batEnd.rotX, p);
-        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(pose.batContact.rotZ || 0, pose.batEnd.rotZ || 0, p);
-        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(pose.torsoRotY || 0, pose.torsoRotY * 0.5 || 0, p);
-      }
-      else if (elapsed >= T_FOLLOW_END){
-        // Return to idle
-        strikerBat.batPivot.rotation.x = -Math.PI/4;
-        strikerBat.batPivot.rotation.z = 0;
-        strikerBat.torso.rotation.y = 0;
-        strikerBat.head.rotation.y = 0;
-        strikerBat.legL.userData.thigh.rotation.x = 0;
+        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(pose.batContact.rotZ, pose.batEnd.rotZ, p);
       }
     }
 
     /* =======================================================
        BALL PHASES
        ======================================================= */
-    // Phase 1: Bowler run-up
     if (elapsed < T_RELEASE){
       const t = elapsed / T_RELEASE;
       bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
@@ -1042,14 +1002,12 @@ function playBall(shot){
       ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
       if (isWkt || isCatch || isSix || isFour) playThud(0.3 + t * 0.4);
     }
-    // Phase 2: Release to pitch
     else if (elapsed < T_PITCH){
       const t = (elapsed - T_RELEASE) / (T_PITCH - T_RELEASE);
       ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
       ball.position.z = THREE.MathUtils.lerp(-9.8, pitchZ, t);
       ball.position.y = THREE.MathUtils.lerp(2.0, 0.04, t * t);
     }
-    // Phase 3: Pitch to bat
     else if (elapsed < T_CONTACT){
       const t = (elapsed - T_PITCH) / (T_CONTACT - T_PITCH);
       if (!bounced){ playThud(1.0); bounced = true; }
@@ -1057,9 +1015,8 @@ function playBall(shot){
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
     }
-    // Phase 4: Contact + trajectory to boundary
     else if (elapsed < T_END){
-      const t = (elapsed - T_CONTACT) / Math.max(flightTime, 800);
+      const t = (elapsed - T_CONTACT) / flightTime;
 
       if (!contacted){
         contacted = true;
@@ -1068,7 +1025,6 @@ function playBall(shot){
         if (isSix || isFour || isCatch || isWkt) playCrowdRoar();
       }
 
-      // Camera director
       if (directorOn){
         if (isSix || isFour){
           camPos.lerp(new THREE.Vector3(ball.position.x * 0.4, 14, ball.position.z - 20), 0.05);
@@ -1080,4 +1036,73 @@ function playBall(shot){
       }
 
       if (isWkt && !isCatch){
-        ball.position
+        ball.position.set(0.1, 0.3, 10.4);
+      } else {
+        ball.position.x = THREE.MathUtils.lerp(strikerBat.position.x, hitX, t);
+        ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
+        ball.position.y = 0.05 + 4 * peakHeight * t * (1 - t);
+      }
+    } else {
+      anim = null;
+      ball.visible = false;
+      speedTag.classList.remove('on');
+      return;
+    }
+
+    anim = requestAnimationFrame(loop);
+  }
+  anim = requestAnimationFrame(loop);
+
+  setTimeout(() => {
+    const b = document.getElementById('banner');
+    b.className = 'banner on';
+    if (isNB){ b.innerText = 'NO BALL!'; b.classList.add('run'); }
+    else if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
+    else if (isWkt){ b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
+    else if (isSix){ b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
+    else if (isFour){ b.innerText = 'FOUR!'; b.classList.add('four'); }
+    else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run'); }
+    setTimeout(() => b.classList.remove('on'), 2400);
+  }, 1300);
+}
+
+function triggerReplay(){ if (lastShot) playBall(lastShot); }
+
+/* ============================================================
+   16. MAIN LOOP
+   ============================================================ */
+let lastT = 0;
+function animate(t){
+  requestAnimationFrame(animate);
+  const dt = Math.min((t - lastT) / 1000, 0.1);
+  const elapsed = t * 0.001;
+  lastT = t;
+
+  if (stadium && stadium.update) stadium.update(dt, elapsed);
+  fielders.forEach(f => f.update(dt, elapsed));
+  RunningState.update(dt);
+
+  if (!anim && !RunningState.active){
+    strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
+    bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
+    if (directorOn){ camPos.lerp(CAM_MODES.broadcast.pos, 0.03); camTarget.lerp(CAM_MODES.broadcast.target, 0.03); }
+  }
+
+  if (!directorOn && activeCam !== 'follow'){
+    camPos.lerp(CAM_MODES[activeCam].pos, 0.05);
+    camTarget.lerp(CAM_MODES[activeCam].target, 0.05);
+  }
+  
+  camera.position.copy(camPos);
+  camera.lookAt(camTarget);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+window.toggleMenu = toggleMenu; window.setSky = setSky; window.navTo = navTo; window.setCamera = setCamera;
+window.toggleDirector = toggleDirector; window.toggleWagonWheel = toggleWagonWheel;
+window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay;
+})();
+</script>
+</body>
+</html>
