@@ -23,27 +23,22 @@
   .ctrl:active{transform:scale(.92);}
   .ctrl.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;box-shadow:0 0 14px rgba(0,230,118,.5);color:#0a0e1a;}
   .cam-select-center{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:12px;font-weight:800;padding:9px 16px;border-radius:12px;outline:none;cursor:pointer;font-family:inherit;backdrop-filter:blur(14px);box-shadow:0 4px 18px rgba(0,0,0,.5),0 0 20px rgba(0,230,118,.15);min-width:180px;transition:all .2s;}
-  .cam-select-center:hover{border-color:#00e676;box-shadow:0 6px 22px rgba(0,0,0,.6),0 0 24px rgba(0,230,118,.35);}
-  .cam-select-center option{background:#0b1329;color:#fff;font-weight:700;padding:6px;}
+  .cam-select-center option{background:#0b1329;color:#fff;font-weight:700;}
   .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(0,230,118,.45);transition:all .2s;font-family:inherit;pointer-events:auto;z-index:10000;position:relative;}
-  .menu-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,230,118,.65);}
-  .menu-btn.on{background:linear-gradient(135deg,#ef4444,#f43f5e);box-shadow:0 4px 18px rgba(239,68,68,.5);}
+  .menu-btn.on{background:linear-gradient(135deg,#ef4444,#f43f5e);}
   .menu-btn .hamburger{font-size:16px;line-height:1;}
-  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.85), 0 0 40px rgba(0,230,118,.15);z-index:100001;pointer-events:auto;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s cubic-bezier(.175,.885,.32,1.275);visibility:hidden;}
+  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.85);z-index:100001;pointer-events:auto;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s;visibility:hidden;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-section{margin-bottom:14px;}
-  .menu-section:last-child{margin-bottom:0;}
-  .menu-title{font-size:9.5px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;margin-bottom:8px;padding-left:2px;opacity:.9;}
+  .menu-title{font-size:9.5px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;margin-bottom:8px;}
   .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .menu-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
-  .menu-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 8px;color:#e2e8f0;font-size:11.5px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;}
-  .menu-tile:hover{background:rgba(0,230,118,.15);border-color:rgba(0,230,118,.55);color:#fff;transform:translateY(-1px);}
-  .menu-tile:active{transform:scale(.97);}
-  .menu-tile.on{background:linear-gradient(135deg,rgba(0,146,112,.35),rgba(0,230,118,.25));border-color:#00e676;color:#fff;box-shadow:0 0 14px rgba(0,230,118,.4);}
+  .menu-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 8px;color:#e2e8f0;font-size:11.5px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;}
+  .menu-tile:hover{background:rgba(0,230,118,.15);border-color:rgba(0,230,118,.55);color:#fff;}
+  .menu-tile.on{background:linear-gradient(135deg,rgba(0,146,112,.35),rgba(0,230,118,.25));border-color:#00e676;color:#fff;}
   .menu-tile .ico{font-size:16px;line-height:1;}
   .menu-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:12px 0;}
   .menu-tile-cam{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#e2e8f0;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;width:100%;outline:none;}
-  .menu-tile-cam:hover{border-color:rgba(0,230,118,.5);}
   .menu-tile-cam option{background:#0b1329;color:#fff;font-weight:700;}
   .bottom-wrap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:min(92vw,720px);display:flex;flex-direction:column;gap:8px;pointer-events:auto;z-index:10000;}
   .over-summary{background:rgba(8,18,32,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;color:#cbd5e1;}
@@ -65,7 +60,7 @@
   .bb-row{display:flex;justify-content:space-between;font-weight:700;}
   .bb-row.striker{color:#00e676;}
   .bb-bowl{text-align:right;color:#22d3ee;border-left:1px solid rgba(255,255,255,.12);padding-left:16px;font-weight:700;}
-  .banner{position:absolute;top:22%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(38px,7vw,78px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .35s cubic-bezier(.175,.885,.32,1.275);pointer-events:none;text-align:center;line-height:1;}
+  .banner{position:absolute;top:22%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(38px,7vw,78px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .35s;pointer-events:none;text-align:center;line-height:1;}
   .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
   .banner.four{color:#22d3ee;text-shadow:0 0 45px #0891b2,0 8px 24px #000;}
   .banner.six{color:#ff6d00;text-shadow:0 0 45px #fbbf24,0 8px 24px #000;}
@@ -74,14 +69,6 @@
   .speed-tag{position:absolute;top:80px;right:14px;background:rgba(15,23,42,.9);border:1px solid rgba(34,211,238,.4);padding:6px 14px;border-radius:8px;color:#38bdf8;font-family:monospace;font-size:14px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;}
   .speed-tag.on{opacity:1;}
   #wagonWheelCanvas{position:absolute;top:80px;left:14px;width:150px;height:150px;background:rgba(8,15,30,0.88);border:1px solid rgba(255,255,255,0.2);border-radius:50%;pointer-events:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.7);z-index:10001;}
-  @media(max-width:700px){
-    .cam-select-center{min-width:120px;padding:8px 10px;font-size:11px;}
-    .menu-btn{padding:8px 12px;font-size:11px;}
-    #menuPanel{width:min(94vw,320px);}
-    .bottom-bar{padding:8px 12px;gap:10px;font-size:11px;}
-    .bb-score{font-size:18px;}
-    .live{padding:5px 10px;font-size:10px;}
-  }
 </style>
 </head>
 <body>
@@ -187,7 +174,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="stadium.js"></script> 
+<script src="stadium.js"></script>
 <script src="cricket-data.js"></script>
 <script src="shot-library.js"></script>
 <script src="fielding-ai.js"></script>
@@ -196,7 +183,7 @@
 'use strict';
 
 /* ============================================================
-   1. THREE.JS SCENE
+   1. SCENE
    ============================================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020713);
@@ -214,13 +201,14 @@ renderer.domElement.style.zIndex = '0';
 document.body.appendChild(renderer.domElement);
 
 /* ============================================================
-   2. STADIUM MODULE
+   2. STADIUM
    ============================================================ */
 const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
+console.log('🏟️ Stadium built');
 
 /* ============================================================
-   3. UI: MENU
+   3. UI - MENU / SKY / NAV
    ============================================================ */
 let menuOpen = false;
 function toggleMenu(e){
@@ -242,9 +230,6 @@ document.addEventListener('click', function(e){
   if (btn) btn.classList.remove('on');
 }, true);
 
-/* ============================================================
-   4. UI: SKY
-   ============================================================ */
 function setSky(mode){
   ['day','sunset','night'].forEach(m => {
     const b = document.getElementById('env-' + m);
@@ -254,9 +239,6 @@ function setSky(mode){
 }
 setSky('day');
 
-/* ============================================================
-   5. NAV
-   ============================================================ */
 function navTo(pane){
   document.querySelectorAll('.menu-tile[data-pane]').forEach(t => {
     t.classList.toggle('on', t.getAttribute('data-pane') === pane);
@@ -267,7 +249,7 @@ function navTo(pane){
 }
 
 /* ============================================================
-   6. PLAYER MODEL
+   4. PLAYER MODEL
    ============================================================ */
 const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
 const PAD  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
@@ -310,12 +292,6 @@ function makePlayer(opts){
     knee.position.y = -0.38; leg.add(knee);
     const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.40, 0.16), isBat ? PAD : rig.jerseyMat);
     shin.position.set(0, -0.58, 0.02); shin.castShadow = true; leg.add(shin);
-    if (isBat){
-      for (let s = 0; s < 3; s++){
-        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.03, 0.17), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
-        strap.position.set(0, -0.48 - s * 0.13, 0.02); leg.add(strap);
-      }
-    }
     const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.25), SHOE);
     foot.position.set(0, -0.78, 0.04); foot.castShadow = true; leg.add(foot);
     leg.userData = { thigh, shin };
@@ -374,6 +350,8 @@ function makePlayer(opts){
   if (isBat){
     const batPivot = new THREE.Group();
     batPivot.position.set(0, 1.05, 0.25);
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 }));
+    grip.position.y = 0.18; batPivot.add(grip);
     const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.88, 0.05), new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }));
     blade.position.y = -0.38; blade.castShadow = true; batPivot.add(blade);
     rig.add(batPivot); rig.batPivot = batPivot;
@@ -385,16 +363,26 @@ function makePlayer(opts){
 }
 
 /* ============================================================
-   7. TEAMS & FIELDERS DYNAMIC SPAWN
+   5. TEAMS + FIELDERS
    ============================================================ */
 const strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, number: 7 });
+strikerBat.position.set(0.35, 0, 8.8);
+strikerBat.rotation.y = -Math.PI / 2;
 scene.add(strikerBat);
+
 const nonStrikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 2, number: 18 });
+nonStrikerBat.position.set(-1.2, 0, -8.8);
+nonStrikerBat.rotation.y = Math.PI / 2;
 scene.add(nonStrikerBat);
+
 const bowler = makePlayer({ jersey: 0xdc2626, skinIndex: 3, number: 11 });
+bowler.position.set(1.5, 0, -22);
 scene.add(bowler);
+
 const keeper = makePlayer({ jersey: 0xdc2626, keeper: true, skinIndex: 1, number: 1 });
-keeper.position.set(0, 0, 14.5); keeper.rotation.y = Math.PI; scene.add(keeper);
+keeper.position.set(0, 0, 14.5);
+keeper.rotation.y = Math.PI;
+scene.add(keeper);
 
 class Fielder {
   constructor(name, x, z, skinIdx){
@@ -404,6 +392,7 @@ class Fielder {
     this.state = 'idle';
     this.rig = makePlayer({ jersey: 0xdc2626, skinIndex: skinIdx });
     this.rig.position.copy(this.home);
+    this.rig.rotation.y = Math.atan2(this.home.x, this.home.z);
     scene.add(this.rig);
   }
   reset(){ this.state = 'returning'; this.target.copy(this.home); }
@@ -428,27 +417,20 @@ class Fielder {
       this.rig.armR.rotation.x = cycle * 0.7;
     } else if (this.state === 'returning'){
       this.state = 'idle';
-      this.rig.rotation.y = Math.atan2(this.home.x, this.home.z); // Face pitch
+      this.rig.rotation.y = Math.atan2(this.home.x, this.home.z);
     }
   }
 }
 
-let fielders = [];
-function spawnFielders(presetName = 'balanced'){
-  fielders.forEach(f => scene.remove(f.rig));
-  fielders = [];
-  const preset = window.CricMaxFielding ? window.CricMaxFielding.FIELD_PRESETS[presetName] : [];
-  preset.forEach((posName, idx) => {
-    if(posName !== 'keeper' && posName !== 'bowler'){
-      const pos = window.CricMaxFielding.FIELD_POSITIONS[posName];
-      if(pos) fielders.push(new Fielder(posName, pos.x, pos.z, idx % 5));
-    }
-  });
-}
-spawnFielders('balanced');
+const fielderData = [
+  ['Slip', 3.2, 13.5, 1],['Gully', 7.0, 12.0, 2],['Point', 18, 7.5, 3],
+  ['Cover', 20, -2.0, 4],['Mid-off', 7.5, -9.5, 0],['Mid-on', -7.5, -9.5, 1],
+  ['Mid-wkt',-19, 0.0, 2],['Sq Leg', -18, 8.0, 3],['Fine Leg', -35, 24, 4]
+];
+const fielders = fielderData.map(f => new Fielder(f[0], f[1], f[2], f[3]));
 
 /* ============================================================
-   8. BALL & WICKETS
+   6. BALL + WICKETS + SPARKS
    ============================================================ */
 const ballTex = (function(){
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -460,6 +442,51 @@ const ballTex = (function(){
 })();
 const ball = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 24), new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.4 }));
 ball.castShadow = true; ball.visible = false; scene.add(ball);
+
+/* Spark pool */
+const sparkPool = [];
+(function(){
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.35, 'rgba(255,220,120,0.95)');
+  g.addColorStop(0.7, 'rgba(255,120,0,0.5)');
+  g.addColorStop(1, 'rgba(255,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  for (let i = 0; i < 30; i++){
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0xffaa00, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+    s.scale.setScalar(0.3);
+    s.userData = { life: 0, maxLife: 0.35, vel: new THREE.Vector3() };
+    scene.add(s);
+    sparkPool.push(s);
+  }
+})();
+let sparkCursor = 0;
+function emitSparks(pos, count, power){
+  for (let i = 0; i < (count || 12); i++){
+    const s = sparkPool[sparkCursor];
+    sparkCursor = (sparkCursor + 1) % sparkPool.length;
+    s.position.copy(pos);
+    s.material.opacity = 0.95;
+    s.scale.setScalar(0.15 + Math.random() * 0.25);
+    s.userData.vel.set((Math.random()-0.5)*2, Math.random()*1.5, (Math.random()-0.5)*2).normalize().multiplyScalar((power||1)*(0.8+Math.random()*0.8));
+    s.userData.life = s.userData.maxLife;
+  }
+}
+function updateSparks(dt){
+  sparkPool.forEach(s => {
+    if (s.userData.life > 0){
+      s.userData.life -= dt;
+      const t = Math.max(0, s.userData.life / s.userData.maxLife);
+      s.material.opacity = t * 0.95;
+      s.position.addScaledVector(s.userData.vel, dt);
+      s.userData.vel.multiplyScalar(1 - dt * 2.5);
+      s.scale.multiplyScalar(1 - dt * 1.5);
+    }
+  });
+}
 
 class Wicket {
   constructor(zPos){
@@ -487,14 +514,24 @@ class Wicket {
       s.vel.set((i - 1) * 2.4 + (Math.random() - 0.5) * 1.5, 4.5 + Math.random() * 2.5, 4 + Math.random() * 3);
       s.rot.set(Math.random() * 8, Math.random() * 6, Math.random() * 8);
     });
+    this.bails.forEach(b => {
+      b.vel.set((Math.random() - 0.5) * 4.5, 6 + Math.random() * 2.5, 5 + Math.random() * 3.5);
+      b.rot.set(Math.random() * 14, Math.random() * 12, Math.random() * 14);
+    });
   }
   update(dt){
     if (!this.flying) return;
-    [...this.stumps].forEach(item => {
+    [...this.stumps, ...this.bails].forEach(item => {
       item.vel.y -= 9.8 * dt * 1.5;
       item.mesh.position.addScaledVector(item.vel, dt);
       item.mesh.rotation.x += item.rot.x * dt;
-      if (item.mesh.position.y < 0.05) { item.mesh.position.y = 0.05; item.vel.y *= -0.35; }
+      item.mesh.rotation.y += item.rot.y * dt;
+      item.mesh.rotation.z += item.rot.z * dt;
+      if (item.mesh.position.y < 0.05){
+        item.mesh.position.y = 0.05;
+        item.vel.y = -item.vel.y * 0.35;
+        item.vel.x *= 0.7; item.vel.z *= 0.7;
+      }
     });
   }
   reset(){
@@ -507,12 +544,23 @@ const strikerWicket = new Wicket(10.0);
 const bowlerWicket = new Wicket(-10.0);
 
 /* ============================================================
-   9. AUDIO
+   7. AUDIO
    ============================================================ */
 let actx = null, audioOn = true;
 function initAudio(){
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
   try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+}
+function playThud(power){
+  if (!audioOn || !actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(110, actx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(38, actx.currentTime + 0.07);
+  g.gain.setValueAtTime(0.45 * power, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime + 0.09);
 }
 function playBatCrack(power){
   if (!audioOn || !actx) return;
@@ -527,64 +575,49 @@ function playBatCrack(power){
   src.connect(bp); bp.connect(g); g.connect(actx.destination);
   src.start();
 }
-
-/* ============================================================
-   10. GLOBAL RUNNING STATE 
-   ============================================================ */
-const RunningState = {
-  active: false,
-  targetRuns: 0,
-  currentRun: 0,
-  progress: 0,
-  speed: 0.38,
-  update: function(dt){
-    if (!this.active) return;
-    
-    this.progress += dt * this.speed;
-    
-    if (this.progress >= 1.0) {
-      this.progress = 0;
-      this.currentRun++;
-      if (this.currentRun >= this.targetRuns) {
-        this.active = false;
-        strikerBat.rotation.set(0, -Math.PI / 2, 0);
-        nonStrikerBat.rotation.set(0, Math.PI / 2, 0);
-        [strikerBat, nonStrikerBat].forEach(bat => {
-          bat.legL.userData.thigh.rotation.x = 0;
-          bat.legR.userData.thigh.rotation.x = 0;
-          bat.armL.rotation.x = 0;
-          bat.armR.rotation.x = 0;
-        });
-        return;
-      }
-    }
-
-    const fraction = this.progress;
-    const isEven = (this.currentRun % 2 === 0);
-    
-    const sZ_start = isEven ? 8.8 : -8.8;
-    const sZ_end   = isEven ? -8.8 : 8.8;
-    const nZ_start = isEven ? -8.8 : 8.8;
-    const nZ_end   = isEven ? 8.8 : -8.8;
-
-    strikerBat.position.z = THREE.MathUtils.lerp(sZ_start, sZ_end, fraction);
-    nonStrikerBat.position.z = THREE.MathUtils.lerp(nZ_start, nZ_end, fraction);
-
-    strikerBat.rotation.y = isEven ? Math.PI : 0;
-    nonStrikerBat.rotation.y = isEven ? 0 : Math.PI;
-
-    const cycle = Math.sin(this.progress * Math.PI * 12);
-    [strikerBat, nonStrikerBat].forEach(bat => {
-      bat.legL.userData.thigh.rotation.x = cycle * 0.8;
-      bat.legR.userData.thigh.rotation.x = -cycle * 0.8;
-      bat.armL.rotation.x = -cycle * 0.8;
-      bat.armR.rotation.x = cycle * 0.8;
-    });
+function playStumps(){
+  if (!audioOn || !actx) return;
+  for (let i = 0; i < 3; i++){
+    setTimeout(() => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(600 + i * 220, actx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(110, actx.currentTime + 0.11);
+      g.gain.setValueAtTime(0.5, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.11);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + 0.12);
+    }, i * 35);
   }
-};
+}
+function playCrowdRoar(){
+  if (!audioOn || !actx) return;
+  const dur = 2.2;
+  const buf = actx.createBuffer(1, actx.samplerate * dur || actx.sampleRate * dur, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 750;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.05, actx.currentTime);
+  g.gain.linearRampToValueAtTime(0.4, actx.currentTime + 0.4);
+  g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + dur);
+  src.connect(lp); lp.connect(g); g.connect(actx.destination);
+  src.start();
+}
+function toggleAudio(){
+  audioOn = !audioOn;
+  document.getElementById('snd-ico').innerText = audioOn ? '🔊' : '🔇';
+  document.getElementById('util-snd').classList.toggle('on', audioOn);
+  if (audioOn) initAudio();
+}
+function toggleFullscreen(){
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+  else document.exitFullscreen && document.exitFullscreen();
+}
 
 /* ============================================================
-   11. CAMERAS
+   8. CAMERAS
    ============================================================ */
 const CAM_MODES = {
   broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
@@ -607,6 +640,10 @@ function setCamera(mode){
   directorOn = false;
   document.getElementById('btn-dir').classList.remove('on');
   if (mode !== 'follow' && mode !== 'helmet') camTarget.copy(CAM_MODES[mode].target);
+  const s1 = document.getElementById('camSel');
+  const s2 = document.getElementById('camSelMenu');
+  if (s1 && s1.value !== mode) s1.value = mode;
+  if (s2 && s2.value !== mode) s2.value = mode;
 }
 function toggleDirector(){
   directorOn = !directorOn;
@@ -615,7 +652,7 @@ function toggleDirector(){
 }
 
 /* ============================================================
-   12. WAGON WHEEL
+   9. WAGON WHEEL
    ============================================================ */
 const wagonCanvas = document.getElementById('wagonWheelCanvas');
 const wagonCtx = wagonCanvas.getContext('2d');
@@ -634,7 +671,6 @@ function drawWagonWheel(){
   wagonCtx.fillStyle = '#061324'; wagonCtx.fill();
   wagonCtx.strokeStyle = 'rgba(255,255,255,.25)'; wagonCtx.stroke();
   wagonCtx.fillStyle = '#987349'; wagonCtx.fillRect(cx - 3, cy - 14, 6, 28);
-  
   historicalShots.forEach(s => {
     const endX = cx + Math.sin(s.angle) * (s.dist / 70 * radius);
     const endY = cy - Math.cos(s.angle) * (s.dist / 70 * radius);
@@ -644,14 +680,134 @@ function drawWagonWheel(){
   });
 }
 
+/* ============================================================
+   10. OVER SUMMARY STRIP — renders from scoring tab's data
+   ============================================================ */
+function renderOverDots(ballTags){
+  const container = document.getElementById('overDotsContainer');
+  const totalEl = document.getElementById('overTotalRuns');
+  if (!container) return;
+  container.innerHTML = '';
+  let overRuns = 0;
+  const tags = Array.isArray(ballTags) ? ballTags : [];
+
+  for (let i = 0; i < 6; i++){
+    const tag = tags[i] !== undefined && tags[i] !== null ? String(tags[i]) : null;
+    const dot = document.createElement('div');
+    dot.className = 'badge dot';
+    if (tag !== null && tag !== ''){
+      const isWicket = tag.indexOf('W') >= 0;
+      const isWide   = tag.indexOf('Wd') >= 0;
+      const isNoBall = tag.indexOf('Nb') >= 0;
+      const isBye    = /B$/.test(tag) && !isNoBall;
+      const isLegBye = /Lb$/i.test(tag);
+      if (isWicket){ dot.className = 'badge wkt'; dot.innerText = 'W'; }
+      else if (isWide){ const n = parseInt(tag)||1; dot.className = 'badge nb'; dot.innerText = n>1?String(n):'wd'; overRuns+=n; }
+      else if (isNoBall){ const n = parseInt(tag)||1; dot.className = 'badge nb'; dot.innerText = n>1?String(n):'nb'; overRuns+=n; }
+      else if (isBye || isLegBye){ const n = parseInt(tag)||0; dot.className = 'badge bye'; dot.innerText = n>0?String(n):'b'; overRuns+=n; }
+      else if (tag === '4'){ dot.className = 'badge four'; dot.innerText = '4'; overRuns+=4; }
+      else if (tag === '6'){ dot.className = 'badge six'; dot.innerText = '6'; overRuns+=6; }
+      else {
+        const n = parseInt(tag)||0;
+        if (n === 0){ dot.className='badge dot'; dot.innerText='0'; }
+        else { dot.className='badge run'; dot.innerText=String(n); overRuns+=n; }
+      }
+    } else {
+      dot.innerText = '·';
+    }
+    container.appendChild(dot);
+  }
+  if (totalEl) totalEl.innerText = overRuns + ' RUNS';
+}
+renderOverDots([]);
+
+/* ============================================================
+   11. APPLY MATCH STATE — from parent
+   ============================================================ */
+function applyMatch(m){
+  if (!m) return;
+  const abbr = m.teamBattingAbbr || m.teamBatting || 'T1';
+  const balls = m.legalBalls || 0;
+  const abbrEl = document.getElementById('bbAbbr');
+  const scoreEl = document.getElementById('bbScore');
+  const oversEl = document.getElementById('bbOvers');
+  if (abbrEl) abbrEl.innerText = abbr;
+  if (scoreEl) scoreEl.innerText = (m.runs || 0) + '/' + (m.wickets || 0);
+  if (oversEl) oversEl.innerText = '(' + Math.floor(balls/6) + '.' + (balls%6) + ')';
+
+  const st = m.striker || 'Striker';
+  const nst = m.nonStriker || 'Non-Striker';
+  const sB = (m.batters && m.batters[st]) || { runs: 0, balls: 0 };
+  const nB = (m.batters && m.batters[nst]) || { runs: 0, balls: 0 };
+  const stEl = document.getElementById('bbStriker');
+  const stREl = document.getElementById('bbStrikerRuns');
+  const nstEl = document.getElementById('bbNonStriker');
+  const nstREl = document.getElementById('bbNonStrikerRuns');
+  if (stEl) stEl.innerText = st + '*';
+  if (stREl) stREl.innerText = sB.runs + '(' + sB.balls + ')';
+  if (nstEl) nstEl.innerText = nst;
+  if (nstREl) nstREl.innerText = nB.runs + '(' + nB.balls + ')';
+
+  const bwName = m.currentBowler || 'Bowler';
+  const bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, runs: 0, wickets: 0, maidens: 0 };
+  const bwNameEl = document.getElementById('bbBowler');
+  const bwFigEl = document.getElementById('bbBowlerFigs');
+  if (bwNameEl) bwNameEl.innerText = bwName;
+  if (bwFigEl) bwFigEl.innerText = Math.floor((bw.balls||0)/6) + '.' + ((bw.balls||0)%6) + '-' + (bw.maidens||0) + '-' + (bw.runs||0) + '-' + (bw.wickets||0);
+
+  if (Array.isArray(m.currentOverBalls)){
+    renderOverDots(m.currentOverBalls);
+  } else if (Array.isArray(m.recentBalls)){
+    renderOverDots(m.recentBalls.slice(-6));
+  }
+}
+
+/* Message listener */
+window.addEventListener('message', function(ev){
+  const d = ev.data || {};
+  if (d.type === 'SYNC_MATCH_STATE' && d.payload){
+    console.log('📡 Received SYNC_MATCH_STATE', d.payload);
+    applyMatch(d.payload);
+  }
+  if (d.type === 'TRIGGER_DELIVERY' && d.shot){
+    console.log('📡 Received TRIGGER_DELIVERY', d.shot);
+    playBall(d.shot);
+  }
+});
+
+/* Fallback polling */
+let lastSeenBalls = -1;
+setInterval(function(){
+  try {
+    const m = (window.parent && window.parent !== window) ? window.parent.match : null;
+    if (!m || !m.teamBatting) return;
+    applyMatch(m);
+    const totalBalls = (m.shotLog && m.shotLog.length) || 0;
+    if (lastSeenBalls < 0){ lastSeenBalls = totalBalls; return; }
+    if (totalBalls > lastSeenBalls){
+      lastSeenBalls = totalBalls;
+      const last = m.shotLog[totalBalls - 1];
+      if (last) playBall(last);
+    }
+  } catch(e){}
+}, 300);
+
+/* Ask parent for state on load */
+setTimeout(function(){
+  try { window.parent.postMessage({ type: 'CM_REQUEST_STATE' }, '*'); } catch(e){}
+}, 700);
+
+/* ============================================================
+   12. SIM FEED (random ball for testing)
+   ============================================================ */
 function simFeedScoringTab(){
   const options = [0, 1, 2, 3, 4, 6];
   const r = options[Math.floor(Math.random() * options.length)];
-  playBall({ runs: r, bowlerType: 'fast_pace' });
+  playBall({ runs: r, bowlerType: 'fast_pace', over: 0, ball: 0 });
 }
 
 /* ============================================================
-   13. DELIVERY ENGINE (INTEGRATED AI & ANIMATIONS)
+   13. DELIVERY ENGINE
    ============================================================ */
 let anim = null;
 let lastShot = null;
@@ -661,192 +817,204 @@ function playBall(shot){
   initAudio();
   lastShot = shot;
 
-  // Reset Scene
-  strikerWicket.reset(); bowlerWicket.reset();
+  // Reset
+  strikerWicket.reset();
+  bowlerWicket.reset();
   fielders.forEach(f => f.reset());
   ball.visible = true;
-  
-  RunningState.active = false;
+
   strikerBat.position.set(0.35, 0, 8.8);
-  strikerBat.rotation.set(0, -Math.PI / 2, 0); 
+  strikerBat.rotation.set(0, -Math.PI / 2, 0);
   nonStrikerBat.position.set(-1.2, 0, -8.8);
-  nonStrikerBat.rotation.set(0, Math.PI / 2, 0); 
+  nonStrikerBat.rotation.set(0, Math.PI / 2, 0);
+  bowler.position.set(1.5, 0, -22);
 
   const runs = shot.runs || 0;
-  const isSix = runs === 6;
-  const isFour = runs === 4;
-  
-  // Use CricMaxData Logic
+  const isWicket = shot.isWicket || shot.isOut || false;
+  const isCatch = shot.isCatch || shot.wicketType === 'caught' || false;
+  const isNoBall = shot.isNoBall || shot.extraType === 'nb' || false;
+  const isWide = shot.extraType === 'wd' || false;
+  const isSix = runs === 6 || shot.isSix;
+  const isFour = runs === 4 || shot.isFour;
   const bowlerType = shot.bowlerType || 'fast_pace';
-  const deliveryType = window.CricMaxData && window.CricMaxData.pickDelivery ? window.CricMaxData.pickDelivery(bowlerType) : 'length_ball';
-  const deliveryData = window.CricMaxData && window.CricMaxData.DELIVERY_TYPES ? window.CricMaxData.DELIVERY_TYPES[deliveryType] : { bouncePoint: 6 };
-  const pickedShot = window.CricMaxData && window.CricMaxData.pickShot ? window.CricMaxData.pickShot(runs, bowlerType, deliveryType, 'hard') : { shotType: 'defend', angle: 1.5, distance: 10, flightTime: 2.5, peakHeight: 2 };
-  const animPose = window.CricMaxShots && window.CricMaxShots.get ? window.CricMaxShots.get(pickedShot.shotType) : { prepTime: 200, contactTime: 500, followTime: 400, pose: { batStart: {rotX: -1}, batContact: {rotX: -0.5}, batEnd: {rotX: 0}, torsoRotY: 0, legStride: 0 }};
+  const isSpin = bowlerType === 'spin' || bowlerType === 'off_spin' || bowlerType === 'leg_spin';
 
-  // Trajectory Map
-  const pitchZ = (deliveryData.bouncePoint || 6) - 12; 
-  const pitchX = (Math.random() - 0.5) * 0.5;
+  // Data-driven shot
+  let pickedShot;
+  try {
+    const deliveryType = (window.CricMaxData && window.CricMaxData.pickDelivery) ? window.CricMaxData.pickDelivery(bowlerType === 'spin' ? 'off_spin' : 'fast_pace') : 'length_ball';
+    pickedShot = (window.CricMaxData && window.CricMaxData.pickShot) ? window.CricMaxData.pickShot(runs, bowlerType === 'spin' ? 'off_spin' : 'fast_pace', deliveryType, 'hard') : null;
+  } catch(e){ console.warn('shot pick failed:', e); }
 
-  const shotRotY = pickedShot.angle - 1.57; 
+  if (!pickedShot){
+    pickedShot = {
+      shotType: isSix ? 'pull_lofted' : isFour ? 'cover_drive' : 'defend',
+      angle: Math.PI / 2 + (Math.random() - 0.5) * 1.5,
+      distance: isSix ? 78 : isFour ? 66 : runs > 0 ? runs * 14 : 18,
+      peakHeight: isSix ? 14 : isFour ? 1.5 : 1,
+      flightTime: isSix ? 4.5 : isFour ? 2.5 : 3,
+      commentary: 'shot played'
+    };
+  }
+
+  // Shot animation pose
+  let animPose = null;
+  try {
+    animPose = (window.CricMaxShots && window.CricMaxShots.get) ? window.CricMaxShots.get(pickedShot.shotType) : null;
+  } catch(e){}
+  if (!animPose){
+    animPose = { prepTime: 250, contactTime: 500, followTime: 400,
+      pose: { batStart:{rotX:-Math.PI/3}, batContact:{rotX:-Math.PI/5}, batEnd:{rotX:0}, torsoRotY:0.4, legStride:0.3 }
+    };
+  }
+
+  console.log('🎯 Shot:', pickedShot.shotType, '| Dist:', pickedShot.distance.toFixed(1)+'m | Comment:', pickedShot.commentary);
+
+  // Trajectory
+  const shotRotY = (pickedShot.angle || Math.PI/2) - Math.PI/2;
   const hitX = -Math.sin(shotRotY) * pickedShot.distance;
   const hitZ = 8.8 - Math.cos(shotRotY) * pickedShot.distance;
 
-  if (runs > 0 && runs < 4) {
-    RunningState.targetRuns = runs;
-    RunningState.currentRun = 0;
-    RunningState.progress = 0;
-    RunningState.active = true;
-  }
-
-  const targetPoint = new THREE.Vector3(hitX, 0, hitZ);
-  if (runs > 0 && !isFour && !isSix){
-    let closest = fielders[0], minDist = 999;
+  // Chase ball if fielder can reach
+  if (runs > 0 && !isFour && !isSix && !isWicket){
+    let closest = fielders[0], minD = 999;
     fielders.forEach(f => {
-      const d = f.home.distanceTo(targetPoint);
-      if(d < minDist) { minDist = d; closest = f; }
+      const d = f.home.distanceTo(new THREE.Vector3(hitX, 0, hitZ));
+      if (d < minD){ minD = d; closest = f; }
     });
-    if(closest) closest.chase(targetPoint);
+    if (closest) closest.chase(new THREE.Vector3(hitX, 0, hitZ));
   }
 
-  historicalShots.push({ angle: pickedShot.angle, dist: pickedShot.distance, runs: runs });
+  historicalShots.push({ angle: pickedShot.angle, dist: pickedShot.distance, runs });
   drawWagonWheel();
 
+  // Speed tag
+  const speed = shot.ballSpeed || (isSpin ? (85 + Math.random()*10).toFixed(1) : (135 + Math.random()*15).toFixed(1));
+  const speedTag = document.getElementById('speedTag');
+  speedTag.innerText = 'SPEED: ' + speed + ' KM/H';
+  speedTag.classList.add('on');
+
   const start = performance.now();
-  const TIME_RELEASE = 700;
-  const TIME_PITCH = TIME_RELEASE + 300;
-  const TIME_CONTACT = TIME_PITCH + 250; 
-  const flightTime = (pickedShot.flightTime || 2.5) * 1000;
-  const TIME_LAND = TIME_CONTACT + flightTime;
+  const T_RELEASE = 700;
+  const T_PITCH = 1000;
+  const T_CONTACT = 1250;
+  const flightTime = (pickedShot.flightTime || 3) * 1000;
+  const T_LAND = T_CONTACT + flightTime;
+
+  const pitchZ = isSpin ? 4.8 : (3.2 + Math.random() * 1.8);
+  const pitchX = (Math.random() - 0.5) * 0.4;
+
+  let bounced = false, contacted = false;
 
   function loop(now){
     const elapsed = now - start;
 
-    if (elapsed < TIME_RELEASE){
-      const t = elapsed / TIME_RELEASE;
+    /* Phase 1: Bowler run-up */
+    if (elapsed < T_RELEASE){
+      const t = elapsed / T_RELEASE;
+      bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
       bowler.position.z = THREE.MathUtils.lerp(-22, -9.8, t);
       bowler.armR.rotation.x = -Math.PI * 4 * t;
+      bowler.armL.rotation.x = Math.PI * 4 * t;
       ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
-    } 
-    else if (elapsed < TIME_PITCH){
-      const t = (elapsed - TIME_RELEASE) / (TIME_PITCH - TIME_RELEASE);
+      if (isWicket || isCatch || isSix || isFour) playThud(0.3 + t * 0.4);
+    }
+    /* Phase 2: Release to pitch */
+    else if (elapsed < T_PITCH){
+      const t = (elapsed - T_RELEASE) / (T_PITCH - T_RELEASE);
       ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
       ball.position.z = THREE.MathUtils.lerp(-9.8, pitchZ, t);
       ball.position.y = THREE.MathUtils.lerp(2.0, 0.04, t * t);
-    } 
-    else if (elapsed < TIME_CONTACT){
-      const t = (elapsed - TIME_PITCH) / (TIME_CONTACT - TIME_PITCH);
+    }
+    /* Phase 3: Pitch to bat */
+    else if (elapsed < T_CONTACT){
+      const t = (elapsed - T_PITCH) / (T_CONTACT - T_PITCH);
+      if (!bounced){ playThud(1.0); bounced = true; }
       ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBat.position.x - 0.1, t);
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
-    } 
-    else if (elapsed < TIME_LAND){
-      if(elapsed - TIME_CONTACT < 20) { playBatCrack(isSix ? 1 : 0.6); }
-
-      const t = (elapsed - TIME_CONTACT) / flightTime;
-      ball.position.x = THREE.MathUtils.lerp(strikerBat.position.x, hitX, t);
-      ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
-      ball.position.y = 0.05 + 4 * (pickedShot.peakHeight || 2) * t * (1 - t);
-      
-      if(directorOn && (isSix || isFour)) {
-        camPos.lerp(new THREE.Vector3(ball.position.x*0.5, 12, ball.position.z-15), 0.05);
-        camTarget.lerp(ball.position, 0.08);
+    }
+    /* Phase 4: Contact + trajectory */
+    else if (elapsed < T_LAND){
+      const t = (elapsed - T_CONTACT) / flightTime;
+      if (!contacted){
+        contacted = true;
+        emitSparks(ball.position.clone(), isSix ? 20 : 12, isSix ? 1.2 : 0.8);
+        if (isWicket && !isCatch){ playStumps(); strikerWicket.shatter(); }
+        else playBatCrack(isSix ? 1 : isFour ? 0.85 : 0.5);
+        if (isSix || isFour || isCatch || isWicket) playCrowdRoar();
       }
-    } else {
+
+      // Camera director
+      if (directorOn){
+        if (isSix || isFour){
+          camPos.lerp(new THREE.Vector3(ball.position.x*0.5, 12, ball.position.z-18), 0.05);
+          camTarget.lerp(ball.position, 0.08);
+        } else if (isWicket){
+          camPos.lerp(new THREE.Vector3(0, 2.2, 14.5), 0.06);
+          camTarget.lerp(new THREE.Vector3(0, 1.2, 8.8), 0.08);
+        }
+      }
+
+      if (isWicket && !isCatch){
+        ball.position.set(0.1, 0.3, 10.4);
+      } else {
+        ball.position.x = THREE.MathUtils.lerp(strikerBat.position.x, hitX, t);
+        ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
+        ball.rotation.x += 0.3;
+        if (isSix) ball.position.y = 0.8 + Math.sin(t*Math.PI) * (pickedShot.peakHeight || 14) + t * 8;
+        else if (isCatch) ball.position.y = 0.8 + Math.sin(t*Math.PI) * 7.5;
+        else if (isFour) ball.position.y = 0.05 + Math.abs(Math.sin(t*Math.PI*3.5)) * 1.5 * Math.max(0, 1 - t*1.1);
+        else ball.position.y = 0.05;
+      }
+
+      // Bat swing animation
+      const se = (now - start) - T_CONTACT + animPose.contactTime;
+      const pose = animPose.pose;
+      if (se < animPose.contactTime){
+        const p = Math.max(0, se / animPose.contactTime);
+        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batStart.rotX, pose.batContact.rotX, p);
+        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoRotY || 0, p);
+      } else if (se < animPose.contactTime + animPose.followTime){
+        const p = (se - animPose.contactTime) / animPose.followTime;
+        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batContact.rotX, pose.batEnd.rotX, p);
+        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(pose.torsoRotY || 0, 0, p);
+      }
+
+      if (!directorOn && activeCam === 'follow'){
+        camPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6);
+        camTarget.copy(ball.position);
+      }
+    }
+    else {
       anim = null;
+      speedTag.classList.remove('on');
       ball.visible = false;
       return;
     }
-
-    // Shot Animation
-    if (animPose && animPose.pose) {
-      const prepStart = TIME_CONTACT - animPose.prepTime;
-      const followEnd = TIME_CONTACT + animPose.followTime;
-      
-      if (elapsed > prepStart && elapsed <= TIME_CONTACT) {
-        const t = (elapsed - prepStart) / animPose.prepTime;
-        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(animPose.pose.batStart.rotX, animPose.pose.batContact.rotX, t);
-        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, animPose.pose.torsoRotY, t);
-        strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, animPose.pose.legStride, t);
-      } else if (elapsed > TIME_CONTACT && elapsed <= followEnd) {
-        const t = (elapsed - TIME_CONTACT) / animPose.followTime;
-        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(animPose.pose.batContact.rotX, animPose.pose.batEnd.rotX, t);
-        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(animPose.pose.torsoRotY, 0, t);
-      }
-    }
-
     anim = requestAnimationFrame(loop);
   }
   anim = requestAnimationFrame(loop);
 
-  setTimeout(() => {
+  // Banner
+  setTimeout(function(){
     const b = document.getElementById('banner');
-    b.className = 'banner run on';
-    b.innerText = isSix ? 'MAXIMUM!' : isFour ? 'FOUR!' : runs + ' RUNS';
-    if(isSix) b.classList.add('six'); else if(isFour) b.classList.add('four');
-    setTimeout(() => b.classList.remove('on'), 2400);
+    b.className = 'banner';
+    if (isWide){ b.innerText = 'WIDE!'; b.classList.add('run', 'on'); }
+    else if (isNoBall){ b.innerText = 'NO BALL!'; b.classList.add('run', 'on'); }
+    else if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt', 'on'); }
+    else if (isWicket){ b.innerText = 'BOWLED!'; b.classList.add('wkt', 'on'); }
+    else if (isSix){ b.innerText = 'MAXIMUM!'; b.classList.add('six', 'on'); }
+    else if (isFour){ b.innerText = 'FOUR!'; b.classList.add('four', 'on'); }
+    else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run', 'on'); }
+    setTimeout(function(){ b.classList.remove('on'); }, 2400);
   }, 1300);
 }
 
 function triggerReplay(){ if (lastShot) playBall(lastShot); }
 
 /* ============================================================
-   14. SCORECARD SYNC (From Parent)
-   ============================================================ */
-function renderOverDots(ballTags){
-  const container = document.getElementById('overDotsContainer');
-  const totalEl = document.getElementById('overTotalRuns');
-  if (!container) return;
-  container.innerHTML = '';
-  let overRuns = 0;
-  const tags = Array.isArray(ballTags) ? ballTags : [];
-  for (let i = 0; i < 6; i++){
-    const tag = tags[i] !== undefined ? String(tags[i]) : null;
-    const dot = document.createElement('div');
-    if (tag !== null && tag !== ''){
-      const isWicket = tag.indexOf('W') >= 0;
-      const isFour = tag === '4', isSix = tag === '6';
-      if (isWicket){ dot.className = 'badge wkt'; dot.innerText = 'W'; }
-      else if (isFour){ dot.className = 'badge four'; dot.innerText = '4'; overRuns += 4; }
-      else if (isSix){ dot.className = 'badge six'; dot.innerText = '6'; overRuns += 6; }
-      else { 
-        const n = parseInt(tag) || 0; 
-        dot.className = n === 0 ? 'badge dot' : 'badge run'; 
-        dot.innerText = String(n); overRuns += n; 
-      }
-    } else {
-      dot.className = 'badge dot'; dot.innerText = '·';
-    }
-    container.appendChild(dot);
-  }
-  if (totalEl) totalEl.innerText = overRuns + ' RUNS';
-}
-
-function applyMatch(m){
-  if (!m) return;
-  document.getElementById('bbAbbr').innerText = m.teamBattingAbbr || 'T1';
-  document.getElementById('bbScore').innerText = `${m.runs || 0}/${m.wickets || 0}`;
-  document.getElementById('bbOvers').innerText = `(${Math.floor((m.legalBalls||0)/6)}.${(m.legalBalls||0)%6})`;
-  const st = m.striker || 'Striker', nst = m.nonStriker || 'Non-Striker';
-  document.getElementById('bbStriker').innerText = st + '*';
-  document.getElementById('bbNonStriker').innerText = nst;
-  document.getElementById('bbBowler').innerText = m.currentBowler || 'Bowler';
-  if (Array.isArray(m.currentOverBalls)) renderOverDots(m.currentOverBalls);
-}
-
-window.addEventListener('message', ev => {
-  const d = ev.data || {};
-  if (d.type === 'SYNC_MATCH_STATE' && d.payload) applyMatch(d.payload);
-  if (d.type === 'TRIGGER_DELIVERY' && d.shot) playBall(d.shot);
-});
-setInterval(() => {
-  try {
-    const m = (window.parent && window.parent !== window) ? window.parent.match : null;
-    if (m) applyMatch(m);
-  } catch(e){}
-}, 500);
-
-/* ============================================================
-   15. MAIN RENDER LOOP
+   14. MAIN LOOP
    ============================================================ */
 let lastT = 0;
 function animate(t){
@@ -856,30 +1024,72 @@ function animate(t){
   lastT = t;
 
   if (stadium && stadium.update) stadium.update(dt, elapsed);
+  updateSparks(dt);
+  strikerWicket.update(dt);
+  bowlerWicket.update(dt);
   fielders.forEach(f => f.update(dt, elapsed));
-  RunningState.update(dt);
 
-  if (!anim && !RunningState.active){
+  if (!anim){
     strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
     bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
-    if (directorOn){ camPos.lerp(CAM_MODES.broadcast.pos, 0.03); camTarget.lerp(CAM_MODES.broadcast.target, 0.03); }
+    if (directorOn){
+      camPos.lerp(CAM_MODES.broadcast.pos, 0.03);
+      camTarget.lerp(CAM_MODES.broadcast.target, 0.03);
+    }
   }
 
-  if (!directorOn && activeCam !== 'follow'){
+  if (!directorOn && activeCam !== 'follow' && activeCam !== 'helmet'){
     camPos.lerp(CAM_MODES[activeCam].pos, 0.05);
     camTarget.lerp(CAM_MODES[activeCam].target, 0.05);
   }
-  
+
   camera.position.copy(camPos);
   camera.lookAt(camTarget);
   renderer.render(scene, camera);
 }
 requestAnimationFrame(animate);
 
-// Exports
-window.toggleMenu = toggleMenu; window.setSky = setSky; window.navTo = navTo; window.setCamera = setCamera;
-window.toggleDirector = toggleDirector; window.toggleWagonWheel = toggleWagonWheel;
-window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay;
+addEventListener('resize', function(){
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ============================================================
+   15. STANDALONE DEMO (only if not in iframe)
+   ============================================================ */
+if (!window.parent || window.parent === window){
+  setTimeout(function(){ playBall({ runs: 4, isFour: true, over: 0, ball: 0 }); }, 1500);
+  setInterval(function(){
+    const demos = [
+      { runs: 6, isSix: true, over: 0, ball: 0 },
+      { runs: 1, over: 0, ball: 0 },
+      { runs: 0, isWicket: true, over: 0, ball: 0 },
+      { runs: 0, isCatch: true, wicketType: 'caught', over: 0, ball: 0 },
+      { runs: 2, over: 0, ball: 0 },
+      { runs: 4, isFour: true, over: 0, ball: 0 }
+    ];
+    playBall(demos[Math.floor(Math.random() * demos.length)]);
+  }, 8000);
+}
+
+/* ============================================================
+   16. EXPOSE HANDLERS
+   ============================================================ */
+window.toggleMenu        = toggleMenu;
+window.setSky            = setSky;
+window.navTo             = navTo;
+window.setCamera         = setCamera;
+window.toggleDirector    = toggleDirector;
+window.toggleFullscreen  = toggleFullscreen;
+window.toggleAudio       = toggleAudio;
+window.triggerReplay     = triggerReplay;
+window.toggleWagonWheel  = toggleWagonWheel;
+window.simFeedScoringTab = simFeedScoringTab;
+window.applyMatch        = applyMatch;
+window.playBall          = playBall;
+
+console.log('🏏 Viewer ready — applyMatch, postMessage, polling, over-strip all active');
 })();
 </script>
 </body>
