@@ -433,7 +433,6 @@ class Fielder {
   }
 }
 
-// Dynamically spawn Fielders via AI Library
 let fielders = [];
 function spawnFielders(presetName = 'balanced'){
   fielders.forEach(f => scene.remove(f.rig));
@@ -530,14 +529,14 @@ function playBatCrack(power){
 }
 
 /* ============================================================
-   10. GLOBAL RUNNING STATE (FIX FOR BOTH BATSMEN RUNNING)
+   10. GLOBAL RUNNING STATE 
    ============================================================ */
 const RunningState = {
   active: false,
   targetRuns: 0,
   currentRun: 0,
   progress: 0,
-  speed: 0.38, // Animation speed
+  speed: 0.38,
   update: function(dt){
     if (!this.active) return;
     
@@ -548,7 +547,6 @@ const RunningState = {
       this.currentRun++;
       if (this.currentRun >= this.targetRuns) {
         this.active = false;
-        // Snap directly to crease on finish
         strikerBat.rotation.set(0, -Math.PI / 2, 0);
         nonStrikerBat.rotation.set(0, Math.PI / 2, 0);
         [strikerBat, nonStrikerBat].forEach(bat => {
@@ -564,7 +562,6 @@ const RunningState = {
     const fraction = this.progress;
     const isEven = (this.currentRun % 2 === 0);
     
-    // Z positions (8.8 to -8.8)
     const sZ_start = isEven ? 8.8 : -8.8;
     const sZ_end   = isEven ? -8.8 : 8.8;
     const nZ_start = isEven ? -8.8 : 8.8;
@@ -573,11 +570,9 @@ const RunningState = {
     strikerBat.position.z = THREE.MathUtils.lerp(sZ_start, sZ_end, fraction);
     nonStrikerBat.position.z = THREE.MathUtils.lerp(nZ_start, nZ_end, fraction);
 
-    // Direction facing
     strikerBat.rotation.y = isEven ? Math.PI : 0;
     nonStrikerBat.rotation.y = isEven ? 0 : Math.PI;
 
-    // Limb pumping
     const cycle = Math.sin(this.progress * Math.PI * 12);
     [strikerBat, nonStrikerBat].forEach(bat => {
       bat.legL.userData.thigh.rotation.x = cycle * 0.8;
@@ -641,7 +636,6 @@ function drawWagonWheel(){
   wagonCtx.fillStyle = '#987349'; wagonCtx.fillRect(cx - 3, cy - 14, 6, 28);
   
   historicalShots.forEach(s => {
-    // Map radians for wagon display natively
     const endX = cx + Math.sin(s.angle) * (s.dist / 70 * radius);
     const endY = cy - Math.cos(s.angle) * (s.dist / 70 * radius);
     wagonCtx.beginPath(); wagonCtx.moveTo(cx, cy); wagonCtx.lineTo(endX, endY);
@@ -651,14 +645,13 @@ function drawWagonWheel(){
 }
 
 function simFeedScoringTab(){
-  // Random runs mapped to physics via CricMaxData
   const options = [0, 1, 2, 3, 4, 6];
   const r = options[Math.floor(Math.random() * options.length)];
   playBall({ runs: r, bowlerType: 'fast_pace' });
 }
 
 /* ============================================================
-   13. DELIVERY ENGINE (FIXED BALL DIRECTION, SHOTS, BOWLING LENGTH)
+   13. DELIVERY ENGINE (INTEGRATED AI & ANIMATIONS)
    ============================================================ */
 let anim = null;
 let lastShot = null;
@@ -673,7 +666,6 @@ function playBall(shot){
   fielders.forEach(f => f.reset());
   ball.visible = true;
   
-  // Reset Batsmen Stance safely
   RunningState.active = false;
   strikerBat.position.set(0.35, 0, 8.8);
   strikerBat.rotation.set(0, -Math.PI / 2, 0); 
@@ -684,25 +676,21 @@ function playBall(shot){
   const isSix = runs === 6;
   const isFour = runs === 4;
   
-  // AI LIBRARY: Generate Pitch, Delivery, and Shot Data
+  // Use CricMaxData Logic
   const bowlerType = shot.bowlerType || 'fast_pace';
-  const deliveryType = window.CricMaxData.pickDelivery(bowlerType);
-  const deliveryData = window.CricMaxData.DELIVERY_TYPES[deliveryType];
-  const pickedShot = window.CricMaxData.pickShot(runs, bowlerType, deliveryType, 'hard');
-  const animPose = window.CricMaxShots.get(pickedShot.shotType);
+  const deliveryType = window.CricMaxData && window.CricMaxData.pickDelivery ? window.CricMaxData.pickDelivery(bowlerType) : 'length_ball';
+  const deliveryData = window.CricMaxData && window.CricMaxData.DELIVERY_TYPES ? window.CricMaxData.DELIVERY_TYPES[deliveryType] : { bouncePoint: 6 };
+  const pickedShot = window.CricMaxData && window.CricMaxData.pickShot ? window.CricMaxData.pickShot(runs, bowlerType, deliveryType, 'hard') : { shotType: 'defend', angle: 1.5, distance: 10, flightTime: 2.5, peakHeight: 2 };
+  const animPose = window.CricMaxShots && window.CricMaxShots.get ? window.CricMaxShots.get(pickedShot.shotType) : { prepTime: 200, contactTime: 500, followTime: 400, pose: { batStart: {rotX: -1}, batContact: {rotX: -0.5}, batEnd: {rotX: 0}, torsoRotY: 0, legStride: 0 }};
 
-  // LOGIC FIX 1: Bowler length variability (using data)
-  const pitchZ = deliveryData.bouncePoint - 12; // Mapped to world Z
+  // Trajectory Map
+  const pitchZ = (deliveryData.bouncePoint || 6) - 12; 
   const pitchX = (Math.random() - 0.5) * 0.5;
 
-  // LOGIC FIX 2: Correctly map 360 Degree angle from CricMaxData to World X/Z
-  // angle in CricMaxData is ~ 0 to 4.1. 1.57 (Pi/2) is straight down the pitch.
-  // 3D Math: Rotation around Y axis.
   const shotRotY = pickedShot.angle - 1.57; 
   const hitX = -Math.sin(shotRotY) * pickedShot.distance;
   const hitZ = 8.8 - Math.cos(shotRotY) * pickedShot.distance;
 
-  // LOGIC FIX 3: Start Runner if needed
   if (runs > 0 && runs < 4) {
     RunningState.targetRuns = runs;
     RunningState.currentRun = 0;
@@ -710,7 +698,6 @@ function playBall(shot){
     RunningState.active = true;
   }
 
-  // Find closest fielder to chase
   const targetPoint = new THREE.Vector3(hitX, 0, hitZ);
   if (runs > 0 && !isFour && !isSix){
     let closest = fielders[0], minDist = 999;
@@ -721,11 +708,9 @@ function playBall(shot){
     if(closest) closest.chase(targetPoint);
   }
 
-  // Store for UI
   historicalShots.push({ angle: pickedShot.angle, dist: pickedShot.distance, runs: runs });
   drawWagonWheel();
 
-  // Animation Timings
   const start = performance.now();
   const TIME_RELEASE = 700;
   const TIME_PITCH = TIME_RELEASE + 300;
@@ -736,28 +721,24 @@ function playBall(shot){
   function loop(now){
     const elapsed = now - start;
 
-    // 1. BOWLER RUNUP & RELEASE
     if (elapsed < TIME_RELEASE){
       const t = elapsed / TIME_RELEASE;
       bowler.position.z = THREE.MathUtils.lerp(-22, -9.8, t);
       bowler.armR.rotation.x = -Math.PI * 4 * t;
       ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
     } 
-    // 2. BALL FLIGHT TO PITCH
     else if (elapsed < TIME_PITCH){
       const t = (elapsed - TIME_RELEASE) / (TIME_PITCH - TIME_RELEASE);
       ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
       ball.position.z = THREE.MathUtils.lerp(-9.8, pitchZ, t);
       ball.position.y = THREE.MathUtils.lerp(2.0, 0.04, t * t);
     } 
-    // 3. BALL FLIGHT TO BAT
     else if (elapsed < TIME_CONTACT){
       const t = (elapsed - TIME_PITCH) / (TIME_CONTACT - TIME_PITCH);
       ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBat.position.x - 0.1, t);
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
     } 
-    // 4. BATSMAN SHOT & BALL OUTFIELD
     else if (elapsed < TIME_LAND){
       if(elapsed - TIME_CONTACT < 20) { playBatCrack(isSix ? 1 : 0.6); }
 
@@ -766,7 +747,6 @@ function playBall(shot){
       ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
       ball.position.y = 0.05 + 4 * (pickedShot.peakHeight || 2) * t * (1 - t);
       
-      // Director Cam
       if(directorOn && (isSix || isFour)) {
         camPos.lerp(new THREE.Vector3(ball.position.x*0.5, 12, ball.position.z-15), 0.05);
         camTarget.lerp(ball.position, 0.08);
@@ -777,26 +757,27 @@ function playBall(shot){
       return;
     }
 
-    // BATSMAN SWING ANIMATION (Mapped from shot-library data)
-    const prepStart = TIME_CONTACT - animPose.prepTime;
-    const followEnd = TIME_CONTACT + animPose.followTime;
-    
-    if (elapsed > prepStart && elapsed <= TIME_CONTACT) {
-      const t = (elapsed - prepStart) / animPose.prepTime;
-      strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(animPose.pose.batStart.rotX, animPose.pose.batContact.rotX, t);
-      strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, animPose.pose.torsoRotY, t);
-      strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, animPose.pose.legStride, t);
-    } else if (elapsed > TIME_CONTACT && elapsed <= followEnd) {
-      const t = (elapsed - TIME_CONTACT) / animPose.followTime;
-      strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(animPose.pose.batContact.rotX, animPose.pose.batEnd.rotX, t);
-      strikerBat.torso.rotation.y = THREE.MathUtils.lerp(animPose.pose.torsoRotY, 0, t);
+    // Shot Animation
+    if (animPose && animPose.pose) {
+      const prepStart = TIME_CONTACT - animPose.prepTime;
+      const followEnd = TIME_CONTACT + animPose.followTime;
+      
+      if (elapsed > prepStart && elapsed <= TIME_CONTACT) {
+        const t = (elapsed - prepStart) / animPose.prepTime;
+        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(animPose.pose.batStart.rotX, animPose.pose.batContact.rotX, t);
+        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, animPose.pose.torsoRotY, t);
+        strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, animPose.pose.legStride, t);
+      } else if (elapsed > TIME_CONTACT && elapsed <= followEnd) {
+        const t = (elapsed - TIME_CONTACT) / animPose.followTime;
+        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(animPose.pose.batContact.rotX, animPose.pose.batEnd.rotX, t);
+        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(animPose.pose.torsoRotY, 0, t);
+      }
     }
 
     anim = requestAnimationFrame(loop);
   }
   anim = requestAnimationFrame(loop);
 
-  // Show Banner Text
   setTimeout(() => {
     const b = document.getElementById('banner');
     b.className = 'banner run on';
@@ -809,7 +790,63 @@ function playBall(shot){
 function triggerReplay(){ if (lastShot) playBall(lastShot); }
 
 /* ============================================================
-   14. MAIN RENDER LOOP
+   14. SCORECARD SYNC (From Parent)
+   ============================================================ */
+function renderOverDots(ballTags){
+  const container = document.getElementById('overDotsContainer');
+  const totalEl = document.getElementById('overTotalRuns');
+  if (!container) return;
+  container.innerHTML = '';
+  let overRuns = 0;
+  const tags = Array.isArray(ballTags) ? ballTags : [];
+  for (let i = 0; i < 6; i++){
+    const tag = tags[i] !== undefined ? String(tags[i]) : null;
+    const dot = document.createElement('div');
+    if (tag !== null && tag !== ''){
+      const isWicket = tag.indexOf('W') >= 0;
+      const isFour = tag === '4', isSix = tag === '6';
+      if (isWicket){ dot.className = 'badge wkt'; dot.innerText = 'W'; }
+      else if (isFour){ dot.className = 'badge four'; dot.innerText = '4'; overRuns += 4; }
+      else if (isSix){ dot.className = 'badge six'; dot.innerText = '6'; overRuns += 6; }
+      else { 
+        const n = parseInt(tag) || 0; 
+        dot.className = n === 0 ? 'badge dot' : 'badge run'; 
+        dot.innerText = String(n); overRuns += n; 
+      }
+    } else {
+      dot.className = 'badge dot'; dot.innerText = '·';
+    }
+    container.appendChild(dot);
+  }
+  if (totalEl) totalEl.innerText = overRuns + ' RUNS';
+}
+
+function applyMatch(m){
+  if (!m) return;
+  document.getElementById('bbAbbr').innerText = m.teamBattingAbbr || 'T1';
+  document.getElementById('bbScore').innerText = `${m.runs || 0}/${m.wickets || 0}`;
+  document.getElementById('bbOvers').innerText = `(${Math.floor((m.legalBalls||0)/6)}.${(m.legalBalls||0)%6})`;
+  const st = m.striker || 'Striker', nst = m.nonStriker || 'Non-Striker';
+  document.getElementById('bbStriker').innerText = st + '*';
+  document.getElementById('bbNonStriker').innerText = nst;
+  document.getElementById('bbBowler').innerText = m.currentBowler || 'Bowler';
+  if (Array.isArray(m.currentOverBalls)) renderOverDots(m.currentOverBalls);
+}
+
+window.addEventListener('message', ev => {
+  const d = ev.data || {};
+  if (d.type === 'SYNC_MATCH_STATE' && d.payload) applyMatch(d.payload);
+  if (d.type === 'TRIGGER_DELIVERY' && d.shot) playBall(d.shot);
+});
+setInterval(() => {
+  try {
+    const m = (window.parent && window.parent !== window) ? window.parent.match : null;
+    if (m) applyMatch(m);
+  } catch(e){}
+}, 500);
+
+/* ============================================================
+   15. MAIN RENDER LOOP
    ============================================================ */
 let lastT = 0;
 function animate(t){
@@ -820,11 +857,8 @@ function animate(t){
 
   if (stadium && stadium.update) stadium.update(dt, elapsed);
   fielders.forEach(f => f.update(dt, elapsed));
-
-  // Update Running Logic if Active
   RunningState.update(dt);
 
-  // Idle Animations if no active ball running
   if (!anim && !RunningState.active){
     strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
     bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
@@ -842,7 +876,7 @@ function animate(t){
 }
 requestAnimationFrame(animate);
 
-// Exports for UI binding
+// Exports
 window.toggleMenu = toggleMenu; window.setSky = setSky; window.navTo = navTo; window.setCamera = setCamera;
 window.toggleDirector = toggleDirector; window.toggleWagonWheel = toggleWagonWheel;
 window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay;
