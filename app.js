@@ -2262,3 +2262,45 @@ function triggerReplay(){
     showToast(`Replaying Ball ${lastShot.over}.${lastShot.ball}: ${lastShot.runs} runs`);
   }
 }
+/* ============================================================
+   REMOVE "NEXT BOWLER" FROM WICKET MODAL
+   Bowler selection now happens ONLY after an over completes
+   ============================================================ */
+(function(){
+  'use strict';
+
+  function stripNextBowlerFields(){
+    var sel = document.getElementById('wktNextBowlerSelect');
+    var inp = document.getElementById('wktNextBowlerInput');
+    if(sel && sel.parentNode){
+      var grp = sel.closest('.form-group');
+      if(grp && grp.parentNode) grp.parentNode.removeChild(grp);
+      else sel.parentNode.removeChild(sel);
+    }
+    if(inp && inp.parentNode){
+      var grp2 = inp.closest('.form-group');
+      if(grp2 && grp2.parentNode) grp2.parentNode.removeChild(grp2);
+      else inp.parentNode.removeChild(inp);
+    }
+  }
+
+  // 1. When wicket modal opens, remove the next-bowler section
+  var _origPromptWkt = window.promptWicketTypeModal;
+  window.promptWicketTypeModal = function(){
+    window.__bowlerAlreadySet = false;
+    if(_origPromptWkt) _origPromptWkt();
+    stripNextBowlerFields();
+  };
+
+  // 2. When wicket confirmed, ignore any bowler chosen in that modal
+  var _origConfirmWkt = window.confirmWicketDelivery;
+  window.confirmWicketDelivery = function(){
+    window.__bowlerAlreadySet = false;
+    stripNextBowlerFields();
+    if(_origConfirmWkt) _origConfirmWkt();
+    // Ensure the over-end bowler modal opens normally
+    window.__bowlerAlreadySet = false;
+  };
+
+  console.log('✅ Next-Bowler-in-Wicket-Modal disabled — bowler prompt appears only at over-end');
+})();
