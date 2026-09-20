@@ -1030,18 +1030,38 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="app.js?v=5" defer></script>
 <script src="viewer-bridge.js?v=5" defer></script>
-  <script>
+ <script>
 /* ═══════════════════════════════════════════════════════════════
-   CricMax — Firebase Auto-Sync Bridge
-   Intercepts every localStorage.setItem('CricMax_Data', ...) call
-   and mirrors it to Firebase Realtime Database.
-   Zero changes needed in app.js.
+   CricMax — Firebase Auto-Sync Bridge (v2 — self-initializing)
    ═══════════════════════════════════════════════════════════════ */
 (function(){
-  /* Wait for Firebase SDK to be ready */
+  /* Your Firebase config — matches the viewer */
+  const FIREBASE_CONFIG = {
+    projectId: "cricket-8cb1b",
+    databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+
+  /* Ensure a default Firebase app exists — initialize if not */
+  function ensureFirebaseApp(){
+    if (typeof firebase === 'undefined') return false;
+    try {
+      firebase.app();  /* throws if not initialized */
+      return true;
+    } catch (e) {
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        console.info('[CricMax] 🔥 Firebase app initialized by auto-sync');
+        return true;
+      } catch (e2) {
+        console.warn('[CricMax] Firebase init failed:', e2);
+        return false;
+      }
+    }
+  }
+
   function initFirebaseSync(){
-    if (typeof firebase === 'undefined' || !firebase.database){
-      console.warn('[CricMax] Firebase not loaded yet — retrying...');
+    if (!ensureFirebaseApp()){
+      console.warn('[CricMax] Firebase not ready — retrying...');
       setTimeout(initFirebaseSync, 200);
       return;
     }
@@ -1050,12 +1070,9 @@
     const ref = fireDB.ref('cricmax/match_current');
     const originalSetItem = localStorage.setItem.bind(localStorage);
 
-    /* Override setItem — catch every CricMax_Data write */
+    /* Override setItem — mirror every CricMax_Data write to Firebase */
     localStorage.setItem = function(key, value){
-      /* Call the original first — nothing changes for the app */
       originalSetItem(key, value);
-
-      /* Only mirror our app's data */
       if (key === 'CricMax_Data'){
         try {
           const parsed = JSON.parse(value);
@@ -1070,7 +1087,7 @@
       }
     };
 
-    /* Also push the current state once on load (in case scoring already started) */
+    /* Push current state once on load */
     try {
       const raw = localStorage.getItem('CricMax_Data');
       if (raw){
