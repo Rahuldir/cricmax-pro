@@ -47,17 +47,24 @@
   <link rel="stylesheet" href="styles.css">
 
   <style>
-    /* Prevent mobile double-tap zoom delay */
+    /* Prevent accidental pull-to-refresh or back swipe reloads */
+    body {
+      overscroll-behavior: contain;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Prevent double-tap zoom lag on fast keypad taps */
     button, .pad-btn, .home-main-btn {
       touch-action: manipulation;
     }
 
-    /* Modal Overlay Depth */
+    /* Keep Modals strictly above fixed UI widgets */
     .modal-overlay {
       z-index: 100050 !important;
     }
 
-    /* VPP (3D Viewer) UI */
+    /* VPP (3D Viewer) Toolbar */
     #vppToolbar {
       display: none;
       position: fixed;
@@ -93,7 +100,7 @@
       border-color: transparent;
     }
 
-    /* LIVE Badge (Viewer Viewport) */
+    /* Pulsing LIVE Badge for Spectators */
     #vppLiveBadge {
       display: none;
       position: fixed;
@@ -242,7 +249,7 @@
   </div>
 </section>
 
-<!-- 3D Viewer Toolbar & Live Status Indicator -->
+<!-- 3D Stadium Overlay Controls -->
 <div id="vppToolbar">
   <div class="vpp-row">
     <button onclick="vppNavTo('pitch')" class="btn-primary">🏏 3D Pitch</button>
@@ -1004,7 +1011,19 @@
   </div>
 </div>
 
-<!-- Scripts loaded with defer to preserve execution order after the Firebase Module -->
+<!-- Global Touch / Audio Unlock Listener -->
+<script>
+  window.addEventListener('pointerdown', function unlockAudioEngine() {
+    if (window.speechSynthesis) {
+      const warmUtterance = new SpeechSynthesisUtterance(' ');
+      warmUtterance.volume = 0;
+      window.speechSynthesis.speak(warmUtterance);
+    }
+    window.removeEventListener('pointerdown', unlockAudioEngine);
+  }, { once: true });
+</script>
+
+<!-- Scripts loaded with defer to preserve execution order -->
 <script src="app.js?v=5" defer></script>
 <script src="viewer-bridge.js?v=5" defer></script>
 </body>
