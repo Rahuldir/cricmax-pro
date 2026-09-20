@@ -6,11 +6,11 @@
 <title>CricMax Pro — Match Viewer</title>
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  canvas{display:block;}
-  .hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
-  .top-row{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;}
+  .hud{position:fixed;inset:0;pointer-events:none;z-index:9999;}
+  .top-row{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;}
   .top-left-stack{display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:auto;}
-  .top-center{display:flex;justify-content:center;align-items:flex-start;pointer-events:auto;flex:1;}
+  .top-center{display:flex;justify-content:center;align-items:flex-start;pointer-events:auto;flex:1;min-width:0;}
   .top-right{display:flex;gap:8px;align-items:flex-start;pointer-events:auto;}
   .cluster{display:flex;gap:6px;background:rgba(8,14,28,.85);padding:5px 8px;border-radius:14px;backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);pointer-events:auto;align-items:center;}
   .live{background:#ef4444;color:#fff;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:1.5px;display:inline-flex;align-items:center;gap:7px;box-shadow:0 0 16px rgba(239,68,68,.75);}
@@ -25,11 +25,11 @@
   .cam-select-center{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:12px;font-weight:800;padding:9px 16px;border-radius:12px;outline:none;cursor:pointer;font-family:inherit;backdrop-filter:blur(14px);box-shadow:0 4px 18px rgba(0,0,0,.5),0 0 20px rgba(0,230,118,.15);min-width:180px;transition:all .2s;}
   .cam-select-center:hover{border-color:#00e676;box-shadow:0 6px 22px rgba(0,0,0,.6),0 0 24px rgba(0,230,118,.35);}
   .cam-select-center option{background:#0b1329;color:#fff;font-weight:700;padding:6px;}
-  .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(0,230,118,.45);transition:all .2s;font-family:inherit;pointer-events:auto;}
+  .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(0,230,118,.45);transition:all .2s;font-family:inherit;pointer-events:auto;z-index:10000;position:relative;}
   .menu-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,230,118,.65);}
   .menu-btn.on{background:linear-gradient(135deg,#ef4444,#f43f5e);box-shadow:0 4px 18px rgba(239,68,68,.5);}
   .menu-btn .hamburger{font-size:16px;line-height:1;}
-  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.85), 0 0 40px rgba(0,230,118,.15);z-index:100;pointer-events:auto;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s cubic-bezier(.175,.885,.32,1.275);visibility:hidden;}
+  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.85), 0 0 40px rgba(0,230,118,.15);z-index:100001;pointer-events:auto;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s cubic-bezier(.175,.885,.32,1.275);visibility:hidden;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-section{margin-bottom:14px;}
   .menu-section:last-child{margin-bottom:0;}
@@ -45,16 +45,17 @@
   .menu-tile-cam{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#e2e8f0;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;width:100%;outline:none;}
   .menu-tile-cam:hover{border-color:rgba(0,230,118,.5);}
   .menu-tile-cam option{background:#0b1329;color:#fff;font-weight:700;}
-  .bottom-wrap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:min(92vw,720px);display:flex;flex-direction:column;gap:8px;pointer-events:auto;}
+  .bottom-wrap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:min(92vw,720px);display:flex;flex-direction:column;gap:8px;pointer-events:auto;z-index:10000;}
   .over-summary{background:rgba(8,18,32,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;color:#cbd5e1;}
   .over-dots{display:flex;gap:6px;align-items:center;}
-  .badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);}
+  .badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);}
   .badge.dot{background:rgba(148,163,184,.2);color:#94a3b8;}
   .badge.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
   .badge.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
   .badge.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
   .badge.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
   .badge.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
+  .badge.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
   .bottom-bar{background:linear-gradient(90deg,rgba(8,18,32,.95),rgba(3,8,16,.98));border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:10px 20px;display:flex;align-items:center;gap:20px;backdrop-filter:blur(18px);color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.85);font-size:12px;font-weight:800;}
   .bb-team{display:flex;align-items:center;gap:10px;border-right:1px solid rgba(255,255,255,.12);padding-right:16px;}
   .bb-badge{background:#00e676;color:#0a0e1a;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:900;}
@@ -70,17 +71,16 @@
   .banner.six{color:#ff6d00;text-shadow:0 0 45px #fbbf24,0 8px 24px #000;}
   .banner.wkt{color:#ef4444;text-shadow:0 0 45px #7f1d1d,0 8px 24px #000;}
   .banner.run{color:#00e676;text-shadow:0 0 45px #009270,0 8px 24px #000;}
-  .speed-tag{position:absolute;top:80px;right:14px;background:rgba(15,23,42,.9);border:1px solid rgba(34,211,238,.4);padding:6px 14px;border-radius:8px;color:#38bdf8;font-family:monospace;font-size:14px;font-weight:800;opacity:0;transition:opacity .3s;}
+  .speed-tag{position:absolute;top:80px;right:14px;background:rgba(15,23,42,.9);border:1px solid rgba(34,211,238,.4);padding:6px 14px;border-radius:8px;color:#38bdf8;font-family:monospace;font-size:14px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;}
   .speed-tag.on{opacity:1;}
-  #wagonWheelCanvas{position:absolute;top:80px;left:14px;width:150px;height:150px;background:rgba(8,15,30,0.88);border:1px solid rgba(255,255,255,0.2);border-radius:50%;pointer-events:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.7);z-index:11;}
+  #wagonWheelCanvas{position:absolute;top:80px;left:14px;width:150px;height:150px;background:rgba(8,15,30,0.88);border:1px solid rgba(255,255,255,0.2);border-radius:50%;pointer-events:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.7);z-index:10001;}
   @media(max-width:700px){
-    .cam-select-center{min-width:130px;padding:8px 12px;font-size:11px;}
+    .cam-select-center{min-width:120px;padding:8px 10px;font-size:11px;}
     .menu-btn{padding:8px 12px;font-size:11px;}
     #menuPanel{width:min(94vw,320px);}
     .bottom-bar{padding:8px 12px;gap:10px;font-size:11px;}
     .bb-score{font-size:18px;}
     .live{padding:5px 10px;font-size:10px;}
-    .top-center{flex:1;justify-content:center;}
   }
 </style>
 </head>
@@ -110,7 +110,7 @@
     </div>
     <div class="top-right">
       <button class="btn on" id="btn-dir" onclick="toggleDirector()">🎬 Director</button>
-      <button class="menu-btn" id="btn-menu" onclick="toggleMenu()"><span class="hamburger">☰</span> MENU</button>
+      <button class="menu-btn" id="btn-menu" onclick="toggleMenu(event)"><span class="hamburger">☰</span> MENU</button>
     </div>
   </div>
 
@@ -153,7 +153,7 @@
       <div class="menu-grid-3">
         <button class="menu-tile" id="util-wagon" onclick="toggleWagonWheel()"><span class="ico">🕸️</span> Wagon</button>
         <button class="menu-tile" onclick="simFeedScoringTab()"><span class="ico">⚡</span> Feed</button>
-        <button class="menu-tile" onclick="toggleMenu()"><span class="ico">✕</span> Close</button>
+        <button class="menu-tile" onclick="toggleMenu(event)"><span class="ico">✕</span> Close</button>
       </div>
     </div>
   </div>
@@ -192,7 +192,9 @@
 (function(){
 'use strict';
 
-/* SCENE */
+/* ============================================================
+   1. THREE.JS SCENE
+   ============================================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020713);
 scene.fog = new THREE.FogExp2(0x050d24, 0.0055);
@@ -205,30 +207,29 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.domElement.style.zIndex = '0';
 document.body.appendChild(renderer.domElement);
 
-/* STADIUM */
+/* ============================================================
+   2. STADIUM MODULE
+   ============================================================ */
 const stadium = window.CricMaxStadium.build(scene);
 const woodTex = window.CricMaxStadium.makeWoodTexture();
 
-function setSky(mode){
-  ['day','sunset','night'].forEach(m => {
-    const b = document.getElementById('env-' + m);
-    if (b) b.classList.toggle('on', m === mode);
-  });
-  stadium.setSky(mode);
-}
-setSky('day');
-
-/* MENU */
+/* ============================================================
+   3. UI: MENU (must be global for inline onclick)
+   ============================================================ */
 let menuOpen = false;
-function toggleMenu(){
+function toggleMenu(e){
+  if (e && e.stopPropagation) e.stopPropagation();
   menuOpen = !menuOpen;
   const panel = document.getElementById('menuPanel');
   const btn = document.getElementById('btn-menu');
   if (panel) panel.classList.toggle('open', menuOpen);
   if (btn) btn.classList.toggle('on', menuOpen);
+  console.log('☰ Menu toggled:', menuOpen);
 }
+// Close on outside click
 document.addEventListener('click', function(e){
   if (!menuOpen) return;
   const panel = document.getElementById('menuPanel');
@@ -236,11 +237,25 @@ document.addEventListener('click', function(e){
   if (panel && panel.contains(e.target)) return;
   if (btn && btn.contains(e.target)) return;
   menuOpen = false;
-  panel.classList.remove('open');
-  btn.classList.remove('on');
-});
+  if (panel) panel.classList.remove('open');
+  if (btn) btn.classList.remove('on');
+}, true);
 
-/* NAV */
+/* ============================================================
+   4. UI: SKY (must be global for inline onclick)
+   ============================================================ */
+function setSky(mode){
+  ['day','sunset','night'].forEach(m => {
+    const b = document.getElementById('env-' + m);
+    if (b) b.classList.toggle('on', m === mode);
+  });
+  if (stadium && stadium.setSky) stadium.setSky(mode);
+}
+setSky('day');
+
+/* ============================================================
+   5. NAV (global)
+   ============================================================ */
 function navTo(pane){
   document.querySelectorAll('.menu-tile[data-pane]').forEach(t => {
     t.classList.toggle('on', t.getAttribute('data-pane') === pane);
@@ -249,9 +264,10 @@ function navTo(pane){
   try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
   toggleMenu();
 }
-window.navTo = navTo;
 
-/* PLAYER MODEL */
+/* ============================================================
+   6. PLAYER MODEL
+   ============================================================ */
 const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
 const PAD  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
 const SHOE = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
@@ -386,7 +402,9 @@ function makePlayer(opts){
   return rig;
 }
 
-/* TEAMS */
+/* ============================================================
+   7. TEAMS ON FIELD
+   ============================================================ */
 const strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, number: 7 });
 strikerBat.position.set(0.35, 0, 8.8); strikerBat.rotation.y = -Math.PI / 2; scene.add(strikerBat);
 const nonStrikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 2, number: 18 });
@@ -400,7 +418,6 @@ umpireStrikerEnd.position.set(-1.8, 0, 12.5); umpireStrikerEnd.rotation.y = -Mat
 const umpireBowlerEnd = makePlayer({ jersey: 0xf1f5f9, skinIndex: 0 });
 umpireBowlerEnd.position.set(1.5, 0, -14.5); umpireBowlerEnd.rotation.y = Math.PI / 2; scene.add(umpireBowlerEnd);
 
-/* FIELDERS */
 const fielderData = [
   ['Slip', 3.2, 13.5, 1],['Gully', 7.0, 12.0, 2],['Point', 18, 7.5, 3],
   ['Cover', 20, -2.0, 4],['Mid-off', 7.5, -9.5, 0],['Mid-on', -7.5, -9.5, 1],
@@ -446,7 +463,9 @@ class Fielder {
 }
 const fielders = fielderData.map(f => new Fielder(f[0], f[1], f[2], f[3]));
 
-/* BALL */
+/* ============================================================
+   8. BALL
+   ============================================================ */
 const ballTex = (function(){
   const c = document.createElement('canvas'); c.width = c.height = 128;
   const ctx = c.getContext('2d');
@@ -462,7 +481,9 @@ const ballTex = (function(){
 const ball = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 24), new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.4, metalness: 0.05 }));
 ball.castShadow = true; ball.visible = false; scene.add(ball);
 
-/* WICKETS */
+/* ============================================================
+   9. WICKETS
+   ============================================================ */
 class Wicket {
   constructor(zPos){
     this.group = new THREE.Group();
@@ -518,7 +539,9 @@ class Wicket {
 const strikerWicket = new Wicket(10.0);
 const bowlerWicket = new Wicket(-10.0);
 
-/* AUDIO */
+/* ============================================================
+   10. AUDIO
+   ============================================================ */
 let actx = null, audioOn = true;
 function initAudio(){
   if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
@@ -593,9 +616,10 @@ function toggleAudio(){
   if (btn) btn.classList.toggle('on', audioOn);
   if (audioOn) initAudio();
 }
-window.toggleAudio = toggleAudio;
 
-/* CAMERAS */
+/* ============================================================
+   11. CAMERAS
+   ============================================================ */
 const CAM_MODES = {
   broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
   bowler:    { pos: new THREE.Vector3(0, 4.2, -22), target: new THREE.Vector3(0, 1.0, 9) },
@@ -615,7 +639,8 @@ function setCamera(mode){
   if (!CAM_MODES[mode]) return;
   activeCam = mode;
   directorOn = false;
-  document.getElementById('btn-dir').classList.remove('on');
+  const dirBtn = document.getElementById('btn-dir');
+  if (dirBtn) dirBtn.classList.remove('on');
   if (mode !== 'follow' && mode !== 'helmet') camTarget.copy(CAM_MODES[mode].target);
   const sel1 = document.getElementById('camSel');
   const sel2 = document.getElementById('camSelMenu');
@@ -624,7 +649,8 @@ function setCamera(mode){
 }
 function toggleDirector(){
   directorOn = !directorOn;
-  document.getElementById('btn-dir').classList.toggle('on', directorOn);
+  const btn = document.getElementById('btn-dir');
+  if (btn) btn.classList.toggle('on', directorOn);
   if (directorOn){
     activeCam = 'broadcast';
     const sel1 = document.getElementById('camSel');
@@ -637,21 +663,20 @@ function toggleFullscreen(){
   if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
   else document.exitFullscreen && document.exitFullscreen();
 }
-window.setCamera = setCamera;
-window.toggleDirector = toggleDirector;
-window.toggleFullscreen = toggleFullscreen;
 
-/* WAGON WHEEL */
+/* ============================================================
+   12. WAGON WHEEL
+   ============================================================ */
 const wagonCanvas = document.getElementById('wagonWheelCanvas');
 const wagonCtx = wagonCanvas.getContext('2d');
 const historicalShots = [];
 function toggleWagonWheel(){
   const on = wagonCanvas.style.display === 'block';
   wagonCanvas.style.display = on ? 'none' : 'block';
-  document.getElementById('util-wagon').classList.toggle('on', !on);
+  const btn = document.getElementById('util-wagon');
+  if (btn) btn.classList.toggle('on', !on);
   if (!on) drawWagonWheel();
 }
-window.toggleWagonWheel = toggleWagonWheel;
 function drawWagonWheel(){
   const w = wagonCanvas.width, h = wagonCanvas.height;
   const cx = w/2, cy = h/2, radius = w/2 - 12;
@@ -669,33 +694,65 @@ function drawWagonWheel(){
   });
 }
 
-/* OVER SUMMARY */
-let currentOverBalls = [];
-function updateOverSummaryUI(){
+/* ============================================================
+   13. OVER SUMMARY (from scoring tab's match.currentOverBalls)
+   ============================================================ */
+function renderOverDots(ballTags){
   const container = document.getElementById('overDotsContainer');
   const totalEl = document.getElementById('overTotalRuns');
   if (!container) return;
   container.innerHTML = '';
   let overRuns = 0;
+  const tags = Array.isArray(ballTags) ? ballTags : [];
+
   for (let i = 0; i < 6; i++){
-    const b = currentOverBalls[i];
+    const tag = tags[i] !== undefined ? String(tags[i]) : null;
     const dot = document.createElement('div');
     dot.className = 'badge dot';
-    if (b){
-      if (b.isWicket){ dot.className = 'badge wkt'; dot.innerText = 'W'; }
-      else if (b.isSix){ dot.className = 'badge six'; dot.innerText = '6'; overRuns += 6; }
-      else if (b.isFour){ dot.className = 'badge four'; dot.innerText = '4'; overRuns += 4; }
-      else if (b.isNoBall){ dot.className = 'badge nb'; dot.innerText = 'NB'; overRuns += ((b.runs||0) + 1); }
-      else if (b.runs === 0){ dot.className = 'badge dot'; dot.innerText = '0'; }
-      else { dot.className = 'badge run'; dot.innerText = b.runs; overRuns += b.runs; }
-    } else { dot.innerText = '·'; }
+
+    if (tag !== null && tag !== ''){
+      const isWicket = tag.indexOf('W') >= 0;
+      const isWide   = tag.indexOf('Wd') >= 0;
+      const isNoBall = tag.indexOf('Nb') >= 0;
+      const isBye    = /B$/.test(tag) && !isNoBall;
+      const isLegBye = /Lb$/i.test(tag);
+
+      if (isWicket){
+        dot.className = 'badge wkt'; dot.innerText = 'W';
+      } else if (isWide){
+        const n = parseInt(tag) || 1;
+        dot.className = 'badge nb'; dot.innerText = n > 1 ? String(n) : 'wd';
+        overRuns += n;
+      } else if (isNoBall){
+        const n = parseInt(tag) || 1;
+        dot.className = 'badge nb'; dot.innerText = n > 1 ? String(n) : 'nb';
+        overRuns += n;
+      } else if (isBye || isLegBye){
+        const n = parseInt(tag) || 0;
+        dot.className = 'badge bye'; dot.innerText = n > 0 ? String(n) : 'b';
+        overRuns += n;
+      } else if (tag === '4'){
+        dot.className = 'badge four'; dot.innerText = '4'; overRuns += 4;
+      } else if (tag === '6'){
+        dot.className = 'badge six'; dot.innerText = '6'; overRuns += 6;
+      } else {
+        const n = parseInt(tag) || 0;
+        if (n === 0){ dot.className = 'badge dot'; dot.innerText = '0'; }
+        else { dot.className = 'badge run'; dot.innerText = String(n); overRuns += n; }
+      }
+    } else {
+      dot.innerText = '·';
+    }
     container.appendChild(dot);
   }
   if (totalEl) totalEl.innerText = overRuns + ' RUNS';
 }
-updateOverSummaryUI();
+// Initial render
+renderOverDots([]);
 
-/* SIM FEED */
+/* ============================================================
+   14. SIM FEED
+   ============================================================ */
 function simFeedScoringTab(){
   const scenarios = [
     { runs: 4, isFour: true, angle: 1.2, bowlerType: 'pace' },
@@ -709,15 +766,15 @@ function simFeedScoringTab(){
   feed.ballSpeed = feed.bowlerType === 'spin' ? (88 + Math.random() * 8).toFixed(1) : (140 + Math.random() * 6).toFixed(1);
   playBall(feed);
 }
-window.simFeedScoringTab = simFeedScoringTab;
 
-/* DELIVERY ENGINE */
+/* ============================================================
+   15. DELIVERY ENGINE
+   ============================================================ */
 let anim = null;
 let lastShot = null;
 let lastPlayedBallKey = null;
 
 function playBall(shot){
-  // Skip if identical ball just played (prevents fallback-poll + postMessage double-play)
   var key = (shot.over || 0) + '_' + (shot.ball || 0) + '_' + (shot.runs || 0) + '_' + (shot.isWicket ? 'W' : '');
   if (key === lastPlayedBallKey && Date.now() - (playBall._lastTs || 0) < 1500) return;
   playBall._lastTs = Date.now();
@@ -739,10 +796,6 @@ function playBall(shot){
   const isCatch = shot.isCatch || shot.wicketType === 'caught';
   const runs = shot.runs || 0;
   const isSpin = shot.bowlerType === 'spin';
-
-  if (currentOverBalls.length >= 6) currentOverBalls = [];
-  currentOverBalls.push(shot);
-  updateOverSummaryUI();
 
   const speed = shot.ballSpeed || (isSpin ? '88.5' : '142.3');
   const speedTag = document.getElementById('speedTag');
@@ -842,22 +895,20 @@ function playBall(shot){
 }
 
 function triggerReplay(){ if (lastShot) playBall(lastShot); }
-window.triggerReplay = triggerReplay;
 
-/* MESSAGE SYNC */
-window.addEventListener('message', ev => {
-  const d = ev.data || {};
-  if (d.type === 'SYNC_MATCH_STATE' && d.payload) applyMatch(d.payload);
-  if (d.type === 'TRIGGER_DELIVERY' && d.shot) playBall(d.shot);
-});
-
+/* ============================================================
+   16. MATCH STATE SYNC — from parent (postMessage OR polling)
+   ============================================================ */
 function applyMatch(m){
   if (!m) return;
+
+  // Scorecard HUD
   const abbr = m.teamBattingAbbr || m.teamBatting || 'T1';
   const balls = m.legalBalls || 0;
   document.getElementById('bbAbbr').innerText = abbr;
   document.getElementById('bbScore').innerText = `${m.runs || 0}/${m.wickets || 0}`;
   document.getElementById('bbOvers').innerText = `(${Math.floor(balls/6)}.${balls%6})`;
+
   const st = m.striker || 'Striker';
   const nst = m.nonStriker || 'Non-Striker';
   const sB = (m.batters && m.batters[st]) || { runs: 0, balls: 0 };
@@ -866,14 +917,32 @@ function applyMatch(m){
   document.getElementById('bbStrikerRuns').innerText = `${sB.runs}(${sB.balls})`;
   document.getElementById('bbNonStriker').innerText = nst;
   document.getElementById('bbNonStrikerRuns').innerText = `${nB.runs}(${nB.balls})`;
+
   const bwName = m.currentBowler || 'Bowler';
   const bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, runs: 0, wickets: 0, maidens: 0 };
   document.getElementById('bbBowler').innerText = bwName;
-  document.getElementById('bbBowlerFigs').innerText = `${Math.floor((bw.balls||0)/6)}.${(bw.balls||0)%6}-${bw.maidens||0}-${bw.runs||0}-${bw.wickets||0}`;
-}
-window.applyMatch = applyMatch;
+  document.getElementById('bbBowlerFigs').innerText =
+    `${Math.floor((bw.balls||0)/6)}.${(bw.balls||0)%6}-${bw.maidens||0}-${bw.runs||0}-${bw.wickets||0}`;
 
-/* MAIN LOOP */
+  // THIS OVER strip — sync from scoring tab
+  if (Array.isArray(m.currentOverBalls)){
+    renderOverDots(m.currentOverBalls);
+  } else if (Array.isArray(m.recentBalls)){
+    // Fallback: last 6 balls
+    renderOverDots(m.recentBalls.slice(-6));
+  }
+}
+
+// postMessage from parent
+window.addEventListener('message', ev => {
+  const d = ev.data || {};
+  if (d.type === 'SYNC_MATCH_STATE' && d.payload) applyMatch(d.payload);
+  if (d.type === 'TRIGGER_DELIVERY' && d.shot) playBall(d.shot);
+});
+
+/* ============================================================
+   17. MAIN ANIMATION LOOP
+   ============================================================ */
 let lastT = 0;
 function animate(t){
   requestAnimationFrame(animate);
@@ -881,7 +950,7 @@ function animate(t){
   const elapsed = t * 0.001;
   lastT = t;
 
-  stadium.update(dt, elapsed);
+  if (stadium && stadium.update) stadium.update(dt, elapsed);
   strikerWicket.update(dt);
   bowlerWicket.update(dt);
   fielders.forEach(f => f.update(dt, elapsed));
@@ -920,7 +989,9 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-/* ===== FALLBACK: POLL PARENT STATE EVERY 300ms ===== */
+/* ============================================================
+   18. FALLBACK: POLL PARENT STATE EVERY 300ms
+   ============================================================ */
 let lastSeenBalls = -1;
 setInterval(function(){
   try {
@@ -937,12 +1008,14 @@ setInterval(function(){
   } catch(e){}
 }, 300);
 
-/* Ask parent for state on load */
+// Ask parent for state on load
 setTimeout(function(){
   try { window.parent.postMessage({ type: 'CM_REQUEST_STATE' }, '*'); } catch(e){}
 }, 600);
 
-/* STANDALONE DEMO */
+/* ============================================================
+   19. STANDALONE DEMO
+   ============================================================ */
 if (!window.parent || window.parent === window){
   setTimeout(() => playBall({ runs: 4, isFour: true, angle: 1.2 }), 1500);
   setInterval(() => {
@@ -958,7 +1031,23 @@ if (!window.parent || window.parent === window){
   }, 8000);
 }
 
-console.log('🏏 Viewer ready — parent polling + postMessage fallback active');
+/* ============================================================
+   20. EXPOSE ALL HANDLERS TO WINDOW (fixes inline onclick)
+   ============================================================ */
+window.toggleMenu          = toggleMenu;
+window.setSky              = setSky;
+window.navTo               = navTo;
+window.setCamera           = setCamera;
+window.toggleDirector      = toggleDirector;
+window.toggleFullscreen    = toggleFullscreen;
+window.toggleAudio         = toggleAudio;
+window.triggerReplay       = triggerReplay;
+window.toggleWagonWheel    = toggleWagonWheel;
+window.simFeedScoringTab   = simFeedScoringTab;
+window.applyMatch          = applyMatch;
+window.playBall            = playBall;
+
+console.log('🏏 Viewer ready — all handlers exposed, over-strip synced from scoring tab');
 })();
 </script>
 </body>
