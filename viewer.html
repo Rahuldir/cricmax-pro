@@ -186,20 +186,22 @@
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
-     MODULE SCRIPTS — player-upgrades + shot-fx added
+     MODULE SCRIPTS
      ═══════════════════════════════════════════════════════════════ -->
 <script src="stadium.js"></script>
 <script src="render-boost.js"></script>
 <script src="player-upgrades.js"></script>
 <script src="shot-fx.js"></script>
 
+<!-- OPTIONAL MODULES — post-fx.js disabled to prevent error spam.
+     Replace with the CSS-only version if you want post-processing back. -->
 <script>
 (function(){
   var OPTIONAL = [
     { src: 'environment.js',     global: 'CricMaxEnvironment'  },
     { src: 'crowd-animation.js', global: 'CricMaxCrowd'        },
     { src: 'particles.js',       global: 'CricMaxParticles'    },
-    { src: 'post-fx.js',         global: 'CricMaxPostFX'       },
+    /* { src: 'post-fx.js',      global: 'CricMaxPostFX'       },  ← disabled */
     { src: 'stadium-detail.js',  global: 'CricMaxStadiumDetail'}
   ];
 
@@ -258,7 +260,7 @@ const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : nul
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
 /* ═══════════════════════════════════════════════════════════
-   BOOT HOOKS — PlayerUpgrades + Particles added
+   BOOT HOOKS
    ═══════════════════════════════════════════════════════════ */
 (function bootOptionalModules(){
   const HOOKS = [
@@ -794,11 +796,10 @@ function isInningsOrMatchOver(m){
 
 window.__cricmaxInningsOver = false;
 let currentMatchState = null;
+let prevLegalBalls = 0;
 
 /* ============================================================
    9. CORE DELIVERY ENGINE
-      ⚠ WIRING ADDED: fxTrailStop, fxDustPuff, fxSparkBurst,
-        fxTrailStart, __cricmaxBallPos
    ============================================================ */
 let anim = null;
 let lastShot = null;
@@ -806,10 +807,7 @@ let currentShotAngle = 0;
 
 function playBall(shot){
   const isReplay = shot && shot.__isReplay === true;
-  if (window.__cricmaxInningsOver === true && !isReplay){
-    console.info('[CricMax] Blocked new delivery — innings/match has ended');
-    return;
-  }
+  /* Trust the caller — if a shot reaches us, play it */
   if (shot && shot.__isReplay) delete shot.__isReplay;
 
   if (anim) cancelAnimationFrame(anim);
@@ -820,7 +818,7 @@ function playBall(shot){
   fielders.forEach(f => f.reset());
   ball.visible = true;
 
-  /* ▼ NEW: reset trail on every delivery */
+  /* Reset trail on every new delivery */
   if (window.fxTrailStop) window.fxTrailStop();
 
   strikerBat.position.set(0.35, 0, 8.8);
@@ -925,7 +923,6 @@ function playBall(shot){
     }
     else if (elapsed < T_CONTACT){
       const t = (elapsed - T_PITCH) / (T_CONTACT - T_PITCH);
-      /* ▼ NEW: dust puff on pitch bounce */
       if (!bounced){
         playThud(1.0);
         bounced = true;
@@ -942,7 +939,7 @@ function playBall(shot){
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
 
-        /* ▼ NEW: spark burst + trail start on contact */
+        /* Spark burst + trail start on contact */
         const sparkColor = isWkt ? 0xff4444
                          : runs >= 6 ? 0xff6d00
                          : runs >= 4 ? 0x22d3ee
@@ -961,6 +958,7 @@ function playBall(shot){
         }
       }
 
+      /* Batsman runs 200ms AFTER contact */
       if (runningPending && !runningStarted && elapsed >= T_CONTACT + RUNNING_START_DELAY){
         runningStarted = true;
         RunningState.active = true;
@@ -1000,7 +998,7 @@ function playBall(shot){
       }
     }
 
-    /* ▼ NEW: publish ball position for trail sampling */
+    /* Publish ball position for trail sampling */
     window.__cricmaxBallPos = ball.position;
 
     anim = requestAnimationFrame(loop);
@@ -1066,6 +1064,14 @@ function applyMatch(m){
   if (!m) return;
   currentMatchState = m;
 
+  /* Auto-reset flag if legalBalls went backwards (new innings / new match) */
+  const curLB = m.legalBalls || 0;
+  if (prevLegalBalls > 0 && curLB < prevLegalBalls){
+    window.__cricmaxInningsOver = false;
+    console.info('[CricMax] 🔄 New innings detected — flag reset');
+  }
+  prevLegalBalls = curLB;
+
   const over = isInningsOrMatchOver(m);
   if (over !== window.__cricmaxInningsOver){
     window.__cricmaxInningsOver = over;
@@ -1123,10 +1129,10 @@ function handleNewMatchData(m) {
   if (total > lastSeenBalls) {
     lastSeenBalls = total;
     const last = shots[total - 1];
-    if (last && !window.__cricmaxInningsOver){
+    if (last){
+      /* A new shot in the log = innings is active = reset flag & play */
+      window.__cricmaxInningsOver = false;
       playBall(last);
-    } else if (last){
-      console.info('[CricMax] Skipped new shot — innings/match is over');
     }
   }
 }
@@ -1137,11 +1143,9 @@ window.addEventListener('message', ev => {
     applyMatch(d.payload || d.match);
   }
   if (d.type === 'TRIGGER_DELIVERY' && d.shot) {
-    if (!window.__cricmaxInningsOver) {
-      playBall(d.shot);
-    } else {
-      console.info('[CricMax] Ignored TRIGGER_DELIVERY — innings/match is over');
-    }
+    /* Parent explicitly asked us to render this — always obey */
+    window.__cricmaxInningsOver = false;
+    playBall(d.shot);
   }
 });
 
@@ -1232,10 +1236,7 @@ function triggerReplay(){
 function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
 
 function simFeedScoringTab(){
-  if (window.__cricmaxInningsOver === true){
-    console.info('[CricMax] Feed disabled — innings/match is over');
-    return;
-  }
+  /* Manual feed always plays — user explicitly clicked */
   playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 });
 }
 
@@ -1323,7 +1324,6 @@ function animate(t){
     if (typeof window.updateSparks    === 'function') { try { window.updateSparks(dt);    } catch(e){} }
     if (typeof window.updateParticles === 'function') { try { window.updateParticles(dt); } catch(e){} }
     if (typeof window.updateCrowd     === 'function') { try { window.updateCrowd(dt);     } catch(e){} }
-    /* ▼ NEW: player upgrades per-frame (chatter, sweat) */
     if (typeof window.updatePlayerUpgrades === 'function') { try { window.updatePlayerUpgrades(dt); } catch(e){} }
 
     fielders.forEach(f => f.update(dt, elapsed));
@@ -1331,11 +1331,7 @@ function animate(t){
 
     if (!anim && !RunningState.active){
       if (strikerBat.batPivot) strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
-      if (!window.__cricmaxInningsOver){
-        bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
-      } else {
-        bowler.position.z = -22;
-      }
+      bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
       if (directorOn){ camPos.lerp(CAM_MODES.broadcast.pos, 0.03); camTarget.lerp(CAM_MODES.broadcast.target, 0.03); }
     }
 
