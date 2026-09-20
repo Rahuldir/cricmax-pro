@@ -2304,3 +2304,73 @@ function triggerReplay(){
 
   console.log('✅ Next-Bowler-in-Wicket-Modal disabled — bowler prompt appears only at over-end');
 })();
+/* ============================================================
+   RUN OUT — ADD COMPLETED RUNS BEFORE WICKET
+   When method === "Run Out", the runs selector value gets
+   credited to the team total & dismissed batsman.
+   ============================================================ */
+(function(){
+  'use strict';
+
+  var _strikerBeforeWicket = null;
+
+  // Capture striker state when modal opens; reset runs selector
+  var _origPromptWicket = window.promptWicketTypeModal;
+  window.promptWicketTypeModal = function(){
+    if(_origPromptWicket) _origPromptWicket();
+    try { _strikerBeforeWicket = match.striker; } catch(e){}
+    var sel = document.getElementById('runOutRunsSelect');
+    if(sel) sel.value = '0';
+    var grp = document.getElementById('runOutRunsGroup');
+    if(grp) grp.style.display = 'none';
+  };
+
+  // Show/hide the runs selector based on method
+  var _origHandle = window.handleWicketMethodChange;
+  window.handleWicketMethodChange = function(m){
+    if(_origHandle) _origHandle(m);
+    var grp = document.getElementById('runOutRunsGroup');
+    if(grp) grp.style.display = (m === 'Run Out') ? 'block' : 'none';
+  };
+
+  // Intercept confirm: read runs BEFORE original, then add them after
+  var _origConfirm = window.confirmWicketDelivery;
+  window.confirmWicketDelivery = function(){
+    var methodEl = document.getElementById('wktMethodSelect');
+    var method = methodEl ? methodEl.value : 'Bowled';
+    var runOutRuns = 0;
+    if(method === 'Run Out'){
+      var sel = document.getElementById('runOutRunsSelect');
+      if(sel) runOutRuns = parseInt(sel.value, 10) || 0;
+    }
+
+    // Run the existing confirm (records wicket with 0 runs)
+    if(_origConfirm) _origConfirm();
+
+    // Now credit the completed runs (only for run outs)
+    if(method === 'Run Out' && runOutRuns > 0){
+      var dismissed = _strikerBeforeWicket;
+      if(dismissed && match.batters[dismissed]){
+        match.batters[dismissed].runs = (match.batters[dismissed].runs || 0) + runOutRuns;
+      }
+      match.runs = (match.runs || 0) + runOutRuns;
+
+      // Tag the commentary line so it reads correctly
+      if(match.commentary && match.commentary.length > 0){
+        var c = match.commentary[0];
+        if(c && c.desc){
+          c.desc += ' (' + runOutRuns + ' run' + (runOutRuns !== 1 ? 's' : '') + ' completed before run out)';
+        }
+      }
+
+      // Refresh UI
+      if(typeof renderLive === 'function') renderLive();
+      if(typeof renderScorecard === 'function') renderScorecard();
+      if(typeof renderSummary === 'function') renderSummary();
+      if(typeof autoPersist === 'function') autoPersist();
+      if(typeof broadcastMatchState === 'function') broadcastMatchState();
+    }
+  };
+
+  console.log('✅ Run out runs patch loaded');
+})();
