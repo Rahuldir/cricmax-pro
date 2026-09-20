@@ -1,5 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   CricMax — Render Boost (BRIGHTNESS-FIXED v2)
+   CricMax — Render Boost v3  (LIGHT GOVERNOR)
+   Keeps ALL modules enabled. Runs LAST. Strips redundant lights so
+   environment.js / stadium-detail.js / crowd-animation.js can't
+   over-expose the scene. Only THIS rig survives.
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
@@ -7,43 +10,36 @@
 window.CricMaxRenderBoost = {
   build: function(scene, renderer, camera) {
 
-    /* ─────────────────────────────────────────────────────────────
-       0. KILL ALL PREVIOUS LIGHTS  (prevents stacking / overexposure)
-       ───────────────────────────────────────────────────────────── */
-    const oldLights = [];
-    scene.traverse(o => { if (o.isLight) oldLights.push(o); });
-    oldLights.forEach(l => { if (l.parent) l.parent.remove(l); });
-    console.log('[CricMax] Removed ' + oldLights.length + ' pre-existing lights');
-
-    /* ─────────────────────────────────────────────────────────────
+    /* ═════════════════════════════════════════════════════════════
        1. STADIUM BOWL
-       ───────────────────────────────────────────────────────────── */
+       ═════════════════════════════════════════════════════════════ */
     (function buildStadiumBowl(){
       const bowlGroup = new THREE.Group();
       scene.add(bowlGroup);
 
       const tierConfig = [
-        { rInner: 68,  rOuter: 82,  y: 2,  h: 6, rows: 10 },
-        { rInner: 84,  rOuter: 98,  y: 9,  h: 8, rows: 12 },
-        { rInner: 100, rOuter: 116, y: 18, h: 9, rows: 14 }
+        { rInner: 68,  rOuter: 82,  y: 2,  h: 6 },
+        { rInner: 84,  rOuter: 98,  y: 9,  h: 8 },
+        { rInner: 100, rOuter: 116, y: 18, h: 9 }
       ];
-
       const concreteMat = new THREE.MeshStandardMaterial({
         color: 0x1f2733, roughness: 0.98, metalness: 0.02
       });
 
       tierConfig.forEach(tier => {
-        const ringGeo = new THREE.RingGeometry(tier.rInner, tier.rOuter, 64);
-        const ringMesh = new THREE.Mesh(ringGeo, concreteMat);
+        const ringMesh = new THREE.Mesh(
+          new THREE.RingGeometry(tier.rInner, tier.rOuter, 64),
+          concreteMat
+        );
         ringMesh.rotation.x = -Math.PI / 2;
         ringMesh.position.y = tier.y;
         ringMesh.receiveShadow = true;
         bowlGroup.add(ringMesh);
 
-        const faceGeo = new THREE.CylinderGeometry(
-          tier.rInner, tier.rInner, tier.h, 64, 1, true
+        const faceMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(tier.rInner, tier.rInner, tier.h, 64, 1, true),
+          concreteMat
         );
-        const faceMesh = new THREE.Mesh(faceGeo, concreteMat);
         faceMesh.position.y = tier.y + tier.h / 2;
         faceMesh.material.side = THREE.DoubleSide;
         bowlGroup.add(faceMesh);
@@ -58,15 +54,14 @@ window.CricMaxRenderBoost = {
       bowlGroup.add(roof);
     })();
 
-    /* ─────────────────────────────────────────────────────────────
-       2. PACKED CROWD  (colors properly applied)
-       ───────────────────────────────────────────────────────────── */
+    /* ═════════════════════════════════════════════════════════════
+       2. PACKED CROWD  (colored via instanceColor)
+       ═════════════════════════════════════════════════════════════ */
     (function buildCrowd(){
       const TOTAL = 18000;
       const bodyGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.55, 5);
       const headGeo = new THREE.SphereGeometry(0.13, 6, 5);
 
-      /* IMPORTANT: base color MUST be white so instanceColor multiplies correctly */
       const bodyMat = new THREE.MeshStandardMaterial({
         color: 0xffffff, roughness: 0.9, metalness: 0.0
       });
@@ -152,19 +147,17 @@ window.CricMaxRenderBoost = {
       };
     })();
 
-    /* ─────────────────────────────────────────────────────────────
-       3. FLOODLIGHTS  (default OFF — only for night)
-       ───────────────────────────────────────────────────────────── */
+    /* ═════════════════════════════════════════════════════════════
+       3. FLOODLIGHTS  (off by default)
+       ═════════════════════════════════════════════════════════════ */
     const floodlights = [];
     (function buildFloodlights(){
       const group = new THREE.Group();
       scene.add(group);
-
       const positions = [
         { x:  72, z:  72 }, { x: -72, z:  72 },
         { x:  72, z: -72 }, { x: -72, z: -72 }
       ];
-
       positions.forEach(pos => {
         const pylon = new THREE.Mesh(
           new THREE.CylinderGeometry(0.6, 1.2, 46, 8),
@@ -187,8 +180,6 @@ window.CricMaxRenderBoost = {
         spot.target.position.set(0, 0, 0);
         spot.castShadow = true;
         spot.shadow.mapSize.set(1024, 1024);
-        spot.shadow.camera.near = 5;
-        spot.shadow.camera.far = 200;
         spot.shadow.bias = -0.0002;
         group.add(spot);
         group.add(spot.target);
@@ -198,9 +189,9 @@ window.CricMaxRenderBoost = {
     })();
     window.__cricmaxFloodlights = floodlights;
 
-    /* ─────────────────────────────────────────────────────────────
+    /* ═════════════════════════════════════════════════════════════
        4. PITCH + MARKINGS
-       ───────────────────────────────────────────────────────────── */
+       ═════════════════════════════════════════════════════════════ */
     (function buildPitch(){
       const cv = document.createElement('canvas');
       cv.width = 128; cv.height = 1024;
@@ -212,11 +203,9 @@ window.CricMaxRenderBoost = {
       baseGrad.addColorStop(1,    '#8b7355');
       ctx.fillStyle = baseGrad;
       ctx.fillRect(0, 0, 128, 1024);
-
       for (let i = 0; i < 6000; i++){
         ctx.fillStyle = Math.random() > 0.5
-          ? 'rgba(90,70,45,0.4)'
-          : 'rgba(180,155,115,0.3)';
+          ? 'rgba(90,70,45,0.4)' : 'rgba(180,155,115,0.3)';
         ctx.fillRect(Math.random() * 128, Math.random() * 1024, 1, 2);
       }
       const pitchTex = new THREE.CanvasTexture(cv);
@@ -231,7 +220,6 @@ window.CricMaxRenderBoost = {
       pitch.receiveShadow = true;
       scene.add(pitch);
 
-      /* Crease lines */
       const creaseMat = new THREE.MeshBasicMaterial({ color: 0xf0f0f0 });
       function addCrease(z){
         const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.08), creaseMat);
@@ -242,7 +230,6 @@ window.CricMaxRenderBoost = {
       addCrease(8.8); addCrease(7.58);
       addCrease(-8.8); addCrease(-7.58);
 
-      /* 30-yard circle */
       const circlePts = [];
       for (let a = 0; a <= Math.PI * 2; a += 0.02){
         circlePts.push(new THREE.Vector3(Math.cos(a) * 25, 0.04, Math.sin(a) * 25));
@@ -254,7 +241,6 @@ window.CricMaxRenderBoost = {
       circleLine.computeLineDistances();
       scene.add(circleLine);
 
-      /* Boundary rope */
       const rope = new THREE.Mesh(
         new THREE.TorusGeometry(66, 0.18, 8, 96),
         new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.7 })
@@ -265,9 +251,9 @@ window.CricMaxRenderBoost = {
       scene.add(rope);
     })();
 
-    /* ─────────────────────────────────────────────────────────────
+    /* ═════════════════════════════════════════════════════════════
        5. SKY DOME
-       ───────────────────────────────────────────────────────────── */
+       ═════════════════════════════════════════════════════════════ */
     (function buildSky(){
       const cv = document.createElement('canvas');
       cv.width = 16; cv.height = 512;
@@ -298,16 +284,15 @@ window.CricMaxRenderBoost = {
       scene.add(sil);
     })();
 
-    /* ─────────────────────────────────────────────────────────────
-       6. LIGHTING — single clean rig, LOW intensity
-       ───────────────────────────────────────────────────────────── */
+    /* ═════════════════════════════════════════════════════════════
+       6. OUR LIGHT RIG — the ONLY lights that will survive
+       ═════════════════════════════════════════════════════════════ */
+    const myLights = [];
     let sunLight = null;
     (function upgradeLighting(){
-      /* Ambient bounce — HALVED from earlier version */
       const hemi = new THREE.HemisphereLight(0xa8d8ff, 0x1a3a25, 0.35);
-      scene.add(hemi);
+      scene.add(hemi); myLights.push(hemi);
 
-      /* Main sun — HALVED */
       sunLight = new THREE.DirectionalLight(0xfff2d8, 0.85);
       sunLight.position.set(60, 80, 40);
       sunLight.castShadow = true;
@@ -320,35 +305,69 @@ window.CricMaxRenderBoost = {
       sunLight.shadow.camera.bottom = -90;
       sunLight.shadow.bias = -0.00015;
       sunLight.shadow.normalBias = 0.025;
-      scene.add(sunLight);
+      scene.add(sunLight); myLights.push(sunLight);
 
-      /* Cool fill — very subtle */
       const fill = new THREE.DirectionalLight(0x88a8ff, 0.12);
       fill.position.set(-50, 40, -60);
-      scene.add(fill);
+      scene.add(fill); myLights.push(fill);
 
-      /* Rim — nearly off */
       const rim = new THREE.DirectionalLight(0xffffff, 0.06);
       rim.position.set(0, 30, 100);
-      scene.add(rim);
+      scene.add(rim); myLights.push(rim);
+
+      /* Tag them so the governor knows to keep them */
+      myLights.forEach(l => l.userData.__cricmaxKeep = true);
+      floodlights.forEach(f => { f.spot.userData.__cricmaxKeep = true; });
     })();
 
-    /* ─────────────────────────────────────────────────────────────
-       7. RENDERER — DROPPED EXPOSURE
-       ───────────────────────────────────────────────────────────── */
+    /* ═════════════════════════════════════════════════════════════
+       7. RENDERER
+       ═════════════════════════════════════════════════════════════ */
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.85;   /* ← was 1.15 — LOWERED */
-    renderer.physicallyCorrectLights = false;
+    renderer.toneMappingExposure = 0.85;
     scene.fog = new THREE.FogExp2(0x0a2540, 0.0035);
 
-    /* ─────────────────────────────────────────────────────────────
-       8. SKY MENU WIRING
-       ───────────────────────────────────────────────────────────── */
+    /* ═════════════════════════════════════════════════════════════
+       8. LIGHT GOVERNOR — runs AFTER all modules finish loading.
+          Sweeps the scene, kills any light that isn't ours.
+          Repeats for 5 seconds so late-booting modules also get swept.
+       ═════════════════════════════════════════════════════════════ */
+    function sweepLights(){
+      let killed = 0;
+      scene.traverse(obj => {
+        if (!obj.isLight) return;
+        if (obj.userData.__cricmaxKeep) return;
+        /* Floodlight targets are children of spot; keep those too */
+        if (obj.parent && obj.parent.userData && obj.parent.userData.__cricmaxKeep) return;
+        obj.intensity = 0;
+        obj.visible = false;
+        obj.userData.__cricmaxKilled = true;
+        killed++;
+      });
+      return killed;
+    }
+
+    let sweeps = 0;
+    const sweepTimer = setInterval(() => {
+      const n = sweepLights();
+      sweeps++;
+      if (sweeps === 1 && n > 0){
+        console.log('[CricMax] Light governor: disabled ' + n + ' redundant light(s)');
+      }
+      if (sweeps >= 20) clearInterval(sweepTimer);
+    }, 250);
+
+    /* Run once immediately too */
+    sweepLights();
+
+    /* ═════════════════════════════════════════════════════════════
+       9. SKY MENU
+       ═════════════════════════════════════════════════════════════ */
     const original = window.setSky || function(){};
     window.setSky = function(mode){
       floodlights.forEach(f => {
-        const target = (mode === 'night') ? 1.6 : 0;   /* was 2.2 */
+        const target = (mode === 'night') ? 1.6 : 0;
         f.spot.intensity = target;
         f.panel.emissiveIntensity = (mode === 'night') ? 1.4 : 0;
       });
@@ -371,7 +390,7 @@ window.CricMaxRenderBoost = {
       original(mode);
     };
 
-    console.log('[CricMax] ✅ Render Boost v2 active (brightness-corrected)');
+    console.log('[CricMax] ✅ Render Boost v3 — light governor armed');
   }
 };
 
