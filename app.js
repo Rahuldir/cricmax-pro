@@ -1332,34 +1332,22 @@ function recordBall(runs,extra=null,isWicket=false,region="",distance=0,dd=null)
     }
   }
   if(overEnded){
+    window.__lastOverTriggered = match.legalBalls;
     setTimeout(function(){
-      // Only open if wicket-batter flow has already completed
-      if(!document.getElementById('wicketTypeModal') || document.getElementById('wicketTypeModal').style.display !== 'flex'){
-        promptNextBowlerModal();
+      const wk = document.getElementById('wicketTypeModal');
+      if(wk && wk.style.display === 'flex'){
+        setTimeout(function(){
+          const wk2 = document.getElementById('wicketTypeModal');
+          if(!wk2 || wk2.style.display !== 'flex') promptNextBowlerModal();
+        }, 1200);
       } else {
-        // Retry after 1 second if batter modal is still open
-        setTimeout(function(){ promptNextBowlerModal(); }, 1000);
+        promptNextBowlerModal();
       }
     }, 900);
   }
   checkMatchEnd();
 }
-/* Safety net: if over ended but bowler modal didn't open within 2.5s, open it */
-setInterval(function(){
-  if(!match.isActive || isViewerMode) return;
-  if(match.legalBalls === 0) return;
-  if(match.legalBalls % 6 !== 0) return; // Not an over boundary
-  // Check if the modal is already open
-  var modal = document.getElementById('bowlerModal');
-  if(modal && modal.style.display === 'flex') return;
-  // Check if the last ball was actually bowled in this over
-  var lastBallTime = window.__lastBallTimestamp || 0;
-  if(Date.now() - lastBallTime < 2500) return;
-  // Only trigger once per over
-  if(window.__lastOverTriggered === match.legalBalls) return;
-  window.__lastOverTriggered = match.legalBalls;
-  promptNextBowlerModal();
-}, 1500);
+/* Safety net removed — over-end bowler prompt is handled inside recordBall() */
 function checkMatchEnd(){
   if(!match.isActive)return;
   if(inningsTransitionLock)return;
