@@ -1,1056 +1,1030 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CricMax Pro — Match Viewer</title>
-<style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;}
-  .hud{position:fixed;inset:0;pointer-events:none;z-index:9999;}
-  .top-row{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;}
-  .top-left-stack{display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:auto;}
-  .top-center{display:flex;justify-content:center;align-items:flex-start;pointer-events:auto;flex:1;min-width:0;}
-  .top-right{display:flex;gap:8px;align-items:flex-start;pointer-events:auto;}
-  .cluster{display:flex;gap:6px;background:rgba(8,14,28,.85);padding:5px 8px;border-radius:14px;backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);pointer-events:auto;align-items:center;}
-  .live{background:#ef4444;color:#fff;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:1.5px;display:inline-flex;align-items:center;gap:7px;box-shadow:0 0 16px rgba(239,68,68,.75);}
-  .live::before{content:'';width:8px;height:8px;background:#fff;border-radius:50%;animation:blink 1s infinite alternate;}
-  @keyframes blink{0%{opacity:.3;}100%{opacity:1;}}
-  .btn{background:transparent;border:1px solid rgba(255,255,255,.12);color:#cbd5e1;padding:6px 11px;border-radius:8px;font-size:10.5px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
-  .btn:hover{background:rgba(0,230,118,.18);color:#fff;border-color:rgba(0,230,118,.5);}
-  .btn.on{background:linear-gradient(135deg,#009270,#00e676);color:#0a0e1a;border-color:transparent;box-shadow:0 0 16px rgba(0,230,118,.6);}
-  .ctrl{width:38px;height:38px;border-radius:11px;background:rgba(8,14,28,.85);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(12px);transition:transform .15s;font-family:inherit;pointer-events:auto;}
-  .ctrl:active{transform:scale(.92);}
-  .ctrl.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;box-shadow:0 0 14px rgba(0,230,118,.5);color:#0a0e1a;}
-  .cam-select-center{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:12px;font-weight:800;padding:9px 16px;border-radius:12px;outline:none;cursor:pointer;font-family:inherit;backdrop-filter:blur(14px);box-shadow:0 4px 18px rgba(0,0,0,.5),0 0 20px rgba(0,230,118,.15);min-width:180px;transition:all .2s;}
-  .cam-select-center:hover{border-color:#00e676;box-shadow:0 6px 22px rgba(0,0,0,.6),0 0 24px rgba(0,230,118,.35);}
-  .cam-select-center option{background:#0b1329;color:#fff;font-weight:700;padding:6px;}
-  .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(0,230,118,.45);transition:all .2s;font-family:inherit;pointer-events:auto;z-index:10000;position:relative;}
-  .menu-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(0,230,118,.65);}
-  .menu-btn.on{background:linear-gradient(135deg,#ef4444,#f43f5e);box-shadow:0 4px 18px rgba(239,68,68,.5);}
-  .menu-btn .hamburger{font-size:16px;line-height:1;}
-  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);box-shadow:0 20px 60px rgba(0,0,0,.85), 0 0 40px rgba(0,230,118,.15);z-index:100001;pointer-events:auto;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s cubic-bezier(.175,.885,.32,1.275);visibility:hidden;}
-  #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
-  .menu-section{margin-bottom:14px;}
-  .menu-section:last-child{margin-bottom:0;}
-  .menu-title{font-size:9.5px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;margin-bottom:8px;padding-left:2px;opacity:.9;}
-  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .menu-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
-  .menu-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 8px;color:#e2e8f0;font-size:11.5px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;}
-  .menu-tile:hover{background:rgba(0,230,118,.15);border-color:rgba(0,230,118,.55);color:#fff;transform:translateY(-1px);}
-  .menu-tile:active{transform:scale(.97);}
-  .menu-tile.on{background:linear-gradient(135deg,rgba(0,146,112,.35),rgba(0,230,118,.25));border-color:#00e676;color:#fff;box-shadow:0 0 14px rgba(0,230,118,.4);}
-  .menu-tile .ico{font-size:16px;line-height:1;}
-  .menu-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:12px 0;}
-  .menu-tile-cam{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#e2e8f0;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;width:100%;outline:none;}
-  .menu-tile-cam:hover{border-color:rgba(0,230,118,.5);}
-  .menu-tile-cam option{background:#0b1329;color:#fff;font-weight:700;}
-  .bottom-wrap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:min(92vw,720px);display:flex;flex-direction:column;gap:8px;pointer-events:auto;z-index:10000;}
-  .over-summary{background:rgba(8,18,32,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;color:#cbd5e1;}
-  .over-dots{display:flex;gap:6px;align-items:center;}
-  .badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);}
-  .badge.dot{background:rgba(148,163,184,.2);color:#94a3b8;}
-  .badge.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
-  .badge.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
-  .badge.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
-  .badge.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
-  .badge.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
-  .badge.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
-  .bottom-bar{background:linear-gradient(90deg,rgba(8,18,32,.95),rgba(3,8,16,.98));border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:10px 20px;display:flex;align-items:center;gap:20px;backdrop-filter:blur(18px);color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.85);font-size:12px;font-weight:800;}
-  .bb-team{display:flex;align-items:center;gap:10px;border-right:1px solid rgba(255,255,255,.12);padding-right:16px;}
-  .bb-badge{background:#00e676;color:#0a0e1a;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:900;}
-  .bb-score{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;}
-  .bb-ov{font-size:11px;color:#94a3b8;font-weight:700;}
-  .bb-bats{display:flex;flex-direction:column;gap:2px;flex:1;}
-  .bb-row{display:flex;justify-content:space-between;font-weight:700;}
-  .bb-row.striker{color:#00e676;}
-  .bb-bowl{text-align:right;color:#22d3ee;border-left:1px solid rgba(255,255,255,.12);padding-left:16px;font-weight:700;}
-  .banner{position:absolute;top:22%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(38px,7vw,78px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .35s cubic-bezier(.175,.885,.32,1.275);pointer-events:none;text-align:center;line-height:1;}
-  .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
-  .banner.four{color:#22d3ee;text-shadow:0 0 45px #0891b2,0 8px 24px #000;}
-  .banner.six{color:#ff6d00;text-shadow:0 0 45px #fbbf24,0 8px 24px #000;}
-  .banner.wkt{color:#ef4444;text-shadow:0 0 45px #7f1d1d,0 8px 24px #000;}
-  .banner.run{color:#00e676;text-shadow:0 0 45px #009270,0 8px 24px #000;}
-  .speed-tag{position:absolute;top:80px;right:14px;background:rgba(15,23,42,.9);border:1px solid rgba(34,211,238,.4);padding:6px 14px;border-radius:8px;color:#38bdf8;font-family:monospace;font-size:14px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;}
-  .speed-tag.on{opacity:1;}
-  #wagonWheelCanvas{position:absolute;top:80px;left:14px;width:150px;height:150px;background:rgba(8,15,30,0.88);border:1px solid rgba(255,255,255,0.2);border-radius:50%;pointer-events:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.7);z-index:10001;}
-  @media(max-width:700px){
-    .cam-select-center{min-width:120px;padding:8px 10px;font-size:11px;}
-    .menu-btn{padding:8px 12px;font-size:11px;}
-    #menuPanel{width:min(94vw,320px);}
-    .bottom-bar{padding:8px 12px;gap:10px;font-size:11px;}
-    .bb-score{font-size:18px;}
-    .live{padding:5px 10px;font-size:10px;}
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>CricMax Pro</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
+      authDomain: "cricket-8cb1b.firebaseapp.com",
+      projectId: "cricket-8cb1b",
+      storageBucket: "cricket-8cb1b.firebasestorage.app",
+      messagingSenderId: "489545634269",
+      appId: "1:489545634269:web:2eaadaa0cee4e88270e634",
+      measurementId: "G-HBFFJTJWG2"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      window.fbAuth = getAuth(app);
+      window.fbDb = getFirestore(app);
+      window.fbDoc = doc;
+      window.fbSetDoc = setDoc;
+      window.fbGetDoc = getDoc;
+      window.fbOnSnapshot = onSnapshot;
+      window.fbSignInAnonymously = signInAnonymously;
+      window.fbOnAuthStateChanged = onAuthStateChanged;
+      window.firebaseReady = false;
+      console.log("🔥 Firebase SDK initialized");
+    } catch (e) {
+      console.error("Firebase init failed:", e);
+    }
+  </script>
+
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Prevent accidental pull-to-refresh or back swipe reloads */
+    body {
+      overscroll-behavior: contain;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Prevent double-tap zoom lag on fast keypad taps */
+    button, .pad-btn, .home-main-btn {
+      touch-action: manipulation;
+    }
+
+    /* Keep Modals strictly above fixed UI widgets */
+    .modal-overlay {
+      z-index: 100050 !important;
+    }
+
+    /* VPP (3D Viewer) Toolbar */
+    #vppToolbar {
+      display: none;
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+      pointer-events: auto;
+    }
+    #vppToolbar .vpp-row { display: flex; gap: 6px; }
+    #vppToolbar button {
+      backdrop-filter: blur(12px);
+      background: rgba(10, 14, 26, .75);
+      border: 1px solid rgba(255, 255, 255, .18);
+      color: #fff;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-weight: 900;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+    }
+    #vppToolbar button:hover {
+      background: rgba(0, 230, 118, .25);
+      border-color: #00e676;
+      box-shadow: 0 0 14px rgba(0, 230, 118, .5);
+    }
+    #vppToolbar button.btn-primary {
+      background: linear-gradient(135deg, #009270, #00e676);
+      border-color: transparent;
+    }
+
+    /* Pulsing LIVE Badge for Spectators */
+    #vppLiveBadge {
+      display: none;
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      z-index: 9999;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 16px;
+      background: linear-gradient(135deg, rgba(220, 20, 60, .95), rgba(180, 10, 50, .98));
+      border: 1px solid rgba(255, 255, 255, .35);
+      border-radius: 24px;
+      box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4);
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+      animation: vppLivePulse 1.6s ease-in-out infinite;
+    }
+    #vppLiveBadge .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, .95);
+      animation: vppDotBlink 1.1s ease-in-out infinite;
+    }
+    #vppLiveBadge .live-text {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+    }
+    @keyframes vppLivePulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); }
+      50% { transform: scale(1.05); box-shadow: 0 10px 34px rgba(220, 20, 60, .75), 0 0 34px rgba(255, 60, 90, .65); }
+    }
+    @keyframes vppDotBlink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .35; transform: scale(.8); }
+    }
+  </style>
 </head>
 <body>
 
-<div class="hud">
-  <div class="top-row">
-    <div class="top-left-stack">
-      <div class="cluster"><div class="live">VR LIVE</div></div>
-      <div class="cluster" style="gap:6px;">
-        <div class="ctrl on" id="util-snd" onclick="toggleAudio()" title="Sound"><span id="snd-ico">🔊</span></div>
-        <div class="ctrl" onclick="triggerReplay()" title="Replay">↻</div>
-        <div class="ctrl" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
+<div id="topCinematicBanner" class="top-cinematic-banner fx-four">
+  <div class="top-banner-title" id="topBannerTitle">FOUR!</div>
+  <div class="top-banner-sub" id="topBannerSub">Boundary Scored</div>
+</div>
+
+<div id="wagonFlashGlobal" class="wagon-flash-overlay-global">
+  <div class="wagon-flash-text" id="wagonFlashText">FOUR!</div>
+  <div class="wagon-flash-sub" id="wagonFlashSub">Through covers!</div>
+</div>
+
+<div id="iplOpening" class="ipl-opening">
+  <div class="ipl-bg-glow"></div>
+  <div class="ipl-pulse-ring"></div><div class="ipl-pulse-ring"></div><div class="ipl-pulse-ring"></div>
+  <div class="ipl-light-streak left-streak"></div>
+  <div class="ipl-light-streak right-streak"></div>
+  <div class="ipl-top-label" id="iplTopLabel">⚡ CRICMAX PRO ⚡</div>
+  <div class="ipl-stage">
+    <div class="ipl-team ipl-team-left">
+      <div class="ipl-team-badge" id="iplTeam1Badge">T1</div>
+      <div class="ipl-team-name" id="iplTeam1Name">Team One</div>
+    </div>
+    <div class="ipl-vs-wrap">
+      <div class="ipl-vs-text">VS</div>
+      <div class="ipl-begin-text" id="iplBeginText">Match Begins</div>
+    </div>
+    <div class="ipl-team ipl-team-right">
+      <div class="ipl-team-badge" id="iplTeam2Badge">T2</div>
+      <div class="ipl-team-name" id="iplTeam2Name">Team Two</div>
+    </div>
+  </div>
+  <div class="ipl-countdown" id="iplCountdown"></div>
+  <div class="ipl-bottom-text" id="iplVenueText">Stadium</div>
+</div>
+
+<div id="tvMode" class="tv-mode">
+  <button class="tv-close" onclick="toggleTVMode()">✕ Exit</button>
+  <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
+  <div class="tv-score" id="tvScore">0/0</div>
+  <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
+  <div style="margin-top:24px;display:flex;gap:40px;font-size:22px;flex-wrap:wrap;justify-content:center;" id="tvBatters"></div>
+  <div style="margin-top:30px;display:flex;gap:14px;" id="tvRecent"></div>
+</div>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-teams">
+    <div class="loading-team">
+      <div class="loading-team-abbr" id="loadTeam1">T1</div>
+      <div class="loading-team-name" id="loadTeam1Name">Team 1</div>
+    </div>
+    <div class="loading-vs">VS</div>
+    <div class="loading-team">
+      <div class="loading-team-abbr" id="loadTeam2">T2</div>
+      <div class="loading-team-name" id="loadTeam2Name">Team 2</div>
+    </div>
+  </div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  <div class="loading-text">Loading Match...</div>
+</div>
+
+<header class="top-bar">
+  <button class="btn-share-viewer" onclick="shareViewerOnly()" title="Share Viewer Link">📤</button>
+  <div class="title-box">
+    <h1 id="headerMainTitle">Cric<span>Max</span> Pro</h1>
+    <p id="headerSubTitle">Tournament & Match Hub</p>
+  </div>
+  <div class="top-actions">
+    <span class="viewer-badge">📺 Viewer</span>
+    <button class="top-icon-btn" id="btnSoundToggle" style="display:none;" onclick="toggleCommentaryVoice()" title="Toggle Live Commentary"><span id="soundIcon">🔇</span></button>
+    <button class="top-icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+    <button class="top-icon-btn" onclick="toggleTVMode()" title="TV Mode">📺</button>
+    <button class="top-icon-btn" id="btnBackHome" style="display:none;" onclick="goToHomeScreen()" title="Home">🏠</button>
+    <button class="top-icon-btn" id="undoBtn" style="display:none;" onclick="undoDelivery()" title="Undo" disabled>↺</button>
+  </div>
+</header>
+
+<section id="view-home">
+  <div class="hero-wrap">
+    <div class="hero-badge">LIVE CRICKET</div>
+    <h2 class="hero-title">
+      <span style="color:var(--text);">Welcome to</span><br>
+      <span class="gradient-text">CricMax Pro</span>
+    </h2>
+    <div class="home-btn-grid">
+      <button class="home-main-btn" onclick="openTournamentPicker()">
+        <span class="h-icon">🏆</span>
+        <div class="h-title">Tournament</div>
+        <div class="h-sub">Start or resume</div>
+      </button>
+      <button class="home-main-btn primary" onclick="openMatchPicker()">
+        <span class="h-icon">🏏</span>
+        <div class="h-title">Match</div>
+        <div class="h-sub">Start or resume</div>
+      </button>
+      <button class="home-main-btn" onclick="launchDashboard('teams')">
+        <span class="h-icon">👥</span>
+        <div class="h-title">Teams</div>
+        <div class="h-sub">Manage squads</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- 3D Stadium Overlay Controls -->
+<div id="vppToolbar">
+  <div class="vpp-row">
+    <button onclick="vppNavTo('pitch')" class="btn-primary">🏏 3D Pitch</button>
+    <button onclick="vppNavTo('scorecard')">🃏 Card</button>
+    <button onclick="vppNavTo('analytics')">📊 Analysis</button>
+    <button onclick="vppNavTo('leaderboards')">📈 Stats</button>
+  </div>
+  <div class="vpp-row">
+    <button onclick="vppToggleSound()" id="vppSndBtn" title="Toggle Commentary">🔊</button>
+    <button onclick="vppReplay()" title="Replay Last Ball">🔁</button>
+    <button onclick="vppFullscreen()" title="Fullscreen">⛶</button>
+  </div>
+</div>
+
+<div id="vppLiveBadge">
+  <span class="live-dot"></span>
+  <span class="live-text">LIVE</span>
+</div>
+
+<section id="vpp" class="vpp" style="display:none;"></section>
+
+<section id="view-dashboard">
+  <nav class="tab-nav" id="topTabNav">
+    <div class="tab-btn" onclick="selectSubPane('tournament')">Tournament</div>
+    <div class="tab-btn active" onclick="selectSubPane('live')">Live</div>
+    <div class="tab-btn" onclick="selectSubPane('summary')">Summary</div>
+    <div class="tab-btn" onclick="selectSubPane('scorecard')">Card</div>
+    <div class="tab-btn" onclick="selectSubPane('analytics')">Analysis</div>
+    <div class="tab-btn" onclick="selectSubPane('leaderboards')">Stats</div>
+    <div class="tab-btn" onclick="selectSubPane('teams')">Teams</div>
+    <div class="tab-btn" onclick="selectSubPane('info')">Info</div>
+  </nav>
+
+  <div class="sub-pane" id="pane-tournament">
+    <div class="pad-title">Tournament Profile</div>
+    <div class="panel-card" style="border:1px solid rgba(0,230,118,.4);">
+      <div style="font-size:20px;font-weight:900;" id="tournNameDisplay">Tournament Not Set</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="tournMetaDisplay">Tap Edit to configure</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+        <button class="btn-ui" style="padding:12px;font-size:12px;" onclick="openTournamentModal()">✎ Edit</button>
+        <button class="btn-ui btn-primary" style="padding:12px;font-size:12px;" id="btnContinueTourn" onclick="continueFromTournament()">▶ Continue</button>
+      </div>
+      <button class="btn-ui btn-primary" id="btnStartNewMatch" style="width:100%;margin-top:8px;padding:12px;font-size:12px;" onclick="startNewMatchFlow()">🏏 Start New Match</button>
+      <div id="continueHint" style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center;font-style:italic;"></div>
+    </div>
+    <div class="section-header-banner"><span>📊</span> Points Table</div>
+    <div class="panel-card" style="padding:8px;overflow-x:auto;">
+      <div class="points-table-row header"><div>#</div><div>Team</div><div>P</div><div>W</div><div>L</div><div>Pts</div><div>NRR</div></div>
+      <div id="pointsTableBody"></div>
+    </div>
+    <div class="section-header-banner"><span>📜</span> Past Matches</div>
+    <div id="pastMatchesContainer"></div>
+  </div>
+
+  <div class="sub-pane active" id="pane-live">
+    <div class="panel-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
+        <div id="liveShareBadge" style="display:none;align-items:center;gap:6px;padding:5px 12px;background:rgba(0,230,118,.12);border:1px solid var(--green);border-radius:20px;font-size:11px;font-weight:800;color:var(--green);">
+          <span id="liveViewerPulse" style="width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);opacity:.35;transition:opacity .3s;"></span>
+          <span>LIVE • Code: <b id="liveShareCodeText">------</b></span>
+          <button onclick="shareViewerOnly()" style="background:transparent;border:none;color:var(--cyan);font-weight:900;font-size:11px;cursor:pointer;padding:0 4px;">📤 Share</button>
+        </div>
+        <div style="flex:1;"></div>
+      </div>
+      <div class="score-banner">
+        <div class="score-total" id="liveScoreText"><span class="team-name">Team</span><span class="score-num">0/0</span></div>
+        <div class="rates-box">
+          <div>CRR: <span id="crrVal">0.00</span></div>
+          <div id="targetBlock" style="display:none;">Target: <span id="targetVal" style="color:var(--gold);">--</span> • RRR: <span id="rrrVal" style="color:var(--cyan);">--</span></div>
+        </div>
+      </div>
+      <div class="over-commentary-strip" id="overCommentaryStrip"></div>
+    </div>
+    <div class="inplay-grid">
+      <div class="inplay-card striker">
+        <div class="inplay-title"><span id="strikerName">Striker*</span><span id="strikerRuns">0 (0)</span></div>
+        <div class="inplay-meta">SR: <span id="strikerSR">0.0</span> • 4s: <span id="striker4s">0</span> • 6s: <span id="striker6s">0</span></div>
+      </div>
+      <div class="inplay-card">
+        <div class="inplay-title"><span id="nonStrikerName">Non-Striker</span><span id="nonStrikerRuns">0 (0)</span></div>
+        <div class="inplay-meta">SR: <span id="nonStrikerSR">0.0</span> • 4s: <span id="nonStriker4s">0</span> • 6s: <span id="nonStriker6s">0</span></div>
       </div>
     </div>
-    <div class="top-center">
-      <select class="cam-select-center" id="camSel" onchange="setCamera(this.value)">
-        <option value="broadcast">📺 TV Broadcast</option>
-        <option value="bowler">🎯 Bowler View</option>
-        <option value="keeper">🧤 Keeper View</option>
-        <option value="slip">👐 Slip Cord</option>
-        <option value="side">🎬 Square Side</option>
-        <option value="drone">🚁 Drone</option>
-        <option value="helmet">⛑️ Helmet Cam</option>
-        <option value="follow">⚾ Ball Follow</option>
-      </select>
+    <div class="inplay-card" style="margin-bottom:12px;">
+      <div class="inplay-title"><span id="bowlerName">Bowler</span><span id="bowlerFigures">0.0-0-0-0</span></div>
+      <div class="inplay-meta">Economy: <span id="bowlerEco">0.00</span></div>
     </div>
-    <div class="top-right">
-      <button class="btn on" id="btn-dir" onclick="toggleDirector()">🎬 Director</button>
-      <button class="menu-btn" id="btn-menu" onclick="toggleMenu(event)"><span class="hamburger">☰</span> MENU</button>
+    <div class="scoring-only">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="pad-title" style="margin:0;">Scoring Keypad</div>
+        <button class="top-icon-btn" onclick="openSettingsModal()" style="width:38px;height:38px;font-size:18px;" title="Scoring Settings">⚙️</button>
+      </div>
+      <div class="btn-row">
+        <button class="pad-btn" onclick="recordBall(0)">0</button>
+        <button class="pad-btn" onclick="promptWagonWheel(1)">1</button>
+        <button class="pad-btn" onclick="promptWagonWheel(2)">2</button>
+        <button class="pad-btn" onclick="promptWagonWheel(3)">3</button>
+        <button class="pad-btn" style="background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="promptWagonWheel(4)">4</button>
+        <button class="pad-btn" style="background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="promptWagonWheel(6)">6</button>
+      </div>
+      <div class="btn-extra-row">
+        <button class="pad-btn btn-wd-nb" onclick="promptWideWithRuns()">Wide</button>
+        <button class="pad-btn btn-wd-nb" onclick="promptNoBallWithRuns()">No Ball</button>
+        <button class="pad-btn btn-wd-nb" onclick="recordBall(1,'B')">Bye</button>
+        <button class="pad-btn btn-wkt" onclick="promptWicketTypeModal()">WICKET</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="btn-ui" style="flex:1;" onclick="swapStrikers()">⇄ Swap</button>
+        <button class="btn-ui" style="flex:1;" onclick="promptNextBowlerModal()">⚾ Bowler</button>
+        <button class="btn-ui" style="flex:1;background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--gold);" onclick="endInningsPrompt()">🏁 End Innings</button>
+      </div>
+      <div id="settingsQuickSummary" style="font-size:10.5px;color:var(--muted);text-align:center;margin-top:6px;font-style:italic;"></div>
+    </div>
+    <div class="pad-title" style="margin-top:20px;">🎙️ Ball-by-Ball Commentary</div>
+    <div id="commentaryContainer"></div>
+  </div>
+
+  <div class="sub-pane" id="pane-summary">
+    <div class="pad-title">Partnership</div>
+    <div class="panel-card"><div style="font-size:16px;font-weight:800;" id="partRuns">0 runs</div><div style="font-size:12px;color:var(--muted);margin-top:4px;" id="partDetails">Striker: 0 | Non-Striker: 0</div></div>
+    <div class="pad-title">Fall of Wickets</div>
+    <div class="panel-card" id="fowContainer">No wickets yet.</div>
+  </div>
+
+  <div class="sub-pane" id="pane-scorecard">
+    <div style="display:flex;gap:4px;margin-bottom:10px;padding:4px;background:rgba(255,255,255,.03);border-radius:10px;overflow-x:auto;">
+      <div class="sc-tab active" onclick="switchScorecardTab(this,'batting')">🏏 Batting</div>
+      <div class="sc-tab" onclick="switchScorecardTab(this,'bowling')">⚾ Bowling</div>
+    </div>
+    <div id="sc-batting">
+      <div class="pad-title" id="battingTeamTitle">Batting</div>
+      <table class="table-responsive"><thead><tr><th>Batter</th><th class="text-right">R</th><th class="text-right">B</th><th class="text-right">4s</th><th class="text-right">6s</th><th class="text-right">SR</th></tr></thead><tbody id="battingTableBody"></tbody></table>
+    </div>
+    <div id="sc-bowling" style="display:none;">
+      <div class="pad-title" id="bowlingTeamTitle">Bowling</div>
+      <table class="table-responsive"><thead><tr><th>Bowler</th><th class="text-right">O</th><th class="text-right">M</th><th class="text-right">R</th><th class="text-right">W</th><th class="text-right">ECO</th></tr></thead><tbody id="bowlingTableBody"></tbody></table>
     </div>
   </div>
 
-  <div id="menuPanel">
-    <div class="menu-section">
-      <div class="menu-title">Navigate</div>
-      <div class="menu-grid">
-        <button class="menu-tile on" data-pane="pitch" onclick="navTo('pitch')"><span class="ico">🏏</span> 3D Pitch</button>
-        <button class="menu-tile" data-pane="scorecard" onclick="navTo('scorecard')"><span class="ico">🃏</span> Card</button>
-        <button class="menu-tile" data-pane="analytics" onclick="navTo('analytics')"><span class="ico">📊</span> Analysis</button>
-        <button class="menu-tile" data-pane="leaderboards" onclick="navTo('leaderboards')"><span class="ico">📈</span> Stats</button>
+  <div class="sub-pane" id="pane-analytics">
+    <div class="nzc-layout">
+      <div class="nzc-left">
+        <div class="nzc-card">
+          <h3 class="nzc-card-title">Manhattan / Worm</h3>
+          <div class="nzc-toggle-row">
+            <button class="nzc-toggle active" id="btnManhattan" onclick="switchRunChart('manhattan')">Manhattan</button>
+            <button class="nzc-toggle" id="btnWorm" onclick="switchRunChart('worm')">Worm</button>
+          </div>
+          <canvas id="runChartCanvas" width="800" height="380" class="nzc-chart"></canvas>
+          <div class="nzc-legend">
+            <div class="nzc-legend-item"><span class="nzc-dot" style="background:#f8fafc;border:2px solid #0f172a;"></span> <span id="nzcLegendTeam1">Team 1</span></div>
+            <div class="nzc-legend-item"><span class="nzc-dot" style="background:#a855f7;"></span> <span id="nzcLegendTeam2">Team 2</span></div>
+            <div class="nzc-legend-item"><span style="color:#fff;font-weight:900;font-size:11px;">W</span> Wicket</div>
+          </div>
+        </div>
+        <div class="nzc-card"><h3 class="nzc-card-title">Partnerships</h3><div id="nzcPartnershipsList"></div></div>
       </div>
-    </div>
-    <div class="menu-divider"></div>
-    <div class="menu-section">
-      <div class="menu-title">Environment</div>
-      <div class="menu-grid-3">
-        <button class="menu-tile on" id="env-day" onclick="setSky('day')"><span class="ico">☀️</span> Day</button>
-        <button class="menu-tile" id="env-sunset" onclick="setSky('sunset')"><span class="ico">🌇</span> Sunset</button>
-        <button class="menu-tile" id="env-night" onclick="setSky('night')"><span class="ico">🌙</span> Night</button>
-      </div>
-    </div>
-    <div class="menu-divider"></div>
-    <div class="menu-section">
-      <div class="menu-title">Camera</div>
-      <select class="menu-tile-cam" id="camSelMenu" onchange="setCamera(this.value)">
-        <option value="broadcast">📺 TV Broadcast</option>
-        <option value="bowler">🎯 Bowler View</option>
-        <option value="keeper">🧤 Keeper View</option>
-        <option value="slip">👐 Slip Cord</option>
-        <option value="side">🎬 Square Side</option>
-        <option value="drone">🚁 Drone</option>
-        <option value="helmet">⛑️ Helmet Cam</option>
-        <option value="follow">⚾ Ball Follow</option>
-      </select>
-    </div>
-    <div class="menu-divider"></div>
-    <div class="menu-section" style="margin-bottom:0;">
-      <div class="menu-title">Utilities</div>
-      <div class="menu-grid-3">
-        <button class="menu-tile" id="util-wagon" onclick="toggleWagonWheel()"><span class="ico">🕸️</span> Wagon</button>
-        <button class="menu-tile" onclick="simFeedScoringTab()"><span class="ico">⚡</span> Feed</button>
-        <button class="menu-tile" onclick="toggleMenu(event)"><span class="ico">✕</span> Close</button>
+      <div class="nzc-right">
+        <div class="nzc-card">
+          <h3 class="nzc-card-title">Wagon Wheel / Spider / Catch Map</h3>
+          <div class="nzc-team-toggle">
+            <button class="active" id="teamToggle1" onclick="switchWagonTeam(1)">1st Innings</button>
+            <button id="teamToggle2" onclick="switchWagonTeam(2)">2nd Innings</button>
+          </div>
+          <div class="nzc-wagon-tabs">
+            <button class="nzc-wagon-tab active" id="wagonTabWagon" onclick="switchWagonMode('wagon')">Wagon</button>
+            <button class="nzc-wagon-tab" id="wagonTabSpider" onclick="switchWagonMode('spider')">Spider</button>
+            <button class="nzc-wagon-tab" id="wagonTabCatch" onclick="switchWagonMode('catch')">Catch map</button>
+          </div>
+          <div class="nzc-wagon-canvas-wrap"><canvas id="nzcWagonCanvas" width="440" height="440"></canvas></div>
+          <div class="nzc-wagon-legend" id="nzcWagonLegend" style="display:none;">
+            <div class="nzc-legend-item"><span style="background:#94a3b8;height:2px;width:22px;display:inline-block;"></span> 1+</div>
+            <div class="nzc-legend-item"><span style="background:#22d3ee;height:2px;width:22px;display:inline-block;"></span> 4</div>
+            <div class="nzc-legend-item"><span style="background:#d946ef;height:2px;width:22px;display:inline-block;"></span> 6</div>
+          </div>
+          <div id="nzcWagonSummary" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="speed-tag" id="speedTag">SPEED: -- KM/H</div>
-  <canvas id="wagonWheelCanvas" width="300" height="300"></canvas>
-  <div class="banner" id="banner">FOUR!</div>
-
-  <div class="bottom-wrap">
-    <div class="over-summary">
-      <span>THIS OVER:</span>
-      <div class="over-dots" id="overDotsContainer"></div>
-      <span id="overTotalRuns">0 RUNS</span>
+  <div class="sub-pane" id="pane-leaderboards">
+    <div class="section-header-banner"><span>🏅</span> Match Stats Hub</div>
+    <div class="stat-pill-strip">
+      <button class="stat-pill active" onclick="renderStatsCategory('mvp',this)">🌟 MVP</button>
+      <button class="stat-pill" onclick="renderStatsCategory('runs',this)">🏏 Most Runs</button>
+      <button class="stat-pill" onclick="renderStatsCategory('wickets',this)">⚾ Most Wickets</button>
+      <button class="stat-pill" onclick="renderStatsCategory('fours',this)">⚡ Most 4s</button>
+      <button class="stat-pill" onclick="renderStatsCategory('sixes',this)">🔥 Most 6s</button>
+      <button class="stat-pill" onclick="renderStatsCategory('batting',this)">📊 Full Batting</button>
+      <button class="stat-pill" onclick="renderStatsCategory('bowling',this)">🎯 Full Bowling</button>
+      <button class="stat-pill" onclick="renderStatsCategory('fielding',this)">🧤 Fielding</button>
     </div>
-    <div class="bottom-bar">
-      <div class="bb-team">
-        <span class="bb-badge" id="bbAbbr">T1</span>
-        <span class="bb-score" id="bbScore">0/0</span>
-        <span class="bb-ov" id="bbOvers">(0.0)</span>
+    <div class="panel-card" style="padding:0;overflow-x:auto;">
+      <table class="stat-big-table" id="statsMainTable">
+        <thead id="statsTableHead"></thead>
+        <tbody id="statsTableBody"></tbody>
+      </table>
+    </div>
+    <div class="section-header-banner" style="margin-top:16px;"><span>💾</span> Export Center</div>
+    <div class="panel-card">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Download or share full stats & commentary reports.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="btn-ui btn-primary" style="flex:1;" onclick="saveMatchToLocalStorage()">💾 Save State</button>
+        <button class="btn-ui" style="flex:1;" onclick="loadMatchFromLocalStorage()">📂 Restore</button>
       </div>
-      <div class="bb-bats">
-        <div class="bb-row striker"><span id="bbStriker">Striker*</span><b id="bbStrikerRuns">0(0)</b></div>
-        <div class="bb-row"><span id="bbNonStriker">Non-Striker</span><b id="bbNonStrikerRuns">0(0)</b></div>
+      <div class="export-grid">
+        <button class="btn-export pdf" onclick="exportCommentaryPDF()"><span>📑</span> Commentary PDF</button>
+        <button class="btn-export pdf" onclick="exportStatsReportPDF()"><span>📑</span> Full Stats PDF</button>
+        <button class="btn-export" onclick="exportBallByBallCommentaryTXT()"><span>📄</span> Commentary TXT</button>
+        <button class="btn-export" onclick="exportFullMatchStatsCSV()"><span>📊</span> Full Stats CSV</button>
+        <button class="btn-export" onclick="exportCompleteMatchJSON()"><span>📦</span> Match JSON</button>
+        <button class="btn-export" onclick="exportTournamentPointsCSV()"><span>🏆</span> Points CSV</button>
+        <button class="btn-export" onclick="exportScorecardImage()"><span>📷</span> Scorecard PNG</button>
+        <button class="btn-export" onclick="copyCommentaryLink()"><span>🔗</span> Share Link</button>
       </div>
-      <div class="bb-bowl">
-        <div id="bbBowler">Bowler</div>
-        <div id="bbBowlerFigs" style="color:#fff">0.0-0-0-0</div>
+    </div>
+  </div>
+
+  <div class="sub-pane" id="pane-teams">
+    <div class="panel-card" style="border-left:4px solid var(--purple);">
+      <div style="font-size:13px;font-weight:900;margin-bottom:4px;">Create New Team</div>
+      <div class="add-player-inline">
+        <input type="text" id="newTeamNameInput" class="form-control" placeholder="Team name">
+        <button class="btn-ui btn-primary" onclick="createNewTeamFromTab()">➕</button>
       </div>
+    </div>
+    <div id="teamsListContainer"></div>
+  </div>
+
+  <div class="sub-pane" id="pane-info">
+    <div class="panel-card" style="font-size:13px;line-height:1.9;">
+      <div><b>Tournament:</b> <span id="infoTourn">--</span></div>
+      <div><b>Fixture:</b> <span id="infoFixture">--</span></div>
+      <div><b>Venue:</b> <span id="infoVenue">--</span></div>
+      <div><b>Overs:</b> <span id="infoOvers">20</span></div>
+    </div>
+  </div>
+</section>
+
+<nav class="bottom-match-nav" id="bottomMatchNav">
+  <div class="bottom-nav-inner">
+    <button class="bottom-nav-btn" id="bNav-live" onclick="bottomNavAction('live')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>Scoring</button>
+    <button class="bottom-nav-btn" id="bNav-scorecard" onclick="bottomNavAction('scorecard')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></span>Card</button>
+    <button class="bottom-nav-btn nav-center" id="bNav-more" onclick="bottomNavAction('more')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg></span>More</button>
+    <button class="bottom-nav-btn" id="bNav-analytics" onclick="bottomNavAction('analytics')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 12l4-4 4 4 5-5"/></svg></span>Analysis</button>
+    <button class="bottom-nav-btn" id="bNav-leaderboards" onclick="bottomNavAction('leaderboards')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg></span>Stats</button>
+  </div>
+</nav>
+
+<div class="modal-overlay" id="tournamentPickerModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:12px;margin-bottom:14px;">
+      <h3 style="font-size:18px;font-weight:900;">🏆 Tournament</h3>
+      <button class="btn-ui" onclick="closeModal('tournamentPickerModal')">✕</button>
+    </div>
+    <button class="btn-ui btn-primary" style="width:100%;padding:16px;font-size:14px;font-weight:900;margin-bottom:18px;" onclick="closeModal('tournamentPickerModal');startNewTournamentFlow();">✨ Start New Tournament</button>
+    <div id="pastTournamentsList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="matchPickerModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:12px;margin-bottom:14px;">
+      <h3 style="font-size:18px;font-weight:900;">🏏 Match</h3>
+      <button class="btn-ui" onclick="closeModal('matchPickerModal')">✕</button>
+    </div>
+    <button class="btn-ui btn-primary" style="width:100%;padding:16px;font-size:14px;font-weight:900;margin-bottom:10px;" onclick="closeModal('matchPickerModal');startNewMatchFromHome();">✨ Start New Match</button>
+    <button class="btn-ui" id="btnResumeMatchFromHome" style="width:100%;padding:16px;font-size:14px;font-weight:900;display:none;background:rgba(0,230,118,.15);border-color:var(--green);color:var(--green);" onclick="closeModal('matchPickerModal');resumeMatchFromHome();">▶ Resume Match</button>
+    <div id="matchPickerHint" style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;font-style:italic;"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="inningsBreakModal">
+  <div class="modal-card" style="width:min(94vw,580px);">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:12px;">
+      <div>
+        <h3 style="font-size:17px;font-weight:900;color:var(--gold);" id="breakModalTitle">Innings Concluded</h3>
+        <span style="font-size:11px;color:var(--cyan);font-weight:700;" id="breakTargetSummary">Target: -- runs</span>
+      </div>
+      <button class="btn-ui" onclick="closeModal('inningsBreakModal')">✕</button>
+    </div>
+    <div class="pad-title" style="margin-top:4px;">1st Innings Batting Scorecard</div>
+    <table class="table-responsive" style="margin-bottom:12px;">
+      <thead><tr><th>Batter</th><th class="text-right">R</th><th class="text-right">B</th><th class="text-right">4s</th><th class="text-right">6s</th><th class="text-right">SR</th></tr></thead>
+      <tbody id="breakBattingBody"></tbody>
+    </table>
+    <div class="pad-title">1st Innings Bowling Figures</div>
+    <table class="table-responsive" style="margin-bottom:12px;">
+      <thead><tr><th>Bowler</th><th class="text-right">O</th><th class="text-right">M</th><th class="text-right">R</th><th class="text-right">W</th><th class="text-right">ECO</th></tr></thead>
+      <tbody id="breakBowlingBody"></tbody>
+    </table>
+    <div class="pad-title">Fall of Wickets</div>
+    <div class="panel-card" style="margin-bottom:14px;" id="breakFowBody">No wickets fell.</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn-ui" onclick="closeModal('inningsBreakModal')">Review Later</button>
+      <button class="btn-ui btn-primary" onclick="proceedToSecondInningsSetup()">Start 2nd Innings ▶</button>
     </div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="stadium.js"></script> <script src="cricket-data.js"></script>
-<script src="shot-library.js"></script>
-<script src="fielding-ai.js"></script>
+<div class="modal-overlay" id="playerCareerModal">
+  <div class="modal-card" style="width:min(94vw,620px);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <div style="flex:1;min-width:0;">
+        <h3 style="font-size:18px;font-weight:900;color:#fff;word-break:break-word;" id="careerPlayerName">Player</h3>
+        <span style="font-size:11px;color:var(--cyan);font-weight:700;" id="careerPlayerTeam">Career Performance</span>
+      </div>
+      <button class="btn-ui" onclick="closeModal('playerCareerModal')">✕</button>
+    </div>
+    <div class="section-header-banner" style="margin-top:0;"><span>🏏</span> Batting Career</div>
+    <div class="career-stat-grid">
+      <div class="career-stat-box"><div class="career-stat-val" id="cMatches">0</div><div class="career-stat-lbl">Matches</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cRuns" style="color:var(--green);">0</div><div class="career-stat-lbl">Runs</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cHS" style="color:var(--gold);">0</div><div class="career-stat-lbl">High Score</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cAvg">0.0</div><div class="career-stat-lbl">Average</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cSR">0.0</div><div class="career-stat-lbl">Strike Rate</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cBallsFaced">0</div><div class="career-stat-lbl">Balls Faced</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cFifties" style="color:var(--cyan);">0</div><div class="career-stat-lbl">50s</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cHundreds" style="color:var(--purple);">0</div><div class="career-stat-lbl">100s</div></div>
+    </div>
+    <div class="section-header-banner"><span>⚾</span> Bowling Career</div>
+    <div class="career-stat-grid">
+      <div class="career-stat-box"><div class="career-stat-val" id="cWickets" style="color:var(--red);">0</div><div class="career-stat-lbl">Wickets</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cOvers">0.0</div><div class="career-stat-lbl">Overs</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cBowlRuns">0</div><div class="career-stat-lbl">Runs Conceded</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cBest">—</div><div class="career-stat-lbl">Best Bowl</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cEco">0.0</div><div class="career-stat-lbl">Economy</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cBowlAvg">—</div><div class="career-stat-lbl">Bowl Avg</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cBowlSR">—</div><div class="career-stat-lbl">Bowl SR</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cMaidens">0</div><div class="career-stat-lbl">Maidens</div></div>
+    </div>
+    <div class="section-header-banner"><span>🧤</span> Fielding Career</div>
+    <div class="career-stat-grid">
+      <div class="career-stat-box"><div class="career-stat-val" id="cCatches">0</div><div class="career-stat-lbl">Catches</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cStumpings">0</div><div class="career-stat-lbl">Stumpings</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cRunOuts">0</div><div class="career-stat-lbl">Run Outs</div></div>
+      <div class="career-stat-box"><div class="career-stat-val" id="cTotalDismissals" style="color:var(--gold);">0</div><div class="career-stat-lbl">Total Dismissals</div></div>
+    </div>
+    <div class="section-header-banner"><span>📋</span> Match Log</div>
+    <div id="careerMatchLog"></div>
+    <div style="text-align:right;margin-top:14px;"><button class="btn-ui btn-primary" onclick="closeModal('playerCareerModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="moreOptionsModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:14px;font-size:16px;color:var(--cyan);">More Options</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-ui" style="text-align:left;padding:12px;" onclick="closeModal('moreOptionsModal');shareViewerOnly();"><b>📤 Share Viewer Link</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;" onclick="closeModal('moreOptionsModal');selectSubPane('teams');"><b>👥 Teams</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;" onclick="closeModal('moreOptionsModal');toggleTVMode();"><b>📺 TV Mode</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(34,211,238,.15);border-color:var(--cyan);" onclick="closeModal('moreOptionsModal');openSettingsModal();"><b>⚙️ Scoring Settings</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(168,85,247,.15);border-color:var(--purple);" onclick="closeModal('moreOptionsModal');openExtrasModal();"><b>➕ Match Extras</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(255,109,0,.15);border-color:var(--orange);" onclick="closeModal('moreOptionsModal');endInningsPrompt();"><b>🏁 End Innings</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.15);border-color:var(--red);" onclick="closeModal('moreOptionsModal');endMatchAndDeclareWinner();"><b>🎯 End Match</b></button>
+    </div>
+    <div style="text-align:right;margin-top:14px;"><button class="btn-ui" onclick="closeModal('moreOptionsModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:900;color:var(--cyan);">⚙️ Scoring Settings</h3>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">Quick actions & scoring rules</p>
+      </div>
+      <button class="btn-ui" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+    <div class="settings-block" style="background:linear-gradient(135deg,rgba(0,230,118,.12),rgba(34,211,238,.06));border-color:rgba(0,230,118,.45);">
+      <div class="settings-block-title" style="color:var(--green);">⚡ Quick Actions</div>
+      <div class="quick-action-grid">
+        <button class="btn-ui" style="padding:12px;font-size:12px;font-weight:800;" onclick="closeModal('settingsModal');recordBall(0,'LB')">🦵 Leg Bye</button>
+        <button class="btn-ui" style="padding:12px;font-size:12px;font-weight:800;" onclick="closeModal('settingsModal');promptWideWithRuns()">🏃 Wide+Runs</button>
+        <button class="btn-ui" style="padding:12px;font-size:12px;font-weight:800;" onclick="closeModal('settingsModal');promptNoBallWithRuns()">⚡ NB+Runs</button>
+        <button class="btn-ui" style="padding:12px;font-size:12px;font-weight:800;background:rgba(168,85,247,.15);border-color:var(--purple);color:#e9d5ff;" onclick="closeModal('settingsModal');openExtrasModal()">➕ Extras</button>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title">🟡 Wide Ball</div>
+      <div class="settings-row">
+        <div class="settings-row-label">Wide runs value<small>Runs added to total when "Wide" is pressed</small></div>
+        <div class="settings-value-group" id="cfgWideRuns">
+          <button class="seg-btn" data-val="0" onclick="setConfig('wideRuns',0,this,'cfgWideRuns')">0</button>
+          <button class="seg-btn" data-val="1" onclick="setConfig('wideRuns',1,this,'cfgWideRuns')">1</button>
+          <button class="seg-btn" data-val="2" onclick="setConfig('wideRuns',2,this,'cfgWideRuns')">2</button>
+          <button class="seg-btn" data-val="5" onclick="setConfig('wideRuns',5,this,'cfgWideRuns')">5</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-label">Count wide as legal ball?<small>Most formats: OFF (no ball added to over)</small></div>
+        <div class="toggle-switch" id="cfgWideLegal" onclick="toggleConfig('wideCountsAsBall',this)"></div>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title">🟠 No Ball</div>
+      <div class="settings-row">
+        <div class="settings-row-label">No-ball runs value<small>Runs added when "No Ball" is pressed</small></div>
+        <div class="settings-value-group" id="cfgNBRuns">
+          <button class="seg-btn" data-val="0" onclick="setConfig('nbRuns',0,this,'cfgNBRuns')">0</button>
+          <button class="seg-btn" data-val="1" onclick="setConfig('nbRuns',1,this,'cfgNBRuns')">1</button>
+          <button class="seg-btn" data-val="2" onclick="setConfig('nbRuns',2,this,'cfgNBRuns')">2</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-label">Auto free-hit on next ball<small>Set free-hit state automatically</small></div>
+        <div class="toggle-switch" id="cfgAutoFH" onclick="toggleConfig('autoFreeHitOnNB',this)"></div>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title">🔵 Bye & Leg-Bye</div>
+      <div class="settings-row">
+        <div class="settings-row-label">Default bye runs<small>Used by "Bye" button on keypad</small></div>
+        <div class="settings-value-group" id="cfgByeRuns">
+          <button class="seg-btn" data-val="1" onclick="setConfig('byeRunsDefault',1,this,'cfgByeRuns')">1</button>
+          <button class="seg-btn" data-val="2" onclick="setConfig('byeRunsDefault',2,this,'cfgByeRuns')">2</button>
+          <button class="seg-btn" data-val="3" onclick="setConfig('byeRunsDefault',3,this,'cfgByeRuns')">3</button>
+          <button class="seg-btn" data-val="4" onclick="setConfig('byeRunsDefault',4,this,'cfgByeRuns')">4</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-label">Default leg-bye runs<small>Used by "Leg Bye" quick button</small></div>
+        <div class="settings-value-group" id="cfgLBRuns">
+          <button class="seg-btn" data-val="1" onclick="setConfig('legByeRunsDefault',1,this,'cfgLBRuns')">1</button>
+          <button class="seg-btn" data-val="2" onclick="setConfig('legByeRunsDefault',2,this,'cfgLBRuns')">2</button>
+          <button class="seg-btn" data-val="3" onclick="setConfig('legByeRunsDefault',3,this,'cfgLBRuns')">3</button>
+          <button class="seg-btn" data-val="4" onclick="setConfig('legByeRunsDefault',4,this,'cfgLBRuns')">4</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title">🟢 Bowling & Match Rules</div>
+      <div class="settings-row">
+        <div class="settings-row-label">Max overs per bowler<small>0 = auto (total overs ÷ 5)</small></div>
+        <div class="settings-value-group" id="cfgMaxOv">
+          <button class="seg-btn" data-val="0" onclick="setConfig('maxOversPerBowler',0,this,'cfgMaxOv')">Auto</button>
+          <button class="seg-btn" data-val="2" onclick="setConfig('maxOversPerBowler',2,this,'cfgMaxOv')">2</button>
+          <button class="seg-btn" data-val="4" onclick="setConfig('maxOversPerBowler',4,this,'cfgMaxOv')">4</button>
+          <button class="seg-btn" data-val="5" onclick="setConfig('maxOversPerBowler',5,this,'cfgMaxOv')">5</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-label">Wicket-keeper auto-detect stumpings<small>Assign keeper's stumpings in fielding stats</small></div>
+        <div class="toggle-switch" id="cfgDRS" onclick="toggleConfig('autoDetectStumpings',this)"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="resetSettingsToDefaults()">↺ Reset Defaults</button>
+      <button class="btn-ui btn-primary" onclick="saveSettingsAndClose()">✓ Save & Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="extrasModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:900;color:var(--purple);">➕ Match Extras</h3>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">Penalty runs & retirements</p>
+      </div>
+      <button class="btn-ui" onclick="closeModal('extrasModal')">✕</button>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title" style="color:var(--gold);">Penalty Runs</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Award 5 penalty runs to either side (does not count as a ball).</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn-ui btn-primary" style="padding:11px;" onclick="addPenaltyRuns(match.teamBatting,5)">+5 to Batting</button>
+        <button class="btn-ui btn-primary" style="padding:11px;" onclick="addPenaltyRuns(match.teamBowling,5)">+5 to Bowling</button>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title" style="color:var(--orange);">Retire Batter</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Mark a batter as "retired hurt" or "retired not out" (they can return).</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn-ui" style="padding:11px;" onclick="retireBatter('retired hurt')">Retire Striker</button>
+        <button class="btn-ui" style="padding:11px;" onclick="retireBatter('retired not out')">Retire Non-Striker</button>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title" style="color:var(--cyan);">Free Hit</div>
+      <div class="settings-row">
+        <div class="settings-row-label">Force free-hit on next ball<small>Currently: <span id="fhStateText">No</span></small></div>
+        <div class="toggle-switch" id="cfgForceFH" onclick="toggleConfig('forceFreeHit',this)"></div>
+      </div>
+    </div>
+    <div class="settings-block">
+      <div class="settings-block-title" style="color:var(--red);">Danger Zone</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn-ui" style="padding:11px;background:rgba(255,109,0,.15);border-color:var(--orange);color:var(--gold);" onclick="closeModal('extrasModal');endInningsPrompt();">🏁 End Innings</button>
+        <button class="btn-ui" style="padding:11px;background:rgba(239,68,68,.18);border-color:var(--red);color:#fca5a5;" onclick="closeModal('extrasModal');endMatchAndDeclareWinner();">🎯 End Match</button>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:14px;"><button class="btn-ui" onclick="closeModal('extrasModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="wideRunsModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:6px;font-size:16px;color:var(--gold);">Wide + Runs</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Select total extras added by this wide ball.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal');recordBall(0,'WD')">Wide 1</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal');recordBall(1,'WD')">Wide 2</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal');recordBall(2,'WD')">Wide 3</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="closeModal('wideRunsModal');recordBall(3,'WD')">Wide 4</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="closeModal('wideRunsModal');recordBall(4,'WD')">Wide 5</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('wideRunsModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="nbRunsModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:6px;font-size:16px;color:var(--orange);">No Ball + Runs</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Select runs scored off the bat.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(0,'NB')">NB+0</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(1,'NB')">NB+1</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(2,'NB')">NB+2</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;" onclick="closeModal('nbRunsModal');recordBall(3,'NB')">NB+3</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="closeModal('nbRunsModal');recordBall(4,'NB')">NB+4</button>
+      <button class="btn-ui" style="padding:14px;font-size:14px;background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="closeModal('nbRunsModal');recordBall(6,'NB')">NB+6</button>
+    </div>
+    <div style="text-align:right;margin-top:14px;"><button class="btn-ui" onclick="closeModal('nbRunsModal')">Cancel</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="endInningsModal">
+  <div class="modal-card" style="text-align:center;">
+    <div style="font-size:52px;margin-bottom:10px;">🏁</div>
+    <h3 style="font-size:18px;font-weight:900;color:var(--gold);margin-bottom:8px;" id="endInningsTitle">End Innings 1?</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="endInningsDesc">Current score will be finalized.</p>
+    <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:26px;font-weight:900;color:#fff;" id="endInningsScore">0/0</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="endInningsOvers">0.0 overs</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn-ui" style="padding:14px;" onclick="closeModal('endInningsModal')">Cancel</button>
+      <button class="btn-ui btn-primary" style="padding:14px;" onclick="confirmEndInnings()">✓ Confirm End</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tournConfigModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:12px;font-size:16px;">Tournament Setup</h3>
+    <div class="form-group"><label>Tournament Name</label><input type="text" id="tNameInput" class="form-control" placeholder="e.g. Premier Cup"></div>
+    <div class="form-group"><label>Overs Per Innings</label><input type="number" id="tOversInput" class="form-control" value="20" min="1" max="50"></div>
+    <div class="form-group"><label>Venue</label><input type="text" id="tVenueInput" class="form-control" placeholder="Stadium"></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="closeModal('tournConfigModal')">Cancel</button>
+      <button class="btn-ui btn-primary" onclick="saveTournamentAndProceed()">Save & Next ›</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="teamSelectionModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <h3 style="font-size:16px;font-weight:900;">🏏 Select Teams</h3>
+      <button class="btn-ui" onclick="closeModal('teamSelectionModal')">✕</button>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(0,230,118,.15),rgba(34,211,238,.1));border:1px solid var(--green);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:800;">Match Preview</div>
+      <div style="font-size:16px;font-weight:900;color:#fff;margin-top:6px;word-break:break-word;" id="teamPreview">-- vs --</div>
+    </div>
+    <div class="form-group">
+      <label>Team 1 *</label>
+      <select id="t1Dropdown" class="form-control" onchange="onTeamDropdownChange(1)"><option value="">-- Select from saved teams --</option></select>
+    </div>
+    <div class="form-group">
+      <label style="color:var(--purple);">➕ Or Add New Team 1</label>
+      <input type="text" id="t1NewInput" class="form-control" placeholder="Type new team name" oninput="onNewTeamInput(1)">
+    </div>
+    <div class="form-group" style="margin-top:16px;border-top:1px solid var(--card-border);padding-top:14px;">
+      <label>Team 2 *</label>
+      <select id="t2Dropdown" class="form-control" onchange="onTeamDropdownChange(2)"><option value="">-- Select from saved teams --</option></select>
+    </div>
+    <div class="form-group">
+      <label style="color:var(--purple);">➕ Or Add New Team 2</label>
+      <input type="text" id="t2NewInput" class="form-control" placeholder="Type new team name" oninput="onNewTeamInput(2)">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px;">
+      <button class="btn-ui" onclick="closeModal('teamSelectionModal')">Back</button>
+      <button class="btn-ui btn-primary" style="flex:1;" onclick="proceedToOpenersPopupDirectly()">Next: Set Openers ▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="openingRolesModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:6px;font-size:16px;color:var(--green);">Opening Roles</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Choose from squad OR type new name (auto-added).</p>
+    <div class="form-group">
+      <label>Batting Team</label>
+      <select id="battingTeamSelect" class="form-control" onchange="populatePlayerDropdowns()"></select>
+    </div>
+    <div class="form-group">
+      <label>Striker *</label>
+      <select id="strikerDropdown" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('strikerCustom').value=this.value"></select>
+      <input type="text" id="strikerCustom" class="form-control" placeholder="Or type new player name">
+    </div>
+    <div class="form-group">
+      <label>Non-Striker *</label>
+      <select id="nonStrikerDropdown" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('nonStrikerCustom').value=this.value"></select>
+      <input type="text" id="nonStrikerCustom" class="form-control" placeholder="Or type new player name">
+    </div>
+    <div class="form-group">
+      <label>Opening Bowler *</label>
+      <select id="bowlerDropdown" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('bowlerCustom').value=this.value"></select>
+      <input type="text" id="bowlerCustom" class="form-control" placeholder="Or type new bowler name">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn-ui btn-primary" onclick="finalizeMatchStart()">Launch Match ▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="nextBatterModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:4px;font-size:15px;color:var(--red);">Next Batter</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;" id="dismissedNotice">Choose or type</p>
+    <div class="form-group">
+      <label>From Squad</label>
+      <select id="existingBatterSelect" class="form-control"></select>
+    </div>
+    <div class="form-group">
+      <label>Or Type New Name</label>
+      <input type="text" id="newBatterNameInput" class="form-control" placeholder="Auto-added to team">
+    </div>
+    <div style="text-align:right;margin-top:14px;">
+      <button class="btn-ui btn-primary" onclick="confirmNextBatter()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bowlerModal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:4px;font-size:15px;color:var(--cyan);">Next Bowler</h3>
+    <div class="form-group">
+      <label>From Squad</label>
+      <select id="existingBowlerSelect" class="form-control"></select>
+    </div>
+    <div class="form-group">
+      <label>Or Type New Name</label>
+      <input type="text" id="newBowlerNameInput" class="form-control" placeholder="Auto-added to team">
+    </div>
+    <div style="text-align:right;margin-top:14px;">
+      <button class="btn-ui btn-primary" onclick="confirmNextBowler()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="wagonModal">
+  <div class="modal-card" style="text-align:center;position:relative;">
+    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:6px;">
+      <span id="wagonTitle">MARK SHOT</span>
+      <span style="font-size:11px;opacity:.6;">Tap field</span>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <canvas id="wagonCanvas" width="280" height="280"></canvas>
+      <div id="wagonFlashOverlay" class="wagon-flash-overlay">
+        <div class="flash-title" id="flashOverlayTitle">CRACKING FOUR</div>
+        <div class="flash-subtitle" id="flashOverlaySub">Boundary Flash</div>
+      </div>
+    </div>
+    <div id="wagonFeedback" style="font-size:12px;font-weight:700;color:var(--muted);min-height:18px;margin-top:6px;">Tap field to place shot</div>
+    <div id="wagonBoundaryBanner" class="wagon-boundary-banner">
+      <div class="banner-text-main" id="wagonBannerMainText">CRACKING FOUR!</div>
+      <div class="banner-text-sub" id="wagonBannerSubText">Pierces the Boundary Rope</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="wicketTypeModal">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:900;color:var(--red);">🚨 WICKET!</h3>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">Dismissal & new batter</p>
+      </div>
+      <button class="btn-ui" onclick="closeModal('wicketTypeModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Dismissal Method</label>
+      <select id="wktMethodSelect" class="form-control" onchange="handleWicketMethodChange(this.value)">
+        <option value="Bowled">Bowled</option>
+        <option value="Caught">Caught</option>
+        <option value="Run Out">Run Out</option>
+        <option value="Stumped">Stumped</option>
+        <option value="LBW">LBW</option>
+        <option value="Hit Wicket">Hit Wicket</option>
+      </select>
+    </div>
+    <div class="form-group" id="fielderGroup" style="display:none;">
+      <label id="fielderLabel">Fielder</label>
+      <input type="text" id="fielderCustomInput" class="form-control" placeholder="Fielder name">
+    </div>
+    <div class="form-group" id="runOutRunsGroup" style="display:none;">
+      <label style="color:var(--cyan);font-weight:800;">🏃 Runs Completed Before Run Out</label>
+      <select id="runOutRunsSelect" class="form-control">
+        <option value="0">0 runs (direct hit)</option>
+        <option value="1">1 run completed</option>
+        <option value="2">2 runs completed</option>
+        <option value="3">3 runs completed</option>
+      </select>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px;font-style:italic;">These runs count for the batsman & team before dismissal.</div>
+    </div>
+    <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
+      <label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label>
+      <select id="wktNewBatsmanSelect" class="form-control" style="margin-bottom:6px;">
+        <option value="">-- Select from squad --</option>
+      </select>
+      <input type="text" id="wktNewBatsmanInput" class="form-control" placeholder="Or type new batter name">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="closeModal('wicketTypeModal')">Cancel</button>
+      <button class="btn-ui btn-primary" onclick="confirmWicketDelivery()">Confirm 🚨</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="i2Modal">
+  <div class="modal-card">
+    <h3 style="margin-bottom:6px;font-size:16px;color:var(--green);">2nd Innings Setup</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:12px;" id="i2Subtitle"></p>
+    <div class="form-group">
+      <label>Striker *</label>
+      <select id="i2Striker" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2StrikerNew').value=this.value"></select>
+      <input type="text" id="i2StrikerNew" class="form-control" placeholder="Or type new name">
+    </div>
+    <div class="form-group">
+      <label>Non-Striker *</label>
+      <select id="i2NonStriker" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2NonStrikerNew').value=this.value"></select>
+      <input type="text" id="i2NonStrikerNew" class="form-control" placeholder="Or type new name">
+    </div>
+    <div class="form-group">
+      <label>Opening Bowler *</label>
+      <select id="i2Bowler" class="form-control" style="margin-bottom:6px;" onchange="document.getElementById('i2BowlerNew').value=this.value"></select>
+      <input type="text" id="i2BowlerNew" class="form-control" placeholder="Or type new name">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="closeModal('i2Modal')">Cancel</button>
+      <button class="btn-ui btn-primary" onclick="beginSecondInnings()">▶ Start 2nd Innings</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resultModal">
+  <div class="modal-card" style="text-align:center;">
+    <div style="font-size:60px;margin-bottom:8px;">🏆</div>
+    <div style="font-size:24px;font-weight:900;color:var(--gold);margin-bottom:4px;" id="resultWinner">Winner</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:16px;" id="resultMargin"></div>
+    <div id="resultScores"></div>
+    <div style="margin-top:16px;">
+      <button class="btn-ui btn-primary" onclick="closeModal('resultModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global Touch / Audio Unlock Listener -->
 <script>
-(function(){
-'use strict';
-
-/* ============================================================
-   1. THREE.JS SCENE
-   ============================================================ */
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x020713);
-scene.fog = new THREE.FogExp2(0x050d24, 0.0055);
-
-const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 800);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-renderer.domElement.style.zIndex = '0';
-document.body.appendChild(renderer.domElement);
-
-/* ============================================================
-   2. STADIUM MODULE
-   ============================================================ */
-const stadium = window.CricMaxStadium.build(scene);
-const woodTex = window.CricMaxStadium.makeWoodTexture();
-
-/* ============================================================
-   3. UI: MENU (must be global for inline onclick)
-   ============================================================ */
-let menuOpen = false;
-function toggleMenu(e){
-  if (e && e.stopPropagation) e.stopPropagation();
-  menuOpen = !menuOpen;
-  const panel = document.getElementById('menuPanel');
-  const btn = document.getElementById('btn-menu');
-  if (panel) panel.classList.toggle('open', menuOpen);
-  if (btn) btn.classList.toggle('on', menuOpen);
-  console.log('☰ Menu toggled:', menuOpen);
-}
-// Close on outside click
-document.addEventListener('click', function(e){
-  if (!menuOpen) return;
-  const panel = document.getElementById('menuPanel');
-  const btn = document.getElementById('btn-menu');
-  if (panel && panel.contains(e.target)) return;
-  if (btn && btn.contains(e.target)) return;
-  menuOpen = false;
-  if (panel) panel.classList.remove('open');
-  if (btn) btn.classList.remove('on');
-}, true);
-
-/* ============================================================
-   4. UI: SKY (must be global for inline onclick)
-   ============================================================ */
-function setSky(mode){
-  ['day','sunset','night'].forEach(m => {
-    const b = document.getElementById('env-' + m);
-    if (b) b.classList.toggle('on', m === mode);
-  });
-  if (stadium && stadium.setSky) stadium.setSky(mode);
-}
-setSky('day');
-
-/* ============================================================
-   5. NAV (global)
-   ============================================================ */
-function navTo(pane){
-  document.querySelectorAll('.menu-tile[data-pane]').forEach(t => {
-    t.classList.toggle('on', t.getAttribute('data-pane') === pane);
-  });
-  if (pane === 'pitch'){ toggleMenu(); return; }
-  try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
-  toggleMenu();
-}
-
-/* ============================================================
-   6. PLAYER MODEL
-   ============================================================ */
-const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
-const PAD  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
-const SHOE = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
-const HELM = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
-const GLOVE= new THREE.MeshStandardMaterial({ color: 0x1e40af, roughness: 0.5 });
-
-function makePlayer(opts){
-  opts = opts || {};
-  const jersey = opts.jersey || 0x0284c7;
-  const isBat = !!opts.batsman;
-  const isKeeper = !!opts.keeper;
-  const skin = SKIN[(opts.skinIndex || 0) % SKIN.length];
-
-  const rig = new THREE.Group();
-  rig.jerseyMat = new THREE.MeshStandardMaterial({ color: jersey, roughness: 0.55 });
-  rig.skinMat = new THREE.MeshStandardMaterial({ color: skin, roughness: 0.55 });
-  rig.idlePhase = Math.random() * Math.PI * 2;
-  rig.fidget = 1.4 + Math.random() * 1.2;
-
-  const shadowCv = document.createElement('canvas');
-  shadowCv.width = shadowCv.height = 64;
-  const sctx = shadowCv.getContext('2d');
-  const sgrad = sctx.createRadialGradient(32, 32, 3, 32, 32, 32);
-  sgrad.addColorStop(0, 'rgba(0,0,0,.68)');
-  sgrad.addColorStop(0.5, 'rgba(0,0,0,.3)');
-  sgrad.addColorStop(1, 'rgba(0,0,0,0)');
-  sctx.fillStyle = sgrad; sctx.fillRect(0, 0, 64, 64);
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.8), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCv), transparent: true, depthWrite: false }));
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = 0.028;
-  rig.add(shadow);
-
-  function buildLeg(xOff){
-    const leg = new THREE.Group();
-    leg.position.set(xOff, 0.82, 0);
-    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.092, 0.078, 0.38, 8), rig.jerseyMat);
-    thigh.position.y = -0.19; thigh.castShadow = true; leg.add(thigh);
-    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.082, 10, 10), isBat ? PAD : rig.jerseyMat);
-    knee.position.y = -0.38; leg.add(knee);
-    const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.40, 0.16), isBat ? PAD : rig.jerseyMat);
-    shin.position.set(0, -0.58, 0.02); shin.castShadow = true; leg.add(shin);
-    if (isBat){
-      for (let s = 0; s < 3; s++){
-        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.03, 0.17), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
-        strap.position.set(0, -0.48 - s * 0.13, 0.02); leg.add(strap);
-      }
+  window.addEventListener('pointerdown', function unlockAudioEngine() {
+    if (window.speechSynthesis) {
+      const warmUtterance = new SpeechSynthesisUtterance(' ');
+      warmUtterance.volume = 0;
+      window.speechSynthesis.speak(warmUtterance);
     }
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.25), SHOE);
-    foot.position.set(0, -0.78, 0.04); foot.castShadow = true; leg.add(foot);
-    leg.userData = { thigh, shin };
-    return leg;
-  }
-  rig.legL = buildLeg(-0.13); rig.legR = buildLeg(0.13);
-  rig.add(rig.legL); rig.add(rig.legR);
-
-  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), PAD);
-  pelvis.position.y = 0.91; pelvis.castShadow = true; rig.add(pelvis);
-  if (isBat){
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.22, 0.1), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
-    guard.position.set(0, 0.86, 0.14); rig.add(guard);
-  }
-
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.jerseyMat);
-  torso.position.y = 1.25; torso.castShadow = true;
-  rig.add(torso); rig.torso = torso;
-
-  if (opts.number){
-    const numCv = document.createElement('canvas');
-    numCv.width = numCv.height = 128;
-    const nctx = numCv.getContext('2d');
-    nctx.clearRect(0, 0, 128, 128);
-    nctx.fillStyle = '#ffffff';
-    nctx.font = 'bold 96px -apple-system,sans-serif';
-    nctx.textAlign = 'center'; nctx.textBaseline = 'middle';
-    nctx.fillText(String(opts.number), 64, 64);
-    const numMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.18), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(numCv), transparent: true }));
-    numMesh.position.set(0, 1.3, -0.235);
-    numMesh.rotation.y = Math.PI;
-    rig.add(numMesh);
-  }
-
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.1, 8), rig.skinMat);
-  neck.position.y = 1.56; rig.add(neck);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), rig.skinMat);
-  head.position.y = 1.68; head.castShadow = true;
-  rig.add(head); rig.head = head;
-
-  if (isBat || isKeeper){
-    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.68), HELM);
-    helmet.position.y = 1.70; rig.add(helmet);
-    const grill = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.014, 6, 20, Math.PI), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.3 }));
-    grill.rotation.x = Math.PI / 2;
-    grill.position.set(0, 1.64, 0.08); rig.add(grill);
-  }
-
-  function buildArm(xOff){
-    const arm = new THREE.Group();
-    arm.position.set(xOff, 1.42, 0);
-    const bicep = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.jerseyMat);
-    bicep.position.y = -0.16; arm.add(bicep);
-    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.30, 8), rig.skinMat);
-    forearm.position.y = -0.44; arm.add(forearm);
-    if (isBat || isKeeper){
-      const glove = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.09), GLOVE);
-      glove.position.y = -0.62; arm.add(glove);
-    }
-    return arm;
-  }
-  rig.armL = buildArm(-0.28); rig.armR = buildArm(0.28);
-  rig.add(rig.armL); rig.add(rig.armR);
-
-  if (isBat){
-    const batPivot = new THREE.Group();
-    batPivot.position.set(0, 1.05, 0.25);
-    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 }));
-    grip.position.y = 0.18; batPivot.add(grip);
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.88, 0.05), new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }));
-    blade.position.y = -0.38; blade.castShadow = true; batPivot.add(blade);
-    const edge = new THREE.Mesh(new THREE.BoxGeometry(0.135, 0.88, 0.005), new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x0891b2, emissiveIntensity: 0.3 }));
-    edge.position.set(0, -0.38, 0.028); batPivot.add(edge);
-    rig.add(batPivot); rig.batPivot = batPivot;
-  }
-
-  if (isKeeper){
-    const gl = rig.armL.children[2]; const gr = rig.armR.children[2];
-    if (gl) gl.scale.set(1.6, 1.4, 1.6);
-    if (gr) gr.scale.set(1.6, 1.4, 1.6);
-  }
-
-  const s = 0.96 + Math.random() * 0.08;
-  rig.scale.set(s, s, s);
-  return rig;
-}
-
-/* ============================================================
-   7. TEAMS ON FIELD
-   ============================================================ */
-const strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, number: 7 });
-strikerBat.position.set(0.35, 0, 8.8); strikerBat.rotation.y = -Math.PI / 2; scene.add(strikerBat);
-const nonStrikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 2, number: 18 });
-nonStrikerBat.position.set(-1.2, 0, -8.8); nonStrikerBat.rotation.y = Math.PI / 2; scene.add(nonStrikerBat);
-const bowler = makePlayer({ jersey: 0xdc2626, skinIndex: 3, number: 11 });
-bowler.position.set(1.5, 0, -22); scene.add(bowler);
-const keeper = makePlayer({ jersey: 0xdc2626, keeper: true, skinIndex: 1, number: 1 });
-keeper.position.set(0, 0, 14.5); keeper.rotation.y = Math.PI; scene.add(keeper);
-const umpireStrikerEnd = makePlayer({ jersey: 0xf1f5f9, skinIndex: 4 });
-umpireStrikerEnd.position.set(-1.8, 0, 12.5); umpireStrikerEnd.rotation.y = -Math.PI / 2; scene.add(umpireStrikerEnd);
-const umpireBowlerEnd = makePlayer({ jersey: 0xf1f5f9, skinIndex: 0 });
-umpireBowlerEnd.position.set(1.5, 0, -14.5); umpireBowlerEnd.rotation.y = Math.PI / 2; scene.add(umpireBowlerEnd);
-
-const fielderData = [
-  ['Slip', 3.2, 13.5, 1],['Gully', 7.0, 12.0, 2],['Point', 18, 7.5, 3],
-  ['Cover', 20, -2.0, 4],['Mid-off', 7.5, -9.5, 0],['Mid-on', -7.5, -9.5, 1],
-  ['Mid-wkt',-19, 0.0, 2],['Sq Leg', -18, 8.0, 3],['Fine Leg', -35, 24, 4]
-];
-class Fielder {
-  constructor(name, x, z, skinIdx){
-    this.name = name;
-    this.home = new THREE.Vector3(x, 0, z);
-    this.target = this.home.clone();
-    this.state = 'idle';
-    this.rig = makePlayer({ jersey: 0xdc2626, skinIndex: skinIdx });
-    this.rig.position.copy(this.home);
-    scene.add(this.rig);
-  }
-  reset(){ this.state = 'returning'; this.target.copy(this.home); }
-  chase(p){ this.state = 'chasing'; this.target.copy(p); }
-  update(dt, t){
-    if (this.state === 'idle'){
-      const sway = Math.sin(t * this.rig.fidget + this.rig.idlePhase);
-      this.rig.torso.rotation.y = sway * 0.08;
-      this.rig.head.rotation.y = -sway * 0.12;
-      this.rig.armL.rotation.x = -0.2 + sway * 0.06;
-      this.rig.armR.rotation.x = -0.2 - sway * 0.06;
-      return;
-    }
-    const dist = this.rig.position.distanceTo(this.target);
-    if (dist > 0.3){
-      const dir = new THREE.Vector3().subVectors(this.target, this.rig.position).normalize();
-      this.rig.position.addScaledVector(dir, 14 * dt);
-      this.rig.lookAt(this.target.x, this.rig.position.y, this.target.z);
-      const cycle = Math.sin(t * 18);
-      this.rig.legL.userData.thigh.rotation.x = cycle * 0.6;
-      this.rig.legR.userData.thigh.rotation.x = -cycle * 0.6;
-      this.rig.armL.rotation.x = -cycle * 0.7;
-      this.rig.armR.rotation.x = cycle * 0.7;
-      this.rig.position.y = Math.abs(Math.sin(t * 18)) * 0.06;
-    } else if (this.state === 'returning'){
-      this.state = 'idle';
-      this.rig.position.y = 0;
-    }
-  }
-}
-const fielders = fielderData.map(f => new Fielder(f[0], f[1], f[2], f[3]));
-
-/* ============================================================
-   8. BALL
-   ============================================================ */
-const ballTex = (function(){
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#991b1b'; ctx.fillRect(0, 0, 128, 128);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(128, 64); ctx.stroke();
-  for (let i = 0; i < 500; i++){
-    ctx.fillStyle = 'rgba(0,0,0,' + (Math.random() * 0.15) + ')';
-    ctx.fillRect(Math.random()*128, Math.random()*128, 1, 1);
-  }
-  return new THREE.CanvasTexture(c);
-})();
-const ball = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 24), new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.4, metalness: 0.05 }));
-ball.castShadow = true; ball.visible = false; scene.add(ball);
-
-/* ============================================================
-   9. WICKETS
-   ============================================================ */
-class Wicket {
-  constructor(zPos){
-    this.group = new THREE.Group();
-    this.stumps = []; this.bails = []; this.flying = false;
-    const mat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4 });
-    [-0.11, 0, 0.11].forEach(x => {
-      const s = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.76, 12), mat);
-      s.position.set(x, 0.38, 0); s.castShadow = true;
-      this.group.add(s);
-      this.stumps.push({ mesh: s, base: s.position.clone(), vel: new THREE.Vector3(), rot: new THREE.Vector3() });
-    });
-    [-0.055, 0.055].forEach(x => {
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.13, 8), mat);
-      b.rotation.z = Math.PI / 2; b.position.set(x, 0.77, 0);
-      this.group.add(b);
-      this.bails.push({ mesh: b, base: b.position.clone(), vel: new THREE.Vector3(), rot: new THREE.Vector3() });
-    });
-    this.group.position.set(0, 0, zPos);
-    scene.add(this.group);
-  }
-  shatter(){
-    this.flying = true;
-    this.stumps.forEach((s, i) => {
-      s.vel.set((i - 1) * 2.4 + (Math.random() - 0.5) * 1.5, 4.5 + Math.random() * 2.5, 4 + Math.random() * 3);
-      s.rot.set(Math.random() * 8, Math.random() * 6, Math.random() * 8);
-    });
-    this.bails.forEach(b => {
-      b.vel.set((Math.random() - 0.5) * 4.5, 6 + Math.random() * 2.5, 5 + Math.random() * 3.5);
-      b.rot.set(Math.random() * 14, Math.random() * 12, Math.random() * 14);
-    });
-  }
-  update(dt){
-    if (!this.flying) return;
-    [...this.stumps, ...this.bails].forEach(item => {
-      item.vel.y -= 9.8 * dt * 1.5;
-      item.mesh.position.addScaledVector(item.vel, dt);
-      item.mesh.rotation.x += item.rot.x * dt;
-      item.mesh.rotation.y += item.rot.y * dt;
-      item.mesh.rotation.z += item.rot.z * dt;
-      if (item.mesh.position.y < 0.05){
-        item.mesh.position.y = 0.05;
-        item.vel.y = -item.vel.y * 0.35;
-        item.vel.x *= 0.7; item.vel.z *= 0.7;
-      }
-    });
-  }
-  reset(){
-    this.flying = false;
-    this.stumps.forEach(s => { s.mesh.position.copy(s.base); s.mesh.rotation.set(0,0,0); s.vel.set(0,0,0); });
-    this.bails.forEach(b => { b.mesh.position.copy(b.base); b.mesh.rotation.set(0,0,Math.PI/2); b.vel.set(0,0,0); });
-  }
-}
-const strikerWicket = new Wicket(10.0);
-const bowlerWicket = new Wicket(-10.0);
-
-/* ============================================================
-   10. AUDIO
-   ============================================================ */
-let actx = null, audioOn = true;
-function initAudio(){
-  if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
-  try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
-}
-function playThud(power){
-  if (!audioOn || !actx) return;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(110, actx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(38, actx.currentTime + 0.07);
-  g.gain.setValueAtTime(0.45 * power, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
-  o.connect(g); g.connect(actx.destination);
-  o.start(); o.stop(actx.currentTime + 0.09);
-}
-function playBatCrack(power){
-  if (!audioOn || !actx) return;
-  const buf = actx.createBuffer(1, actx.sampleRate * 0.05, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = actx.createBufferSource(); src.buffer = buf;
-  const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0.8 * power, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.05);
-  src.connect(bp); bp.connect(g); g.connect(actx.destination);
-  src.start();
-  const o = actx.createOscillator(), og = actx.createGain();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(340, actx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(90, actx.currentTime + 0.14);
-  og.gain.setValueAtTime(0.7 * power, actx.currentTime);
-  og.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.14);
-  o.connect(og); og.connect(actx.destination);
-  o.start(); o.stop(actx.currentTime + 0.15);
-}
-function playStumps(){
-  if (!audioOn || !actx) return;
-  for (let i = 0; i < 3; i++){
-    setTimeout(() => {
-      const o = actx.createOscillator(), g = actx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(600 + i * 220, actx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(110, actx.currentTime + 0.11);
-      g.gain.setValueAtTime(0.5, actx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.11);
-      o.connect(g); g.connect(actx.destination);
-      o.start(); o.stop(actx.currentTime + 0.12);
-    }, i * 35);
-  }
-}
-function playCrowdRoar(){
-  if (!audioOn || !actx) return;
-  const dur = 2.2;
-  const buf = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = actx.createBufferSource(); src.buffer = buf;
-  const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 750;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0.05, actx.currentTime);
-  g.gain.linearRampToValueAtTime(0.4, actx.currentTime + 0.4);
-  g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + dur);
-  src.connect(lp); lp.connect(g); g.connect(actx.destination);
-  src.start();
-}
-function toggleAudio(){
-  audioOn = !audioOn;
-  document.getElementById('snd-ico').innerText = audioOn ? '🔊' : '🔇';
-  const btn = document.getElementById('util-snd');
-  if (btn) btn.classList.toggle('on', audioOn);
-  if (audioOn) initAudio();
-}
-
-/* ============================================================
-   11. CAMERAS
-   ============================================================ */
-const CAM_MODES = {
-  broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
-  bowler:    { pos: new THREE.Vector3(0, 4.2, -22), target: new THREE.Vector3(0, 1.0, 9) },
-  keeper:    { pos: new THREE.Vector3(0, 2.2, 15), target: new THREE.Vector3(0, 1.2, -5) },
-  slip:      { pos: new THREE.Vector3(4, 1.5, 16), target: new THREE.Vector3(0, 1.1, 9) },
-  side:      { pos: new THREE.Vector3(26, 5, 8), target: new THREE.Vector3(0, 1, 8) },
-  drone:     { pos: new THREE.Vector3(0, 55, 0.1), target: new THREE.Vector3(0, 0, 0) },
-  helmet:    { pos: new THREE.Vector3(0.5, 1.6, 9.5), target: new THREE.Vector3(0, 1.4, -8) },
-  follow:    { pos: new THREE.Vector3(0, 8, -6), target: new THREE.Vector3(0, 0.5, 9) }
-};
-let activeCam = 'broadcast';
-let directorOn = true;
-const camPos = CAM_MODES.broadcast.pos.clone();
-const camTarget = CAM_MODES.broadcast.target.clone();
-
-function setCamera(mode){
-  if (!CAM_MODES[mode]) return;
-  activeCam = mode;
-  directorOn = false;
-  const dirBtn = document.getElementById('btn-dir');
-  if (dirBtn) dirBtn.classList.remove('on');
-  if (mode !== 'follow' && mode !== 'helmet') camTarget.copy(CAM_MODES[mode].target);
-  const sel1 = document.getElementById('camSel');
-  const sel2 = document.getElementById('camSelMenu');
-  if (sel1 && sel1.value !== mode) sel1.value = mode;
-  if (sel2 && sel2.value !== mode) sel2.value = mode;
-}
-function toggleDirector(){
-  directorOn = !directorOn;
-  const btn = document.getElementById('btn-dir');
-  if (btn) btn.classList.toggle('on', directorOn);
-  if (directorOn){
-    activeCam = 'broadcast';
-    const sel1 = document.getElementById('camSel');
-    const sel2 = document.getElementById('camSelMenu');
-    if (sel1) sel1.value = 'broadcast';
-    if (sel2) sel2.value = 'broadcast';
-  }
-}
-function toggleFullscreen(){
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
-  else document.exitFullscreen && document.exitFullscreen();
-}
-
-/* ============================================================
-   12. WAGON WHEEL
-   ============================================================ */
-const wagonCanvas = document.getElementById('wagonWheelCanvas');
-const wagonCtx = wagonCanvas.getContext('2d');
-const historicalShots = [];
-function toggleWagonWheel(){
-  const on = wagonCanvas.style.display === 'block';
-  wagonCanvas.style.display = on ? 'none' : 'block';
-  const btn = document.getElementById('util-wagon');
-  if (btn) btn.classList.toggle('on', !on);
-  if (!on) drawWagonWheel();
-}
-function drawWagonWheel(){
-  const w = wagonCanvas.width, h = wagonCanvas.height;
-  const cx = w/2, cy = h/2, radius = w/2 - 12;
-  wagonCtx.clearRect(0, 0, w, h);
-  wagonCtx.beginPath(); wagonCtx.arc(cx, cy, radius, 0, Math.PI*2);
-  wagonCtx.fillStyle = '#061324'; wagonCtx.fill();
-  wagonCtx.strokeStyle = 'rgba(255,255,255,.25)'; wagonCtx.lineWidth = 2; wagonCtx.stroke();
-  wagonCtx.fillStyle = '#987349'; wagonCtx.fillRect(cx - 3, cy - 14, 6, 28);
-  historicalShots.forEach(s => {
-    const endX = cx + Math.sin(s.angle) * (s.dist / 70 * radius);
-    const endY = cy + Math.cos(s.angle) * (s.dist / 70 * radius);
-    wagonCtx.beginPath(); wagonCtx.moveTo(cx, cy); wagonCtx.lineTo(endX, endY);
-    wagonCtx.strokeStyle = s.isWkt ? '#ef4444' : (s.runs === 6 ? '#ff6d00' : (s.runs === 4 ? '#22d3ee' : '#10b981'));
-    wagonCtx.lineWidth = s.runs >= 4 ? 2.5 : 1.2; wagonCtx.stroke();
-  });
-}
-
-/* ============================================================
-   13. OVER SUMMARY (from scoring tab's match.currentOverBalls)
-   ============================================================ */
-function renderOverDots(ballTags){
-  const container = document.getElementById('overDotsContainer');
-  const totalEl = document.getElementById('overTotalRuns');
-  if (!container) return;
-  container.innerHTML = '';
-  let overRuns = 0;
-  const tags = Array.isArray(ballTags) ? ballTags : [];
-
-  for (let i = 0; i < 6; i++){
-    const tag = tags[i] !== undefined ? String(tags[i]) : null;
-    const dot = document.createElement('div');
-    dot.className = 'badge dot';
-
-    if (tag !== null && tag !== ''){
-      const isWicket = tag.indexOf('W') >= 0;
-      const isWide   = tag.indexOf('Wd') >= 0;
-      const isNoBall = tag.indexOf('Nb') >= 0;
-      const isBye    = /B$/.test(tag) && !isNoBall;
-      const isLegBye = /Lb$/i.test(tag);
-
-      if (isWicket){
-        dot.className = 'badge wkt'; dot.innerText = 'W';
-      } else if (isWide){
-        const n = parseInt(tag) || 1;
-        dot.className = 'badge nb'; dot.innerText = n > 1 ? String(n) : 'wd';
-        overRuns += n;
-      } else if (isNoBall){
-        const n = parseInt(tag) || 1;
-        dot.className = 'badge nb'; dot.innerText = n > 1 ? String(n) : 'nb';
-        overRuns += n;
-      } else if (isBye || isLegBye){
-        const n = parseInt(tag) || 0;
-        dot.className = 'badge bye'; dot.innerText = n > 0 ? String(n) : 'b';
-        overRuns += n;
-      } else if (tag === '4'){
-        dot.className = 'badge four'; dot.innerText = '4'; overRuns += 4;
-      } else if (tag === '6'){
-        dot.className = 'badge six'; dot.innerText = '6'; overRuns += 6;
-      } else {
-        const n = parseInt(tag) || 0;
-        if (n === 0){ dot.className = 'badge dot'; dot.innerText = '0'; }
-        else { dot.className = 'badge run'; dot.innerText = String(n); overRuns += n; }
-      }
-    } else {
-      dot.innerText = '·';
-    }
-    container.appendChild(dot);
-  }
-  if (totalEl) totalEl.innerText = overRuns + ' RUNS';
-}
-// Initial render
-renderOverDots([]);
-
-/* ============================================================
-   14. SIM FEED
-   ============================================================ */
-function simFeedScoringTab(){
-  const scenarios = [
-    { runs: 4, isFour: true, angle: 1.2, bowlerType: 'pace' },
-    { runs: 6, isSix: true, angle: 2.3, bowlerType: 'pace' },
-    { runs: 1, angle: 0.8, bowlerType: 'spin' },
-    { runs: 0, isCatch: true, wicketType: 'caught', isWicket: true, angle: 1.8, bowlerType: 'spin' },
-    { runs: 0, isWicket: true, angle: 0, bowlerType: 'pace' },
-    { runs: 1, isNoBall: true, extraType: 'nb', angle: 2.1, bowlerType: 'pace' }
-  ];
-  const feed = scenarios[Math.floor(Math.random() * scenarios.length)];
-  feed.ballSpeed = feed.bowlerType === 'spin' ? (88 + Math.random() * 8).toFixed(1) : (140 + Math.random() * 6).toFixed(1);
-  playBall(feed);
-}
-
-/* ============================================================
-   15. DELIVERY ENGINE
-   ============================================================ */
-let anim = null;
-let lastShot = null;
-let lastPlayedBallKey = null;
-
-function playBall(shot){
-  var key = (shot.over || 0) + '_' + (shot.ball || 0) + '_' + (shot.runs || 0) + '_' + (shot.isWicket ? 'W' : '');
-  if (key === lastPlayedBallKey && Date.now() - (playBall._lastTs || 0) < 1500) return;
-  playBall._lastTs = Date.now();
-  lastPlayedBallKey = key;
-
-  if (anim){ cancelAnimationFrame(anim); anim = null; }
-  initAudio();
-
-  strikerWicket.reset();
-  bowlerWicket.reset();
-  fielders.forEach(f => f.reset());
-  ball.visible = true;
-  lastShot = shot;
-
-  const isSix = shot.isSix || shot.runs === 6;
-  const isFour = shot.isFour || shot.runs === 4;
-  const isWkt = shot.isWicket || shot.isOut;
-  const isNB = shot.isNoBall || shot.extraType === 'nb';
-  const isCatch = shot.isCatch || shot.wicketType === 'caught';
-  const runs = shot.runs || 0;
-  const isSpin = shot.bowlerType === 'spin';
-
-  const speed = shot.ballSpeed || (isSpin ? '88.5' : '142.3');
-  const speedTag = document.getElementById('speedTag');
-  speedTag.innerText = 'SPEED: ' + speed + ' KM/H';
-  speedTag.classList.add('on');
-
-  const angle = shot.angle !== undefined ? shot.angle : (Math.PI / 2);
-  const finalDist = isSix ? 78 : isFour ? 66 : isCatch ? 38 : runs > 0 ? runs * 14 : 18;
-  const hitX = Math.sin(angle) * finalDist;
-  const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
-  const pitchZ = isSpin ? 4.8 : 3.2 + Math.random() * 1.8;
-  const pitchX = (Math.random() - 0.5) * 0.4;
-  const bowlerStartZ = isSpin ? -12.5 : -22;
-  bowler.position.set(1.5, 0, bowlerStartZ);
-
-  const start = performance.now();
-  let bounced = false, contacted = false;
-
-  function loop(now){
-    const elapsed = now - start;
-
-    if (elapsed < 700){
-      const t = elapsed / 700;
-      bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
-      bowler.position.z = THREE.MathUtils.lerp(bowlerStartZ, -9.8, t);
-      bowler.armR.rotation.x = -Math.PI * 4 * t;
-      bowler.armL.rotation.x = Math.PI * 4 * t;
-      ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
-      if (isWkt || isCatch || isSix || isFour) playThud(0.3 + t * 0.4);
-    } else if (elapsed < 1000){
-      const t = (elapsed - 700) / 300;
-      ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
-      ball.position.z = THREE.MathUtils.lerp(-9.8, pitchZ, t);
-      ball.position.y = THREE.MathUtils.lerp(2.0, 0.04, t * t);
-    } else if (elapsed < 1250){
-      const t = (elapsed - 1000) / 250;
-      if (!bounced){ playThud(1.0); bounced = true; }
-      ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBat.position.x - 0.1, t);
-      ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
-      ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
-    } else if (elapsed < 3400){
-      const t = (elapsed - 1250) / 2150;
-      if (!contacted){
-        contacted = true;
-        if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
-        else playBatCrack(isSix ? 1 : isFour ? 0.85 : 0.5);
-        if (isSix || isFour || isCatch || isWkt) playCrowdRoar();
-        if (runs > 0 && !isFour && !isSix) fielders[0].chase(new THREE.Vector3(hitX, 0, hitZ));
-        historicalShots.push({ angle, dist: finalDist, runs, isWkt });
-        drawWagonWheel();
-      }
-      if (directorOn){
-        if (isSix || isFour){
-          camPos.lerp(new THREE.Vector3(ball.position.x * 0.5, 12, ball.position.z - 18), 0.05);
-          camTarget.lerp(ball.position, 0.08);
-        } else if (isWkt){
-          camPos.lerp(new THREE.Vector3(0, 2.2, 14.5), 0.06);
-          camTarget.lerp(new THREE.Vector3(0, 1.2, 8.8), 0.08);
-        }
-      }
-      if (isWkt && !isCatch){
-        ball.position.set(0.1, 0.3, 10.4);
-      } else {
-        ball.position.x = THREE.MathUtils.lerp(strikerBat.position.x, hitX, t);
-        ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
-        ball.rotation.x += 0.3;
-        if (isSix) ball.position.y = 0.8 + Math.sin(t * Math.PI) * 26 + t * 8;
-        else if (isCatch) ball.position.y = 0.8 + Math.sin(t * Math.PI) * 7.5;
-        else if (isFour) ball.position.y = 0.05 + Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.1);
-        else ball.position.y = 0.05;
-      }
-      if (!directorOn && activeCam === 'follow'){
-        camPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6);
-        camTarget.copy(ball.position);
-      }
-    } else {
-      anim = null;
-      speedTag.classList.remove('on');
-      ball.visible = false;
-      return;
-    }
-    anim = requestAnimationFrame(loop);
-  }
-  anim = requestAnimationFrame(loop);
-
-  setTimeout(() => {
-    const b = document.getElementById('banner');
-    b.className = 'banner';
-    if (isNB){ b.innerText = 'NO BALL!'; b.classList.add('run', 'on'); }
-    else if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt', 'on'); }
-    else if (isWkt){ b.innerText = 'BOWLED!'; b.classList.add('wkt', 'on'); }
-    else if (isSix){ b.innerText = 'MAXIMUM!'; b.classList.add('six', 'on'); }
-    else if (isFour){ b.innerText = 'FOUR!'; b.classList.add('four', 'on'); }
-    else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run', 'on'); }
-    setTimeout(() => b.classList.remove('on'), 2400);
-  }, 1300);
-}
-
-function triggerReplay(){ if (lastShot) playBall(lastShot); }
-
-/* ============================================================
-   16. MATCH STATE SYNC — from parent (postMessage OR polling)
-   ============================================================ */
-function applyMatch(m){
-  if (!m) return;
-
-  // Scorecard HUD
-  const abbr = m.teamBattingAbbr || m.teamBatting || 'T1';
-  const balls = m.legalBalls || 0;
-  document.getElementById('bbAbbr').innerText = abbr;
-  document.getElementById('bbScore').innerText = `${m.runs || 0}/${m.wickets || 0}`;
-  document.getElementById('bbOvers').innerText = `(${Math.floor(balls/6)}.${balls%6})`;
-
-  const st = m.striker || 'Striker';
-  const nst = m.nonStriker || 'Non-Striker';
-  const sB = (m.batters && m.batters[st]) || { runs: 0, balls: 0 };
-  const nB = (m.batters && m.batters[nst]) || { runs: 0, balls: 0 };
-  document.getElementById('bbStriker').innerText = st + '*';
-  document.getElementById('bbStrikerRuns').innerText = `${sB.runs}(${sB.balls})`;
-  document.getElementById('bbNonStriker').innerText = nst;
-  document.getElementById('bbNonStrikerRuns').innerText = `${nB.runs}(${nB.balls})`;
-
-  const bwName = m.currentBowler || 'Bowler';
-  const bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, runs: 0, wickets: 0, maidens: 0 };
-  document.getElementById('bbBowler').innerText = bwName;
-  document.getElementById('bbBowlerFigs').innerText =
-    `${Math.floor((bw.balls||0)/6)}.${(bw.balls||0)%6}-${bw.maidens||0}-${bw.runs||0}-${bw.wickets||0}`;
-
-  // THIS OVER strip — sync from scoring tab
-  if (Array.isArray(m.currentOverBalls)){
-    renderOverDots(m.currentOverBalls);
-  } else if (Array.isArray(m.recentBalls)){
-    // Fallback: last 6 balls
-    renderOverDots(m.recentBalls.slice(-6));
-  }
-}
-
-// postMessage from parent
-window.addEventListener('message', ev => {
-  const d = ev.data || {};
-  if (d.type === 'SYNC_MATCH_STATE' && d.payload) applyMatch(d.payload);
-  if (d.type === 'TRIGGER_DELIVERY' && d.shot) playBall(d.shot);
-});
-
-/* ============================================================
-   17. MAIN ANIMATION LOOP
-   ============================================================ */
-let lastT = 0;
-function animate(t){
-  requestAnimationFrame(animate);
-  const dt = Math.min((t - lastT) / 1000, 0.1);
-  const elapsed = t * 0.001;
-  lastT = t;
-
-  if (stadium && stadium.update) stadium.update(dt, elapsed);
-  strikerWicket.update(dt);
-  bowlerWicket.update(dt);
-  fielders.forEach(f => f.update(dt, elapsed));
-
-  if (!anim){
-    const batTap = Math.sin(elapsed * 4.2);
-    strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, batTap) * 0.16;
-    strikerBat.torso.rotation.x = 0.15 + Math.sin(elapsed * 2.1) * 0.03;
-    strikerBat.torso.rotation.y = Math.sin(elapsed * 1.5) * 0.06;
-    strikerBat.head.rotation.y = -Math.PI / 10 + Math.sin(elapsed * 1.2) * 0.05;
-    nonStrikerBat.torso.rotation.y = Math.sin(elapsed * 1.6) * 0.05;
-    nonStrikerBat.head.rotation.y = Math.PI / 12 + Math.sin(elapsed * 1.1) * 0.04;
-    bowler.torso.rotation.y = Math.sin(elapsed * 2.2) * 0.08;
-    bowler.armR.rotation.x = Math.sin(elapsed * 1.6) * 0.18;
-    bowler.armL.rotation.x = -Math.sin(elapsed * 1.6) * 0.18;
-    bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
-    keeper.torso.rotation.x = 0.3 + Math.sin(elapsed * 1.8) * 0.04;
-    if (directorOn){
-      camPos.lerp(CAM_MODES.broadcast.pos, 0.03);
-      camTarget.lerp(CAM_MODES.broadcast.target, 0.03);
-    }
-  }
-  if (!directorOn && activeCam !== 'follow' && activeCam !== 'helmet'){
-    camPos.lerp(CAM_MODES[activeCam].pos, 0.05);
-    camTarget.lerp(CAM_MODES[activeCam].target, 0.05);
-  }
-  camera.position.copy(camPos);
-  camera.lookAt(camTarget);
-  renderer.render(scene, camera);
-}
-requestAnimationFrame(animate);
-
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-/* ============================================================
-   18. FALLBACK: POLL PARENT STATE EVERY 300ms
-   ============================================================ */
-let lastSeenBalls = -1;
-setInterval(function(){
-  try {
-    const m = (window.parent && window.parent !== window) ? window.parent.match : null;
-    if (!m || !m.teamBatting) return;
-    applyMatch(m);
-    const totalBalls = (m.shotLog && m.shotLog.length) || 0;
-    if (lastSeenBalls < 0){ lastSeenBalls = totalBalls; return; }
-    if (totalBalls > lastSeenBalls){
-      lastSeenBalls = totalBalls;
-      const last = m.shotLog[totalBalls - 1];
-      if (last) playBall(last);
-    }
-  } catch(e){}
-}, 300);
-
-// Ask parent for state on load
-setTimeout(function(){
-  try { window.parent.postMessage({ type: 'CM_REQUEST_STATE' }, '*'); } catch(e){}
-}, 600);
-
-/* ============================================================
-   19. STANDALONE DEMO
-   ============================================================ */
-if (!window.parent || window.parent === window){
-  setTimeout(() => playBall({ runs: 4, isFour: true, angle: 1.2 }), 1500);
-  setInterval(() => {
-    const demos = [
-      { runs: 6, isSix: true, angle: 2.3 },
-      { runs: 1, angle: 0.8 },
-      { runs: 0, isWicket: true, angle: 0 },
-      { runs: 0, isCatch: true, wicketType: 'caught', angle: 1.8 },
-      { runs: 2, angle: 1.5 },
-      { runs: 4, isFour: true, angle: 2.9 }
-    ];
-    playBall(demos[Math.floor(Math.random() * demos.length)]);
-  }, 8000);
-}
-
-/* ============================================================
-   20. EXPOSE ALL HANDLERS TO WINDOW (fixes inline onclick)
-   ============================================================ */
-window.toggleMenu          = toggleMenu;
-window.setSky              = setSky;
-window.navTo               = navTo;
-window.setCamera           = setCamera;
-window.toggleDirector      = toggleDirector;
-window.toggleFullscreen    = toggleFullscreen;
-window.toggleAudio         = toggleAudio;
-window.triggerReplay       = triggerReplay;
-window.toggleWagonWheel    = toggleWagonWheel;
-window.simFeedScoringTab   = simFeedScoringTab;
-window.applyMatch          = applyMatch;
-window.playBall            = playBall;
-
-console.log('🏏 Viewer ready — all handlers exposed, over-strip synced from scoring tab');
-})();
+    window.removeEventListener('pointerdown', unlockAudioEngine);
+  }, { once: true });
 </script>
+
+<!-- Scripts loaded with defer to preserve execution order -->
+<script src="app.js?v=5" defer></script>
+<script src="viewer-bridge.js?v=5" defer></script>
 </body>
 </html>
