@@ -102,6 +102,7 @@ function toggleCommentaryVoice(){
     if(vppIcon) vppIcon.innerText = '🔇';
     if(speechSynth){ try{ speechSynth.cancel(); }catch(e){} }
   }
+}
 
 
 /* ============ INIT ============ */
