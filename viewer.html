@@ -7,6 +7,7 @@
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
   canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:9998;background:radial-gradient(circle at center,transparent 40%,rgba(0,0,0,0.55) 100%);}
   .hud{position:fixed;inset:0;pointer-events:none;z-index:9999;}
   .top-row{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;}
   .top-left-stack{display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:auto;}
@@ -70,6 +71,8 @@
 </style>
 </head>
 <body>
+
+<div class="vignette"></div>
 
 <div class="hud">
   <div class="top-row">
@@ -171,23 +174,9 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     LOAD ORDER (critical):
-     1. Three.js CDN      — core 3D engine
-     2. Boot safety net   — defines updateSparks/updateParticles/updateCrowd
-                            as no-ops BEFORE anything can call them
-     3. stadium.js        — REQUIRED, contains CricMaxStadium
-     4. Optional modules  — loaded DYNAMICALLY with existence check,
-                            so no 404s appear in console if missing
-     ══════════════════════════════════════════════════════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-/* ── BOOT SAFETY NET ──────────────────────────────────────────
-   Defines harmless no-ops for helpers that optional modules
-   may or may not provide. Prevents "X is not defined" from
-   killing the render loop. Real modules overwrite these if
-   they load later. Nothing is removed. ─────────────────────── */
 (function(){
   var noop = function(){};
   ['updateSparks','updateParticles','updateCrowd'].forEach(function(k){
@@ -196,10 +185,9 @@
 })();
 </script>
 
-<!-- REQUIRED — always present, contains the stadium builder -->
 <script src="stadium.js"></script>
 <script src="render-boost.js"></script>
-<!-- OPTIONAL MODULES — loaded dynamically, silently skipped if 404 ── -->
+
 <script>
 (function(){
   var OPTIONAL = [
@@ -212,8 +200,6 @@
 
   var loaded = {};
 
-  /* Probe each file with HEAD — if 200, inject the script tag.
-     If 404, log one info line and move on. No console errors. */
   OPTIONAL.forEach(function(mod){
     fetch(mod.src, { method: 'HEAD' })
       .then(function(res){
@@ -237,7 +223,6 @@
       });
   });
 
-  /* Expose for the main script to query at boot time */
   window.__CricMaxOptionalLoaded = loaded;
 })();
 </script>
@@ -267,17 +252,16 @@ document.body.appendChild(renderer.domElement);
 const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
-/* Optional module hooks — called repeatedly until each one loads.
-   If a module never arrives, we stop after ~5 s and move on. */
+/* Optional module hooks — runs LAST module first so light governor works */
 (function bootOptionalModules(){
- const HOOKS = [
-  ['CricMaxRenderBoost',  'build'],   // ← NEW — runs FIRST, biggest impact
-  ['CricMaxEnvironment',  'build'],
-  ['CricMaxCrowd',        'build'],
-  ['CricMaxParticles',    'build'],
-  ['CricMaxPostFX',       'build'],
-  ['CricMaxStadiumDetail','build']
-];
+  const HOOKS = [
+    ['CricMaxEnvironment',  'build'],
+    ['CricMaxCrowd',        'build'],
+    ['CricMaxParticles',    'build'],
+    ['CricMaxPostFX',       'build'],
+    ['CricMaxStadiumDetail','build'],
+    ['CricMaxRenderBoost',  'build']   /* render-boost runs LAST so its light governor sweeps the others */
+  ];
   let attempts = 0;
   const timer = setInterval(function(){
     attempts++;
@@ -291,7 +275,7 @@ const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() 
           console.info('[CricMax] booted ' + pair[0]);
         } catch(err){
           console.warn('[CricMax] ' + pair[0] + ' boot error:', err);
-          mod.__cricmaxBooted = true; /* don't retry a broken module */
+          mod.__cricmaxBooted = true;
         }
       }
       if (!mod || !mod.__cricmaxBooted) remaining++;
@@ -402,10 +386,10 @@ function makePlayer(opts){
   torso.position.y = 0.91;
   const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), PAD);
   pelvis.castShadow = true; torso.add(pelvis);
-  
+
   const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.jerseyMat);
   chest.position.y = 0.34; chest.castShadow = true; torso.add(chest);
-  
+
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), rig.skinMat);
   head.position.y = 0.77; head.castShadow = true; torso.add(head);
   if (isBat || isKeeper){
@@ -443,7 +427,7 @@ function makePlayer(opts){
   rig.add(torso);
   rig.torso = torso;
   rig.head = head;
-  
+
   const s = 0.96 + Math.random() * 0.08;
   rig.scale.set(s, s, s);
   return rig;
@@ -763,7 +747,7 @@ function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle) {
 }
 
 /* ============================================================
-   8. CORE DELIVERY ENGINE
+   8. CORE DELIVERY ENGINE  (RUNNING TIMING FIXED)
    ============================================================ */
 let anim = null;
 let lastShot = null;
@@ -778,6 +762,7 @@ function playBall(shot){
   fielders.forEach(f => f.reset());
   ball.visible = true;
 
+  /* Reset striker to crease A, ready position */
   strikerBat.position.set(0.35, 0, 8.8);
   strikerBat.rotation.set(0, -Math.PI/2, 0);
   if (strikerBat.batPivot) strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
@@ -785,6 +770,8 @@ function playBall(shot){
   strikerBat.head.rotation.y = 0;
   strikerBat.legL.userData.thigh.rotation.x = 0;
   strikerBat.legR.userData.thigh.rotation.x = 0;
+  strikerBat.armL.rotation.x = 0;
+  strikerBat.armR.rotation.x = 0;
 
   nonStrikerBat.position.set(-1.2, 0, -8.8);
   nonStrikerBat.rotation.set(0, Math.PI/2, 0);
@@ -804,30 +791,32 @@ function playBall(shot){
 
   const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
   const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
-  
+
   const pitchZ = phys.length.pZ;
   const pitchX = (Math.random() - 0.5) * 0.4;
   const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
   const hitZ = 8.8 + Math.cos(wwAngle) * phys.finalDist;
 
-  /* Wagon-wheel data record */
   recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
 
-  if (runs > 0 && runs < 4 && !isWkt){
-    RunningState.active = true;
-    RunningState.totalRuns = runs;
-    RunningState.progress = 0;
-  }
+  /* ═══════════════════════════════════════════════════════════
+     ⚠️ RUNNING FIX ⚠️
+     Previously, RunningState was activated HERE, at the top of
+     playBall(), which made the batsman start running the instant
+     the bowler released — before the ball even arrived.
+     Now it is armed as a "pending" flag and only fired inside the
+     animation loop at T_CONTACT + 200ms, AFTER the batsman has
+     physically played his shot.
+     ═══════════════════════════════════════════════════════════ */
+  let runningPending = (runs > 0 && runs < 4 && !isWkt);
+  let runningStarted = false;
+  const RUNNING_START_DELAY = 200;  /* ms after contact before legs move */
 
+  /* Fielder chases the ball only after it's hit — set up the target now,
+     but the fielder's state machine only reacts when we call chase()
+     after contact. */
   const hitPoint = new THREE.Vector3(hitX, 0, hitZ);
-  if (runs > 0 && runs < 4 && !isWkt){
-    let closest = fielders[0], minD = 9999;
-    fielders.forEach(f => {
-      const d = f.home.distanceTo(hitPoint);
-      if (d < minD){ minD = d; closest = f; }
-    });
-    if (closest) closest.chase(hitPoint);
-  }
+  let fielderDispatched = false;
 
   const speedVal = shot.ballSpeed || (isSpin ? (85 + Math.random()*10).toFixed(1) : (135 + Math.random()*15).toFixed(1));
   const sTag = document.getElementById('speedTag');
@@ -851,7 +840,7 @@ function playBall(shot){
   function loop(now){
     const elapsed = now - start;
 
-    /* Bat Swing Kinematics */
+    /* ── 1. Bat Swing Kinematics ──────────────────────────────── */
     if (strikerBat.batPivot && !isWkt){
       const pose = animPose.pose;
       if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
@@ -870,7 +859,7 @@ function playBall(shot){
       }
     }
 
-    /* Ball Trajectory */
+    /* ── 2. Ball Trajectory ───────────────────────────────────── */
     if (elapsed < T_RELEASE){
       const t = elapsed / T_RELEASE;
       bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
@@ -899,6 +888,30 @@ function playBall(shot){
         contacted = true;
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
+
+        /* Dispatch nearest fielder to chase the ball — only now,
+           not at the moment of release */
+        if (runs > 0 && runs < 4 && !isWkt && !fielderDispatched){
+          fielderDispatched = true;
+          let closest = fielders[0], minD = 9999;
+          fielders.forEach(f => {
+            const d = f.home.distanceTo(hitPoint);
+            if (d < minD){ minD = d; closest = f; }
+          });
+          if (closest) closest.chase(hitPoint);
+        }
+      }
+
+      /* ════════════════════════════════════════════════════════
+         🏃 RUNNING STARTS HERE — 200ms AFTER CONTACT 🏃
+         The batsman has now physically played his shot. Only
+         now do his legs start to move toward the other crease.
+         ════════════════════════════════════════════════════════ */
+      if (runningPending && !runningStarted && elapsed >= T_CONTACT + RUNNING_START_DELAY){
+        runningStarted = true;
+        RunningState.active = true;
+        RunningState.totalRuns = runs;
+        RunningState.progress = 0;
       }
 
       if (directorOn){
@@ -919,14 +932,26 @@ function playBall(shot){
         ball.position.y = 0.05 + 4 * phys.peakHeight * t * (1 - t);
       }
     } else {
-      anim = null; ball.visible = false; 
-      if (sTag) sTag.classList.remove('on'); 
-      return;
+      /* ── 3. Animation finished ─────────────────────────────── */
+      /* If running is still active, let it finish naturally.
+         Otherwise, hide ball and stop. */
+      if (!RunningState.active){
+        anim = null; ball.visible = false;
+        if (sTag) sTag.classList.remove('on');
+        return;
+      }
+      /* Keep the ball frozen at final position until running ends */
+      if (elapsed >= T_END + 3000) {
+        anim = null; ball.visible = false;
+        if (sTag) sTag.classList.remove('on');
+        return;
+      }
     }
     anim = requestAnimationFrame(loop);
   }
   anim = requestAnimationFrame(loop);
 
+  /* ── 4. Banner trigger at contact (visual feedback) ───────── */
   setTimeout(() => {
     const b = document.getElementById('banner');
     if (!b) return;
@@ -1034,7 +1059,6 @@ function handleNewMatchData(m) {
   }
 }
 
-// Channel 1: PostMessage (Iframe)
 window.addEventListener('message', ev => {
   const d = ev.data || {};
   if ((d.type === 'SYNC_MATCH_STATE' || d.type === 'match_state') && (d.payload || d.match)) {
@@ -1045,7 +1069,6 @@ window.addEventListener('message', ev => {
   }
 });
 
-// Channel 2: BroadcastChannel (Cross-Tab / Same Browser)
 try {
   const bc = new BroadcastChannel('cricmax_live');
   bc.onmessage = ev => {
@@ -1056,7 +1079,6 @@ try {
   };
 } catch(e){}
 
-// Channel 3: Parent & LocalStorage Polling (Bulletproof Fail-Safe)
 setInterval(() => {
   try {
     if (window.parent && window.parent !== window && window.parent.match) {
@@ -1075,7 +1097,6 @@ setInterval(() => {
   } catch(e){}
 }, 300);
 
-// Immediate load from storage on boot
 try {
   const raw = localStorage.getItem('CricMax_Data');
   if (raw) {
@@ -1218,6 +1239,7 @@ function animate(t){
     fielders.forEach(f => f.update(dt, elapsed));
     RunningState.update(dt);
 
+    /* Idle animation only when nothing is happening */
     if (!anim && !RunningState.active){
       if (strikerBat.batPivot) strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
       bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
@@ -1254,7 +1276,6 @@ window.addEventListener('resize', function(){
   renderer.setSize(innerWidth, innerHeight);
 });
 
-// Window exports
 window.toggleMenu = toggleMenu; window.setSky = setSky; window.navTo = navTo; window.setCamera = setCamera;
 window.toggleDirector = toggleDirector; window.toggleWagonWheel = toggleWagonWheel;
 window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay; window.toggleAudio = toggleAudio; window.toggleFullscreen = toggleFullscreen;
