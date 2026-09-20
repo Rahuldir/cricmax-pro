@@ -202,13 +202,11 @@
 <!-- OPTIONAL MODULES — loaded dynamically, silently skipped if 404 ── -->
 <script>
 (function(){
-  var OPTIONAL = [
-    { src: 'environment.js',     global: 'CricMaxEnvironment'  },
-    { src: 'crowd-animation.js', global: 'CricMaxCrowd'        },
-    { src: 'particles.js',       global: 'CricMaxParticles'    },
-    { src: 'post-fx.js',         global: 'CricMaxPostFX'       },
-    { src: 'stadium-detail.js',  global: 'CricMaxStadiumDetail'}
-  ];
+ var OPTIONAL = [
+  /* render-boost.js now handles: environment, crowd, stadium detail.
+     These are disabled to prevent double lights / overexposure. */
+  { src: 'particles.js', global: 'CricMaxParticles' }
+];
 
   var loaded = {};
 
