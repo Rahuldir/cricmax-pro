@@ -39,6 +39,9 @@
     .event-banner.six { color: #ff6d00; text-shadow: 0 0 45px #fbbf24, 0 8px 24px #000; }
     .event-banner.wkt { color: #ef4444; text-shadow: 0 0 45px #7f1d1d, 0 8px 24px #000; }
 
+    /* PIP Replay Tag (Section 3) */
+    .pip-badge { position: absolute; top: 76px; right: 265px; background: rgba(239,68,68,0.9); color: #fff; font-size: 10px; font-weight: 900; letter-spacing: 1.2px; padding: 4px 8px; border-radius: 4px; display: none; pointer-events: none; border: 1px solid rgba(255,255,255,0.4); }
+
     /* TV Broadcast Scorecard */
     .tv-scorecard { pointer-events: auto; background: linear-gradient(90deg, rgba(8,18,32,.96), rgba(3,8,16,.98)); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(18px); color: #fff; box-shadow: 0 14px 40px rgba(0,0,0,.85); max-width: 880px; margin: 0 auto; width: 100%; gap: 14px; }
     .tv-team { display: flex; align-items: center; gap: 10px; font-weight: 900; border-right: 1px solid rgba(255,255,255,.12); padding-right: 16px; }
@@ -86,9 +89,10 @@
       </div>
     </div>
 
-    <!-- Speed Radar & Wagon Wheel Overlay -->
+    <!-- Speed Radar & Overlays -->
     <div id="speedRadar" class="radar-tag">SPEED: -- KM/H</div>
     <canvas id="wagonWheelCanvas" width="280" height="280"></canvas>
+    <div id="pipBadge" class="pip-badge">REPLAY 0.5x</div>
 
     <div id="eventBanner" class="event-banner">FOUR!</div>
 
@@ -145,8 +149,7 @@
       const noise = audioCtx.createBufferSource();
       noise.buffer = buffer;
       const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1600;
+      filter.type = 'bandpass'; filter.frequency.value = 1600;
 
       const nGain = audioCtx.createGain();
       nGain.gain.setValueAtTime(0.8 * power, audioCtx.currentTime);
@@ -202,7 +205,7 @@
     }
 
     /* =======================================================
-       2. THREE.JS SCENE SETUP & ATMOSPHERE
+       2. THREE.JS SCENE SETUP & CAMERAS (SECTION 3: PIP REPLAY)
        ======================================================= */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -210,11 +213,17 @@
     scene.fog = new THREE.FogExp2(0x050d24, 0.0055);
 
     const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 800);
+    // Section 3: PIP Secondary Camera (Keeper / Umpire slow-mo view)
+    const pipCamera = new THREE.PerspectiveCamera(48, 16 / 9, 0.1, 400);
+    pipCamera.position.set(0, 2.2, 14.5);
+    pipCamera.lookAt(0, 1.2, 0);
+
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.autoClear = false;
     container.appendChild(renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0xd4e2ff, 0.5);
@@ -262,7 +271,9 @@
       floodlights.push(spot);
     });
 
+    let currentAtmosphere = 'night';
     window.setAtmosphere = function(mode) {
+      currentAtmosphere = mode;
       document.querySelectorAll('#env-day, #env-sunset, #env-night').forEach(b => b.classList.remove('active'));
       const activeBtn = document.getElementById('env-' + mode);
       if (activeBtn) activeBtn.classList.add('active');
@@ -382,7 +393,6 @@
     addMarking(0, 10.0, 2.64, 0.08);
     addMarking(0, -10.0, 2.64, 0.08);
 
-    // Footmark Wear
     const footmarkGroup = new THREE.Group();
     scene.add(footmarkGroup);
 
@@ -398,7 +408,72 @@
     stampFootmark(0.4, 8.5); stampFootmark(-0.4, -8.5);
 
     /* =======================================================
-       4. DYNAMIC CARTWHEELING WICKETS
+       4. LIVING STADIUM CROWD DYNAMICS (SECTION 6)
+       ======================================================= */
+    const crowdCount = 1800;
+    const crowdGeo = new THREE.BufferGeometry();
+    const crowdPos = new Float32Array(crowdCount * 3);
+    const crowdBaseY = new Float32Array(crowdCount);
+    const crowdAngles = new Float32Array(crowdCount);
+    const crowdCol = new Float32Array(crowdCount * 3);
+
+    const palette = [
+      new THREE.Color(0xef4444), new THREE.Color(0x3b82f6),
+      new THREE.Color(0xfbbf24), new THREE.Color(0xffffff),
+      new THREE.Color(0x10b981)
+    ];
+
+    for (let i = 0; i < crowdCount; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const tier = Math.floor(Math.random() * 3);
+      const rad = 65 + tier * 6 + Math.random() * 4;
+      const y = 1.0 + tier * 4.8 + Math.random() * 3.5;
+
+      crowdPos[i * 3] = Math.cos(ang) * rad;
+      crowdPos[i * 3 + 1] = y;
+      crowdPos[i * 3 + 2] = Math.sin(ang) * rad;
+
+      crowdBaseY[i] = y;
+      crowdAngles[i] = ang;
+
+      const c = palette[Math.floor(Math.random() * palette.length)];
+      crowdCol[i * 3] = c.r;
+      crowdCol[i * 3 + 1] = c.g;
+      crowdCol[i * 3 + 2] = c.b;
+    }
+
+    crowdGeo.setAttribute('position', new THREE.BufferAttribute(crowdPos, 3));
+    crowdGeo.setAttribute('color', new THREE.BufferAttribute(crowdCol, 3));
+    const crowdPoints = new THREE.Points(crowdGeo, new THREE.PointsMaterial({ size: 0.8, vertexColors: true }));
+    scene.add(crowdPoints);
+
+    let isMexicanWaveActive = false;
+    function updateCrowdWave(time) {
+      const pos = crowdGeo.attributes.position.array;
+      const col = crowdGeo.attributes.color.array;
+
+      for (let i = 0; i < crowdCount; i++) {
+        let yOffset = 0;
+        if (isMexicanWaveActive) {
+          // Mexican Wave (La Ola) traveling circularly around stands
+          const wavePhase = (time * 3.5) - (crowdAngles[i] * 3.0);
+          yOffset = Math.max(0, Math.sin(wavePhase)) * 1.8;
+        }
+        pos[i * 3 + 1] = crowdBaseY[i] + yOffset;
+
+        // Smartphone flashlight sparkle during night games
+        if (currentAtmosphere === 'night') {
+          if (Math.random() < 0.015) {
+            col[i * 3] = 2.0; col[i * 3 + 1] = 2.0; col[i * 3 + 2] = 2.0; // Flashlight burst
+          }
+        }
+      }
+      crowdGeo.attributes.position.needsUpdate = true;
+      if (currentAtmosphere === 'night') crowdGeo.attributes.color.needsUpdate = true;
+    }
+
+    /* =======================================================
+       5. DYNAMIC CARTWHEELING WICKETS
        ======================================================= */
     class DynamicWicketSystem {
       constructor(zPos) {
@@ -474,7 +549,7 @@
     const bowlerWickets = new DynamicWicketSystem(-10.0);
 
     /* =======================================================
-       5. 9 DYNAMIC FIELDERS WITH PURSUIT AI
+       6. 9 FIELDERS WITH PICK-UP & RETURN THROW (SECTION 1)
        ======================================================= */
     class DynamicFielder {
       constructor(name, x, z) {
@@ -482,7 +557,7 @@
         this.basePos = new THREE.Vector3(x, 0, z);
         this.currentPos = this.basePos.clone();
         this.targetPos = this.basePos.clone();
-        this.state = 'idle';
+        this.state = 'idle'; // idle, chasing, throwing, returning
 
         this.group = new THREE.Group();
         const jersey = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
@@ -499,21 +574,40 @@
         const legR = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.65, 0.16), white);
         legR.position.set(0.14, 0.35, 0); this.group.add(legR);
 
+        // Right Arm for throwing
+        this.armR = new THREE.Group();
+        this.armR.position.set(0.32, 1.35, 0);
+        const armMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.6, 8), jersey);
+        armMesh.position.y = -0.3;
+        this.armR.add(armMesh);
+        this.group.add(this.armR);
+
         this.group.position.copy(this.basePos);
         scene.add(this.group);
       }
 
-      // Updated pursue: If shot is a four, cap pursuit distance inside the boundary line so ball goes past
       pursue(ballPos, isFour = false) {
         this.state = 'chasing';
         if (isFour) {
           const dir = new THREE.Vector2(ballPos.x, ballPos.z);
-          const dist = Math.min(dir.length() * 0.78, 56.0); // Stop chase inside boundary
+          const dist = Math.min(dir.length() * 0.78, 56.0);
           dir.normalize().multiplyScalar(dist);
           this.targetPos.set(dir.x, 0, dir.y);
         } else {
           this.targetPos.set(ballPos.x, 0, ballPos.z);
         }
+      }
+
+      triggerThrow(targetStumpPos) {
+        this.state = 'throwing';
+        this.throwTarget = targetStumpPos.clone();
+        this.group.lookAt(targetStumpPos.x, 0, targetStumpPos.z);
+        // Arm windup & throw
+        this.armR.rotation.x = -Math.PI;
+        setTimeout(() => {
+          this.armR.rotation.x = 0;
+          this.reset();
+        }, 500);
       }
 
       reset() {
@@ -522,7 +616,7 @@
       }
 
       update(dt) {
-        if (this.state === 'idle') return;
+        if (this.state === 'idle' || this.state === 'throwing') return;
         const dist = this.group.position.distanceTo(this.targetPos);
         if (dist > 0.3) {
           const dir = new THREE.Vector3().subVectors(this.targetPos, this.group.position).normalize();
@@ -547,12 +641,13 @@
     ];
 
     /* =======================================================
-       6. BATSMAN & BOWLER RIGS
+       7. DUAL BATTERS RUNNING ENGINE (SECTION 2)
        ======================================================= */
-    function buildBatsman() {
+    function createBatsmanMesh(color = 0x0284c7) {
       const rig = new THREE.Group();
-      const jersey = new THREE.MeshStandardMaterial({ color: 0x0284c7 });
+      const jersey = new THREE.MeshStandardMaterial({ color });
       const skin = new THREE.MeshLambertMaterial({ color: 0xd4a373 });
+      const padMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.72, 10), jersey);
       torso.position.y = 1.25; torso.castShadow = true; rig.add(torso);
@@ -560,7 +655,6 @@
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), skin);
       head.position.y = 1.74; rig.add(head);
 
-      const padMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
       const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.76, 0.2), padMat);
       legL.position.set(-0.16, 0.45, 0); rig.add(legL);
       const legR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.76, 0.2), padMat);
@@ -572,7 +666,7 @@
       const batPivot = new THREE.Group();
       batPivot.position.set(0, -0.4, 0.25); shoulders.add(batPivot);
 
-      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8), padMat);
       handle.position.y = 0.15; batPivot.add(handle);
 
       const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.85, 0.05), new THREE.MeshStandardMaterial({ color: 0xd4a373 }));
@@ -581,13 +675,23 @@
       rig.batPivot = batPivot;
       rig.shoulders = shoulders;
       rig.legL = legL;
+      rig.legR = legR;
       return rig;
     }
-    const batsman = buildBatsman();
-    batsman.position.set(0.3, 0, 8.8);
-    batsman.rotation.y = -Math.PI / 2;
-    scene.add(batsman);
 
+    // Striker Batter
+    const strikerBatter = createBatsmanMesh(0x0284c7);
+    strikerBatter.position.set(0.3, 0, 8.8);
+    strikerBatter.rotation.y = -Math.PI / 2;
+    scene.add(strikerBatter);
+
+    // Non-Striker Batter (Stationed at bowling crease end)
+    const nonStrikerBatter = createBatsmanMesh(0x0369a1);
+    nonStrikerBatter.position.set(-0.65, 0, -8.8);
+    nonStrikerBatter.rotation.y = Math.PI / 2;
+    scene.add(nonStrikerBatter);
+
+    // Bowler
     function buildBowler() {
       const rig = new THREE.Group();
       const red = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
@@ -595,13 +699,11 @@
 
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.72, 8), red);
       torso.position.y = 1.15; rig.add(torso);
-
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), skin);
       head.position.y = 1.62; rig.add(head);
 
       const armJoint = new THREE.Group();
       armJoint.position.set(0.35, 1.4, 0); rig.add(armJoint);
-
       const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.65, 8), red);
       arm.position.y = -0.3; armJoint.add(arm);
 
@@ -617,8 +719,69 @@
     ball.castShadow = true; ball.visible = false;
     scene.add(ball);
 
+    // Running State Manager (Section 2)
+    let runningAnimationActive = false;
+    let runProgress = 0;
+    let totalRunsTaking = 0;
+
+    function startRunningBetweenWickets(runs) {
+      if (runs <= 0 || runs >= 4) return;
+      runningAnimationActive = true;
+      runProgress = 0;
+      totalRunsTaking = runs;
+    }
+
+    function updateRunningBetweenWickets(dt) {
+      if (!runningAnimationActive) return;
+      runProgress += dt * (1.1 / totalRunsTaking);
+
+      const cycle = runProgress * totalRunsTaking;
+      const currentLap = Math.floor(cycle);
+      const lapFraction = cycle - currentLap;
+      const isOddLap = currentLap % 2 === 1;
+
+      // Sprint oscillation
+      const sprintSpeed = Math.sin(runProgress * 22) * 0.12;
+
+      // Striker sprints from 8.8 to -8.8
+      const strikerZ = isOddLap
+        ? THREE.MathUtils.lerp(-8.8, 8.8, lapFraction)
+        : THREE.MathUtils.lerp(8.8, -8.8, lapFraction);
+
+      strikerBatter.position.z = strikerZ;
+      strikerBatter.position.x = 0.55;
+      strikerBatter.rotation.y = isOddLap ? 0 : Math.PI;
+      strikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintSpeed;
+
+      // Non-striker sprints from -8.8 to 8.8
+      const nonStrikerZ = isOddLap
+        ? THREE.MathUtils.lerp(8.8, -8.8, lapFraction)
+        : THREE.MathUtils.lerp(-8.8, 8.8, lapFraction);
+
+      nonStrikerBatter.position.z = nonStrikerZ;
+      nonStrikerBatter.position.x = -0.55;
+      nonStrikerBatter.rotation.y = isOddLap ? Math.PI : 0;
+      nonStrikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintSpeed;
+
+      if (runProgress >= 1.0) {
+        runningAnimationActive = false;
+        // If odd runs, strike rotates
+        if (totalRunsTaking % 2 !== 0) {
+          strikerBatter.position.set(0.3, 0, -8.8);
+          strikerBatter.rotation.y = Math.PI / 2;
+          nonStrikerBatter.position.set(-0.65, 0, 8.8);
+          nonStrikerBatter.rotation.y = -Math.PI / 2;
+        } else {
+          strikerBatter.position.set(0.3, 0, 8.8);
+          strikerBatter.rotation.y = -Math.PI / 2;
+          nonStrikerBatter.position.set(-0.65, 0, -8.8);
+          nonStrikerBatter.rotation.y = Math.PI / 2;
+        }
+      }
+    }
+
     /* =======================================================
-       7. CAMERAS & WAGON WHEEL OVERLAY
+       8. CAMERAS & WAGON WHEEL
        ======================================================= */
     const cameraModes = {
       broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
@@ -660,7 +823,6 @@
       if (btn) btn.innerText = isAudioOn ? '🔊' : '🔇';
     };
 
-    // Wagon Wheel 2D Sync Display
     const wagonCanvas = document.getElementById('wagonWheelCanvas');
     const wagonCtx = wagonCanvas.getContext('2d');
     const historicalShots = [];
@@ -691,7 +853,7 @@
     }
 
     /* =======================================================
-       8. TWO-WAY SCORING TAB & WAGON WHEEL SYNCHRONIZATION
+       9. TWO-WAY SCORING TAB SYNCHRONIZATION
        ======================================================= */
     let lastProcessedShotIndex = -1;
 
@@ -699,25 +861,18 @@
       try {
         if (window.parent && window.parent.match) return window.parent.match;
         if (window.match) return window.match;
-      } catch (e) {
-        // Fallback for cross-origin
-      }
+      } catch (e) {}
       return null;
     }
 
     window.addEventListener('message', (event) => {
       if (!event.data) return;
-      if (event.data.type === 'SYNC_MATCH_STATE' && event.data.payload) {
-        applyMatchDataToScorecard(event.data.payload);
-      }
-      if (event.data.type === 'TRIGGER_DELIVERY' && event.data.shot) {
-        playBall(event.data.shot);
-      }
+      if (event.data.type === 'SYNC_MATCH_STATE' && event.data.payload) applyMatchDataToScorecard(event.data.payload);
+      if (event.data.type === 'TRIGGER_DELIVERY' && event.data.shot) playBall(event.data.shot);
     });
 
     function applyMatchDataToScorecard(m) {
       if (!m) return;
-
       const abbrEl = document.getElementById('tvAbbr');
       const scoreEl = document.getElementById('tvScore');
       const oversEl = document.getElementById('tvOvers');
@@ -740,9 +895,6 @@
       if (m.batters) {
         if (m.batters[strikerKey]) strikerStats = m.batters[strikerKey];
         if (m.batters[nonStrikerKey]) nonStrikerStats = m.batters[nonStrikerKey];
-      } else if (m.currentStriker && m.currentNonStriker) {
-        strikerStats = m.currentStriker;
-        nonStrikerStats = m.currentNonStriker;
       }
 
       const stNameEl = document.getElementById('tvStrikerName');
@@ -757,20 +909,13 @@
 
       const bowlerKey = m.currentBowler || (m.bowler && m.bowler.name) || 'Bowler';
       let bowlerStats = { balls: 0, maidens: 0, runs: 0, wickets: 0 };
-
-      if (m.bowlers && m.bowlers[bowlerKey]) {
-        bowlerStats = m.bowlers[bowlerKey];
-      } else if (m.bowler) {
-        bowlerStats = m.bowler;
-      }
+      if (m.bowlers && m.bowlers[bowlerKey]) bowlerStats = m.bowlers[bowlerKey];
 
       const bwBalls = bowlerStats.balls || bowlerStats.legalBalls || 0;
-      const bwOversStr = `${Math.floor(bwBalls / 6)}.${bwBalls % 6}`;
-
       const bwNameEl = document.getElementById('tvBowlerName');
       const bwFigsEl = document.getElementById('tvBowlerFigs');
       if (bwNameEl) bwNameEl.innerText = bowlerKey;
-      if (bwFigsEl) bwFigsEl.innerText = `${bwOversStr}-${bowlerStats.maidens || 0}-${bowlerStats.runs || 0}-${bowlerStats.wickets || 0}`;
+      if (bwFigsEl) bwFigsEl.innerText = `${Math.floor(bwBalls / 6)}.${bwBalls % 6}-${bowlerStats.maidens || 0}-${bowlerStats.runs || 0}-${bowlerStats.wickets || 0}`;
 
       const log = m.shotLog || m.ballsLog || m.deliveries;
       if (log && Array.isArray(log) && log.length > 0) {
@@ -784,32 +929,30 @@
 
     setInterval(() => {
       const matchObj = getSyncMatchObject();
-      if (matchObj) {
-        applyMatchDataToScorecard(matchObj);
-      }
+      if (matchObj) applyMatchDataToScorecard(matchObj);
     }, 200);
 
     /* =======================================================
-       9. REAL-TIME BALL DELIVERY & WAGON WHEEL FLIGHT
+       10. DELIVERY SIMULATION, THROW & PIP CONTROLLER
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
+    let pipActive = false;
 
     window.triggerReplay = function() {
       if (lastRecordedShot) playBall(lastRecordedShot);
     };
 
     window.simRandomDelivery = function() {
-      const angles = [0.4, 0.9, 1.6, 2.2, 3.4, 4.2, 5.1];
-      const selectedAngle = angles[Math.floor(Math.random() * angles.length)];
-      const shot = {
-        runs: 4,
-        isFour: true,
-        isSix: false,
-        isWicket: false,
-        angle: selectedAngle,
-        ballSpeed: 141.2
-      };
+      const outcomes = [
+        { runs: 4, isFour: true, isSix: false, isWicket: false, angle: 0.8 },
+        { runs: 6, isFour: false, isSix: true, isWicket: false, angle: 2.1 },
+        { runs: 1, isFour: false, isSix: false, isWicket: false, angle: 1.4 },
+        { runs: 2, isFour: false, isSix: false, isWicket: false, angle: 3.5, isRunOut: true },
+        { runs: 0, isFour: false, isSix: false, isWicket: true, angle: 0.0 }
+      ];
+      const shot = outcomes[Math.floor(Math.random() * outcomes.length)];
+      shot.ballSpeed = (138 + Math.random() * 8).toFixed(1);
       playBall(shot);
     };
 
@@ -832,33 +975,42 @@
       const pitchX = shot.pitchX !== undefined ? shot.pitchX : (Math.random() - 0.5) * 0.4;
 
       let angle = Math.PI / 2;
-      if (shot.angle !== undefined) {
-        angle = shot.angle > (Math.PI * 2) ? (shot.angle * Math.PI / 180) : shot.angle;
-      } else if (shot.wagonX !== undefined && shot.wagonY !== undefined) {
-        angle = Math.atan2(shot.wagonX, shot.wagonY);
-      } else if (shot.zoneIndex !== undefined && shot.zoneIndex >= 0) {
-        angle = (shot.zoneIndex * Math.PI / 4);
-      }
+      if (shot.angle !== undefined) angle = shot.angle > (Math.PI * 2) ? (shot.angle * Math.PI / 180) : shot.angle;
+      else if (shot.wagonX !== undefined && shot.wagonY !== undefined) angle = Math.atan2(shot.wagonX, shot.wagonY);
+      else if (shot.zoneIndex !== undefined && shot.zoneIndex >= 0) angle = (shot.zoneIndex * Math.PI / 4);
 
       const runs = shot.runs !== undefined ? shot.runs : 0;
       const isSix = shot.isSix || runs === 6;
       const isFour = shot.isFour || runs === 4;
       const isWicket = shot.isWicket || shot.isOut || false;
+      const isRunOut = shot.isRunOut || false;
 
-      // Ensure ball clears the 62m boundary rope cleanly on a four (66m distance)
-      let finalDist = shot.dist || (runs > 0 ? (isSix ? 68 : (isFour ? 66 : runs * 9)) : 18);
+      let finalDist = shot.dist || (runs > 0 ? (isSix ? 68 : (isFour ? 66 : runs * 14)) : 18);
       const hitX = Math.sin(angle) * finalDist;
       const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
 
       let bouncedSoundPlayed = false;
       let contactSoundPlayed = false;
+      let throwInitiated = false;
 
+      // Find closest fielder
       let nearestFielder = fielders[0];
       let minFielderDist = 999;
       fielders.forEach(f => {
         const d = f.basePos.distanceTo(new THREE.Vector3(hitX, 0, hitZ));
         if (d < minFielderDist) { minFielderDist = d; nearestFielder = f; }
       });
+
+      // Activate PIP replay banner & Mexican Wave on boundaries/wickets
+      if (isSix || isFour || isWicket) {
+        pipActive = true;
+        document.getElementById('pipBadge').style.display = 'block';
+        if (isSix || isFour) isMexicanWaveActive = true;
+      } else {
+        pipActive = false;
+        document.getElementById('pipBadge').style.display = 'none';
+        isMexicanWaveActive = false;
+      }
 
       function loop(now) {
         const elapsed = now - startTime;
@@ -871,9 +1023,9 @@
           bowler.armJoint.rotation.x = -Math.PI * 4 * t;
           ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
 
-          batsman.batPivot.rotation.x = -Math.PI / 5 + (Math.sin(t * 10) * 0.05);
-          batsman.rotation.y = -Math.PI / 2;
-          batsman.legL.position.set(-0.16, 0.45, 0);
+          strikerBatter.batPivot.rotation.x = -Math.PI / 5 + (Math.sin(t * 10) * 0.05);
+          strikerBatter.rotation.y = -Math.PI / 2;
+          strikerBatter.legL.position.set(-0.16, 0.45, 0);
         }
         // Phase 2: Delivery & Pitch Bounce (700ms - 1200ms)
         else if (elapsed < 1200) {
@@ -890,12 +1042,12 @@
               stampFootmark(pitchX, pitchZ);
             }
             const pt = (t - 0.65) / 0.35;
-            ball.position.x = THREE.MathUtils.lerp(pitchX, batsman.position.x - 0.1 + seamDeviation, pt);
+            ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBatter.position.x - 0.1 + seamDeviation, pt);
             ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, pt);
             ball.position.y = 0.14 + (Math.sin(pt * Math.PI * 0.5) * 0.95);
           }
         }
-        // Phase 3: Shot Contact & Ball Traveling Past Boundary (1200ms - 3400ms)
+        // Phase 3: Shot Contact & Ball Flight (1200ms - 3400ms)
         else if (elapsed < 3400) {
           const t = (elapsed - 1200) / 2200;
 
@@ -911,35 +1063,33 @@
             drawWagonWheel();
             contactSoundPlayed = true;
 
-            // Fielder chases toward the ball, but on a four, their target position stops before the rope
             if (!isSix && runs > 0) {
               nearestFielder.pursue(new THREE.Vector3(hitX, 0, hitZ), isFour);
+              startRunningBetweenWickets(runs);
             }
           }
 
           if (isWicket) {
-            batsman.batPivot.rotation.x = 0;
+            strikerBatter.batPivot.rotation.x = 0;
             ball.position.set(0.1, 0.3, 10.4);
           } else {
             if (angle > 0.3 && angle < 1.9) {
-              batsman.legL.position.z = THREE.MathUtils.lerp(0, 0.35, Math.min(1, t * 5));
-              batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.7);
+              strikerBatter.legL.position.z = THREE.MathUtils.lerp(0, 0.35, Math.min(1, t * 5));
+              strikerBatter.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.7);
             } else if (angle >= 1.9) {
-              batsman.rotation.y = -Math.PI / 2 + (Math.min(1, t * 4) * Math.PI * 0.45);
-              batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
+              strikerBatter.rotation.y = -Math.PI / 2 + (Math.min(1, t * 4) * Math.PI * 0.45);
+              strikerBatter.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
             } else {
-              batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
+              strikerBatter.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
             }
 
-            // Ball travels all the way to hitX / hitZ across the boundary
             const dragFactor = 1 - Math.pow(t, 1.4) * 0.12;
-            ball.position.x = THREE.MathUtils.lerp(batsman.position.x, hitX * dragFactor, t);
+            ball.position.x = THREE.MathUtils.lerp(strikerBatter.position.x, hitX * dragFactor, t);
             ball.position.z = THREE.MathUtils.lerp(8.8, hitZ * dragFactor, t);
 
             if (isSix) {
               ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 22.0 * dragFactor);
             } else if (isFour) {
-              // Bouncing four rolls past the boundary rope
               ball.position.y = 0.14 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.2));
             } else {
               ball.position.y = 0.14;
@@ -952,9 +1102,38 @@
           } else if (activeCamMode === 'broadcast' && (isSix || isFour)) {
             camTarget.lerp(ball.position, 0.05);
           }
+        }
+        // Phase 4: Fielder Pick-Up & Arc Return Throw (3400ms - 4800ms)
+        else if (elapsed < 4800) {
+          const t = (elapsed - 3400) / 1400;
+
+          if (!isSix && !isFour && runs > 0) {
+            const targetWicket = (runs % 2 === 0) ? strikerWickets.group.position : bowlerWickets.group.position;
+            if (!throwInitiated) {
+              nearestFielder.triggerThrow(targetWicket);
+              throwInitiated = true;
+            }
+
+            // Ball returns in parabolic trajectory to stumps
+            ball.position.x = THREE.MathUtils.lerp(hitX, targetWicket.x, t);
+            ball.position.z = THREE.MathUtils.lerp(hitZ, targetWicket.z, t);
+            ball.position.y = 0.2 + (Math.sin(t * Math.PI) * 4.5);
+
+            // Direct-Hit Run Out Shatter
+            if (t > 0.95 && isRunOut) {
+              playSoundStumpsShatter();
+              if (runs % 2 === 0) strikerWickets.triggerShatter();
+              else bowlerWickets.triggerShatter();
+            }
+          }
         } else {
           deliveryAnim = null;
           speedRadar.classList.remove('active');
+          setTimeout(() => {
+            pipActive = false;
+            document.getElementById('pipBadge').style.display = 'none';
+            isMexicanWaveActive = false;
+          }, 1200);
           return;
         }
 
@@ -967,6 +1146,7 @@
         const b = document.getElementById('eventBanner');
         b.className = 'event-banner';
         if (isWicket) { b.innerText = 'OUT / WICKET!'; b.classList.add('wkt', 'active'); }
+        else if (isRunOut) { b.innerText = 'DIRECT HIT! RUN OUT'; b.classList.add('wkt', 'active'); }
         else if (isSix) { b.innerText = 'MAXIMUM 6!'; b.classList.add('six', 'active'); }
         else if (isFour) { b.innerText = 'CRACKING FOUR!'; b.classList.add('four', 'active'); }
         else { b.innerText = runs > 0 ? `${runs} RUNS` : 'DOT BALL'; b.classList.add('active'); }
@@ -975,7 +1155,7 @@
     }
 
     /* =======================================================
-       10. MASTER RENDER ENGINE LOOP
+       11. MASTER RENDER ENGINE (VIEWPORT & PIP SCISSOR)
        ======================================================= */
     let lastTime = 0;
     function animate(time) {
@@ -984,6 +1164,8 @@
       lastTime = time;
 
       updateLedTexture(time * 0.001);
+      updateCrowdWave(time * 0.001);
+      updateRunningBetweenWickets(dt);
 
       strikerWickets.update(dt);
       bowlerWickets.update(dt);
@@ -998,7 +1180,32 @@
 
       camera.position.copy(camPos);
       camera.lookAt(camTarget);
+
+      // 1. Render Main Full-Screen Viewport
+      renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+      renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
+      renderer.setScissorTest(false);
+      renderer.clear();
       renderer.render(scene, camera);
+
+      // 2. Render Broadcast Picture-in-Picture (PIP) Inset Viewport (Section 3)
+      if (pipActive) {
+        const pipW = Math.min(window.innerWidth * 0.28, 280);
+        const pipH = pipW * (9 / 16);
+        const pipX = window.innerWidth - pipW - 18;
+        const pipY = window.innerHeight - pipH - 68;
+
+        renderer.setScissorTest(true);
+        renderer.setScissor(pipX, pipY, pipW, pipH);
+        renderer.setViewport(pipX, pipY, pipW, pipH);
+
+        pipCamera.aspect = pipW / pipH;
+        pipCamera.updateProjectionMatrix();
+        pipCamera.lookAt(ball.position.x, 1.0, ball.position.z);
+
+        renderer.render(scene, pipCamera);
+        renderer.setScissorTest(false);
+      }
     }
     requestAnimationFrame(animate);
 
