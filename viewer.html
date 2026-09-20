@@ -26,7 +26,7 @@
   .cam-select-center option{background:#0b1329;color:#fff;font-weight:700;}
   .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(0,230,118,.45);transition:all .2s;font-family:inherit;pointer-events:auto;z-index:10000;position:relative;}
   .menu-btn.on{background:linear-gradient(135deg,#ef4444,#f43f5e);}
-  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);z-index:100001;pointer-events:auto;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s;visibility:hidden;}
+  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);z-index:100001;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s;visibility:hidden;pointer-events:auto;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-section{margin-bottom:14px;}
   .menu-title{font-size:9.5px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;margin-bottom:8px;}
@@ -173,20 +173,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="stadium.js"></script>
-<script src="cricket-data.js"></script>
-<script src="shot-library.js"></script>
-<script src="fielding-ai.js"></script>
-<script src="environment.js"></script>
-<script src="crowd-animation.js"></script>
-<script src="particles.js"></script>
-<script src="post-fx.js"></script>
-<script src="stadium-detail.js"></script>
 <script>
 (function(){
 'use strict';
 
 /* ============================================================
-   1. SCENE
+   1. SCENE SETUP
    ============================================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020713);
@@ -203,25 +195,11 @@ renderer.toneMappingExposure = 1.05;
 renderer.domElement.style.zIndex = '0';
 document.body.appendChild(renderer.domElement);
 
-/* ============================================================
-   2. STADIUM
-   ============================================================ */
 const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
-/* ==== REALISM MODULES ==== */
-const env           = window.CricMaxEnvironment    ? window.CricMaxEnvironment.build(scene, renderer) : null;
-const crowd         = window.CricMaxCrowd          ? window.CricMaxCrowd.build(scene)                : null;
-const particles     = window.CricMaxParticles      ? window.CricMaxParticles.build(scene)            : null;
-const postFX        = window.CricMaxPostFX         ? window.CricMaxPostFX.build(renderer, scene, camera) : null;
-const stadiumDetail = window.CricMaxStadiumDetail  ? window.CricMaxStadiumDetail.build(scene, renderer) : null;
-
-if (postFX) postFX.setIntensity({ bloom: 0.85, vignette: 0.38, grain: 0.06, aberration: 1.4 });
-
-console.log('🎨 All realism modules loaded');
-
 /* ============================================================
-   3. UI HANDLERS
+   2. UI HANDLERS
    ============================================================ */
 let menuOpen = false;
 function toggleMenu(e){
@@ -249,7 +227,6 @@ function setSky(mode){
     if (b) b.classList.toggle('on', m === mode);
   });
   if (stadium && stadium.setSky) stadium.setSky(mode);
-  if (env && env.setTimeOfDay) env.setTimeOfDay(mode);
 }
 setSky('day');
 
@@ -263,7 +240,7 @@ function navTo(pane){
 }
 
 /* ============================================================
-   4. PLAYER MODEL
+   3. KINEMATIC PLAYER MODEL (Advanced joints for shots)
    ============================================================ */
 const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
 const PAD  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
@@ -283,18 +260,15 @@ function makePlayer(opts){
   rig.skinMat = new THREE.MeshStandardMaterial({ color: skin, roughness: 0.55 });
   rig.idlePhase = Math.random() * Math.PI * 2;
   rig.fidget = 1.4 + Math.random() * 1.2;
-  rig.isBat = isBat;
-  rig.isKeeper = isKeeper;
 
+  // Contact shadow
   const shadowCv = document.createElement('canvas');
   shadowCv.width = shadowCv.height = 64;
   const sctx = shadowCv.getContext('2d');
   const sgrad = sctx.createRadialGradient(32, 32, 3, 32, 32, 32);
   sgrad.addColorStop(0, 'rgba(0,0,0,.68)');
-  sgrad.addColorStop(0.5, 'rgba(0,0,0,.3)');
   sgrad.addColorStop(1, 'rgba(0,0,0,0)');
-  sctx.fillStyle = sgrad;
-  sctx.fillRect(0, 0, 64, 64);
+  sctx.fillStyle = sgrad; sctx.fillRect(0, 0, 64, 64);
   const shadow = new THREE.Mesh(
     new THREE.PlaneGeometry(1.1, 0.8),
     new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCv), transparent: true, depthWrite: false })
@@ -317,29 +291,29 @@ function makePlayer(opts){
     leg.userData = { thigh, shin };
     return leg;
   }
-  rig.legL = buildLeg(-0.13);
-  rig.legR = buildLeg(0.13);
+  rig.legL = buildLeg(-0.13); rig.legR = buildLeg(0.13);
   rig.add(rig.legL); rig.add(rig.legR);
 
+  const torso = new THREE.Group();
+  torso.position.y = 0.91;
   const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), PAD);
-  pelvis.position.y = 0.91; pelvis.castShadow = true; rig.add(pelvis);
-
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.jerseyMat);
-  torso.position.y = 1.25; torso.castShadow = true;
-  rig.add(torso); rig.torso = torso;
-
+  pelvis.castShadow = true; torso.add(pelvis);
+  
+  const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.jerseyMat);
+  chest.position.y = 0.34; chest.castShadow = true;
+  torso.add(chest);
+  
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), rig.skinMat);
-  head.position.y = 1.68; head.castShadow = true;
-  rig.add(head); rig.head = head;
-
+  head.position.y = 0.77; head.castShadow = true;
+  torso.add(head);
   if (isBat || isKeeper){
     const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.68), HELM);
-    helmet.position.y = 1.70; rig.add(helmet);
+    helmet.position.y = 0.79; torso.add(helmet);
   }
 
   function buildArm(xOff){
     const arm = new THREE.Group();
-    arm.position.set(xOff, 1.42, 0);
+    arm.position.set(xOff, 0.51, 0); // relative to torso
     const bicep = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.jerseyMat);
     bicep.position.y = -0.16; arm.add(bicep);
     const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.30, 8), rig.skinMat);
@@ -350,61 +324,39 @@ function makePlayer(opts){
     }
     return arm;
   }
-  rig.armL = buildArm(-0.28);
-  rig.armR = buildArm(0.28);
-  rig.add(rig.armL); rig.add(rig.armR);
+  rig.armL = buildArm(-0.28); rig.armR = buildArm(0.28);
+  torso.add(rig.armL); torso.add(rig.armR);
 
   if (isBat){
     const batPivot = new THREE.Group();
-    batPivot.position.set(0, 1.05, 0.25);
-    const grip = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.024, 0.024, 0.36, 8),
-      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 })
-    );
+    batPivot.position.set(0, 0.14, 0.25); // relative to torso
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 }));
     grip.position.y = 0.18; batPivot.add(grip);
-    const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, 0.88, 0.05),
-      new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 })
-    );
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.88, 0.05), new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.35 }));
     blade.position.y = -0.38; blade.castShadow = true; batPivot.add(blade);
-    rig.add(batPivot);
+    torso.add(batPivot);
     rig.batPivot = batPivot;
   }
 
+  rig.add(torso);
+  rig.torso = torso;
+  rig.head = head;
+  
   const s = 0.96 + Math.random() * 0.08;
   rig.scale.set(s, s, s);
   return rig;
 }
 
 /* ============================================================
-   5. TEAMS
+   4. ADVANCED FIELDING AI (Chasing, Scooping, Throwing)
    ============================================================ */
-const strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0 });
-strikerBat.position.set(0.35, 0, 8.8);
-strikerBat.rotation.y = -Math.PI / 2;
-scene.add(strikerBat);
-
-const nonStrikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 2 });
-nonStrikerBat.position.set(-1.2, 0, -8.8);
-nonStrikerBat.rotation.y = Math.PI / 2;
-scene.add(nonStrikerBat);
-
-const bowler = makePlayer({ jersey: 0xdc2626, skinIndex: 3 });
-bowler.position.set(1.5, 0, -22);
-scene.add(bowler);
-
-const keeper = makePlayer({ jersey: 0xdc2626, keeper: true, skinIndex: 1 });
-keeper.position.set(0, 0, 14.5);
-keeper.rotation.y = Math.PI;
-scene.add(keeper);
-
 class Fielder {
   constructor(name, x, z, skinIdx){
     this.name = name;
     this.home = new THREE.Vector3(x, 0, z);
     this.target = this.home.clone();
     this.state = 'idle';
-    this.waitTimer = 0;
+    this.throwTimer = 0;
     this.rig = makePlayer({ jersey: 0xdc2626, skinIndex: skinIdx });
     this.rig.position.copy(this.home);
     this.rig.rotation.y = Math.atan2(this.home.x, this.home.z);
@@ -426,117 +378,135 @@ class Fielder {
       this.rig.armR.rotation.x = -0.2 - sway * 0.06;
       return;
     }
+    
     const dist = this.rig.position.distanceTo(this.target);
-    if (dist > 0.5){
-      const dir = new THREE.Vector3().subVectors(this.target, this.rig.position).normalize();
-      this.rig.position.addScaledVector(dir, 8 * dt);
-      this.rig.lookAt(this.target.x, this.rig.position.y, this.target.z);
-      const cycle = Math.sin(t * 14);
-      this.rig.legL.userData.thigh.rotation.x = cycle * 0.6;
-      this.rig.legR.userData.thigh.rotation.x = -cycle * 0.6;
-      this.rig.armL.rotation.x = -cycle * 0.7;
-      this.rig.armR.rotation.x = cycle * 0.7;
-      this.rig.position.y = Math.abs(Math.sin(t * 14)) * 0.05;
-    } else {
-      if (this.state === 'chasing'){
-        this.state = 'atBall';
-        this.waitTimer = 1.0;
-      } else if (this.state === 'atBall'){
-        this.waitTimer -= dt;
-        if (this.waitTimer <= 0){
-          this.state = 'returning';
-          this.target.copy(this.home);
+    
+    if (this.state === 'chasing') {
+        if (dist > 0.5){
+          // Sprinting Mechanics
+          const dir = new THREE.Vector3().subVectors(this.target, this.rig.position).normalize();
+          this.rig.position.addScaledVector(dir, 10 * dt);
+          this.rig.lookAt(this.target.x, this.rig.position.y, this.target.z);
+          
+          this.rig.torso.rotation.x = 0.2; // Lean forward
+          const cycle = Math.sin(t * 18); // Fast pump
+          this.rig.legL.userData.thigh.rotation.x = cycle * 0.8;
+          this.rig.legR.userData.thigh.rotation.x = -cycle * 0.8;
+          this.rig.armL.rotation.x = -cycle * 0.9;
+          this.rig.armR.rotation.x = cycle * 0.9;
+          this.rig.position.y = Math.abs(Math.sin(t * 18)) * 0.05;
+        } else {
+          // Reached ball - transition to throw animation
+          this.state = 'throwing';
+          this.throwTimer = 0;
         }
-      } else if (this.state === 'returning'){
-        this.state = 'idle';
-        this.rig.position.y = 0;
+    } else if (this.state === 'throwing') {
+        this.throwTimer += dt;
         this.rig.legL.userData.thigh.rotation.x = 0;
         this.rig.legR.userData.thigh.rotation.x = 0;
-        this.rig.armL.rotation.x = 0;
-        this.rig.armR.rotation.x = 0;
-        this.rig.rotation.y = Math.atan2(this.home.x, this.home.z);
-      }
+        this.rig.position.y = 0;
+        
+        if (this.throwTimer < 0.25) {
+            // Bend down to scoop
+            this.rig.torso.rotation.x = THREE.MathUtils.lerp(0.2, 0.8, this.throwTimer / 0.25);
+            this.rig.armR.rotation.x = THREE.MathUtils.lerp(0, 1.5, this.throwTimer / 0.25);
+        } else if (this.throwTimer < 0.5) {
+            // Stand up, pull arm back
+            const p = (this.throwTimer - 0.25) / 0.25;
+            this.rig.torso.rotation.x = THREE.MathUtils.lerp(0.8, -0.2, p);
+            this.rig.armR.rotation.x = THREE.MathUtils.lerp(1.5, -2.0, p);
+            this.rig.torso.rotation.y = THREE.MathUtils.lerp(0, -0.5, p); // Twist back
+        } else if (this.throwTimer < 0.7) {
+            // Snap arm forward (The Throw)
+            const p = (this.throwTimer - 0.5) / 0.2;
+            this.rig.armR.rotation.x = THREE.MathUtils.lerp(-2.0, 1.5, p);
+            this.rig.torso.rotation.y = THREE.MathUtils.lerp(-0.5, 0.5, p); // Twist forward
+        } else if (this.throwTimer > 1.2) {
+            this.reset();
+        }
+    } else if (this.state === 'returning') {
+        if (dist > 0.5){
+          const dir = new THREE.Vector3().subVectors(this.target, this.rig.position).normalize();
+          this.rig.position.addScaledVector(dir, 6 * dt); // Jog back
+          this.rig.lookAt(this.target.x, this.rig.position.y, this.target.z);
+          
+          this.rig.torso.rotation.x = 0.1;
+          const cycle = Math.sin(t * 12);
+          this.rig.legL.userData.thigh.rotation.x = cycle * 0.5;
+          this.rig.legR.userData.thigh.rotation.x = -cycle * 0.5;
+          this.rig.armL.rotation.x = -cycle * 0.5;
+          this.rig.armR.rotation.x = cycle * 0.5;
+        } else {
+          this.state = 'idle';
+          this.rig.position.y = 0;
+          this.rig.torso.rotation.set(0,0,0);
+          this.rig.legL.userData.thigh.rotation.x = 0;
+          this.rig.legR.userData.thigh.rotation.x = 0;
+          this.rig.armL.rotation.x = 0;
+          this.rig.armR.rotation.x = 0;
+          this.rig.rotation.y = Math.atan2(this.home.x, this.home.z);
+        }
     }
   }
 }
 
 const fielderData = [
-  ['Slip',      3.2, 13.5, 1],
-  ['Gully',     7.0, 12.0, 2],
-  ['Point',    18.0,  7.5, 3],
-  ['Cover',    20.0, -2.0, 4],
-  ['Mid-off',   7.5, -9.5, 0],
-  ['Mid-on',   -7.5, -9.5, 1],
-  ['Mid-wkt', -19.0,  0.0, 2],
-  ['Sq Leg',  -18.0,  8.0, 3],
-  ['Fine Leg',-35.0, 24.0, 4]
+  ['Slip',      3.2, 13.5, 1], ['Gully',     7.0, 12.0, 2], ['Point',    18.0,  7.5, 3],
+  ['Cover',    20.0, -2.0, 4], ['Mid-off',   7.5, -9.5, 0], ['Mid-on',   -7.5, -9.5, 1],
+  ['Mid-wkt', -19.0,  0.0, 2], ['Sq Leg',  -18.0,  8.0, 3], ['Fine Leg',-35.0, 24.0, 4]
 ];
 const fielders = fielderData.map(f => new Fielder(f[0], f[1], f[2], f[3]));
 
+// Teams
+const strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0 });
+scene.add(strikerBat);
+const nonStrikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 2 });
+scene.add(nonStrikerBat);
+const bowler = makePlayer({ jersey: 0xdc2626, skinIndex: 3 });
+scene.add(bowler);
+const keeper = makePlayer({ jersey: 0xdc2626, keeper: true, skinIndex: 1 });
+keeper.position.set(0, 0, 14.5);
+keeper.rotation.y = Math.PI;
+scene.add(keeper);
+
 /* ============================================================
-   6. BALL + WICKETS
+   5. BALL + WICKETS + AUDIO
    ============================================================ */
 const ballTex = (function(){
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#991b1b'; ctx.fillRect(0, 0, 128, 128);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(128, 64); ctx.stroke();
-  return new THREE.CanvasTexture(c);
+  const c = document.createElement('canvas'); c.width = c.height = 128; const ctx = c.getContext('2d');
+  ctx.fillStyle = '#991b1b'; ctx.fillRect(0, 0, 128, 128); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(128, 64); ctx.stroke(); return new THREE.CanvasTexture(c);
 })();
-const ball = new THREE.Mesh(
-  new THREE.SphereGeometry(0.125, 24, 24),
-  new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.4 })
-);
-ball.castShadow = true;
-ball.visible = false;
-scene.add(ball);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 24), new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.4 }));
+ball.castShadow = true; ball.visible = false; scene.add(ball);
 
 class Wicket {
   constructor(zPos){
-    this.group = new THREE.Group();
-    this.stumps = []; this.bails = []; this.flying = false;
+    this.group = new THREE.Group(); this.stumps = []; this.bails = []; this.flying = false;
     const mat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.4 });
     [-0.11, 0, 0.11].forEach(x => {
       const s = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.76, 12), mat);
-      s.position.set(x, 0.38, 0); s.castShadow = true;
-      this.group.add(s);
+      s.position.set(x, 0.38, 0); s.castShadow = true; this.group.add(s);
       this.stumps.push({ mesh: s, base: s.position.clone(), vel: new THREE.Vector3(), rot: new THREE.Vector3() });
     });
     [-0.055, 0.055].forEach(x => {
       const b = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.13, 8), mat);
-      b.rotation.z = Math.PI / 2; b.position.set(x, 0.77, 0);
-      this.group.add(b);
+      b.rotation.z = Math.PI / 2; b.position.set(x, 0.77, 0); this.group.add(b);
       this.bails.push({ mesh: b, base: b.position.clone(), vel: new THREE.Vector3(), rot: new THREE.Vector3() });
     });
-    this.group.position.set(0, 0, zPos);
-    scene.add(this.group);
+    this.group.position.set(0, 0, zPos); scene.add(this.group);
   }
   shatter(){
     this.flying = true;
-    this.stumps.forEach((s, i) => {
-      s.vel.set((i - 1) * 2.4 + (Math.random() - 0.5) * 1.5, 4.5 + Math.random() * 2.5, 4 + Math.random() * 3);
-      s.rot.set(Math.random() * 8, Math.random() * 6, Math.random() * 8);
-    });
-    this.bails.forEach(b => {
-      b.vel.set((Math.random() - 0.5) * 4.5, 6 + Math.random() * 2.5, 5 + Math.random() * 3.5);
-      b.rot.set(Math.random() * 14, Math.random() * 12, Math.random() * 14);
-    });
+    this.stumps.forEach((s, i) => { s.vel.set((i - 1) * 2.4 + (Math.random() - 0.5) * 1.5, 4.5 + Math.random() * 2.5, 4 + Math.random() * 3); s.rot.set(Math.random() * 8, Math.random() * 6, Math.random() * 8); });
+    this.bails.forEach(b => { b.vel.set((Math.random() - 0.5) * 4.5, 6 + Math.random() * 2.5, 5 + Math.random() * 3.5); b.rot.set(Math.random() * 14, Math.random() * 12, Math.random() * 14); });
   }
   update(dt){
     if (!this.flying) return;
     [...this.stumps, ...this.bails].forEach(item => {
-      item.vel.y -= 9.8 * dt * 1.5;
-      item.mesh.position.addScaledVector(item.vel, dt);
-      item.mesh.rotation.x += item.rot.x * dt;
-      item.mesh.rotation.y += item.rot.y * dt;
-      item.mesh.rotation.z += item.rot.z * dt;
-      if (item.mesh.position.y < 0.05){
-        item.mesh.position.y = 0.05;
-        item.vel.y = -item.vel.y * 0.35;
-        item.vel.x *= 0.7;
-        item.vel.z *= 0.7;
-      }
+      item.vel.y -= 9.8 * dt * 1.5; item.mesh.position.addScaledVector(item.vel, dt);
+      item.mesh.rotation.x += item.rot.x * dt; item.mesh.rotation.y += item.rot.y * dt; item.mesh.rotation.z += item.rot.z * dt;
+      if (item.mesh.position.y < 0.05){ item.mesh.position.y = 0.05; item.vel.y *= -0.35; item.vel.x *= 0.7; item.vel.z *= 0.7; }
     });
   }
   reset(){
@@ -548,259 +518,23 @@ class Wicket {
 const strikerWicket = new Wicket(10.0);
 const bowlerWicket = new Wicket(-10.0);
 
-/* ============================================================
-   7. AUDIO
-   ============================================================ */
 let actx = null, audioOn = true;
-function initAudio(){
-  if (actx){ if (actx.state === 'suspended') actx.resume(); return; }
-  try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
-}
+function initAudio(){ if (actx){ if (actx.state === 'suspended') actx.resume(); return; } try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
 function playThud(power){
-  if (!audioOn || !actx) return;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(110, actx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(38, actx.currentTime + 0.07);
-  g.gain.setValueAtTime(0.45 * power, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
-  o.connect(g); g.connect(actx.destination);
-  o.start(); o.stop(actx.currentTime + 0.09);
+  if (!audioOn || !actx) return; const o = actx.createOscillator(), g = actx.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(110, actx.currentTime); o.frequency.exponentialRampToValueAtTime(38, actx.currentTime + 0.07); g.gain.setValueAtTime(0.45 * power, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08); o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.09);
 }
 function playBatCrack(power){
-  if (!audioOn || !actx) return;
-  const buf = actx.createBuffer(1, actx.sampleRate * 0.05, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = actx.createBufferSource(); src.buffer = buf;
-  const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0.8 * power, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.05);
-  src.connect(bp); bp.connect(g); g.connect(actx.destination);
-  src.start();
+  if (!audioOn || !actx) return; const buf = actx.createBuffer(1, actx.sampleRate * 0.05, actx.sampleRate); const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const src = actx.createBufferSource(); src.buffer = buf; const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700; const g = actx.createGain(); g.gain.setValueAtTime(0.8 * power, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.05); src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start();
 }
 function playStumps(){
-  if (!audioOn || !actx) return;
-  for (let i = 0; i < 3; i++){
-    setTimeout(() => {
-      const o = actx.createOscillator(), g = actx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(600 + i * 220, actx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(110, actx.currentTime + 0.11);
-      g.gain.setValueAtTime(0.5, actx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.11);
-      o.connect(g); g.connect(actx.destination);
-      o.start(); o.stop(actx.currentTime + 0.12);
-    }, i * 35);
-  }
-}
-function playCrowdRoar(){
-  if (!audioOn || !actx) return;
-  const dur = 2.2;
-  const buf = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = actx.createBufferSource(); src.buffer = buf;
-  const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 750;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0.05, actx.currentTime);
-  g.gain.linearRampToValueAtTime(0.4, actx.currentTime + 0.4);
-  g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + dur);
-  src.connect(lp); lp.connect(g); g.connect(actx.destination);
-  src.start();
+  if (!audioOn || !actx) return; for (let i = 0; i < 3; i++){ setTimeout(() => { const o = actx.createOscillator(), g = actx.createGain(); o.type = 'square'; o.frequency.setValueAtTime(600 + i * 220, actx.currentTime); o.frequency.exponentialRampToValueAtTime(110, actx.currentTime + 0.11); g.gain.setValueAtTime(0.5, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.11); o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.12); }, i * 35); }
 }
 function toggleAudio(){
-  audioOn = !audioOn;
-  const el = document.getElementById('snd-ico'); if (el) el.innerText = audioOn ? '🔊' : '🔇';
-  const btn = document.getElementById('util-snd'); if (btn) btn.classList.toggle('on', audioOn);
-  if (audioOn) initAudio();
-}
-function toggleFullscreen(){
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
-  else document.exitFullscreen && document.exitFullscreen();
+  audioOn = !audioOn; const el = document.getElementById('snd-ico'); if (el) el.innerText = audioOn ? '🔊' : '🔇'; const btn = document.getElementById('util-snd'); if (btn) btn.classList.toggle('on', audioOn); if (audioOn) initAudio();
 }
 
 /* ============================================================
-   8. CAMERAS
-   ============================================================ */
-const CAM_MODES = {
-  broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
-  bowler:    { pos: new THREE.Vector3(0, 4.2, -22), target: new THREE.Vector3(0, 1.0, 9) },
-  keeper:    { pos: new THREE.Vector3(0, 2.2, 15), target: new THREE.Vector3(0, 1.2, -5) },
-  slip:      { pos: new THREE.Vector3(4, 1.5, 16), target: new THREE.Vector3(0, 1.1, 9) },
-  side:      { pos: new THREE.Vector3(26, 5, 8), target: new THREE.Vector3(0, 1, 8) },
-  drone:     { pos: new THREE.Vector3(0, 55, 0.1), target: new THREE.Vector3(0, 0, 0) },
-  helmet:    { pos: new THREE.Vector3(0.5, 1.6, 9.5), target: new THREE.Vector3(0, 1.4, -8) },
-  follow:    { pos: new THREE.Vector3(0, 8, -6), target: new THREE.Vector3(0, 0.5, 9) }
-};
-let activeCam = 'broadcast';
-let directorOn = true;
-const camPos = CAM_MODES.broadcast.pos.clone();
-const camTarget = CAM_MODES.broadcast.target.clone();
-
-function setCamera(mode){
-  if (!CAM_MODES[mode]) return;
-  activeCam = mode;
-  directorOn = false;
-  const dirBtn = document.getElementById('btn-dir'); if (dirBtn) dirBtn.classList.remove('on');
-  if (mode !== 'follow' && mode !== 'helmet') camTarget.copy(CAM_MODES[mode].target);
-  const s1 = document.getElementById('camSel'); const s2 = document.getElementById('camSelMenu');
-  if (s1 && s1.value !== mode) s1.value = mode;
-  if (s2 && s2.value !== mode) s2.value = mode;
-}
-function toggleDirector(){
-  directorOn = !directorOn;
-  const btn = document.getElementById('btn-dir'); if (btn) btn.classList.toggle('on', directorOn);
-  if (directorOn) setCamera('broadcast');
-}
-
-/* ============================================================
-   9. WAGON WHEEL
-   ============================================================ */
-const wagonCanvas = document.getElementById('wagonWheelCanvas');
-const wagonCtx = wagonCanvas.getContext('2d');
-const historicalShots = [];
-function toggleWagonWheel(){
-  const on = wagonCanvas.style.display === 'block';
-  wagonCanvas.style.display = on ? 'none' : 'block';
-  const btn = document.getElementById('util-wagon'); if (btn) btn.classList.toggle('on', !on);
-  if (!on) drawWagonWheel();
-}
-function drawWagonWheel(){
-  const w = wagonCanvas.width, h = wagonCanvas.height;
-  const cx = w/2, cy = h/2, radius = w/2 - 12;
-  wagonCtx.clearRect(0, 0, w, h);
-  wagonCtx.beginPath(); wagonCtx.arc(cx, cy, radius, 0, Math.PI*2);
-  wagonCtx.fillStyle = '#061324'; wagonCtx.fill();
-  wagonCtx.strokeStyle = 'rgba(255,255,255,.25)'; wagonCtx.stroke();
-  wagonCtx.fillStyle = '#987349'; wagonCtx.fillRect(cx - 3, cy - 14, 6, 28);
-  historicalShots.forEach(s => {
-    const endX = cx + Math.sin(s.angle) * (s.dist / 70 * radius);
-    const endY = cy - Math.cos(s.angle) * (s.dist / 70 * radius);
-    wagonCtx.beginPath(); wagonCtx.moveTo(cx, cy); wagonCtx.lineTo(endX, endY);
-    wagonCtx.strokeStyle = s.runs >= 4 ? '#22d3ee' : '#10b981';
-    wagonCtx.lineWidth = s.runs >= 4 ? 2.5 : 1.2;
-    wagonCtx.stroke();
-  });
-}
-
-/* ============================================================
-   10. OVER STRIP
-   ============================================================ */
-function renderOverDots(tags){
-  const container = document.getElementById('overDotsContainer');
-  const totalEl = document.getElementById('overTotalRuns');
-  if (!container) return;
-  container.innerHTML = '';
-  let overRuns = 0;
-  const arr = Array.isArray(tags) ? tags : [];
-  for (let i = 0; i < 6; i++){
-    const tag = arr[i] !== undefined && arr[i] !== null ? String(arr[i]) : null;
-    const dot = document.createElement('div');
-    dot.className = 'badge dot';
-    if (tag){
-      const isWkt = tag.indexOf('W') >= 0;
-      const isWd = tag.indexOf('Wd') >= 0;
-      const isNb = tag.indexOf('Nb') >= 0;
-      const isBye = /B$/.test(tag) && !isNb;
-      const isLb = /Lb$/i.test(tag);
-      if (isWkt){ dot.className='badge wkt'; dot.innerText='W'; }
-      else if (isWd){ const n=parseInt(tag)||1; dot.className='badge nb'; dot.innerText=n>1?n:'wd'; overRuns+=n; }
-      else if (isNb){ const n=parseInt(tag)||1; dot.className='badge nb'; dot.innerText=n>1?n:'nb'; overRuns+=n; }
-      else if (isBye||isLb){ const n=parseInt(tag)||0; dot.className='badge bye'; dot.innerText=n>0?n:'b'; overRuns+=n; }
-      else if (tag === '4'){ dot.className='badge four'; dot.innerText='4'; overRuns+=4; }
-      else if (tag === '6'){ dot.className='badge six'; dot.innerText='6'; overRuns+=6; }
-      else { const n=parseInt(tag)||0; if (n===0){ dot.className='badge dot'; dot.innerText='0'; } else { dot.className='badge run'; dot.innerText=n; overRuns+=n; } }
-    } else {
-      dot.innerText = '·';
-    }
-    container.appendChild(dot);
-  }
-  if (totalEl) totalEl.innerText = overRuns + ' RUNS';
-}
-
-/* ============================================================
-   11. APPLY MATCH
-   ============================================================ */
-function applyMatch(m){
-  if (!m) return;
-  const abbr = m.teamBattingAbbr || m.teamBatting || 'T1';
-  const balls = m.legalBalls || 0;
-  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.innerText = v; };
-  setTxt('bbAbbr', abbr);
-  setTxt('bbScore', (m.runs || 0) + '/' + (m.wickets || 0));
-  setTxt('bbOvers', '(' + Math.floor(balls/6) + '.' + (balls%6) + ')');
-
-  const st = m.striker || 'Striker';
-  const nst = m.nonStriker || 'Non-Striker';
-  const sB = (m.batters && m.batters[st]) || { runs: 0, balls: 0 };
-  const nB = (m.batters && m.batters[nst]) || { runs: 0, balls: 0 };
-  setTxt('bbStriker', st + '*');
-  setTxt('bbStrikerRuns', sB.runs + '(' + sB.balls + ')');
-  setTxt('bbNonStriker', nst);
-  setTxt('bbNonStrikerRuns', nB.runs + '(' + nB.balls + ')');
-
-  const bwName = m.currentBowler || 'Bowler';
-  const bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, runs: 0, wickets: 0, maidens: 0 };
-  setTxt('bbBowler', bwName);
-  setTxt('bbBowlerFigs',
-    Math.floor((bw.balls||0)/6) + '.' + ((bw.balls||0)%6) + '-' +
-    (bw.maidens||0) + '-' + (bw.runs||0) + '-' + (bw.wickets||0));
-
-  if (Array.isArray(m.currentOverBalls)) renderOverDots(m.currentOverBalls);
-  else if (Array.isArray(m.recentBalls)) renderOverDots(m.recentBalls.slice(-6));
-}
-
-window.addEventListener('message', function(ev){
-  const d = ev.data || {};
-  if (d.type === 'SYNC_MATCH_STATE' && d.payload) applyMatch(d.payload);
-  if (d.type === 'TRIGGER_DELIVERY' && d.shot) playBall(d.shot);
-});
-
-let lastSeenBalls = -1;
-setInterval(function(){
-  try {
-    const m = (window.parent && window.parent !== window) ? window.parent.match : null;
-    if (!m || !m.teamBatting) return;
-    applyMatch(m);
-    const total = (m.shotLog && m.shotLog.length) || 0;
-    if (lastSeenBalls < 0){ lastSeenBalls = total; return; }
-    if (total > lastSeenBalls){
-      lastSeenBalls = total;
-      const last = m.shotLog[total - 1];
-      if (last) playBall(last);
-    }
-  } catch(e){}
-}, 300);
-setTimeout(()=>{ try { window.parent.postMessage({ type: 'CM_REQUEST_STATE' }, '*'); } catch(e){} }, 700);
-
-/* ============================================================
-   12. REGION → 3D DIRECTION MAP
-   ============================================================ */
-const ZONE_VECTORS = {
-  'Third Man':  { x:  0.65, z:  0.75 }, 
-  'Point':      { x:  0.98, z:  0.20 }, 
-  'Cover':      { x:  0.80, z: -0.60 }, 
-  'Mid-off':    { x:  0.35, z: -0.94 }, 
-  'Mid-on':     { x: -0.35, z: -0.94 }, 
-  'Mid-Wicket': { x: -0.80, z: -0.60 }, 
-  'Square Leg': { x: -0.98, z:  0.20 }, 
-  'Fine Leg':   { x: -0.65, z:  0.75 }  
-};
-
-/* ============================================================
-   13. SIM FEED
-   ============================================================ */
-function simFeedScoringTab(){
-  const regions = Object.keys(ZONE_VECTORS);
-  const r = [0,1,2,3,4,6][Math.floor(Math.random()*6)];
-  const region = regions[Math.floor(Math.random()*regions.length)];
-  playBall({ runs: r, bowlerType: 'fast_pace', zone: region });
-}
-
-/* ============================================================
-   14. RUNNING STATE — both batsmen run between wickets
+   6. ADVANCED RUNNING MECHANICS (Leaning + The Slide)
    ============================================================ */
 const RunningState = {
   active: false,
@@ -812,20 +546,19 @@ const RunningState = {
     this.progress += dt / this.durationPerRun;
 
     if (this.progress >= this.totalRuns){
+      // Snap to final crease position
       this.active = false;
       const swapped = this.totalRuns % 2 === 1;
       if (swapped){
-        strikerBat.position.set(-1.2, 0, -8.8);
-        strikerBat.rotation.y = Math.PI / 2;
-        nonStrikerBat.position.set(0.35, 0, 8.8);
-        nonStrikerBat.rotation.y = -Math.PI / 2;
+        strikerBat.position.set(-1.2, 0, -8.8); strikerBat.rotation.y = Math.PI / 2;
+        nonStrikerBat.position.set(0.35, 0, 8.8); nonStrikerBat.rotation.y = -Math.PI / 2;
       } else {
-        strikerBat.position.set(0.35, 0, 8.8);
-        strikerBat.rotation.y = -Math.PI / 2;
-        nonStrikerBat.position.set(-1.2, 0, -8.8);
-        nonStrikerBat.rotation.y = Math.PI / 2;
+        strikerBat.position.set(0.35, 0, 8.8); strikerBat.rotation.y = -Math.PI / 2;
+        nonStrikerBat.position.set(-1.2, 0, -8.8); nonStrikerBat.rotation.y = Math.PI / 2;
       }
       [strikerBat, nonStrikerBat].forEach(b => {
+        b.torso.rotation.set(0,0,0);
+        b.batPivot.rotation.set(-Math.PI/4, 0, 0);
         b.legL.userData.thigh.rotation.x = 0;
         b.legR.userData.thigh.rotation.x = 0;
         b.armL.rotation.x = 0;
@@ -848,29 +581,122 @@ const RunningState = {
     nonStrikerBat.position.set(-0.6, 0, nZ);
     nonStrikerBat.rotation.y = goingAtoB ? 0 : Math.PI;
 
-    const cycle = Math.sin(lap * Math.PI * 10);
+    // THE SLIDE MECHANIC
+    // If it's the very last run, and they are 85% of the way there, trigger the desperate dive/slide.
+    const isLastRun = currentLap === (this.totalRuns - 1);
+    const isSliding = isLastRun && (frac > 0.85);
+
     [strikerBat, nonStrikerBat].forEach(b => {
-      b.legL.userData.thigh.rotation.x = cycle * 0.85;
-      b.legR.userData.thigh.rotation.x = -cycle * 0.85;
-      b.armL.rotation.x = -cycle * 0.85;
-      b.armR.rotation.x = cycle * 0.85;
-      b.position.y = Math.abs(cycle) * 0.07;
+      if (isSliding) {
+        // Desperate stretch for the crease
+        b.torso.rotation.x = 0.5; // Lean heavily forward
+        b.armR.rotation.x = -1.5; // Stretch arm out
+        b.batPivot.rotation.x = -Math.PI / 1.5; // Point bat at the line
+        b.position.y = -0.1; // Drop center of mass
+        
+        // Stop pumping legs, stretch front leg out
+        b.legL.userData.thigh.rotation.x = -0.5; 
+        b.legR.userData.thigh.rotation.x = 0.2;
+      } else {
+        // Normal Aggressive Sprinting
+        b.torso.rotation.x = 0.25; // Lean forward to accelerate
+        b.batPivot.rotation.x = -Math.PI / 4; 
+        const cycle = Math.sin(lap * Math.PI * 14); // Fast pump frequency
+        b.legL.userData.thigh.rotation.x = cycle * 0.9;
+        b.legR.userData.thigh.rotation.x = -cycle * 0.9;
+        b.armL.rotation.x = -cycle * 0.9;
+        b.armR.rotation.x = cycle * 0.9;
+        b.position.y = Math.abs(cycle) * 0.08;
+      }
     });
   }
 };
 
 /* ============================================================
-   15. BULLETPROOF DELIVERY ENGINE
+   7. 10 DYNAMIC SHOTS LIBRARY (MAPPED TO RUNS)
+   ============================================================ */
+const SHOT_KINEMATICS = {
+  defend: { prepTime: 200, contactTime: 100, followTime: 300, pose: { batX: -0.5, batZ: 0, torsoY: 0.1, lean: 0, stride: 0.2 } },
+  leave: { prepTime: 300, contactTime: 100, followTime: 400, pose: { batX: -2.0, batZ: 0, torsoY: 0, lean: -0.1, stride: 0.1 } }, // Lift bat high
+  cover_drive: { prepTime: 250, contactTime: 100, followTime: 500, pose: { batX: 0.8, batZ: -0.5, torsoY: 0.4, lean: 0.2, stride: 0.6 } },
+  straight_drive: { prepTime: 250, contactTime: 100, followTime: 500, pose: { batX: 0.8, batZ: 0, torsoY: 0.1, lean: 0.2, stride: 0.5 } },
+  on_drive: { prepTime: 250, contactTime: 100, followTime: 500, pose: { batX: 0.8, batZ: 0.3, torsoY: -0.2, lean: 0.2, stride: 0.4 } },
+  cut: { prepTime: 250, contactTime: 100, followTime: 400, pose: { batX: 0, batZ: -1.2, torsoY: -0.6, lean: 0, stride: -0.2 } }, // Bat horizontal, twist
+  pull: { prepTime: 300, contactTime: 100, followTime: 500, pose: { batX: 1.0, batZ: 1.0, torsoY: -0.8, lean: -0.1, stride: -0.3 } },
+  sweep: { prepTime: 300, contactTime: 150, followTime: 400, pose: { batX: 0.5, batZ: 1.5, torsoY: -0.5, lean: 0.4, stride: 0.8, dropKnee: true } }, // Drops down
+  lofted_straight: { prepTime: 300, contactTime: 100, followTime: 600, pose: { batX: 1.5, batZ: 0, torsoY: 0.2, lean: -0.2, stride: 0.5 } }, // Massive follow through
+  glance: { prepTime: 200, contactTime: 100, followTime: 300, pose: { batX: 0, batZ: 0.8, torsoY: -0.3, lean: 0.1, stride: 0.2 } }
+};
+
+function determineShotAndLength(runs, isSpin, isWicket, isCatch, wwAngle) {
+  // 1. Determine realistic bowling length
+  const lengths = [
+      { type: 'yorker', pZ: 8.5 },
+      { type: 'full', pZ: 7.5 },
+      { type: 'good', pZ: 5.5 },
+      { type: 'short', pZ: 2.5 }
+  ];
+  let length = lengths[Math.floor(Math.random() * lengths.length)];
+  if (isSpin) length = { type: 'good', pZ: 4.8 }; // Spinners stick to good length
+
+  // 2. Map runs/angle to the 10 specific shots
+  let shotType = 'defend';
+  let peakHeight = 0.5;
+  let finalDist = 10;
+
+  // Convert radians to general regions
+  let deg = (wwAngle * 180) / Math.PI;
+  if (deg < 0) deg += 360;
+  const isOffside = (deg > 0 && deg < 180);
+  const isStraight = (deg > 140 && deg < 220);
+  const isBehind = (deg < 40 || deg > 320);
+
+  if (isWicket && !isCatch) {
+     // Bowled/LBW
+     shotType = 'defend';
+     finalDist = 2;
+  } else if (runs === 6) {
+      peakHeight = 15;
+      finalDist = 75 + Math.random() * 10;
+      if (isSpin && !isOffside) shotType = 'sweep';
+      else if (length.type === 'short' && !isOffside) shotType = 'pull';
+      else shotType = 'lofted_straight';
+  } else if (runs === 4) {
+      peakHeight = 1.2;
+      finalDist = 65;
+      if (isSpin && !isOffside) shotType = 'sweep';
+      else if (isOffside && length.type === 'short') shotType = 'cut';
+      else if (isOffside && !isBehind) shotType = 'cover_drive';
+      else if (isStraight) shotType = 'straight_drive';
+      else shotType = 'pull';
+  } else if (runs > 0) {
+      // 1, 2, 3 runs
+      peakHeight = 0.8;
+      finalDist = 15 + (runs * 10);
+      if (isOffside && !isBehind) shotType = 'cover_drive';
+      else if (isStraight) shotType = 'on_drive';
+      else shotType = 'glance';
+  } else {
+      // Dot ball
+      peakHeight = 0.3;
+      finalDist = 10;
+      shotType = Math.random() > 0.3 ? 'defend' : 'leave';
+  }
+
+  if (isCatch) {
+     peakHeight = 6;
+     finalDist = 35;
+     shotType = 'lofted_straight'; // mistimed loft
+  }
+
+  return { length, shotType, peakHeight, finalDist };
+}
+
+/* ============================================================
+   8. CORE ENGINE UPDATE (Using New Physics)
    ============================================================ */
 let anim = null;
 let lastShot = null;
-
-// Built-in hardcoded swing poses so it never fails even if CricMaxShots is missing.
-const GUARANTEED_SHOTS = {
-  defend: { prepTime: 200, contactTime: 250, followTime: 300, pose: { batStart: {rotX: -Math.PI/2.5, rotZ: 0}, batContact: {rotX: -Math.PI/8, rotZ: 0}, batEnd: {rotX: -Math.PI/10, rotZ: 0}, torsoRotY: 0.1, legStride: 0.15 } },
-  drive:  { prepTime: 300, contactTime: 250, followTime: 500, pose: { batStart: {rotX: -Math.PI/1.5, rotZ: 0.2}, batContact: {rotX: -Math.PI/5, rotZ: -0.2}, batEnd: {rotX: Math.PI/4, rotZ: -0.4}, torsoRotY: 0.4, legStride: 0.5 } },
-  pull:   { prepTime: 300, contactTime: 250, followTime: 600, pose: { batStart: {rotX: -Math.PI/1.5, rotZ: -0.5}, batContact: {rotX: 0, rotZ: 0}, batEnd: {rotX: Math.PI/2, rotZ: 0.5}, torsoRotY: -0.7, legStride: -0.2 } }
-};
 
 function playBall(shot){
   if (anim) cancelAnimationFrame(anim);
@@ -878,8 +704,7 @@ function playBall(shot){
   lastShot = shot;
 
   // Reset scene
-  strikerWicket.reset();
-  bowlerWicket.reset();
+  strikerWicket.reset(); bowlerWicket.reset();
   fielders.forEach(f => f.reset());
   ball.visible = true;
 
@@ -887,7 +712,7 @@ function playBall(shot){
   strikerBat.position.set(0.35, 0, 8.8);
   strikerBat.rotation.set(0, -Math.PI/2, 0);
   strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
-  strikerBat.torso.rotation.y = 0;
+  strikerBat.torso.rotation.set(0,0,0);
   strikerBat.head.rotation.y = 0;
   strikerBat.legL.userData.thigh.rotation.x = 0;
   strikerBat.legR.userData.thigh.rotation.x = 0;
@@ -899,44 +724,23 @@ function playBall(shot){
   const runs = shot.runs || 0;
   const isWkt = shot.isWicket || shot.isOut;
   const isCatch = shot.isCatch || shot.wicketType === 'caught';
-  const isNB = shot.isNoBall || shot.extraType === 'nb';
-  const isSix = runs === 6;
-  const isFour = runs === 4;
   const bowlerType = shot.bowlerType || 'fast_pace';
   const isSpin = bowlerType === 'spin' || bowlerType === 'off_spin' || bowlerType === 'leg_spin';
 
-  // 1. Calculate Exact Direction & Distance
-  let hitX = 0, hitZ = 0;
-  let finalDist = isSix ? 75 : isFour ? 65 : isCatch ? 35 : runs > 0 ? 15 + runs * 10 : 10;
-  let wwAngle = 0;
-
+  // 1. Get Exact Angle from scoring app
+  let wwAngle = Math.random() * Math.PI * 2;
   if (shot.angle !== undefined && shot.angle !== null) {
-      // Parent sent explicit angle (e.g. 1.2 radians)
-      const angleNum = parseFloat(shot.angle);
-      hitX = 0.35 + Math.sin(angleNum) * finalDist;
-      hitZ = 8.8 + Math.cos(angleNum) * finalDist;
-      wwAngle = angleNum;
-  } else if (shot.zone || shot.region) {
-      // Parent sent region name (e.g. 'Cover')
-      const zName = shot.zone || shot.region;
-      const vec = ZONE_VECTORS[zName] || ZONE_VECTORS['Cover'];
-      hitX = 0.35 + vec.x * finalDist;
-      hitZ = 8.8 + vec.z * finalDist;
-      wwAngle = Math.atan2(vec.x, -vec.z);
-  } else {
-      // Completely random 360 fallback
-      wwAngle = Math.random() * Math.PI * 2;
-      hitX = 0.35 + Math.sin(wwAngle) * finalDist;
-      hitZ = 8.8 + Math.cos(wwAngle) * finalDist;
+      wwAngle = parseFloat(shot.angle);
   }
 
-  // 2. Select Bat Swing Animation
-  let animPose = GUARANTEED_SHOTS.defend;
-  if (isSix || isCatch || (wwAngle > 2 && wwAngle < 4)) {
-      animPose = GUARANTEED_SHOTS.pull;
-  } else if (runs > 0) {
-      animPose = GUARANTEED_SHOTS.drive;
-  }
+  // 2. AI calculates the perfect animation and trajectory
+  const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
+  const animPose = SHOT_KINEMATICS[phys.shotType];
+  
+  const pitchZ = phys.length.pZ;
+  const pitchX = (Math.random() - 0.5) * 0.4;
+  const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
+  const hitZ = 8.8 + Math.cos(wwAngle) * phys.finalDist;
 
   // 3. Trigger batsmen running for 1/2/3
   if (runs > 0 && runs < 4 && !isWkt){
@@ -945,9 +749,9 @@ function playBall(shot){
     RunningState.progress = 0;
   }
 
-  // 4. Find nearest fielder & send to chase
+  // 4. Send Fielder to chase
   const hitPoint = new THREE.Vector3(hitX, 0, hitZ);
-  if (runs > 0 && !isFour && !isSix && !isWkt){
+  if (runs > 0 && runs < 4 && !isWkt){
     let closest = fielders[0], minD = 9999;
     fielders.forEach(f => {
       const d = f.home.distanceTo(hitPoint);
@@ -956,60 +760,52 @@ function playBall(shot){
     if (closest) closest.chase(hitPoint);
   }
 
-  historicalShots.push({ angle: wwAngle, dist: finalDist, runs });
-  drawWagonWheel();
-
   const speedVal = shot.ballSpeed || (isSpin ? (85 + Math.random()*10).toFixed(1) : (135 + Math.random()*15).toFixed(1));
-  const speedTag = document.getElementById('speedTag');
-  speedTag.innerText = 'SPEED: ' + speedVal + ' KM/H';
-  speedTag.classList.add('on');
+  document.getElementById('speedTag').innerText = 'SPEED: ' + speedVal + ' KM/H';
+  document.getElementById('speedTag').classList.add('on');
 
   // Timings
   const T_RELEASE = 700;
   const T_PITCH   = 1000;
   const T_CONTACT = 1250;
-  const flightTime = isSix ? 4500 : isFour ? 2500 : 3000;
+  const flightTime = (runs === 6) ? 4000 : (runs === 4) ? 2500 : 3000;
   const T_END = T_CONTACT + Math.max(flightTime, animPose.followTime + 400);
 
-  // Exact Swing Match Times
   const T_SHOT_START = T_CONTACT - animPose.prepTime;
   const T_FOLLOW_END = T_CONTACT + animPose.followTime;
 
-  const pitchZ = isSpin ? 4.8 : (3.2 + Math.random() * 1.8);
-  const pitchX = (Math.random() - 0.5) * 0.4;
-  const peakHeight = isSix ? 15 : isCatch ? 6 : isFour ? 1.5 : 0.8;
-
   const start = performance.now();
-  let bounced = false;
-  let contacted = false;
+  let bounced = false, contacted = false;
 
   function loop(now){
     const elapsed = now - start;
 
-    /* =======================================================
-       BAT SWING ANIMATION 
-       ======================================================= */
+    /* --- ADVANCED KINEMATIC BAT SWING --- */
     if (strikerBat.batPivot && !isWkt){
       const pose = animPose.pose;
       if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
-        // PREP TO CONTACT
         const p = (elapsed - T_SHOT_START) / animPose.prepTime;
-        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batStart.rotX, pose.batContact.rotX, p);
-        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(pose.batStart.rotZ, pose.batContact.rotZ, p);
-        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoRotY, p);
-        strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -pose.legStride, p);
+        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(-Math.PI/4, pose.batX, p);
+        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(0, pose.batZ, p);
+        strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoY, p);
+        strikerBat.torso.rotation.x = THREE.MathUtils.lerp(0, pose.lean, p);
+        strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -pose.stride, p);
+        
+        if (pose.dropKnee) {
+            strikerBat.position.y = THREE.MathUtils.lerp(0, -0.3, p); // Drop for sweep
+        }
       }
       else if (elapsed >= T_CONTACT && elapsed < T_FOLLOW_END){
-        // FOLLOW THROUGH
         const p = (elapsed - T_CONTACT) / animPose.followTime;
-        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batContact.rotX, pose.batEnd.rotX, p);
-        strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(pose.batContact.rotZ, pose.batEnd.rotZ, p);
+        // Extend through the ball
+        strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batX, pose.batX + 0.5, p); 
+        if (pose.dropKnee) {
+            strikerBat.position.y = THREE.MathUtils.lerp(-0.3, 0, p); // Stand back up
+        }
       }
     }
 
-    /* =======================================================
-       BALL PHASES
-       ======================================================= */
+    /* --- BALL TRAJECTORY --- */
     if (elapsed < T_RELEASE){
       const t = elapsed / T_RELEASE;
       bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
@@ -1017,7 +813,7 @@ function playBall(shot){
       bowler.armR.rotation.x = -Math.PI * 4 * t;
       bowler.armL.rotation.x = Math.PI * 4 * t;
       ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
-      if (isWkt || isCatch || isSix || isFour) playThud(0.3 + t * 0.4);
+      if (isWkt || isCatch || runs >= 4) playThud(0.3 + t * 0.4);
     }
     else if (elapsed < T_PITCH){
       const t = (elapsed - T_RELEASE) / (T_PITCH - T_RELEASE);
@@ -1037,23 +833,12 @@ function playBall(shot){
 
       if (!contacted){
         contacted = true;
-
-        // Particle FX
-        if (particles) particles.chalkPuff(strikerBat.position.x, 0.6, 8.8);
-        if (particles) particles.burstGrass(strikerBat.position.x, 0.05, 8.8, 25);
-        if (particles) particles.puffDust(bowler.position.x, 0.02, bowler.position.z, 15);
-        if (particles && isSix) particles.confetti(0, 8, 8.8, 200);
-        if (particles && isWkt) particles.confetti(0, 6, 10, 100);
-        // Crowd reaction
-        if (crowd) crowd.cheer(isSix || isWkt ? 1.0 : isFour ? 0.85 : 0.5);
-
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
-        else playBatCrack(isSix ? 1 : isFour ? 0.85 : 0.5);
-        if (isSix || isFour || isCatch || isWkt) playCrowdRoar();
+        else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
       }
 
       if (directorOn){
-        if (isSix || isFour){
+        if (runs >= 4){
           camPos.lerp(new THREE.Vector3(ball.position.x * 0.4, 14, ball.position.z - 20), 0.05);
           camTarget.lerp(ball.position, 0.08);
         } else if (isWkt){
@@ -1067,74 +852,68 @@ function playBall(shot){
       } else {
         ball.position.x = THREE.MathUtils.lerp(strikerBat.position.x, hitX, t);
         ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
-        ball.position.y = 0.05 + 4 * peakHeight * t * (1 - t);
+        ball.position.y = 0.05 + 4 * phys.peakHeight * t * (1 - t);
       }
     } else {
-      anim = null;
-      ball.visible = false;
-      speedTag.classList.remove('on');
-      return;
+      anim = null; ball.visible = false; document.getElementById('speedTag').classList.remove('on'); return;
     }
-
     anim = requestAnimationFrame(loop);
   }
   anim = requestAnimationFrame(loop);
 
   setTimeout(() => {
-    const b = document.getElementById('banner');
-    b.className = 'banner on';
-    if (isNB){ b.innerText = 'NO BALL!'; b.classList.add('run'); }
-    else if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
-    else if (isWkt){ b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
-    else if (isSix){ b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
-    else if (isFour){ b.innerText = 'FOUR!'; b.classList.add('four'); }
+    const b = document.getElementById('banner'); b.className = 'banner on';
+    if (isCatch) { b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
+    else if (isWkt) { b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
+    else if (runs===6) { b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
+    else if (runs===4) { b.innerText = 'FOUR!'; b.classList.add('four'); }
     else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run'); }
     setTimeout(() => b.classList.remove('on'), 2400);
   }, 1300);
 }
 
-function triggerReplay(){ if (lastShot) playBall(lastShot); }
-
 /* ============================================================
-   16. MAIN LOOP
+   9. WRAPPERS & EXPORTS
    ============================================================ */
+function simFeedScoringTab(){
+  playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 });
+}
+function triggerReplay(){ if (lastShot) playBall(lastShot); }
+function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+const CAM_MODES = { broadcast: { pos: new THREE.Vector3(0,16,32), target: new THREE.Vector3(0,1.2,2) }, bowler: { pos: new THREE.Vector3(0,4.2,-22), target: new THREE.Vector3(0,1.0,9) }, keeper: { pos: new THREE.Vector3(0,2.2,15), target: new THREE.Vector3(0,1.2,-5) }, side: { pos: new THREE.Vector3(26,5,8), target: new THREE.Vector3(0,1,8) }, drone: { pos: new THREE.Vector3(0,55,0.1), target: new THREE.Vector3(0,0,0) }, follow: { pos: new THREE.Vector3(0,8,-6), target: new THREE.Vector3(0,0.5,9) } };
+let activeCam = 'broadcast', directorOn = true;
+const camPos = CAM_MODES.broadcast.pos.clone(), camTarget = CAM_MODES.broadcast.target.clone();
+function setCamera(mode){ if (!CAM_MODES[mode]) return; activeCam = mode; directorOn = false; document.getElementById('btn-dir').classList.remove('on'); if (mode !== 'follow') camTarget.copy(CAM_MODES[mode].target); }
+function toggleDirector(){ directorOn = !directorOn; document.getElementById('btn-dir').classList.toggle('on', directorOn); if (directorOn) setCamera('broadcast'); }
+const wagonCanvas = document.getElementById('wagonWheelCanvas'), wagonCtx = wagonCanvas.getContext('2d');
+function toggleWagonWheel(){ const on = wagonCanvas.style.display === 'block'; wagonCanvas.style.display = on ? 'none' : 'block'; document.getElementById('util-wagon').classList.toggle('on', !on); }
+
+window.addEventListener('message', ev => {
+  if (ev.data && ev.data.type === 'SYNC_MATCH_STATE' && ev.data.payload) {
+    document.getElementById('bbScore').innerText = `${ev.data.payload.runs||0}/${ev.data.payload.wickets||0}`;
+    document.getElementById('bbOvers').innerText = `(${Math.floor((ev.data.payload.legalBalls||0)/6)}.${(ev.data.payload.legalBalls||0)%6})`;
+  }
+  if (ev.data && ev.data.type === 'TRIGGER_DELIVERY' && ev.data.shot) playBall(ev.data.shot);
+});
+
 let lastT = 0;
 function animate(t){
-  requestAnimationFrame(animate);
-  const dt = Math.min((t - lastT) / 1000, 0.1);
-  const elapsed = t * 0.001;
-  lastT = t;
-
-     if (stadium && stadium.update) stadium.update(dt, elapsed);
-  if (env && env.update) env.update(dt, elapsed);
-  if (crowd && crowd.update) crowd.update(dt, elapsed);
-  if (particles && particles.update) particles.update(dt);
-  if (stadiumDetail && stadiumDetail.update) stadiumDetail.update(dt, elapsed);
-  if (postFX && postFX.update) postFX.update(elapsed);
-  strikerWicket.update(dt);
-  bowlerWicket.update(dt);
-  fielders.forEach(f => f.update(dt, elapsed));
-
+  requestAnimationFrame(animate); const dt = Math.min((t - lastT) / 1000, 0.1); const elapsed = t * 0.001; lastT = t;
+  if (stadium && stadium.update) stadium.update(dt, elapsed);
+  fielders.forEach(f => f.update(dt, elapsed)); RunningState.update(dt);
   if (!anim && !RunningState.active){
     strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
     bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
     if (directorOn){ camPos.lerp(CAM_MODES.broadcast.pos, 0.03); camTarget.lerp(CAM_MODES.broadcast.target, 0.03); }
   }
-
-  if (!directorOn && activeCam !== 'follow'){
-    camPos.lerp(CAM_MODES[activeCam].pos, 0.05);
-    camTarget.lerp(CAM_MODES[activeCam].target, 0.05);
-  }
-  
-  camera.position.copy(camPos);
-  camera.lookAt(camTarget);
-  renderer.render(scene, camera);
+  if (!directorOn && activeCam !== 'follow'){ camPos.lerp(CAM_MODES[activeCam].pos, 0.05); camTarget.lerp(CAM_MODES[activeCam].target, 0.05); }
+  camera.position.copy(camPos); camera.lookAt(camTarget); renderer.render(scene, camera);
 }
 requestAnimationFrame(animate);
 
 window.toggleMenu = toggleMenu; window.setSky = setSky; window.navTo = navTo; window.setCamera = setCamera;
 window.toggleDirector = toggleDirector; window.toggleWagonWheel = toggleWagonWheel;
-window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay;
+window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay; window.toggleAudio = toggleAudio; window.toggleFullscreen = toggleFullscreen;
 })();
 </script>
 </body>
