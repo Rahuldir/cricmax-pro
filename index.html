@@ -1026,5 +1026,63 @@
 <!-- Scripts loaded with defer to preserve execution order -->
 <script src="app.js?v=5" defer></script>
 <script src="viewer-bridge.js?v=5" defer></script>
+  <script>
+/* ═══════════════════════════════════════════════════════════════
+   CricMax — Firebase Auto-Sync Bridge
+   Intercepts every localStorage.setItem('CricMax_Data', ...) call
+   and mirrors it to Firebase Realtime Database.
+   Zero changes needed in app.js.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  /* Wait for Firebase SDK to be ready */
+  function initFirebaseSync(){
+    if (typeof firebase === 'undefined' || !firebase.database){
+      console.warn('[CricMax] Firebase not loaded yet — retrying...');
+      setTimeout(initFirebaseSync, 200);
+      return;
+    }
+
+    const fireDB = firebase.database();
+    const ref = fireDB.ref('cricmax/match_current');
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+
+    /* Override setItem — catch every CricMax_Data write */
+    localStorage.setItem = function(key, value){
+      /* Call the original first — nothing changes for the app */
+      originalSetItem(key, value);
+
+      /* Only mirror our app's data */
+      if (key === 'CricMax_Data'){
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && parsed.match){
+            ref.set(parsed.match)
+              .then(() => console.info('[CricMax] 🔥 Firebase synced'))
+              .catch(err => console.warn('[CricMax] Firebase write failed:', err));
+          }
+        } catch(e){
+          console.warn('[CricMax] Sync parse error:', e);
+        }
+      }
+    };
+
+    /* Also push the current state once on load (in case scoring already started) */
+    try {
+      const raw = localStorage.getItem('CricMax_Data');
+      if (raw){
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.match){
+          ref.set(parsed.match);
+          console.info('[CricMax] 🔥 Firebase initial sync pushed');
+        }
+      }
+    } catch(e){}
+
+    console.info('[CricMax] 🔥 Firebase Auto-Sync Bridge armed');
+  }
+
+  initFirebaseSync();
+})();
+</script>
 </body>
 </html>
