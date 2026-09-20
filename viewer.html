@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CricMax Pro 3D - Ultimate Engine</title>
+  <title>CricMax Pro 3D - Broadcast Stadium</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { background: #01040a; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -32,19 +32,6 @@
 
     #wagonWheelCanvas { position: absolute; top: 72px; left: 18px; width: 140px; height: 140px; background: rgba(8,15,30,0.88); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.7); }
 
-    /* DRS Snickometer Modal Overlay (Section 2) */
-    #drsModal { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); width: 300px; height: 180px; background: rgba(7,14,26,0.94); border: 2px solid #ef4444; border-radius: 12px; backdrop-filter: blur(12px); display: none; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px; box-shadow: 0 0 30px rgba(239,68,68,0.4); pointer-events: auto; }
-    .drs-title { font-size: 12px; font-weight: 900; letter-spacing: 1.5px; color: #ef4444; text-transform: uppercase; }
-    #snickoCanvas { width: 100%; height: 110px; background: #030814; border-radius: 6px; }
-
-    /* Interactive Gameplay Controls (Section 6) */
-    #gameControls { position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: auto; }
-    .timing-meter-bg { width: 260px; height: 16px; background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; position: relative; overflow: hidden; }
-    .timing-sweetspot { position: absolute; top: 0; bottom: 0; left: 42%; width: 16%; background: #00e676; box-shadow: 0 0 10px #00e676; }
-    .timing-cursor { position: absolute; top: 0; bottom: 0; width: 6px; background: #fff; left: 0%; transform: translateX(-50%); box-shadow: 0 0 8px #fff; }
-    .play-btn { background: linear-gradient(135deg,#0284c7,#38bdf8); color: #fff; border: none; font-weight: 900; padding: 8px 24px; border-radius: 20px; cursor: pointer; box-shadow: 0 4px 15px rgba(2,132,199,0.5); font-size: 12px; letter-spacing: 1px; transition: transform 0.1s; }
-    .play-btn:active { transform: scale(0.95); }
-
     /* Event Banner */
     .event-banner { position: absolute; top: 20%; left: 50%; transform: translateX(-50%) scale(.6); font-size: clamp(38px, 7vw, 76px); font-weight: 900; font-style: italic; text-transform: uppercase; color: #fff; opacity: 0; transition: all .35s cubic-bezier(.175,.885,.32,1.275); text-align: center; line-height: 1; pointer-events: none; }
     .event-banner.active { transform: translateX(-50%) scale(1); opacity: 1; }
@@ -72,7 +59,7 @@
     <div class="top-bar">
       <div class="live-badge">ULTRA 3D LIVE</div>
 
-      <!-- Section 5: Dynamic Camera Suite -->
+      <!-- Camera Presets -->
       <div class="bar-cluster">
         <button class="hud-btn active" id="btn-broadcast" onclick="switchCamera('broadcast')">📺 TV</button>
         <button class="hud-btn" id="btn-bowler" onclick="switchCamera('bowler')">🎯 Bowler</button>
@@ -83,7 +70,7 @@
         <button class="hud-btn" id="btn-follow" onclick="switchCamera('follow')">⚾ Ball Cam</button>
       </div>
 
-      <!-- Section 3: Atmosphere / Time of Day Mode -->
+      <!-- Atmosphere Modes -->
       <div class="bar-cluster">
         <button class="hud-btn" id="env-day" onclick="setAtmosphere('day')">☀️ Day</button>
         <button class="hud-btn" id="env-sunset" onclick="setAtmosphere('sunset')">🌇 Sunset</button>
@@ -92,32 +79,16 @@
 
       <div class="ctrl-cluster">
         <button class="ctrl-btn" id="btnWagon" onclick="toggleWagonWheel()" title="Toggle Wagon Wheel">🕸️</button>
-        <button class="ctrl-btn" id="btnDrs" onclick="testDRSAppeal()" title="Trigger DRS Snicko">🔬</button>
+        <button class="ctrl-btn" onclick="simRandomDelivery()" title="Bowl Delivery">⚡</button>
         <button class="ctrl-btn" id="btnMic" onclick="toggleAudio()" title="Live Sound FX">🔊</button>
         <button class="ctrl-btn" onclick="triggerReplay()" title="Replay Delivery">↻</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
     </div>
 
-    <!-- Section 2: Radar & Visual Overlays -->
+    <!-- Speed Radar & Wagon Wheel Overlay -->
     <div id="speedRadar" class="radar-tag">SPEED: -- KM/H</div>
     <canvas id="wagonWheelCanvas" width="280" height="280"></canvas>
-
-    <!-- Section 2: DRS Snickometer / UltraEdge Modal -->
-    <div id="drsModal">
-      <div class="drs-title">ULTRAEDGE™ SLOW-MO</div>
-      <canvas id="snickoCanvas" width="280" height="110"></canvas>
-      <div style="font-size:10px; color:#94a3b8; font-weight:700;">ACOUSTIC FREQUENCY VERIFIED</div>
-    </div>
-
-    <!-- Section 6: Interactive Batter Hit Controls -->
-    <div id="gameControls">
-      <div class="timing-meter-bg">
-        <div class="timing-sweetspot"></div>
-        <div class="timing-cursor" id="timingCursor"></div>
-      </div>
-      <button class="play-btn" onclick="userTriggerBatStroke()">HIT SHOT 🏏</button>
-    </div>
 
     <div id="eventBanner" class="event-banner">FOUR!</div>
 
@@ -230,7 +201,7 @@
     }
 
     /* =======================================================
-       2. THREE.JS SCENE, SHADOWS & ATMOSPHERE (SECTION 3)
+       2. THREE.JS SCENE SETUP & ATMOSPHERE
        ======================================================= */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -290,7 +261,6 @@
       floodlights.push(spot);
     });
 
-    // Section 3: Atmospheric Modes (Day, Sunset, Night)
     window.setAtmosphere = function(mode) {
       document.querySelectorAll('#env-day, #env-sunset, #env-night').forEach(b => b.classList.remove('active'));
       const activeBtn = document.getElementById('env-' + mode);
@@ -321,7 +291,7 @@
     };
 
     /* =======================================================
-       3. OUTFIELD, LED BOARDS & PITCH DEGRADATION (SECTION 5)
+       3. OUTFIELD, LED BOARDS & PITCH
        ======================================================= */
     function createLawnTexture() {
       const cv = document.createElement('canvas');
@@ -393,7 +363,7 @@
       scene.add(stand);
     }
 
-    // Section 5: Clay Pitch with Dynamic Wear Footmarks
+    // Clay Pitch & Markings
     const pitch = new THREE.Mesh(
       new THREE.PlaneGeometry(3.6, 22.2),
       new THREE.MeshStandardMaterial({ color: 0x987349, roughness: 0.95 })
@@ -411,7 +381,7 @@
     addMarking(0, 10.0, 2.64, 0.08);
     addMarking(0, -10.0, 2.64, 0.08);
 
-    // Stampable Footmark Wear Rings
+    // Footmark Wear
     const footmarkGroup = new THREE.Group();
     scene.add(footmarkGroup);
 
@@ -424,24 +394,7 @@
       wear.position.set(x + (Math.random() - 0.5) * 0.2, 0.035, z + (Math.random() - 0.5) * 0.2);
       footmarkGroup.add(wear);
     }
-    stampFootmark(0.4, 8.5); stampFootmark(-0.4, -8.5); // Initial crease scars
-
-    // Hawkeye Ground Impact Ring
-    const pitchImpactRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.05, 0.38, 32),
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0 })
-    );
-    pitchImpactRing.rotation.x = -Math.PI / 2; pitchImpactRing.position.y = 0.05;
-    scene.add(pitchImpactRing);
-
-    // Section 6: Interactive Pitch Bowling Target Crosshair
-    const targetCursor = new THREE.Mesh(
-      new THREE.RingGeometry(0.3, 0.42, 32),
-      new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide })
-    );
-    targetCursor.rotation.x = -Math.PI / 2;
-    targetCursor.position.set(0.1, 0.045, 4.5);
-    scene.add(targetCursor);
+    stampFootmark(0.4, 8.5); stampFootmark(-0.4, -8.5);
 
     /* =======================================================
        4. DYNAMIC CARTWHEELING WICKETS
@@ -520,7 +473,7 @@
     const bowlerWickets = new DynamicWicketSystem(-10.0);
 
     /* =======================================================
-       5. 9 DYNAMIC FIELDERS WITH PURSUIT AI (SECTION 1)
+       5. 9 DYNAMIC FIELDERS WITH PURSUIT AI
        ======================================================= */
     class DynamicFielder {
       constructor(name, x, z) {
@@ -528,7 +481,7 @@
         this.basePos = new THREE.Vector3(x, 0, z);
         this.currentPos = this.basePos.clone();
         this.targetPos = this.basePos.clone();
-        this.state = 'idle'; // idle, chasing, returning
+        this.state = 'idle';
 
         this.group = new THREE.Group();
         const jersey = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
@@ -585,7 +538,7 @@
     ];
 
     /* =======================================================
-       6. ARTICULATED BATSMAN WITH SHOT VARIETY (SECTION 4)
+       6. BATSMAN & BOWLER MODELS
        ======================================================= */
     function buildBatsman() {
       const rig = new THREE.Group();
@@ -655,133 +608,8 @@
     ball.castShadow = true; ball.visible = false;
     scene.add(ball);
 
-    // Hawkeye Trajectory Ribbon
-    const maxTrailPoints = 60;
-    const trailPositions = new Float32Array(maxTrailPoints * 3);
-    const trailGeo = new THREE.BufferGeometry();
-    trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-    const trailMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 3, transparent: true, opacity: 0.85 });
-    const hawkeyeLine = new THREE.Line(trailGeo, trailMat);
-    hawkeyeLine.frustumCulled = false; hawkeyeLine.visible = false;
-    scene.add(hawkeyeLine);
-
-    let trailCount = 0;
-    function addTrailPoint(pt) {
-      if (trailCount < maxTrailPoints) {
-        trailPositions[trailCount * 3] = pt.x;
-        trailPositions[trailCount * 3 + 1] = pt.y;
-        trailPositions[trailCount * 3 + 2] = pt.z;
-        trailCount++;
-      } else {
-        trailPositions.copyWithin(0, 3);
-        trailPositions[(maxTrailPoints - 1) * 3] = pt.x;
-        trailPositions[(maxTrailPoints - 1) * 3 + 1] = pt.y;
-        trailPositions[(maxTrailPoints - 1) * 3 + 2] = pt.z;
-      }
-      trailGeo.attributes.position.needsUpdate = true;
-      trailGeo.setDrawRange(0, trailCount);
-    }
-
     /* =======================================================
-       7. SECTION 2: DRS ULTRAEDGE OSCILLOSCOPE MODAL
-       ======================================================= */
-    const snickoCanvas = document.getElementById('snickoCanvas');
-    const snickoCtx = snickoCanvas.getContext('2d');
-    const drsModal = document.getElementById('drsModal');
-    let snickoAnim = null;
-
-    function renderDRSOscilloscope(hasEdge = false) {
-      drsModal.style.display = 'flex';
-      let frame = 0;
-      const totalFrames = 120;
-
-      function drawSnicko() {
-        frame++;
-        const w = snickoCanvas.width, h = snickoCanvas.height;
-        snickoCtx.fillStyle = '#030814';
-        snickoCtx.fillRect(0, 0, w, h);
-
-        snickoCtx.strokeStyle = 'rgba(255,255,255,0.15)';
-        snickoCtx.beginPath();
-        snickoCtx.moveTo(0, h / 2); snickoCtx.lineTo(w, h / 2); snickoCtx.stroke();
-
-        // Contact Window marker line
-        snickoCtx.strokeStyle = '#38bdf8';
-        snickoCtx.strokeRect(w * 0.48, 4, 2, h - 8);
-
-        snickoCtx.strokeStyle = hasEdge ? '#ef4444' : '#00e676';
-        snickoCtx.lineWidth = 2;
-        snickoCtx.beginPath();
-
-        for (let x = 0; x < w; x++) {
-          let noise = (Math.random() - 0.5) * 6;
-          // Spike at middle frames
-          if (hasEdge && Math.abs(x - w / 2) < 22) {
-            noise = (Math.random() - 0.5) * (h * 0.85);
-          }
-          const y = (h / 2) + noise;
-          if (x === 0) snickoCtx.moveTo(x, y); else snickoCtx.lineTo(x, y);
-        }
-        snickoCtx.stroke();
-
-        if (frame < totalFrames) {
-          snickoAnim = requestAnimationFrame(drawSnicko);
-        } else {
-          setTimeout(() => { drsModal.style.display = 'none'; }, 1600);
-        }
-      }
-      drawSnicko();
-    }
-
-    window.testDRSAppeal = function() {
-      renderDRSOscilloscope(true);
-    };
-
-    /* =======================================================
-       8. SECTION 6: INTERACTIVE TIMING METER & CONTROLLER
-       ======================================================= */
-    let timingPos = 0;
-    let timingSpeed = 1.4;
-    const timingCursorEl = document.getElementById('timingCursor');
-
-    function updateTimingGauge() {
-      timingPos += timingSpeed;
-      if (timingPos > 100 || timingPos < 0) timingSpeed = -timingSpeed;
-      timingCursorEl.style.left = `${timingPos}%`;
-      requestAnimationFrame(updateTimingGauge);
-    }
-    updateTimingGauge();
-
-    window.userTriggerBatStroke = function() {
-      // Calculate quality of shot by closeness to sweet spot (50%)
-      const dev = Math.abs(timingPos - 50);
-      let runs = 0, isFour = false, isSix = false, isWkt = false;
-      if (dev < 8) { runs = 6; isSix = true; }
-      else if (dev < 16) { runs = 4; isFour = true; }
-      else if (dev < 28) { runs = 1; }
-      else { isWkt = true; }
-
-      const targetX = targetCursor.position.x;
-      const zoneIndex = targetX > 0.2 ? 1 : (targetX < -0.2 ? 6 : 4);
-      playBall({ runs, isFour, isSix, isWicket: isWkt, zoneIndex, ballRandom: (targetCursor.position.z - 3.5) / 1.5 });
-    };
-
-    // Pitch Target Dragging
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    window.addEventListener('pointerdown', (e) => {
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObject(pitch);
-      if (hits.length > 0) {
-        targetCursor.position.x = THREE.MathUtils.clamp(hits[0].point.x, -1.2, 1.2);
-        targetCursor.position.z = THREE.MathUtils.clamp(hits[0].point.z, 1.5, 7.5);
-      }
-    });
-
-    /* =======================================================
-       9. BROADCAST CAMERAS & CONTROLS
+       7. CAMERAS & WAGON WHEEL
        ======================================================= */
     const cameraModes = {
       broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
@@ -800,7 +628,7 @@
     window.switchCamera = function(mode) {
       if (!cameraModes[mode]) return;
       activeCamMode = mode;
-      document.querySelectorAll('.cam-cluster .hud-btn, .bar-cluster .hud-btn').forEach(b => {
+      document.querySelectorAll('.bar-cluster .hud-btn').forEach(b => {
         if (b.id && b.id.startsWith('btn-')) b.classList.remove('active');
       });
       const activeBtn = document.getElementById('btn-' + mode);
@@ -823,7 +651,7 @@
       if (btn) btn.innerText = isAudioOn ? '🔊' : '🔇';
     };
 
-    // Wagon Wheel
+    // 2D Wagon Wheel Overlay
     const wagonCanvas = document.getElementById('wagonWheelCanvas');
     const wagonCtx = wagonCanvas.getContext('2d');
     const historicalShots = [];
@@ -854,7 +682,7 @@
     }
 
     /* =======================================================
-       10. COMPLETE DELIVERY SIMULATION & BRANCHED SHOTS
+       8. DELIVERY SIMULATION
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
@@ -863,18 +691,26 @@
       if (lastRecordedShot) playBall(lastRecordedShot);
     };
 
+    window.simRandomDelivery = function() {
+      const outcomes = [
+        { runs: 4, isFour: true, isSix: false, isWicket: false, zoneIndex: 1 },
+        { runs: 6, isFour: false, isSix: true, isWicket: false, zoneIndex: 3 },
+        { runs: 0, isFour: false, isSix: false, isWicket: true, zoneIndex: 0 },
+        { runs: 1, isFour: false, isSix: false, isWicket: false, zoneIndex: 6 },
+        { runs: 2, isFour: false, isSix: false, isWicket: false, zoneIndex: 5 }
+      ];
+      const shot = outcomes[Math.floor(Math.random() * outcomes.length)];
+      shot.ballRandom = Math.random();
+      playBall(shot);
+    };
+
     function playBall(shot) {
       if (deliveryAnim) { cancelAnimationFrame(deliveryAnim); deliveryAnim = null; }
 
       strikerWickets.reset(); bowlerWickets.reset();
       fielders.forEach(f => f.reset());
-      pitchImpactRing.material.opacity = 0;
       ball.visible = true;
       lastRecordedShot = shot;
-
-      trailCount = 0;
-      trailMat.color.setHex(shot.isWicket ? 0xef4444 : 0x38bdf8);
-      hawkeyeLine.visible = true;
 
       const speedRadar = document.getElementById('speedRadar');
       const deliverySpeed = (136 + Math.random() * 11).toFixed(1);
@@ -883,7 +719,6 @@
 
       const startTime = performance.now();
       const pitchZ = 3.5 + ((shot.ballRandom || 0.5) * 1.5);
-      // Section 5: Seam off the deck random deviation
       const seamDeviation = (Math.random() - 0.5) * 0.35;
       const pitchX = (Math.random() - 0.5) * 0.4;
       const angle = shot.zoneIndex >= 0 ? (shot.zoneIndex * Math.PI / 4) : Math.PI / 2;
@@ -894,7 +729,6 @@
       let bouncedSoundPlayed = false;
       let contactSoundPlayed = false;
 
-      // Identify closest fielder for pursuit AI (Section 1)
       let nearestFielder = fielders[0];
       let minFielderDist = 999;
       fielders.forEach(f => {
@@ -905,7 +739,7 @@
       function loop(now) {
         const elapsed = now - startTime;
 
-        // Phase 1: Bowler Run-up (0 - 700ms)
+        // Bowler Run-up
         if (elapsed < 700) {
           const t = elapsed / 700;
           bowler.position.x = THREE.MathUtils.lerp(BOWLER_START_X, 0.55, t);
@@ -913,12 +747,11 @@
           bowler.armJoint.rotation.x = -Math.PI * 4 * t;
           ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
 
-          // Bat stance tap
           batsman.batPivot.rotation.x = -Math.PI / 5 + (Math.sin(t * 10) * 0.05);
           batsman.rotation.y = -Math.PI / 2;
           batsman.legL.position.set(-0.16, 0.45, 0);
         }
-        // Phase 2: Delivery & Pitch Bounce with Seam (700ms - 1200ms)
+        // Pitch Bounce & Flight
         else if (elapsed < 1200) {
           const t = (elapsed - 700) / 500;
           if (t < 0.65) {
@@ -930,21 +763,15 @@
             if (!bouncedSoundPlayed) {
               playSoundPitchBounce();
               bouncedSoundPlayed = true;
-              stampFootmark(pitchX, pitchZ); // Section 5 wear
-              pitchImpactRing.position.set(pitchX, 0.05, pitchZ);
-              pitchImpactRing.material.opacity = 0.85;
+              stampFootmark(pitchX, pitchZ);
             }
-            pitchImpactRing.material.opacity = Math.max(0, pitchImpactRing.material.opacity - 0.02);
-
             const pt = (t - 0.65) / 0.35;
-            // Apply seam deviation off pitch
             ball.position.x = THREE.MathUtils.lerp(pitchX, batsman.position.x - 0.1 + seamDeviation, pt);
             ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, pt);
             ball.position.y = 0.14 + (Math.sin(pt * Math.PI * 0.5) * 0.95);
           }
-          addTrailPoint(ball.position);
         }
-        // Phase 3: Shot Execution Variety & Fielder AI Pursuit (1200ms - 3400ms)
+        // Bat Stroke & Shot Execution
         else if (elapsed < 3400) {
           const t = (elapsed - 1200) / 2200;
 
@@ -952,7 +779,6 @@
             if (shot.isWicket) {
               playSoundStumpsShatter();
               strikerWickets.triggerShatter();
-              renderDRSOscilloscope(true); // Section 2 Snicko on wicket
             } else {
               playSoundWillowBat(shot.isSix ? 1.0 : (shot.isFour ? 0.8 : 0.5));
               if (shot.isSix || shot.isFour) playSoundCrowdCheer();
@@ -961,7 +787,6 @@
             drawWagonWheel();
             contactSoundPlayed = true;
 
-            // Trigger Nearest Fielder Chasing (Section 1)
             if (!shot.isSix && shot.runs > 0) nearestFielder.pursue(new THREE.Vector3(hitX, 0, hitZ));
           }
 
@@ -969,17 +794,13 @@
             batsman.batPivot.rotation.x = 0;
             ball.position.set(0.1, 0.3, 10.4);
           } else {
-            // Section 4: Shot Mechanics Branching
             if (shot.zoneIndex === 1 || shot.zoneIndex === 2) {
-              // Cover Drive: Leaning front foot forward
               batsman.legL.position.z = THREE.MathUtils.lerp(0, 0.35, Math.min(1, t * 5));
               batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.7);
             } else if (shot.zoneIndex >= 5) {
-              // Pull/Hook: Hips & Shoulders pivot around Y
               batsman.rotation.y = -Math.PI / 2 + (Math.min(1, t * 4) * Math.PI * 0.45);
               batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
             } else {
-              // Straight Drive / Loft
               batsman.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
             }
 
@@ -990,7 +811,6 @@
             if (shot.isSix) ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 22.0 * dragFactor);
             else if (shot.isFour) ball.position.y = 0.2 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * (1 - t));
             else ball.position.y = 0.14;
-            addTrailPoint(ball.position);
           }
 
           if (activeCamMode === 'follow') {
@@ -1022,7 +842,7 @@
     }
 
     /* =======================================================
-       11. MASTER RENDER ENGINE LOOP
+       9. MASTER RENDER ENGINE LOOP
        ======================================================= */
     let lastTime = 0;
     function animate(time) {
