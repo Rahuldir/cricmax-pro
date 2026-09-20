@@ -1105,13 +1105,12 @@ function animate(t){
   const elapsed = t * 0.001;
   lastT = t;
 
-    if (stadium && stadium.update) stadium.update(dt, elapsed);
+     if (stadium && stadium.update) stadium.update(dt, elapsed);
   if (env && env.update) env.update(dt, elapsed);
   if (crowd && crowd.update) crowd.update(dt, elapsed);
   if (particles && particles.update) particles.update(dt);
   if (stadiumDetail && stadiumDetail.update) stadiumDetail.update(dt, elapsed);
   if (postFX && postFX.update) postFX.update(elapsed);
-  updateSparks(dt);
   strikerWicket.update(dt);
   bowlerWicket.update(dt);
   fielders.forEach(f => f.update(dt, elapsed));
