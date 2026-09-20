@@ -32,11 +32,6 @@
 
     #wagonWheelCanvas { position: absolute; top: 72px; left: 18px; width: 140px; height: 140px; background: rgba(8,15,30,0.88); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; pointer-events: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.7); }
 
-    /* Feature 5: Pitch Analytics Legend */
-    #pitchLegend { position: absolute; top: 120px; right: 18px; background: rgba(8,15,30,0.9); border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 11px; display: none; flex-direction: column; gap: 5px; pointer-events: auto; }
-    .legend-row { display: flex; align-items: center; gap: 8px; font-weight: 700; }
-    .legend-color { width: 12px; height: 12px; border-radius: 3px; }
-
     /* Event Banner */
     .event-banner { position: absolute; top: 20%; left: 50%; transform: translateX(-50%) scale(.6); font-size: clamp(38px, 7vw, 76px); font-weight: 900; font-style: italic; text-transform: uppercase; color: #fff; opacity: 0; transition: all .35s cubic-bezier(.175,.885,.32,1.275); text-align: center; line-height: 1; pointer-events: none; }
     .event-banner.active { transform: translateX(-50%) scale(1); opacity: 1; }
@@ -45,10 +40,9 @@
     .event-banner.wkt { color: #ef4444; text-shadow: 0 0 45px #7f1d1d, 0 8px 24px #000; }
     .event-banner.noball { color: #e879f9; text-shadow: 0 0 45px #a855f7, 0 8px 24px #000; }
 
-    /* Bottom Scorecard & Feature 4 Over Summary Strip */
+    /* Bottom Scorecard & Over Summary Strip */
     .bottom-hud-wrapper { width: 100%; max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
 
-    /* Feature 4: Current Over Summary Strip */
     .over-summary-bar { background: rgba(8,18,32,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 5px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; color: #cbd5e1; }
     .over-dots { display: flex; gap: 6px; align-items: center; }
     .ball-badge { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 900; background: rgba(255,255,255,0.1); color: #94a3b8; border: 1px solid rgba(255,255,255,0.15); }
@@ -84,7 +78,6 @@
         <button class="hud-btn active" id="btn-broadcast" onclick="switchCamera('broadcast')">📺 TV</button>
         <button class="hud-btn" id="btn-bowler" onclick="switchCamera('bowler')">🎯 Bowler</button>
         <button class="hud-btn" id="btn-keeper" onclick="switchCamera('keeper')">🧤 Keeper</button>
-        <button class="hud-btn" id="btn-pitchmap" onclick="switchCamera('pitchmap')">📊 Pitch Map</button>
         <button class="hud-btn" id="btn-side" onclick="switchCamera('side')">🎬 Side</button>
         <button class="hud-btn" id="btn-drone" onclick="switchCamera('drone')">🚁 Drone</button>
         <button class="hud-btn" id="btn-follow" onclick="switchCamera('follow')">⚾ Ball Cam</button>
@@ -98,9 +91,8 @@
       </div>
 
       <div class="ctrl-cluster">
-        <button class="ctrl-btn" id="btnHeatmap" onclick="togglePitchHeatmap()" title="Toggle Pitch Length Grid">📈</button>
         <button class="ctrl-btn" id="btnWagon" onclick="toggleWagonWheel()" title="Toggle Wagon Wheel">🕸️</button>
-        <button class="ctrl-btn" onclick="simFeedScoringTab()" title="Feed Mock Delivery from Scoring Tab">⚡</button>
+        <button class="ctrl-btn" onclick="simFeedScoringTab()" title="Feed Mock Delivery">⚡</button>
         <button class="ctrl-btn" id="btnMic" onclick="toggleAudio()" title="Live Sound FX">🔊</button>
         <button class="ctrl-btn" onclick="triggerReplay()" title="Replay Delivery">↻</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
@@ -111,18 +103,9 @@
     <div id="speedRadar" class="radar-tag">SPEED: -- KM/H</div>
     <canvas id="wagonWheelCanvas" width="280" height="280"></canvas>
 
-    <!-- Feature 5: Length Grid Legend -->
-    <div id="pitchLegend">
-      <div style="font-weight:900; color:#38bdf8; margin-bottom:2px;">BOWLING LENGTH ZONES</div>
-      <div class="legend-row"><div class="legend-color" style="background:#ef4444;"></div> Yorker (0 - 2m)</div>
-      <div class="legend-row"><div class="legend-color" style="background:#3b82f6;"></div> Full (2 - 4.5m)</div>
-      <div class="legend-row"><div class="legend-color" style="background:#10b981;"></div> Good Length (4.5 - 7m)</div>
-      <div class="legend-row"><div class="legend-color" style="background:#f59e0b;"></div> Short / Bouncer (7m+)</div>
-    </div>
-
     <div id="eventBanner" class="event-banner">FOUR!</div>
 
-    <!-- Bottom Score Area with Feature 4: Current Over Strip -->
+    <!-- Bottom Score Area with Current Over Strip -->
     <div class="bottom-hud-wrapper">
       <div class="over-summary-bar">
         <span>THIS OVER:</span>
@@ -157,7 +140,7 @@
 
   <script>
     /* =======================================================
-       1. SYNTHESIZED PROCEDURAL WEB AUDIO
+       1. SYNTHESIZED PROCEDURAL AUDIO
        ======================================================= */
     let audioCtx = null;
     let isAudioOn = true;
@@ -260,7 +243,7 @@
     }
 
     /* =======================================================
-       2. THREE.JS SCENE SETUP & ATMOSPHERE
+       2. THREE.JS SCENE SETUP & LIGHTING
        ======================================================= */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -352,9 +335,8 @@
     };
 
     /* =======================================================
-       3. OUTFIELD, BOUNDARY ROPE & ADVERTISING WEDGES
+       3. OUTFIELD, PHYSICAL BOUNDARY ROPE & GRASS
        ======================================================= */
-    // Mowed Circular Lawn with subtle grass noise texture
     function createLawnTexture() {
       const cv = document.createElement('canvas');
       cv.width = 1024; cv.height = 1024;
@@ -365,7 +347,6 @@
         ctx.fillStyle = (r / 28) % 2 === 0 ? '#1b4d24' : '#23592c';
         ctx.fill();
       }
-      // Micro-texture grass blades simulation
       for (let i = 0; i < 60000; i++) {
         ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
         ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 2, 2);
@@ -381,7 +362,6 @@
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // 30-Yard White Marker Ring
     const innerRing = new THREE.Mesh(
       new THREE.RingGeometry(27.4, 27.7, 64),
       new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.35, transparent: true, side: THREE.DoubleSide })
@@ -389,7 +369,7 @@
     innerRing.rotation.x = -Math.PI / 2; innerRing.position.y = 0.02;
     scene.add(innerRing);
 
-    // REALISTIC THICK BOUNDARY ROPE SITTING ON GRASS (R = 62m)
+    // Thick braided boundary rope on turf
     const ropeTexture = (() => {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 32;
@@ -409,15 +389,15 @@
       new THREE.MeshStandardMaterial({ map: ropeTexture, roughness: 0.6 })
     );
     boundaryRope.rotation.x = -Math.PI / 2;
-    boundaryRope.position.y = 0.12; // Sits firmly on turf
+    boundaryRope.position.y = 0.12;
     boundaryRope.castShadow = true;
     boundaryRope.receiveShadow = true;
     scene.add(boundaryRope);
 
-    // Realistic Triangular Foam Advertising Toboggans (Wedges) around the rope
+    // Triangular Advertising Wedges
     const wedgeGroup = new THREE.Group();
     const wedgeMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
-    const wedgeGeo = new THREE.CylinderGeometry(0.35, 0.5, 2.2, 3); // Prism geometry
+    const wedgeGeo = new THREE.CylinderGeometry(0.35, 0.5, 2.2, 3);
     for (let w = 0; w < 64; w++) {
       const ang = (w / 64) * Math.PI * 2;
       const cushion = new THREE.Mesh(wedgeGeo, wedgeMat);
@@ -429,7 +409,7 @@
     }
     scene.add(wedgeGroup);
 
-    // Perimeter LED Ribbon Boards
+    // LED Ribbon
     const ledCanvas = document.createElement('canvas');
     ledCanvas.width = 2048; ledCanvas.height = 128;
     const ledCtx = ledCanvas.getContext('2d');
@@ -487,61 +467,7 @@
     addMarking(0, -10.0, 2.64, 0.08);
 
     /* =======================================================
-       4. FEATURE 5: PITCH ANALYTICS LENGTH HEATMAP GRID
-       ======================================================= */
-    const heatmapGroup = new THREE.Group();
-    heatmapGroup.position.y = 0.042;
-    scene.add(heatmapGroup);
-
-    // 4 International Bowling Length Zones
-    function createLengthZone(zStart, zEnd, color, label) {
-      const depth = Math.abs(zEnd - zStart);
-      const centerZ = (zStart + zEnd) / 2;
-      const zone = new THREE.Mesh(
-        new THREE.PlaneGeometry(3.4, depth),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
-      );
-      zone.rotation.x = -Math.PI / 2;
-      zone.position.set(0, 0, centerZ);
-      heatmapGroup.add(zone);
-
-      // Boundary line
-      const line = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.04), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      line.rotation.x = -Math.PI / 2;
-      line.position.set(0, 0.001, zStart);
-      heatmapGroup.add(line);
-    }
-
-    createLengthZone(8.8, 6.8, 0xef4444, 'Yorker');      // Red
-    createLengthZone(6.8, 4.3, 0x3b82f6, 'Full');        // Blue
-    createLengthZone(4.3, 1.8, 0x10b981, 'Good Length'); // Green
-    createLengthZone(1.8, -4.0, 0xf59e0b, 'Short');      // Amber
-
-    heatmapGroup.visible = false; // Hidden by default, toggleable
-
-    const landingClustersGroup = new THREE.Group();
-    scene.add(landingClustersGroup);
-
-    function addPitchLandingMarker(x, z, outcome = 'dot') {
-      const colMap = { dot: 0x94a3b8, runs: 0x38bdf8, four: 0x22d3ee, six: 0xfbbf24, wkt: 0xef4444 };
-      const marker = new THREE.Mesh(
-        new THREE.CircleGeometry(0.16, 16),
-        new THREE.MeshBasicMaterial({ color: colMap[outcome] || 0x38bdf8, side: THREE.DoubleSide })
-      );
-      marker.rotation.x = -Math.PI / 2;
-      marker.position.set(x, 0.046, z);
-      landingClustersGroup.add(marker);
-    }
-
-    window.togglePitchHeatmap = function() {
-      heatmapGroup.visible = !heatmapGroup.visible;
-      const legend = document.getElementById('pitchLegend');
-      if (legend) legend.style.display = heatmapGroup.visible ? 'flex' : 'none';
-      if (heatmapGroup.visible) switchCamera('pitchmap');
-    };
-
-    /* =======================================================
-       5. REALISTIC ANATOMICAL "REAL MEN" PLAYER RIGS
+       4. ANATOMICAL PLAYER RIGS
        ======================================================= */
     const skinMat = new THREE.MeshStandardMaterial({ color: 0xc68642, roughness: 0.6 });
     const padMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
@@ -552,64 +478,39 @@
       const rig = new THREE.Group();
       rig.torsoMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.6 });
 
-      // Pelvis / Hips
       const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), padMat);
-      pelvis.position.y = 0.95;
-      pelvis.castShadow = true;
-      rig.add(pelvis);
+      pelvis.position.y = 0.95; pelvis.castShadow = true; rig.add(pelvis);
 
-      // Anatomical Torso (V-shape chest & waist)
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.55, 12), rig.torsoMat);
-      torso.position.y = 1.32;
-      torso.castShadow = true;
-      rig.add(torso);
+      torso.position.y = 1.32; torso.castShadow = true; rig.add(torso);
 
-      // Neck & Head
       const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.1, 8), skinMat);
-      neck.position.y = 1.63;
-      rig.add(neck);
+      neck.position.y = 1.63; rig.add(neck);
 
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), skinMat);
-      head.position.y = 1.76;
-      head.castShadow = true;
-      rig.add(head);
+      head.position.y = 1.76; head.castShadow = true; rig.add(head);
 
-      // Realistic Helmet with Grill Visor
       const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65), helmetMat);
-      helmet.position.y = 1.78;
-      rig.add(helmet);
+      helmet.position.y = 1.78; rig.add(helmet);
 
       const grill = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 16, Math.PI), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 }));
-      grill.rotation.x = Math.PI / 2;
-      grill.position.set(0, 1.72, 0.08);
-      rig.add(grill);
+      grill.rotation.x = Math.PI / 2; grill.position.set(0, 1.72, 0.08); rig.add(grill);
 
-      // Legs (Thighs, Knees, Padded Calves, Spikes)
       function buildLeg(xOffset) {
         const legGroup = new THREE.Group();
         legGroup.position.set(xOffset, 0.88, 0);
 
         const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.08, 0.42, 8), rig.torsoMat);
-        thigh.position.y = -0.21;
-        thigh.castShadow = true;
-        legGroup.add(thigh);
+        thigh.position.y = -0.21; thigh.castShadow = true; legGroup.add(thigh);
 
-        // Knee guard
         const knee = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), isBatsman ? padMat : rig.torsoMat);
-        knee.position.y = -0.42;
-        legGroup.add(knee);
+        knee.position.y = -0.42; legGroup.add(knee);
 
-        // Lower Leg / Cricket Batting Pad
         const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.16), isBatsman ? padMat : rig.torsoMat);
-        shin.position.set(0, -0.66, 0.02);
-        shin.castShadow = true;
-        legGroup.add(shin);
+        shin.position.set(0, -0.66, 0.02); shin.castShadow = true; legGroup.add(shin);
 
-        // Shoe
         const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.26), shoeMat);
-        foot.position.set(0, -0.88, 0.06);
-        foot.castShadow = true;
-        legGroup.add(foot);
+        foot.position.set(0, -0.88, 0.06); foot.castShadow = true; legGroup.add(foot);
 
         return legGroup;
       }
@@ -619,45 +520,30 @@
       rig.add(rig.legL);
       rig.add(rig.legR);
 
-      // Articulated Shoulders & Arms
       const armL = new THREE.Group();
       armL.position.set(-0.28, 1.5, 0);
       const bicepL = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.torsoMat);
-      bicepL.position.y = -0.16;
-      armL.add(bicepL);
+      bicepL.position.y = -0.16; armL.add(bicepL);
       const forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.3, 8), skinMat);
-      forearmL.position.y = -0.44;
-      armL.add(forearmL);
-      rig.add(armL);
-      rig.armL = armL;
+      forearmL.position.y = -0.44; armL.add(forearmL);
+      rig.add(armL); rig.armL = armL;
 
       const armR = new THREE.Group();
       armR.position.set(0.28, 1.5, 0);
       const bicepR = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.torsoMat);
-      bicepR.position.y = -0.16;
-      armR.add(bicepR);
+      bicepR.position.y = -0.16; armR.add(bicepR);
       const forearmR = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.3, 8), skinMat);
-      forearmR.position.y = -0.44;
-      armR.add(forearmR);
-      rig.add(armR);
-      rig.armR = armR;
+      forearmR.position.y = -0.44; armR.add(forearmR);
+      rig.add(armR); rig.armR = armR;
 
       if (isBatsman) {
-        // Detailed Cricket Bat (Willow grain + rubber grip)
         const batPivot = new THREE.Group();
         batPivot.position.set(0, 1.1, 0.25);
-
         const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        handle.position.y = 0.18;
-        batPivot.add(handle);
-
+        handle.position.y = 0.18; batPivot.add(handle);
         const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.88, 0.05), new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.3 }));
-        blade.position.y = -0.38;
-        blade.castShadow = true;
-        batPivot.add(blade);
-
-        rig.add(batPivot);
-        rig.batPivot = batPivot;
+        blade.position.y = -0.38; blade.castShadow = true; batPivot.add(blade);
+        rig.add(batPivot); rig.batPivot = batPivot;
       }
 
       return rig;
@@ -678,7 +564,7 @@
     bowler.position.set(BOWLER_START_X, 0, BOWLER_START_Z);
     scene.add(bowler);
 
-    // 9 Outfielders using anatomical rigs
+    // Anatomical Fielders
     class AnatomicalFielder {
       constructor(name, x, z) {
         this.name = name;
@@ -767,7 +653,7 @@
       new AnatomicalFielder('Long-on', -18.0, -38.0)
     ];
 
-    // Cricket Ball with real leather seam texture
+    // Leather Seam Ball
     const ballTexture = (() => {
       const c = document.createElement('canvas');
       c.width = 128; c.height = 128;
@@ -778,11 +664,12 @@
       return new THREE.CanvasTexture(c);
     })();
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 24), new THREE.MeshStandardMaterial({ map: ballTexture, roughness: 0.35 }));
-    ball.castShadow = true; ball.visible = false;
+    ball.castShadow = true;
+    ball.visible = false;
     scene.add(ball);
 
     /* =======================================================
-       6. WICKETS, RUNNING & CAMERAS
+       5. WICKETS & CAMERAS
        ======================================================= */
     class DynamicWicketSystem {
       constructor(zPos) {
@@ -904,7 +791,6 @@
       broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
       bowler:    { pos: new THREE.Vector3(0, 4.2, -22), target: new THREE.Vector3(0, 1.0, 9) },
       keeper:    { pos: new THREE.Vector3(0, 2.2, 14.5), target: new THREE.Vector3(0, 1.2, -5.0) },
-      pitchmap:  { pos: new THREE.Vector3(0, 24, 2.5), target: new THREE.Vector3(0, 0, 2.5) }, // Feature 5 Top-down
       side:      { pos: new THREE.Vector3(26, 5, 8), target: new THREE.Vector3(0, 1.0, 8) },
       drone:     { pos: new THREE.Vector3(0, 52, 0.1), target: new THREE.Vector3(0, 0, 0) },
       follow:    { pos: new THREE.Vector3(0, 8, -6), target: new THREE.Vector3(0, 0.5, 9) }
@@ -970,7 +856,7 @@
     }
 
     /* =======================================================
-       7. FEATURE 4: OVER SUMMARY STRIP & SCORING TAB SYNC
+       6. OVER SUMMARY STRIP & DATA SYNC
        ======================================================= */
     let lastProcessedShotIndex = -1;
     let currentOverBalls = [];
@@ -1062,7 +948,6 @@
       if (bwNameEl) bwNameEl.innerText = bowlerKey;
       if (bwFigsEl) bwFigsEl.innerText = `${Math.floor(bwBalls / 6)}.${bwBalls % 6}-${bowlerStats.maidens || 0}-${bowlerStats.runs || 0}-${bowlerStats.wickets || 0}`;
 
-      // Feature 4: Current Over History Array Sync
       if (m.currentOverHistory && Array.isArray(m.currentOverHistory)) {
         currentOverBalls = m.currentOverHistory;
         updateOverSummaryUI();
@@ -1084,7 +969,7 @@
     }, 200);
 
     /* =======================================================
-       8. REAL-TIME DELIVERY EXECUTION (SCORING TAB CONTROLLED)
+       7. SMOOTH CONTINUOUS BALL FLIGHT (NO MID-PITCH STICKING)
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
@@ -1115,7 +1000,6 @@
       ball.visible = true;
       lastRecordedShot = shot;
 
-      // Feature 4: Push to local over breakdown if not controlled by parent
       if (currentOverBalls.length >= 6) currentOverBalls = [];
       currentOverBalls.push(shot);
       updateOverSummaryUI();
@@ -1126,13 +1010,11 @@
       speedRadar.classList.add('active');
 
       const startTime = performance.now();
-      const pitchZ = 3.5 + ((shot.ballRandom !== undefined ? shot.ballRandom : Math.random()) * 2.0);
-      const seamDeviation = (Math.random() - 0.5) * 0.35;
+      
+      // Pitch bounce landing coordinates
+      const pitchZ = 3.2 + ((shot.ballRandom !== undefined ? shot.ballRandom : Math.random()) * 2.0);
+      const seamDeviation = (Math.random() - 0.5) * 0.25;
       const pitchX = shot.pitchX !== undefined ? shot.pitchX : (Math.random() - 0.5) * 0.4;
-
-      // Feature 5: Add Landing Marker to Pitch Analytics Map
-      const outcomeType = shot.isWicket ? 'wkt' : (shot.isSix ? 'six' : (shot.isFour ? 'four' : (shot.runs > 0 ? 'runs' : 'dot')));
-      addPitchLandingMarker(pitchX, pitchZ, outcomeType);
 
       let angle = Math.PI / 2;
       if (shot.angle !== undefined) angle = shot.angle > (Math.PI * 2) ? (shot.angle * Math.PI / 180) : shot.angle;
@@ -1148,7 +1030,7 @@
       const isSlideSave = shot.isSlideSave || false;
       const isRunOut = shot.isRunOut || shot.wicketType === 'run out' || false;
 
-      // Distance: on a four, ball crosses the 62m boundary rope onto 66m
+      // Ensure ball clears the boundary rope on fours (66m) or sixes (68m)
       let finalDist = shot.dist || (runs > 0 ? (isSix ? 68 : (isFour ? 66 : (isSlideSave ? 59 : runs * 14))) : (isCatch ? 38 : 18));
       const hitX = Math.sin(angle) * finalDist;
       const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
@@ -1165,10 +1047,11 @@
         if (d < minFielderDist) { minFielderDist = d; nearestFielder = f; }
       });
 
+      // Continuous, non-blocking delivery loop
       function loop(now) {
         const elapsed = now - startTime;
 
-        // Phase 1: Bowler Run-up (0 - 700ms)
+        // Phase 1: Bowler Run-Up (0ms - 700ms)
         if (elapsed < 700) {
           const t = elapsed / 700;
           bowler.position.x = THREE.MathUtils.lerp(BOWLER_START_X, 0.55, t);
@@ -1182,29 +1065,28 @@
 
           if (isNoBall && elapsed > 650 && !bouncedSoundPlayed) playSoundNoBallSiren();
         }
-        // Phase 2: Delivery Flight & Turf Landing (700ms - 1200ms)
-        else if (elapsed < 1200) {
-          const t = (elapsed - 700) / 500;
-          if (t < 0.65) {
-            const pt = t / 0.65;
-            ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, pt);
-            ball.position.z = THREE.MathUtils.lerp(isNoBall ? -8.65 : -9.8, pitchZ, pt);
-            ball.position.y = THREE.MathUtils.lerp(2.1, 0.08, pt * pt);
-          } else {
-            if (!bouncedSoundPlayed) {
-              playSoundPitchBounce();
-              bouncedSoundPlayed = true;
-              stampFootmark(pitchX, pitchZ);
-            }
-            const pt = (t - 0.65) / 0.35;
-            ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBatter.position.x - 0.1 + seamDeviation, pt);
-            ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, pt);
-            ball.position.y = 0.08 + (Math.sin(pt * Math.PI * 0.5) * 0.95);
-          }
+        // Phase 2a: Release down to pitch bounce (700ms - 1000ms)
+        else if (elapsed < 1000) {
+          const t = (elapsed - 700) / 300;
+          const releaseZ = isNoBall ? -8.65 : -9.8;
+          ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
+          ball.position.z = THREE.MathUtils.lerp(releaseZ, pitchZ, t);
+          ball.position.y = THREE.MathUtils.lerp(2.0, 0.12, t * t);
         }
-        // Phase 3: Bat Impact & Real Grass Rolling Physics (1200ms - 3400ms)
+        // Phase 2b: Pitch bounce up to batsman bat impact point (1000ms - 1250ms)
+        else if (elapsed < 1250) {
+          const t = (elapsed - 1000) / 250;
+          if (!bouncedSoundPlayed) {
+            playSoundPitchBounce();
+            bouncedSoundPlayed = true;
+          }
+          ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBatter.position.x - 0.1 + seamDeviation, t);
+          ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
+          ball.position.y = 0.12 + Math.sin(t * Math.PI * 0.5) * 0.85;
+        }
+        // Phase 3: Shot Contact, Trajectory & Outfield Roll (1250ms - 3400ms)
         else if (elapsed < 3400) {
-          const t = (elapsed - 1200) / 2200;
+          const t = (elapsed - 1250) / 2150;
 
           if (!contactSoundPlayed) {
             if (isWicket && !isCatch) {
@@ -1233,17 +1115,24 @@
             acrobaticsInitiated = true;
           }
 
+          // Bowled dismissal
           if (isWicket && !isCatch) {
             strikerBatter.batPivot.rotation.x = 0;
             ball.position.set(0.1, 0.3, 10.4);
-          } else {
+          }
+          // Pure Dot Ball (goes past bat into Keeper gloves)
+          else if (runs === 0 && !isCatch) {
+            ball.position.x = THREE.MathUtils.lerp(strikerBatter.position.x - 0.1, 0, t);
+            ball.position.z = THREE.MathUtils.lerp(8.8, 12.5, t);
+            ball.position.y = 0.85 + Math.sin(t * Math.PI) * 0.3;
+          }
+          // Bat Hit Execution (Aerial / Ground Shots)
+          else {
             strikerBatter.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
 
             const dragFactor = 1 - Math.pow(t, 1.4) * 0.12;
             ball.position.x = THREE.MathUtils.lerp(strikerBatter.position.x, hitX * dragFactor, t);
             ball.position.z = THREE.MathUtils.lerp(8.8, hitZ * dragFactor, t);
-
-            // Ball rotation on turf
             ball.rotation.x += 0.25;
 
             if (isSix) {
@@ -1252,11 +1141,9 @@
               ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 7.5);
               if (t > 0.95) ball.position.copy(nearestFielder.rig.position).add(new THREE.Vector3(0, 1.4, 0));
             } else if (isFour) {
-              // Bouncing four rolls directly on grass blades (Y = 0.08)
-              ball.position.y = 0.08 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.2));
+              ball.position.y = 0.12 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.2));
             } else {
-              // Ground shot strictly travels along the grass
-              ball.position.y = 0.08;
+              ball.position.y = 0.12; // Rolls smoothly along the grass
             }
           }
 
@@ -1267,7 +1154,7 @@
             camTarget.lerp(ball.position, 0.05);
           }
         }
-        // Phase 4: Fielder Throw-in (3400ms - 4800ms)
+        // Phase 4: Fielder Return Throw (3400ms - 4800ms)
         else if (elapsed < 4800) {
           const t = (elapsed - 3400) / 1400;
           if (!isSix && !isFour && !isCatch && runs > 0) {
@@ -1313,7 +1200,7 @@
     }
 
     /* =======================================================
-       9. MASTER RENDER ENGINE LOOP
+       8. MAIN RENDER LOOP
        ======================================================= */
     let lastTime = 0;
     function animate(time) {
