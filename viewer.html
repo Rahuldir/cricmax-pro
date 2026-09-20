@@ -73,7 +73,6 @@
     <div class="top-bar">
       <div class="live-badge">ULTRA 3D LIVE</div>
 
-      <!-- Camera Presets -->
       <div class="bar-cluster">
         <button class="hud-btn active" id="btn-broadcast" onclick="switchCamera('broadcast')">📺 TV</button>
         <button class="hud-btn" id="btn-bowler" onclick="switchCamera('bowler')">🎯 Bowler</button>
@@ -83,7 +82,6 @@
         <button class="hud-btn" id="btn-follow" onclick="switchCamera('follow')">⚾ Ball Cam</button>
       </div>
 
-      <!-- Atmosphere Modes -->
       <div class="bar-cluster">
         <button class="hud-btn" id="env-day" onclick="setAtmosphere('day')">☀️ Day</button>
         <button class="hud-btn" id="env-sunset" onclick="setAtmosphere('sunset')">🌇 Sunset</button>
@@ -92,20 +90,18 @@
 
       <div class="ctrl-cluster">
         <button class="ctrl-btn" id="btnWagon" onclick="toggleWagonWheel()" title="Toggle Wagon Wheel">🕸️</button>
-        <button class="ctrl-btn" onclick="simFeedScoringTab()" title="Feed Mock Delivery">⚡</button>
+        <button class="ctrl-btn" onclick="simFeedScoringTab()" title="Simulate Ball">⚡</button>
         <button class="ctrl-btn" id="btnMic" onclick="toggleAudio()" title="Live Sound FX">🔊</button>
         <button class="ctrl-btn" onclick="triggerReplay()" title="Replay Delivery">↻</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
       </div>
     </div>
 
-    <!-- Speed Radar & Wagon Wheel Overlay -->
     <div id="speedRadar" class="radar-tag">SPEED: -- KM/H</div>
     <canvas id="wagonWheelCanvas" width="280" height="280"></canvas>
 
     <div id="eventBanner" class="event-banner">FOUR!</div>
 
-    <!-- Bottom Score Area with Current Over Strip -->
     <div class="bottom-hud-wrapper">
       <div class="over-summary-bar">
         <span>THIS OVER:</span>
@@ -243,7 +239,7 @@
     }
 
     /* =======================================================
-       2. THREE.JS SCENE SETUP & LIGHTING
+       2. THREE.JS SCENE SETUP & ATMOSPHERE
        ======================================================= */
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -335,7 +331,7 @@
     };
 
     /* =======================================================
-       3. OUTFIELD, PHYSICAL BOUNDARY ROPE & GRASS
+       3. OUTFIELD, BOUNDARY ROPE (R=62m) & REALISTIC TURF
        ======================================================= */
     function createLawnTexture() {
       const cv = document.createElement('canvas');
@@ -369,7 +365,7 @@
     innerRing.rotation.x = -Math.PI / 2; innerRing.position.y = 0.02;
     scene.add(innerRing);
 
-    // Thick braided boundary rope on turf
+    // Thick braided boundary rope located at R = 62.0 meters
     const ropeTexture = (() => {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 32;
@@ -394,7 +390,7 @@
     boundaryRope.receiveShadow = true;
     scene.add(boundaryRope);
 
-    // Triangular Advertising Wedges
+    // Foam Advertising Wedges surrounding boundary
     const wedgeGroup = new THREE.Group();
     const wedgeMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
     const wedgeGeo = new THREE.CylinderGeometry(0.35, 0.5, 2.2, 3);
@@ -467,35 +463,45 @@
     addMarking(0, -10.0, 2.64, 0.08);
 
     /* =======================================================
-       4. ANATOMICAL PLAYER RIGS
+       4. REALISTIC ARTICULATED PLAYER RIGS & ORGANIC IDLE ANIMATIONS
        ======================================================= */
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xc68642, roughness: 0.6 });
-    const padMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
-    const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.55 });
+    const padMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
     const helmetMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
 
     function buildAnatomicalPlayer(jerseyColor = 0x0284c7, isBatsman = false) {
       const rig = new THREE.Group();
       rig.torsoMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.6 });
+      rig.idlePhase = Math.random() * Math.PI * 2;
+      rig.fidgetSpeed = 1.6 + Math.random() * 0.8;
 
+      // Pelvis / Hips
       const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), padMat);
       pelvis.position.y = 0.95; pelvis.castShadow = true; rig.add(pelvis);
+      rig.pelvis = pelvis;
 
+      // Anatomical Torso
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.55, 12), rig.torsoMat);
       torso.position.y = 1.32; torso.castShadow = true; rig.add(torso);
+      rig.torso = torso;
 
+      // Neck & Head
       const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.1, 8), skinMat);
       neck.position.y = 1.63; rig.add(neck);
 
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), skinMat);
       head.position.y = 1.76; head.castShadow = true; rig.add(head);
+      rig.head = head;
 
+      // Helmet & Visor Grill
       const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65), helmetMat);
       helmet.position.y = 1.78; rig.add(helmet);
 
       const grill = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 16, Math.PI), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 }));
       grill.rotation.x = Math.PI / 2; grill.position.set(0, 1.72, 0.08); rig.add(grill);
 
+      // Legs
       function buildLeg(xOffset) {
         const legGroup = new THREE.Group();
         legGroup.position.set(xOffset, 0.88, 0);
@@ -512,6 +518,8 @@
         const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.26), shoeMat);
         foot.position.set(0, -0.88, 0.06); foot.castShadow = true; legGroup.add(foot);
 
+        legGroup.thigh = thigh;
+        legGroup.shin = shin;
         return legGroup;
       }
 
@@ -520,6 +528,7 @@
       rig.add(rig.legL);
       rig.add(rig.legR);
 
+      // Arms
       const armL = new THREE.Group();
       armL.position.set(-0.28, 1.5, 0);
       const bicepL = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.torsoMat);
@@ -564,7 +573,6 @@
     bowler.position.set(BOWLER_START_X, 0, BOWLER_START_Z);
     scene.add(bowler);
 
-    // Anatomical Fielders
     class AnatomicalFielder {
       constructor(name, x, z) {
         this.name = name;
@@ -572,6 +580,7 @@
         this.currentPos = this.basePos.clone();
         this.targetPos = this.basePos.clone();
         this.state = 'idle';
+        this.fidgetSpeed = 1.8 + Math.random() * 1.5;
 
         this.rig = buildAnatomicalPlayer(0xdc2626, false);
         this.rig.position.copy(this.basePos);
@@ -628,15 +637,42 @@
         this.targetPos.copy(this.basePos);
       }
 
-      update(dt) {
-        if (this.state === 'idle' || this.state === 'throwing') return;
+      update(dt, time) {
+        if (this.state === 'idle') {
+          // Dynamic cricket fielding ready stance
+          const sway = Math.sin(time * this.fidgetSpeed + this.rig.idlePhase);
+          this.rig.torso.rotation.x = 0.22 + sway * 0.04;
+          this.rig.torso.rotation.y = sway * 0.06;
+          this.rig.head.rotation.y = -sway * 0.08;
+          this.rig.armL.rotation.x = -0.3 + sway * 0.05;
+          this.rig.armR.rotation.x = -0.3 - sway * 0.05;
+          this.rig.legL.rotation.x = -0.15;
+          this.rig.legR.rotation.x = -0.15;
+          this.rig.position.y = Math.abs(sway) * 0.03;
+          return;
+        }
+
+        if (this.state === 'throwing') return;
+
         const dist = this.rig.position.distanceTo(this.targetPos);
         if (dist > 0.3) {
           const dir = new THREE.Vector3().subVectors(this.targetPos, this.rig.position).normalize();
           this.rig.position.addScaledVector(dir, 14.0 * dt);
           this.rig.lookAt(this.targetPos.x, this.rig.position.y, this.targetPos.z);
+          // Running cycle for fielders
+          const runCycle = Math.sin(time * 18);
+          this.rig.legL.rotation.x = runCycle * 0.6;
+          this.rig.legR.rotation.x = -runCycle * 0.6;
+          this.rig.armL.rotation.x = -runCycle * 0.7;
+          this.rig.armR.rotation.x = runCycle * 0.7;
         } else {
-          if (this.state === 'returning') this.state = 'idle';
+          if (this.state === 'returning') {
+            this.state = 'idle';
+            this.rig.legL.rotation.x = 0;
+            this.rig.legR.rotation.x = 0;
+            this.rig.armL.rotation.x = 0;
+            this.rig.armR.rotation.x = 0;
+          }
         }
       }
     }
@@ -653,7 +689,7 @@
       new AnatomicalFielder('Long-on', -18.0, -38.0)
     ];
 
-    // Leather Seam Ball
+    // Leather Seam Cricket Ball
     const ballTexture = (() => {
       const c = document.createElement('canvas');
       c.width = 128; c.height = 128;
@@ -669,7 +705,7 @@
     scene.add(ball);
 
     /* =======================================================
-       5. WICKETS & CAMERAS
+       5. WICKETS & RUNNING SYSTEM
        ======================================================= */
     class DynamicWicketSystem {
       constructor(zPos) {
@@ -969,7 +1005,7 @@
     }, 200);
 
     /* =======================================================
-       7. SMOOTH CONTINUOUS BALL FLIGHT (NO MID-PITCH STICKING)
+       7. TRUE BOUNDARY CLEARING PHYSICS & UNBROKEN BALL FLIGHT
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
@@ -1011,7 +1047,6 @@
 
       const startTime = performance.now();
       
-      // Pitch bounce landing coordinates
       const pitchZ = 3.2 + ((shot.ballRandom !== undefined ? shot.ballRandom : Math.random()) * 2.0);
       const seamDeviation = (Math.random() - 0.5) * 0.25;
       const pitchX = shot.pitchX !== undefined ? shot.pitchX : (Math.random() - 0.5) * 0.4;
@@ -1030,8 +1065,22 @@
       const isSlideSave = shot.isSlideSave || false;
       const isRunOut = shot.isRunOut || shot.wicketType === 'run out' || false;
 
-      // Ensure ball clears the boundary rope on fours (66m) or sixes (68m)
-      let finalDist = shot.dist || (runs > 0 ? (isSix ? 68 : (isFour ? 66 : (isSlideSave ? 59 : runs * 14))) : (isCatch ? 38 : 18));
+      // FOUR clears 62m boundary rope to 66.5m. SIX carries directly into grandstands (78.0m)
+      let finalDist;
+      if (isSix) {
+        finalDist = 78.0;
+      } else if (isFour) {
+        finalDist = 66.5;
+      } else if (isSlideSave) {
+        finalDist = 58.5;
+      } else if (isCatch) {
+        finalDist = 38.0;
+      } else if (runs > 0) {
+        finalDist = runs * 14.0;
+      } else {
+        finalDist = 18.0;
+      }
+
       const hitX = Math.sin(angle) * finalDist;
       const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
 
@@ -1047,7 +1096,6 @@
         if (d < minFielderDist) { minFielderDist = d; nearestFielder = f; }
       });
 
-      // Continuous, non-blocking delivery loop
       function loop(now) {
         const elapsed = now - startTime;
 
@@ -1058,9 +1106,11 @@
           const releaseZ = isNoBall ? -8.65 : -9.8;
           bowler.position.z = THREE.MathUtils.lerp(BOWLER_START_Z, releaseZ, t);
           bowler.armR.rotation.x = -Math.PI * 4 * t;
+          bowler.armL.rotation.x = Math.PI * 4 * t;
           ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
 
-          strikerBatter.batPivot.rotation.x = -Math.PI / 5 + (Math.sin(t * 10) * 0.05);
+          // Batsman dynamic bat-tap stance
+          strikerBatter.batPivot.rotation.x = -Math.PI / 4 + Math.sin(t * 14) * 0.08;
           strikerBatter.rotation.y = -Math.PI / 2;
 
           if (isNoBall && elapsed > 650 && !bouncedSoundPlayed) playSoundNoBallSiren();
@@ -1073,7 +1123,7 @@
           ball.position.z = THREE.MathUtils.lerp(releaseZ, pitchZ, t);
           ball.position.y = THREE.MathUtils.lerp(2.0, 0.12, t * t);
         }
-        // Phase 2b: Pitch bounce up to batsman bat impact point (1000ms - 1250ms)
+        // Phase 2b: Pitch bounce to Bat impact (1000ms - 1250ms)
         else if (elapsed < 1250) {
           const t = (elapsed - 1000) / 250;
           if (!bouncedSoundPlayed) {
@@ -1084,7 +1134,7 @@
           ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
           ball.position.y = 0.12 + Math.sin(t * Math.PI * 0.5) * 0.85;
         }
-        // Phase 3: Shot Contact, Trajectory & Outfield Roll (1250ms - 3400ms)
+        // Phase 3: Shot Contact & Trajectory Beyond Boundary (1250ms - 3400ms)
         else if (elapsed < 3400) {
           const t = (elapsed - 1250) / 2150;
 
@@ -1120,30 +1170,31 @@
             strikerBatter.batPivot.rotation.x = 0;
             ball.position.set(0.1, 0.3, 10.4);
           }
-          // Pure Dot Ball (goes past bat into Keeper gloves)
+          // Dot Ball directly into wicketkeeper gloves
           else if (runs === 0 && !isCatch) {
             ball.position.x = THREE.MathUtils.lerp(strikerBatter.position.x - 0.1, 0, t);
             ball.position.z = THREE.MathUtils.lerp(8.8, 12.5, t);
             ball.position.y = 0.85 + Math.sin(t * Math.PI) * 0.3;
           }
-          // Bat Hit Execution (Aerial / Ground Shots)
+          // Hit Deliveries (Fours, Sixes, Ground shots)
           else {
             strikerBatter.batPivot.rotation.x = -Math.PI / 3 + (Math.min(1, t * 4) * Math.PI * 0.85);
 
-            const dragFactor = 1 - Math.pow(t, 1.4) * 0.12;
-            ball.position.x = THREE.MathUtils.lerp(strikerBatter.position.x, hitX * dragFactor, t);
-            ball.position.z = THREE.MathUtils.lerp(8.8, hitZ * dragFactor, t);
-            ball.rotation.x += 0.25;
+            ball.position.x = THREE.MathUtils.lerp(strikerBatter.position.x, hitX, t);
+            ball.position.z = THREE.MathUtils.lerp(8.8, hitZ, t);
+            ball.rotation.x += 0.3;
 
             if (isSix) {
-              ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 22.0 * dragFactor);
+              // Parabolic trajectory clearing the roof into grandstands
+              ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 26.0) + (t * 8.0);
             } else if (isCatch) {
               ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 7.5);
               if (t > 0.95) ball.position.copy(nearestFielder.rig.position).add(new THREE.Vector3(0, 1.4, 0));
             } else if (isFour) {
-              ball.position.y = 0.12 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.2));
+              // Bounces and rolls cleanly past the 62m boundary rope
+              ball.position.y = 0.12 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.1));
             } else {
-              ball.position.y = 0.12; // Rolls smoothly along the grass
+              ball.position.y = 0.12;
             }
           }
 
@@ -1200,20 +1251,42 @@
     }
 
     /* =======================================================
-       8. MAIN RENDER LOOP
+       8. MAIN RENDER LOOP & CONTINUOUS ORGANIC MOVEMENTS
        ======================================================= */
     let lastTime = 0;
     function animate(time) {
       requestAnimationFrame(animate);
       const dt = Math.min((time - lastTime) / 1000, 0.1);
+      const tSec = time * 0.001;
       lastTime = time;
 
-      updateLedTexture(time * 0.001);
+      updateLedTexture(tSec);
       updateRunningBetweenWickets(dt);
 
       strikerWickets.update(dt);
       bowlerWickets.update(dt);
-      fielders.forEach(f => f.update(dt));
+
+      // Continuous organic fielder movements
+      fielders.forEach(f => f.update(dt, tSec));
+
+      // Continuous active batsman & bowler movements
+      if (!deliveryAnim) {
+        // Striker dynamic stance: rhythmically tapping the bat on the ground & leaning
+        const batTap = Math.sin(tSec * 4.5);
+        strikerBatter.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, batTap) * 0.14;
+        strikerBatter.torso.rotation.y = Math.sin(tSec * 1.5) * 0.08;
+        strikerBatter.head.rotation.y = -Math.PI / 12 + Math.sin(tSec * 1.2) * 0.06;
+
+        // Non-striker walking back and forth behind popping crease
+        nonStrikerBatter.torso.rotation.y = Math.sin(tSec * 1.8) * 0.06;
+        nonStrikerBatter.position.z = -8.8 + Math.sin(tSec * 0.8) * 0.18;
+
+        // Bowler walking back to the mark and preparing delivery
+        bowler.torso.rotation.y = Math.sin(tSec * 2.2) * 0.08;
+        bowler.armR.rotation.x = Math.sin(tSec * 1.6) * 0.15;
+        bowler.armL.rotation.x = -Math.sin(tSec * 1.6) * 0.15;
+        bowler.position.z = BOWLER_START_Z + Math.sin(tSec * 1.2) * 0.3;
+      }
 
       if (activeCamMode !== 'follow') {
         camPos.lerp(cameraModes[activeCamMode].pos, 0.05);
