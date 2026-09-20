@@ -331,30 +331,64 @@
     };
 
     /* =======================================================
-       3. OUTFIELD, BOUNDARY ROPE (R=62m) & REALISTIC TURF
+       3. HIGH-REALISM ORGANIC TURF & OUTFIELD (OVERHAULED)
        ======================================================= */
-    function createLawnTexture() {
+    function createRealisticTurfTexture() {
       const cv = document.createElement('canvas');
-      cv.width = 1024; cv.height = 1024;
+      cv.width = 2048; cv.height = 2048;
       const ctx = cv.getContext('2d');
-      for (let r = 512; r > 0; r -= 28) {
+
+      // Base gradient green
+      const grad = ctx.createRadialGradient(1024, 1024, 100, 1024, 1024, 1024);
+      grad.addColorStop(0, '#265c2b');
+      grad.addColorStop(0.5, '#1e4d23');
+      grad.addColorStop(1, '#183f1c');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 2048, 2048);
+
+      // Lawn mower stripes (alternating light/dark light reflection)
+      for (let r = 1024; r > 0; r -= 40) {
         ctx.beginPath();
-        ctx.arc(512, 512, r, 0, Math.PI * 2);
-        ctx.fillStyle = (r / 28) % 2 === 0 ? '#1b4d24' : '#23592c';
+        ctx.arc(1024, 1024, r, 0, Math.PI * 2);
+        ctx.fillStyle = (r / 40) % 2 === 0 ? 'rgba(38, 92, 43, 0.25)' : 'rgba(18, 52, 22, 0.35)';
         ctx.fill();
       }
-      for (let i = 0; i < 60000; i++) {
-        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
-        ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 2, 2);
+
+      // High-frequency turf fiber noise & natural worn dry patches
+      for (let i = 0; i < 180000; i++) {
+        const x = Math.random() * 2048;
+        const y = Math.random() * 2048;
+        const distFromCenter = Math.hypot(x - 1024, y - 1024);
+        // More wear near the 30-yard infield ring
+        const isWorn = distFromCenter < 550 && Math.random() < 0.2;
+        ctx.fillStyle = isWorn
+          ? 'rgba(145, 115, 75, 0.12)'
+          : (Math.random() > 0.5 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.04)');
+        ctx.fillRect(x, y, 2, 2);
       }
-      return new THREE.CanvasTexture(cv);
+
+      // Worn umpire/bowler run-up dry track around center
+      ctx.fillStyle = 'rgba(115, 90, 55, 0.18)';
+      ctx.beginPath();
+      ctx.ellipse(1024, 1024, 120, 360, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
     }
 
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(68, 64),
-      new THREE.MeshStandardMaterial({ map: createLawnTexture(), roughness: 0.85 })
+      new THREE.MeshStandardMaterial({
+        map: createRealisticTurfTexture(),
+        roughness: 0.88,
+        metalness: 0.05
+      })
     );
     ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0.0;
     ground.receiveShadow = true;
     scene.add(ground);
 
@@ -362,7 +396,8 @@
       new THREE.RingGeometry(27.4, 27.7, 64),
       new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.35, transparent: true, side: THREE.DoubleSide })
     );
-    innerRing.rotation.x = -Math.PI / 2; innerRing.position.y = 0.02;
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = 0.015;
     scene.add(innerRing);
 
     // Thick braided boundary rope located at R = 62.0 meters
@@ -445,16 +480,32 @@
     }
 
     // Clay Pitch & Markings
+    const pitchTexture = (() => {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 1024;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#9b744a'; ctx.fillRect(0, 0, 256, 1024);
+      // Footmark roughness & cracks
+      for (let i = 0; i < 4000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(75, 48, 25, 0.15)' : 'rgba(215, 185, 140, 0.12)';
+        ctx.fillRect(Math.random() * 256, Math.random() * 1024, 3, 3);
+      }
+      return new THREE.CanvasTexture(c);
+    })();
+
     const pitch = new THREE.Mesh(
       new THREE.PlaneGeometry(3.6, 22.2),
-      new THREE.MeshStandardMaterial({ color: 0x987349, roughness: 0.95 })
+      new THREE.MeshStandardMaterial({ map: pitchTexture, roughness: 0.92 })
     );
-    pitch.rotation.x = -Math.PI / 2; pitch.position.y = 0.03; pitch.receiveShadow = true;
+    pitch.rotation.x = -Math.PI / 2;
+    pitch.position.y = 0.02;
+    pitch.receiveShadow = true;
     scene.add(pitch);
 
     function addMarking(x, z, w, h, col = 0xffffff) {
       const line = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: col }));
-      line.rotation.x = -Math.PI / 2; line.position.set(x, 0.04, z);
+      line.rotation.x = -Math.PI / 2;
+      line.position.set(x, 0.025, z);
       scene.add(line);
     }
     addMarking(0, 8.8, 3.6, 0.12);
@@ -463,60 +514,71 @@
     addMarking(0, -10.0, 2.64, 0.08);
 
     /* =======================================================
-       4. REALISTIC ARTICULATED PLAYER RIGS & ORGANIC IDLE ANIMATIONS
+       4. ANATOMICAL PLAYER RIGS WITH CONTACT SHADOWS & UNIQUE LOOKS
        ======================================================= */
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.55 });
+    const skinTones = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
     const padMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 });
     const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
     const helmetMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
 
-    function buildAnatomicalPlayer(jerseyColor = 0x0284c7, isBatsman = false) {
+    // Contact shadow beneath player's feet
+    function createContactShadow() {
+      const shadowCanvas = document.createElement('canvas');
+      shadowCanvas.width = 64; shadowCanvas.height = 64;
+      const ctx = shadowCanvas.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
+      grad.addColorStop(0, 'rgba(0,0,0,0.65)');
+      grad.addColorStop(0.5, 'rgba(0,0,0,0.3)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
+
+      const tex = new THREE.CanvasTexture(shadowCanvas);
+      const shadowMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.1, 0.8),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
+      );
+      shadowMesh.rotation.x = -Math.PI / 2;
+      shadowMesh.position.y = 0.028; // Flush onto grass
+      return shadowMesh;
+    }
+
+    function buildAnatomicalPlayer(jerseyColor = 0x0284c7, isBatsman = false, skinIndex = 0) {
       const rig = new THREE.Group();
-      rig.torsoMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.6 });
+      rig.torsoMat = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.58 });
+      const currentSkinMat = new THREE.MeshStandardMaterial({ color: skinTones[skinIndex % skinTones.length], roughness: 0.55 });
       rig.idlePhase = Math.random() * Math.PI * 2;
-      rig.fidgetSpeed = 1.6 + Math.random() * 0.8;
+      rig.fidgetSpeed = 1.4 + Math.random() * 1.2;
 
-      // Pelvis / Hips
-      const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), padMat);
-      pelvis.position.y = 0.95; pelvis.castShadow = true; rig.add(pelvis);
-      rig.pelvis = pelvis;
+      // Contact Shadow
+      const shadow = createContactShadow();
+      rig.add(shadow);
+      rig.contactShadow = shadow;
 
-      // Anatomical Torso
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.55, 12), rig.torsoMat);
-      torso.position.y = 1.32; torso.castShadow = true; rig.add(torso);
-      rig.torso = torso;
-
-      // Neck & Head
-      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.1, 8), skinMat);
-      neck.position.y = 1.63; rig.add(neck);
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), skinMat);
-      head.position.y = 1.76; head.castShadow = true; rig.add(head);
-      rig.head = head;
-
-      // Helmet & Visor Grill
-      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65), helmetMat);
-      helmet.position.y = 1.78; rig.add(helmet);
-
-      const grill = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 16, Math.PI), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 }));
-      grill.rotation.x = Math.PI / 2; grill.position.set(0, 1.72, 0.08); rig.add(grill);
-
-      // Legs
+      // All parts calculated so bottom of shoe sits on Y = 0.00m
+      // Spikes / Shoes: height 0.08m, centered at Y = 0.04m
       function buildLeg(xOffset) {
         const legGroup = new THREE.Group();
-        legGroup.position.set(xOffset, 0.88, 0);
+        legGroup.position.set(xOffset, 0.82, 0);
 
-        const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.08, 0.42, 8), rig.torsoMat);
-        thigh.position.y = -0.21; thigh.castShadow = true; legGroup.add(thigh);
+        const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.092, 0.078, 0.38, 8), rig.torsoMat);
+        thigh.position.y = -0.19;
+        thigh.castShadow = true;
+        legGroup.add(thigh);
 
-        const knee = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 10), isBatsman ? padMat : rig.torsoMat);
-        knee.position.y = -0.42; legGroup.add(knee);
+        const knee = new THREE.Mesh(new THREE.SphereGeometry(0.082, 10, 10), isBatsman ? padMat : rig.torsoMat);
+        knee.position.y = -0.38;
+        legGroup.add(knee);
 
-        const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.16), isBatsman ? padMat : rig.torsoMat);
-        shin.position.set(0, -0.66, 0.02); shin.castShadow = true; legGroup.add(shin);
+        const shin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.40, 0.16), isBatsman ? padMat : rig.torsoMat);
+        shin.position.set(0, -0.58, 0.02);
+        shin.castShadow = true;
+        legGroup.add(shin);
 
-        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.26), shoeMat);
-        foot.position.set(0, -0.88, 0.06); foot.castShadow = true; legGroup.add(foot);
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.25), shoeMat);
+        foot.position.set(0, -0.78, 0.04);
+        foot.castShadow = true;
+        legGroup.add(foot);
 
         legGroup.thigh = thigh;
         legGroup.shin = shin;
@@ -528,61 +590,111 @@
       rig.add(rig.legL);
       rig.add(rig.legR);
 
-      // Arms
+      // Pelvis / Hips
+      const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), padMat);
+      pelvis.position.y = 0.91;
+      pelvis.castShadow = true;
+      rig.add(pelvis);
+      rig.pelvis = pelvis;
+
+      // Anatomical Torso
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.torsoMat);
+      torso.position.y = 1.25;
+      torso.castShadow = true;
+      rig.add(torso);
+      rig.torso = torso;
+
+      // Neck & Head
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.1, 8), currentSkinMat);
+      neck.position.y = 1.56;
+      rig.add(neck);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), currentSkinMat);
+      head.position.y = 1.68;
+      head.castShadow = true;
+      rig.add(head);
+      rig.head = head;
+
+      // Helmet & Visor Grill
+      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.145, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65), helmetMat);
+      helmet.position.y = 1.70;
+      rig.add(helmet);
+
+      const grill = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 16, Math.PI), new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 }));
+      grill.rotation.x = Math.PI / 2;
+      grill.position.set(0, 1.64, 0.08);
+      rig.add(grill);
+
+      // Arms & Shoulders
       const armL = new THREE.Group();
-      armL.position.set(-0.28, 1.5, 0);
+      armL.position.set(-0.28, 1.42, 0);
       const bicepL = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.torsoMat);
-      bicepL.position.y = -0.16; armL.add(bicepL);
-      const forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.3, 8), skinMat);
-      forearmL.position.y = -0.44; armL.add(forearmL);
-      rig.add(armL); rig.armL = armL;
+      bicepL.position.y = -0.16;
+      armL.add(bicepL);
+      const forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.3, 8), currentSkinMat);
+      forearmL.position.y = -0.44;
+      armL.add(forearmL);
+      rig.add(armL);
+      rig.armL = armL;
 
       const armR = new THREE.Group();
-      armR.position.set(0.28, 1.5, 0);
+      armR.position.set(0.28, 1.42, 0);
       const bicepR = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.32, 8), rig.torsoMat);
-      bicepR.position.y = -0.16; armR.add(bicepR);
-      const forearmR = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.3, 8), skinMat);
-      forearmR.position.y = -0.44; armR.add(forearmR);
-      rig.add(armR); rig.armR = armR;
+      bicepR.position.y = -0.16;
+      armR.add(bicepR);
+      const forearmR = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.3, 8), currentSkinMat);
+      forearmR.position.y = -0.44;
+      armR.add(forearmR);
+      rig.add(armR);
+      rig.armR = armR;
 
       if (isBatsman) {
         const batPivot = new THREE.Group();
-        batPivot.position.set(0, 1.1, 0.25);
+        batPivot.position.set(0, 1.05, 0.25);
         const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        handle.position.y = 0.18; batPivot.add(handle);
+        handle.position.y = 0.18;
+        batPivot.add(handle);
         const blade = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.88, 0.05), new THREE.MeshStandardMaterial({ color: 0xd4a373, roughness: 0.3 }));
-        blade.position.y = -0.38; blade.castShadow = true; batPivot.add(blade);
-        rig.add(batPivot); rig.batPivot = batPivot;
+        blade.position.y = -0.38;
+        blade.castShadow = true;
+        batPivot.add(blade);
+        rig.add(batPivot);
+        rig.batPivot = batPivot;
       }
+
+      // Height variation for realism (0.95x to 1.05x)
+      const scaleVariation = 0.95 + Math.random() * 0.1;
+      rig.scale.set(scaleVariation, scaleVariation, scaleVariation);
 
       return rig;
     }
 
-    const strikerBatter = buildAnatomicalPlayer(0x0284c7, true);
+    const strikerBatter = buildAnatomicalPlayer(0x0284c7, true, 0);
     strikerBatter.position.set(0.3, 0, 8.8);
     strikerBatter.rotation.y = -Math.PI / 2;
     scene.add(strikerBatter);
 
-    const nonStrikerBatter = buildAnatomicalPlayer(0x0284c7, true);
+    const nonStrikerBatter = buildAnatomicalPlayer(0x0284c7, true, 2);
     nonStrikerBatter.position.set(-0.65, 0, -8.8);
     nonStrikerBatter.rotation.y = Math.PI / 2;
     scene.add(nonStrikerBatter);
 
-    const bowler = buildAnatomicalPlayer(0xdc2626, false);
+    const bowler = buildAnatomicalPlayer(0xdc2626, false, 3);
     const BOWLER_START_X = 1.5; const BOWLER_START_Z = -22.0;
     bowler.position.set(BOWLER_START_X, 0, BOWLER_START_Z);
     scene.add(bowler);
 
     class AnatomicalFielder {
-      constructor(name, x, z) {
+      constructor(name, x, z, skinIndex) {
         this.name = name;
         this.basePos = new THREE.Vector3(x, 0, z);
         this.currentPos = this.basePos.clone();
         this.targetPos = this.basePos.clone();
         this.state = 'idle';
-        this.fidgetSpeed = 1.8 + Math.random() * 1.5;
+        this.fidgetSpeed = 1.2 + Math.random() * 1.5;
+        this.isKeeper = (name === 'Slip');
 
-        this.rig = buildAnatomicalPlayer(0xdc2626, false);
+        this.rig = buildAnatomicalPlayer(0xdc2626, false, skinIndex);
         this.rig.position.copy(this.basePos);
         scene.add(this.rig);
       }
@@ -603,10 +715,8 @@
         this.state = 'sliding';
         this.targetPos.set(ballPos.x * 0.94, 0, ballPos.z * 0.94);
         this.rig.rotation.x = Math.PI / 3.0;
-        this.rig.position.y = -0.2;
         setTimeout(() => {
           this.rig.rotation.x = 0;
-          this.rig.position.y = 0;
           this.reset();
         }, 1200);
       }
@@ -639,16 +749,25 @@
 
       update(dt, time) {
         if (this.state === 'idle') {
-          // Dynamic cricket fielding ready stance
+          // Organic idle stance with weight shifts & crouching
           const sway = Math.sin(time * this.fidgetSpeed + this.rig.idlePhase);
-          this.rig.torso.rotation.x = 0.22 + sway * 0.04;
-          this.rig.torso.rotation.y = sway * 0.06;
-          this.rig.head.rotation.y = -sway * 0.08;
-          this.rig.armL.rotation.x = -0.3 + sway * 0.05;
-          this.rig.armR.rotation.x = -0.3 - sway * 0.05;
-          this.rig.legL.rotation.x = -0.15;
-          this.rig.legR.rotation.x = -0.15;
-          this.rig.position.y = Math.abs(sway) * 0.03;
+          if (this.isKeeper) {
+            // Wicketkeeper deep squat stance
+            this.rig.torso.rotation.x = 0.35 + sway * 0.05;
+            this.rig.legL.rotation.x = -0.35;
+            this.rig.legR.rotation.x = -0.35;
+            this.rig.armL.rotation.x = -0.6 + sway * 0.08;
+            this.rig.armR.rotation.x = -0.6 + sway * 0.08;
+          } else {
+            // Ring / Deep fielders ready crouch
+            this.rig.torso.rotation.x = 0.18 + sway * 0.04;
+            this.rig.torso.rotation.y = sway * 0.08;
+            this.rig.head.rotation.y = -sway * 0.12;
+            this.rig.armL.rotation.x = -0.2 + sway * 0.06;
+            this.rig.armR.rotation.x = -0.2 - sway * 0.06;
+          }
+          // Feet stay firmly on grass Y = 0
+          this.rig.position.y = 0.0;
           return;
         }
 
@@ -659,15 +778,17 @@
           const dir = new THREE.Vector3().subVectors(this.targetPos, this.rig.position).normalize();
           this.rig.position.addScaledVector(dir, 14.0 * dt);
           this.rig.lookAt(this.targetPos.x, this.rig.position.y, this.targetPos.z);
-          // Running cycle for fielders
+
           const runCycle = Math.sin(time * 18);
-          this.rig.legL.rotation.x = runCycle * 0.6;
-          this.rig.legR.rotation.x = -runCycle * 0.6;
-          this.rig.armL.rotation.x = -runCycle * 0.7;
-          this.rig.armR.rotation.x = runCycle * 0.7;
+          this.rig.legL.rotation.x = runCycle * 0.65;
+          this.rig.legR.rotation.x = -runCycle * 0.65;
+          this.rig.armL.rotation.x = -runCycle * 0.75;
+          this.rig.armR.rotation.x = runCycle * 0.75;
+          this.rig.position.y = Math.abs(Math.sin(time * 18)) * 0.06; // Running bounce
         } else {
           if (this.state === 'returning') {
             this.state = 'idle';
+            this.rig.position.y = 0.0;
             this.rig.legL.rotation.x = 0;
             this.rig.legR.rotation.x = 0;
             this.rig.armL.rotation.x = 0;
@@ -678,15 +799,15 @@
     }
 
     const fielders = [
-      new AnatomicalFielder('Slip', 3.5, 11.2),
-      new AnatomicalFielder('Point', 18.0, 7.5),
-      new AnatomicalFielder('Cover', 20.0, -2.0),
-      new AnatomicalFielder('Mid-off', 7.5, -9.5),
-      new AnatomicalFielder('Mid-on', -7.5, -9.5),
-      new AnatomicalFielder('Mid-wicket', -19.0, 0.0),
-      new AnatomicalFielder('Square Leg', -18.0, 8.0),
-      new AnatomicalFielder('Deep Fine Leg', -35.0, 24.0),
-      new AnatomicalFielder('Long-on', -18.0, -38.0)
+      new AnatomicalFielder('Slip', 3.5, 11.2, 1),
+      new AnatomicalFielder('Point', 18.0, 7.5, 2),
+      new AnatomicalFielder('Cover', 20.0, -2.0, 3),
+      new AnatomicalFielder('Mid-off', 7.5, -9.5, 4),
+      new AnatomicalFielder('Mid-on', -7.5, -9.5, 0),
+      new AnatomicalFielder('Mid-wicket', -19.0, 0.0, 1),
+      new AnatomicalFielder('Square Leg', -18.0, 8.0, 2),
+      new AnatomicalFielder('Deep Fine Leg', -35.0, 24.0, 3),
+      new AnatomicalFielder('Long-on', -18.0, -38.0, 4)
     ];
 
     // Leather Seam Cricket Ball
@@ -1005,7 +1126,7 @@
     }, 200);
 
     /* =======================================================
-       7. TRUE BOUNDARY CLEARING PHYSICS & UNBROKEN BALL FLIGHT
+       7. DETERMINISTIC BALL TRAJECTORY & BOUNDARY CLEARANCE
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
@@ -1065,7 +1186,7 @@
       const isSlideSave = shot.isSlideSave || false;
       const isRunOut = shot.isRunOut || shot.wicketType === 'run out' || false;
 
-      // FOUR clears 62m boundary rope to 66.5m. SIX carries directly into grandstands (78.0m)
+      // FOUR clears the 62m boundary rope to 66.5m. SIX carries directly into grandstands (78.0m)
       let finalDist;
       if (isSix) {
         finalDist = 78.0;
@@ -1109,7 +1230,7 @@
           bowler.armL.rotation.x = Math.PI * 4 * t;
           ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
 
-          // Batsman dynamic bat-tap stance
+          // Dynamic bat-tap anticipation stance
           strikerBatter.batPivot.rotation.x = -Math.PI / 4 + Math.sin(t * 14) * 0.08;
           strikerBatter.rotation.y = -Math.PI / 2;
 
@@ -1121,7 +1242,7 @@
           const releaseZ = isNoBall ? -8.65 : -9.8;
           ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
           ball.position.z = THREE.MathUtils.lerp(releaseZ, pitchZ, t);
-          ball.position.y = THREE.MathUtils.lerp(2.0, 0.12, t * t);
+          ball.position.y = THREE.MathUtils.lerp(2.0, 0.04, t * t);
         }
         // Phase 2b: Pitch bounce to Bat impact (1000ms - 1250ms)
         else if (elapsed < 1250) {
@@ -1132,7 +1253,7 @@
           }
           ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBatter.position.x - 0.1 + seamDeviation, t);
           ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
-          ball.position.y = 0.12 + Math.sin(t * Math.PI * 0.5) * 0.85;
+          ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.85;
         }
         // Phase 3: Shot Contact & Trajectory Beyond Boundary (1250ms - 3400ms)
         else if (elapsed < 3400) {
@@ -1191,10 +1312,10 @@
               ball.position.y = 0.8 + (Math.sin(t * Math.PI) * 7.5);
               if (t > 0.95) ball.position.copy(nearestFielder.rig.position).add(new THREE.Vector3(0, 1.4, 0));
             } else if (isFour) {
-              // Bounces and rolls cleanly past the 62m boundary rope
-              ball.position.y = 0.12 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.1));
+              // Bounces and rolls cleanly past the 62m boundary rope onto 66.5m
+              ball.position.y = 0.05 + (Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.1));
             } else {
-              ball.position.y = 0.12;
+              ball.position.y = 0.05; // Rolls right across the grass surface
             }
           }
 
