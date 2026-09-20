@@ -2374,3 +2374,51 @@ function triggerReplay(){
 
   console.log('✅ Run out runs patch loaded');
 })();
+/* ============================================================
+   recordBall NULL-GUARD — auto-create missing player objects
+   Prevents "Cannot read properties of undefined (reading 'balls')"
+   ============================================================ */
+(function(){
+  'use strict';
+
+  var _origRecordBall = window.recordBall;
+
+  window.recordBall = function(runs, extra, isWicket, region, distance, dd){
+    try {
+      if(match && match.isActive){
+        // Guarantee striker exists in match.batters
+        if(match.striker && !match.batters[match.striker]){
+          match.batters[match.striker] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+          match.playerTeamMap[match.striker] = match.teamBattingAbbr;
+          console.warn('⚠️ Auto-created striker:', match.striker);
+        }
+        // Guarantee non-striker exists
+        if(match.nonStriker && !match.batters[match.nonStriker]){
+          match.batters[match.nonStriker] = {runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status:'batting'};
+          match.playerTeamMap[match.nonStriker] = match.teamBattingAbbr;
+          console.warn('⚠️ Auto-created non-striker:', match.nonStriker);
+        }
+        // Guarantee bowler exists in match.bowlers
+        if(match.currentBowler && !match.bowlers[match.currentBowler]){
+          match.bowlers[match.currentBowler] = {balls:0, maidens:0, runs:0, wickets:0, dots:0, threeW:0, fiveW:0};
+          match.playerTeamMap[match.currentBowler] = match.teamBowlingAbbr;
+          console.warn('⚠️ Auto-created bowler:', match.currentBowler);
+        }
+        // If striker name is empty, refuse to score (better than crash)
+        if(!match.striker){
+          console.error('❌ recordBall: match.striker is empty. Set an opening batsman first.');
+          return;
+        }
+        if(!match.currentBowler){
+          console.error('❌ recordBall: match.currentBowler is empty. Set a bowler first.');
+          return;
+        }
+      }
+    } catch(e){
+      console.warn('recordBall guard error:', e);
+    }
+    if(_origRecordBall) return _origRecordBall.apply(this, arguments);
+  };
+
+  console.log('✅ recordBall null-guard patch loaded');
+})();
