@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>CricMax Pro 3D - Photorealistic Stadium Engine</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body { background: #01040a; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #01040a; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overscroll-behavior: contain; -webkit-user-select: none; }
     #canvas-container { position: absolute; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
 
     /* Broadcast Toolbar */
@@ -79,7 +82,6 @@
       <div class="bar-cluster">
         <button class="hud-btn director-active" id="btn-director" onclick="toggleSmartDirector()">🎬 Auto Director</button>
         
-        <!-- Consolidated Single Dropdown Camera Selector -->
         <select class="cam-dropdown" id="camSelect" onchange="onCameraDropdownChange(this.value)">
           <option value="broadcast">📺 TV Broadcast</option>
           <option value="bowler">🎯 Bowler View</option>
@@ -144,7 +146,7 @@
 
   <script>
     /* =======================================================
-       1. 3D SPATIAL AUDIO SYSTEM
+       1. 3D SPATIAL AUDIO SYSTEM (WITH LEGACY CROSS-BROWSER FALLBACKS)
        ======================================================= */
     let audioCtx = null;
     let isAudioOn = true;
@@ -162,9 +164,16 @@
       panner.refDistance = 6.0;
       panner.maxDistance = 140.0;
       panner.rolloffFactor = 1.1;
-      panner.positionX.setValueAtTime(x, audioCtx.currentTime);
-      panner.positionY.setValueAtTime(y, audioCtx.currentTime);
-      panner.positionZ.setValueAtTime(z, audioCtx.currentTime);
+
+      // Issue 3 Fix: Modern AudioParam vs. Legacy setPosition fallback
+      if (panner.positionX) {
+        panner.positionX.setValueAtTime(x, audioCtx.currentTime);
+        panner.positionY.setValueAtTime(y, audioCtx.currentTime);
+        panner.positionZ.setValueAtTime(z, audioCtx.currentTime);
+      } else if (panner.setPosition) {
+        panner.setPosition(x, y, z);
+      }
+
       panner.connect(audioCtx.destination);
       return panner;
     }
@@ -738,10 +747,13 @@
     nonStrikerBatter.rotation.y = Math.PI / 2;
     scene.add(nonStrikerBatter);
 
-    const bowler = buildAnatomicalPlayer(0xdc2626, false, 3);
+    // Bowler Base Position (Issue 2 Fix)
     const BOWLER_START_X = 1.5;
-    let bowlerStartZ = -22.0;
-    bowler.position.set(BOWLER_START_X, 0, bowlerStartZ);
+    const BOWLER_DEFAULT_IDLE_Z = -22.0;
+    let bowlerCurrentStartZ = -22.0;
+
+    const bowler = buildAnatomicalPlayer(0xdc2626, false, 3);
+    bowler.position.set(BOWLER_START_X, 0, BOWLER_DEFAULT_IDLE_Z);
     scene.add(bowler);
 
     class AnatomicalFielder {
@@ -978,14 +990,12 @@
       const isOddLap = currentLap % 2 === 1;
       const sprintBounce = Math.sin(runProgress * 22) * 0.12;
 
-      // Striker sprint lane (+0.7m off pitch centerline)
       const strikerZ = isOddLap ? THREE.MathUtils.lerp(-8.8, 8.8, lapFraction) : THREE.MathUtils.lerp(8.8, -8.8, lapFraction);
       strikerBatter.position.z = strikerZ;
       strikerBatter.position.x = 0.7;
       strikerBatter.rotation.y = isOddLap ? 0 : Math.PI;
       strikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintBounce;
 
-      // Non-striker sprint lane (-0.7m off pitch centerline)
       const nonStrikerZ = isOddLap ? THREE.MathUtils.lerp(8.8, -8.8, lapFraction) : THREE.MathUtils.lerp(-8.8, 8.8, lapFraction);
       nonStrikerBatter.position.z = nonStrikerZ;
       nonStrikerBatter.position.x = -0.7;
@@ -1024,19 +1034,15 @@
     window.toggleSmartDirector = function() {
       isSmartDirectorOn = !isSmartDirectorOn;
       const btn = document.getElementById('btn-director');
-      if (btn) {
-        btn.className = isSmartDirectorOn ? 'hud-btn director-active' : 'hud-btn';
-      }
+      if (btn) btn.className = isSmartDirectorOn ? 'hud-btn director-active' : 'hud-btn';
     };
 
-    // Dropdown change listener
     window.onCameraDropdownChange = function(mode) {
       if (!cameraModes[mode]) return;
       activeCamMode = mode;
-      isSmartDirectorOn = false; // Disable director on manual selection
+      isSmartDirectorOn = false;
       const dirBtn = document.getElementById('btn-director');
       if (dirBtn) dirBtn.className = 'hud-btn';
-
       if (mode !== 'follow') camTarget.copy(cameraModes[mode].target);
     };
 
@@ -1226,6 +1232,8 @@
 
       strikerWickets.reset(); bowlerWickets.reset();
       fielders.forEach(f => f.reset());
+      
+      // Issue 1: Reset ball visibility cleanly upon trigger
       ball.visible = true;
       lastRecordedShot = shot;
 
@@ -1241,8 +1249,9 @@
       const startTime = performance.now();
       
       const isSpin = shot.bowlerType === 'spin';
-      bowlerStartZ = isSpin ? -12.5 : -22.0;
-      bowler.position.set(BOWLER_START_X, 0, bowlerStartZ);
+      // Issue 2: Set start position strictly for this delivery run-up
+      bowlerCurrentStartZ = isSpin ? -12.5 : -22.0;
+      bowler.position.set(BOWLER_START_X, 0, bowlerCurrentStartZ);
 
       const pitchZ = isSpin ? 4.8 : (3.2 + ((shot.ballRandom !== undefined ? shot.ballRandom : Math.random()) * 1.8));
       const seamDeviation = isSpin ? (Math.random() > 0.5 ? 0.35 : -0.35) : (Math.random() - 0.5) * 0.18;
@@ -1305,7 +1314,7 @@
           const t = elapsed / 700;
           bowler.position.x = THREE.MathUtils.lerp(BOWLER_START_X, 0.55, t);
           const releaseZ = isNoBall ? -8.65 : -9.8;
-          bowler.position.z = THREE.MathUtils.lerp(bowlerStartZ, releaseZ, t);
+          bowler.position.z = THREE.MathUtils.lerp(bowlerCurrentStartZ, releaseZ, t);
 
           const armRotSpeed = isSpin ? 2 : 4;
           bowler.armR.rotation.x = -Math.PI * armRotSpeed * t;
@@ -1455,6 +1464,8 @@
         } else {
           deliveryAnim = null;
           speedRadar.classList.remove('active');
+          // Issue 1 Fix: Hide ball upon delivery completion
+          ball.visible = false;
           return;
         }
 
@@ -1495,10 +1506,16 @@
       bowlerWickets.update(dt);
       fielders.forEach(f => f.update(dt, tSec));
 
+      // Issue 3 Fix: Cross-browser audio listener position tracking
       if (audioCtx && audioCtx.listener) {
-        audioCtx.listener.positionX.setValueAtTime(camera.position.x, audioCtx.currentTime);
-        audioCtx.listener.positionY.setValueAtTime(camera.position.y, audioCtx.currentTime);
-        audioCtx.listener.positionZ.setValueAtTime(camera.position.z, audioCtx.currentTime);
+        const lst = audioCtx.listener;
+        if (lst.positionX) {
+          lst.positionX.setValueAtTime(camera.position.x, audioCtx.currentTime);
+          lst.positionY.setValueAtTime(camera.position.y, audioCtx.currentTime);
+          lst.positionZ.setValueAtTime(camera.position.z, audioCtx.currentTime);
+        } else if (lst.setPosition) {
+          lst.setPosition(camera.position.x, camera.position.y, camera.position.z);
+        }
       }
 
       // Continuous Natural Stance Movements
@@ -1516,12 +1533,14 @@
         bowler.torso.rotation.y = Math.sin(tSec * 2.2) * 0.08;
         bowler.armR.rotation.x = Math.sin(tSec * 1.6) * 0.18;
         bowler.armL.rotation.x = -Math.sin(tSec * 1.6) * 0.18;
-        bowler.position.z = bowlerStartZ + Math.sin(tSec * 1.2) * 0.25;
+
+        // Issue 2 Fix: Smoothly normalize bowler position back to the standard mark (-22m) during idle
+        bowler.position.z = THREE.MathUtils.lerp(bowler.position.z, BOWLER_DEFAULT_IDLE_Z + Math.sin(tSec * 1.2) * 0.25, 0.04);
+        bowler.position.x = THREE.MathUtils.lerp(bowler.position.x, BOWLER_START_X, 0.04);
 
         if (isSmartDirectorOn) {
           camPos.lerp(cameraModes.broadcast.pos, 0.03);
           camTarget.lerp(cameraModes.broadcast.target, 0.03);
-          // Keep dropdown synced to TV Broadcast
           const sel = document.getElementById('camSelect');
           if (sel && sel.value !== 'broadcast') sel.value = 'broadcast';
         }
