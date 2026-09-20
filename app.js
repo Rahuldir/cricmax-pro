@@ -1827,4 +1827,23 @@ document.addEventListener('keydown',e=>{
     }
   }, true);
 })();
-}
+} 
+/* ============ AUTO-CAPITALIZE NAME INPUTS ============ */
+(function(){
+  document.addEventListener('input', function(e){
+    var el = e.target;
+    if(!el || !el.matches) return;
+    if(!el.matches('input[type="text"], input:not([type])')) return;
+    var val = el.value;
+    if(!val) return;
+    var newVal = val.replace(/(^|\s|[\-'])\S/g, function(match){
+      return match.toUpperCase();
+    });
+    if(newVal !== val){
+      var start = el.selectionStart;
+      var end = el.selectionEnd;
+      el.value = newVal;
+      try { el.setSelectionRange(start, end); } catch(err) {}
+    }
+  }, true);
+})();
