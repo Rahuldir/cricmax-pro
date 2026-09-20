@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CricMax Pro 3D - Option 3 Character Realism</title>
+  <title>CricMax Pro 3D - Photorealistic Stadium Engine</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { background: #01040a; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     #canvas-container { position: absolute; inset: 0; width: 100vw; height: 100vh; z-index: 1; }
 
-    /* Broadcast HUD Overlay */
+    /* Broadcast Toolbar */
     .hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 14px 18px; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap; }
 
@@ -17,7 +17,13 @@
     .live-badge::before { content:''; width: 8px; height: 8px; background: #fff; border-radius: 50%; display: inline-block; animation: pulse 1s infinite alternate; }
     @keyframes pulse { 0% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.1); } }
 
-    .bar-cluster { display: flex; gap: 5px; background: rgba(8,14,28,.85); padding: 5px; border-radius: 14px; backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.14); pointer-events: auto; overflow-x: auto; max-width: 100%; }
+    .bar-cluster { display: flex; align-items: center; gap: 6px; background: rgba(8,14,28,.85); padding: 5px 8px; border-radius: 14px; backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.14); pointer-events: auto; }
+    
+    /* Single Dropdown Camera Selector */
+    .cam-dropdown { background: rgba(15,23,42,0.9); border: 1px solid rgba(0,230,118,.4); color: #00e676; font-size: 11px; font-weight: 800; padding: 6px 12px; border-radius: 8px; outline: none; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .cam-dropdown:focus { box-shadow: 0 0 12px rgba(0,230,118,0.5); }
+    .cam-dropdown option { background: #0b1329; color: #fff; font-weight: 700; padding: 6px; }
+
     .hud-btn { background: transparent; border: 1px solid rgba(255,255,255,.12); color: #cbd5e1; padding: 6px 10px; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer; transition: all .2s; font-family: inherit; white-space: nowrap; }
     .hud-btn:hover { background: rgba(0,230,118,.18); color: #fff; border-color: rgba(0,230,118,.4); }
     .hud-btn.active { background: linear-gradient(135deg,#009270,#00e676); color: #0a0e1a; border-color: transparent; box-shadow: 0 0 16px rgba(0,230,118,.6); font-weight: 900; }
@@ -72,12 +78,16 @@
 
       <div class="bar-cluster">
         <button class="hud-btn director-active" id="btn-director" onclick="toggleSmartDirector()">🎬 Auto Director</button>
-        <button class="hud-btn" id="btn-broadcast" onclick="switchCamera('broadcast')">📺 TV</button>
-        <button class="hud-btn" id="btn-bowler" onclick="switchCamera('bowler')">🎯 Bowler</button>
-        <button class="hud-btn" id="btn-keeper" onclick="switchCamera('keeper')">🧤 Keeper</button>
-        <button class="hud-btn" id="btn-side" onclick="switchCamera('side')">🎬 Side</button>
-        <button class="hud-btn" id="btn-drone" onclick="switchCamera('drone')">🚁 Drone</button>
-        <button class="hud-btn" id="btn-follow" onclick="switchCamera('follow')">⚾ Ball Cam</button>
+        
+        <!-- Consolidated Single Dropdown Camera Selector -->
+        <select class="cam-dropdown" id="camSelect" onchange="onCameraDropdownChange(this.value)">
+          <option value="broadcast">📺 TV Broadcast</option>
+          <option value="bowler">🎯 Bowler View</option>
+          <option value="keeper">🧤 Wicketkeeper</option>
+          <option value="side">🎬 Square Side</option>
+          <option value="drone">🚁 Tactical Drone</option>
+          <option value="follow">⚾ Dynamic Ball Cam</option>
+        </select>
       </div>
 
       <div class="bar-cluster">
@@ -88,7 +98,7 @@
 
       <div class="ctrl-cluster">
         <button class="ctrl-btn" id="btnWagon" onclick="toggleWagonWheel()" title="Toggle Wagon Wheel">🕸️</button>
-        <button class="ctrl-btn" onclick="simFeedScoringTab()" title="Feed Ball">⚡</button>
+        <button class="ctrl-btn" onclick="simFeedScoringTab()" title="Feed Ball to Stadium">⚡</button>
         <button class="ctrl-btn" id="btnMic" onclick="toggleAudio()" title="Live Sound FX">🔊</button>
         <button class="ctrl-btn" onclick="triggerReplay()" title="Replay Delivery">↻</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
@@ -134,7 +144,7 @@
 
   <script>
     /* =======================================================
-       1. SYNTHESIZED PROCEDURAL 3D AUDIO
+       1. 3D SPATIAL AUDIO SYSTEM
        ======================================================= */
     let audioCtx = null;
     let isAudioOn = true;
@@ -169,7 +179,8 @@
       osc.frequency.exponentialRampToValueAtTime(38, audioCtx.currentTime + 0.08);
       gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-      osc.connect(gain); gain.connect(panner);
+      osc.connect(gain);
+      gain.connect(panner);
       osc.start(); osc.stop(audioCtx.currentTime + 0.08);
     }
 
@@ -234,25 +245,6 @@
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
       osc.connect(gain); gain.connect(audioCtx.destination);
       osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-    }
-
-    function playCrowdGasp() {
-      if (!isAudioOn) return; initAudio();
-      const dur = 1.2;
-      const bufSize = audioCtx.sampleRate * dur;
-      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
-      const src = audioCtx.createBufferSource();
-      src.buffer = buf;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass'; filter.frequency.value = 450; filter.Q.value = 2.0;
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 0.3);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
-      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      src.start();
     }
 
     function playCrowdCheer(duration = 2.5) {
@@ -380,23 +372,23 @@
     };
 
     /* =======================================================
-       3. HIGH-REALISM ORGANIC TURF & BOUNDARY
+       3. PHOTOREALISTIC STADIUM ARCHITECTURE
        ======================================================= */
-    function createRealisticTurfTexture() {
+    function createLawnCanvas() {
       const cv = document.createElement('canvas');
       cv.width = 2048; cv.height = 2048;
       const ctx = cv.getContext('2d');
       const grad = ctx.createRadialGradient(1024, 1024, 100, 1024, 1024, 1024);
-      grad.addColorStop(0, '#265c2b');
-      grad.addColorStop(0.5, '#1e4d23');
-      grad.addColorStop(1, '#183f1c');
+      grad.addColorStop(0, '#2b6531');
+      grad.addColorStop(0.5, '#1e4b23');
+      grad.addColorStop(1, '#173f1b');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 2048, 2048);
 
       for (let r = 1024; r > 0; r -= 40) {
         ctx.beginPath();
         ctx.arc(1024, 1024, r, 0, Math.PI * 2);
-        ctx.fillStyle = (r / 40) % 2 === 0 ? 'rgba(38, 92, 43, 0.25)' : 'rgba(18, 52, 22, 0.35)';
+        ctx.fillStyle = (r / 40) % 2 === 0 ? 'rgba(45, 105, 52, 0.22)' : 'rgba(18, 52, 22, 0.35)';
         ctx.fill();
       }
 
@@ -411,7 +403,7 @@
 
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(68, 64),
-      new THREE.MeshStandardMaterial({ map: createRealisticTurfTexture(), roughness: 0.88 })
+      new THREE.MeshStandardMaterial({ map: createLawnCanvas(), roughness: 0.86 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -446,7 +438,6 @@
     boundaryRope.rotation.x = -Math.PI / 2;
     boundaryRope.position.y = 0.12;
     boundaryRope.castShadow = true;
-    boundaryRope.receiveShadow = true;
     scene.add(boundaryRope);
 
     const wedgeGroup = new THREE.Group();
@@ -491,14 +482,86 @@
       ledTexture.needsUpdate = true;
     }
 
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x1a2333, roughness: 0.85 });
+    const seatMatA = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+    const seatMatB = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+
     for (let t = 0; t < 3; t++) {
-      const stand = new THREE.Mesh(
-        new THREE.CylinderGeometry(70 + t * 6, 64 + t * 6, 4.8, 64, 1, true),
-        new THREE.MeshStandardMaterial({ color: 0x0f172a + (t * 0x040608), roughness: 0.8 })
+      const standRadius = 64 + t * 7.5;
+      const standHeight = 4.5;
+      const standY = t * 4.5;
+
+      const standMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(standRadius + 7.5, standRadius, standHeight, 64, 1, true),
+        t % 2 === 0 ? seatMatA : seatMatB
       );
-      stand.position.y = 2.4 + (t * 4.8);
-      scene.add(stand);
+      standMesh.position.y = standY + 2.25;
+      scene.add(standMesh);
+
+      const parapet = new THREE.Mesh(
+        new THREE.TorusGeometry(standRadius + 7.5, 0.25, 8, 96),
+        concreteMat
+      );
+      parapet.rotation.x = Math.PI / 2;
+      parapet.position.y = standY + standHeight;
+      scene.add(parapet);
     }
+
+    const canopyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4, side: THREE.DoubleSide });
+    const stadiumRoof = new THREE.Mesh(
+      new THREE.RingGeometry(64, 92, 64),
+      canopyMat
+    );
+    stadiumRoof.rotation.x = -Math.PI / 2;
+    stadiumRoof.position.y = 21.0;
+    scene.add(stadiumRoof);
+
+    const beamMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+    for (let i = 0; i < 24; i++) {
+      const ang = (i / 24) * Math.PI * 2;
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 28), beamMat);
+      beam.position.set(Math.cos(ang) * 78, 20.8, Math.sin(ang) * 78);
+      beam.lookAt(0, 20.8, 0);
+      scene.add(beam);
+    }
+
+    function createJumbotron(x, z, rotY) {
+      const group = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(16, 9, 1.2), new THREE.MeshStandardMaterial({ color: 0x090d16 }));
+      frame.position.y = 4.5;
+      group.add(frame);
+
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(15.2, 8.2), new THREE.MeshBasicMaterial({ color: 0x0284c7 }));
+      screen.position.set(0, 4.5, 0.62);
+      group.add(screen);
+
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 24, 8), beamMat);
+      pole.position.y = -7.5;
+      group.add(pole);
+
+      group.position.set(x, 22.0, z);
+      group.rotation.y = rotY;
+      scene.add(group);
+    }
+    createJumbotron(-64, 0, Math.PI / 2);
+    createJumbotron(64, 0, -Math.PI / 2);
+
+    function createSightScreen(z) {
+      const group = new THREE.Group();
+      const board = new THREE.Mesh(new THREE.BoxGeometry(14, 6.5, 0.6), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
+      board.position.y = 3.25;
+      group.add(board);
+
+      const slats = new THREE.Mesh(new THREE.PlaneGeometry(13.5, 6.0), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      slats.position.set(0, 3.25, z > 0 ? -0.32 : 0.32);
+      if (z > 0) slats.rotation.y = Math.PI;
+      group.add(slats);
+
+      group.position.set(0, 0, z);
+      scene.add(group);
+    }
+    createSightScreen(-64.0);
+    createSightScreen(64.0);
 
     const pitch = new THREE.Mesh(
       new THREE.PlaneGeometry(3.6, 22.2),
@@ -515,13 +578,13 @@
       line.position.set(x, 0.025, z);
       scene.add(line);
     }
-    addMarking(0, 8.8, 3.6, 0.12);   // Striker Popping Crease
-    addMarking(0, -8.8, 3.6, 0.12);  // Non-Striker Popping Crease
-    addMarking(0, 10.0, 2.64, 0.08); // Bowling Crease Striker End
-    addMarking(0, -10.0, 2.64, 0.08); // Bowling Crease Non-Striker End
+    addMarking(0, 8.8, 3.6, 0.12);
+    addMarking(0, -8.8, 3.6, 0.12);
+    addMarking(0, 10.0, 2.64, 0.08);
+    addMarking(0, -10.0, 2.64, 0.08);
 
     /* =======================================================
-       4. OPTION 3: REALISTIC ANATOMICAL PLAYERS & ARTICULATED RIGS
+       4. PLAYER RIGS & STRICT CREASE SEPARATION
        ======================================================= */
     const skinTones = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
     const padMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 });
@@ -658,21 +721,20 @@
         rig.batPivot = batPivot;
       }
 
-      const scaleVariation = 0.95 + Math.random() * 0.1;
+      const scaleVariation = 0.96 + Math.random() * 0.08;
       rig.scale.set(scaleVariation, scaleVariation, scaleVariation);
-
       return rig;
     }
 
     // Striker at Batting Crease (+8.8m)
     const strikerBatter = buildAnatomicalPlayer(0x0284c7, true, 0);
-    strikerBatter.position.set(0.3, 0, 8.8);
+    strikerBatter.position.set(0.35, 0, 8.8);
     strikerBatter.rotation.y = -Math.PI / 2;
     scene.add(strikerBatter);
 
-    // Non-Striker at Opposite Bowling Crease (-8.8m)
+    // Non-Striker at Bowling Crease (-8.8m)
     const nonStrikerBatter = buildAnatomicalPlayer(0x0284c7, true, 2);
-    nonStrikerBatter.position.set(-0.75, 0, -8.8);
+    nonStrikerBatter.position.set(-1.2, 0, -8.8);
     nonStrikerBatter.rotation.y = Math.PI / 2;
     scene.add(nonStrikerBatter);
 
@@ -770,6 +832,7 @@
         const dist = this.rig.position.distanceTo(this.targetPos);
         if (dist > 0.3) {
           const dir = new THREE.Vector3().subVectors(this.targetPos, this.rig.position).normalize();
+          this.groupPositionVector = dir;
           this.rig.position.addScaledVector(dir, 14.0 * dt);
           this.rig.lookAt(this.targetPos.x, this.rig.position.y, this.targetPos.z);
 
@@ -913,32 +976,36 @@
       const currentLap = Math.floor(cycle);
       const lapFraction = cycle - currentLap;
       const isOddLap = currentLap % 2 === 1;
-      const sprintSpeed = Math.sin(runProgress * 22) * 0.12;
+      const sprintBounce = Math.sin(runProgress * 22) * 0.12;
 
+      // Striker sprint lane (+0.7m off pitch centerline)
       const strikerZ = isOddLap ? THREE.MathUtils.lerp(-8.8, 8.8, lapFraction) : THREE.MathUtils.lerp(8.8, -8.8, lapFraction);
-      strikerBatter.position.z = strikerZ; strikerBatter.position.x = 0.55;
+      strikerBatter.position.z = strikerZ;
+      strikerBatter.position.x = 0.7;
       strikerBatter.rotation.y = isOddLap ? 0 : Math.PI;
-      strikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintSpeed;
+      strikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintBounce;
 
+      // Non-striker sprint lane (-0.7m off pitch centerline)
       const nonStrikerZ = isOddLap ? THREE.MathUtils.lerp(8.8, -8.8, lapFraction) : THREE.MathUtils.lerp(-8.8, 8.8, lapFraction);
-      nonStrikerBatter.position.z = nonStrikerZ; nonStrikerBatter.position.x = -0.55;
+      nonStrikerBatter.position.z = nonStrikerZ;
+      nonStrikerBatter.position.x = -0.7;
       nonStrikerBatter.rotation.y = isOddLap ? Math.PI : 0;
-      nonStrikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintSpeed;
+      nonStrikerBatter.batPivot.rotation.x = -Math.PI / 4 + sprintBounce;
 
       if (runProgress >= 1.0) {
         runningAnimationActive = false;
         if (totalRunsTaking % 2 !== 0) {
-          strikerBatter.position.set(0.3, 0, -8.8); strikerBatter.rotation.y = Math.PI / 2;
-          nonStrikerBatter.position.set(-0.75, 0, 8.8); nonStrikerBatter.rotation.y = -Math.PI / 2;
+          strikerBatter.position.set(-1.2, 0, -8.8); strikerBatter.rotation.y = Math.PI / 2;
+          nonStrikerBatter.position.set(0.35, 0, 8.8); nonStrikerBatter.rotation.y = -Math.PI / 2;
         } else {
-          strikerBatter.position.set(0.3, 0, 8.8); strikerBatter.rotation.y = -Math.PI / 2;
-          nonStrikerBatter.position.set(-0.75, 0, -8.8); nonStrikerBatter.rotation.y = Math.PI / 2;
+          strikerBatter.position.set(0.35, 0, 8.8); strikerBatter.rotation.y = -Math.PI / 2;
+          nonStrikerBatter.position.set(-1.2, 0, -8.8); nonStrikerBatter.rotation.y = Math.PI / 2;
         }
       }
     }
 
     /* =======================================================
-       6. SMART CAMERA DIRECTOR & BROADCAST CONTROLLER
+       6. SMART CAMERA DIRECTOR & DROPDOWN CONTROLLER
        ======================================================= */
     const cameraModes = {
       broadcast: { pos: new THREE.Vector3(0, 16, 32), target: new THREE.Vector3(0, 1.2, 2) },
@@ -962,18 +1029,14 @@
       }
     };
 
-    window.switchCamera = function(mode) {
+    // Dropdown change listener
+    window.onCameraDropdownChange = function(mode) {
       if (!cameraModes[mode]) return;
       activeCamMode = mode;
-      isSmartDirectorOn = false;
+      isSmartDirectorOn = false; // Disable director on manual selection
       const dirBtn = document.getElementById('btn-director');
       if (dirBtn) dirBtn.className = 'hud-btn';
 
-      document.querySelectorAll('.bar-cluster .hud-btn').forEach(b => {
-        if (b.id && b.id.startsWith('btn-') && b.id !== 'btn-director') b.classList.remove('active');
-      });
-      const activeBtn = document.getElementById('btn-' + mode);
-      if (activeBtn) activeBtn.classList.add('active');
       if (mode !== 'follow') camTarget.copy(cameraModes[mode].target);
     };
 
@@ -1022,7 +1085,7 @@
     }
 
     /* =======================================================
-       7. OVER SUMMARY STRIP & DATA SYNC
+       7. SCORING TAB OVER SUMMARY & MATCH SYNC
        ======================================================= */
     let lastProcessedShotIndex = -1;
     let currentOverBalls = [];
@@ -1135,7 +1198,7 @@
     }, 200);
 
     /* =======================================================
-       8. DETERMINISTIC BALL TRAJECTORY & BOUNDARY CLEARANCE
+       8. DETERMINISTIC DELIVERY ENGINE
        ======================================================= */
     let deliveryAnim = null;
     let lastRecordedShot = null;
@@ -1201,9 +1264,9 @@
 
       let finalDist;
       if (isSix) {
-        finalDist = 78.0; // Clears the rope deep into grandstands
+        finalDist = 78.0;
       } else if (isFour) {
-        finalDist = 66.5; // Clears 62m boundary rope onto 66.5m
+        finalDist = 66.5;
       } else if (isSlideSave) {
         finalDist = 58.5;
       } else if (isCatch) {
@@ -1258,7 +1321,7 @@
 
           if (isNoBall && elapsed > 650 && !bouncedSoundPlayed) playSoundNoBallSiren();
         }
-        // Phase 2a: Release down to pitch bounce (700ms - 1000ms)
+        // Phase 2a: Release to Pitch Landing (700ms - 1000ms)
         else if (elapsed < 1000) {
           const t = (elapsed - 700) / 300;
           const releaseZ = isNoBall ? -8.65 : -9.8;
@@ -1267,7 +1330,7 @@
           const flightApex = isSpin ? 2.8 : 2.0;
           ball.position.y = THREE.MathUtils.lerp(flightApex, 0.04, t * t);
         }
-        // Phase 2b: Pitch bounce to Bat impact (1000ms - 1250ms)
+        // Phase 2b: Pitch Bounce to Bat Impact (1000ms - 1250ms)
         else if (elapsed < 1250) {
           const t = (elapsed - 1000) / 250;
           if (!bouncedSoundPlayed) {
@@ -1302,7 +1365,6 @@
             } else {
               playSpatialWillowBat(isSix ? 1.0 : (isFour ? 0.8 : 0.5), strikerBatter.position.x, 8.8);
               if (isSix || isFour || isCatch) playCrowdCheer();
-              else if (runs === 0) playCrowdGasp();
             }
             historicalShots.push({ angle, dist: finalDist, runs, isWkt: isWicket });
             drawWagonWheel();
@@ -1417,7 +1479,7 @@
     }
 
     /* =======================================================
-       9. MASTER RENDER ENGINE & ACTIVE REALISTIC SKELETON MOTIONS
+       9. MAIN RENDER LOOP
        ======================================================= */
     let lastTime = 0;
     function animate(time) {
@@ -1439,22 +1501,18 @@
         audioCtx.listener.positionZ.setValueAtTime(camera.position.z, audioCtx.currentTime);
       }
 
-      // Natural Human Micro-Movements When Ball is Not Active
+      // Continuous Natural Stance Movements
       if (!deliveryAnim) {
-        // Striker two-stage tap & body weight shift
         const batTap = Math.sin(tSec * 4.2);
         strikerBatter.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, batTap) * 0.16;
         strikerBatter.torso.rotation.x = 0.15 + Math.sin(tSec * 2.1) * 0.03;
         strikerBatter.torso.rotation.y = Math.sin(tSec * 1.5) * 0.06;
         strikerBatter.head.rotation.y = -Math.PI / 10 + Math.sin(tSec * 1.2) * 0.05;
 
-        // Non-Striker leaning on grounded bat at opposite crease
         nonStrikerBatter.torso.rotation.x = 0.12;
         nonStrikerBatter.torso.rotation.y = Math.sin(tSec * 1.6) * 0.05;
         nonStrikerBatter.head.rotation.y = Math.PI / 12 + Math.sin(tSec * 1.1) * 0.04;
-        nonStrikerBatter.position.z = -8.8 + Math.sin(tSec * 0.6) * 0.08;
 
-        // Bowler pre-delivery walk-in fidgets
         bowler.torso.rotation.y = Math.sin(tSec * 2.2) * 0.08;
         bowler.armR.rotation.x = Math.sin(tSec * 1.6) * 0.18;
         bowler.armL.rotation.x = -Math.sin(tSec * 1.6) * 0.18;
@@ -1463,6 +1521,9 @@
         if (isSmartDirectorOn) {
           camPos.lerp(cameraModes.broadcast.pos, 0.03);
           camTarget.lerp(cameraModes.broadcast.target, 0.03);
+          // Keep dropdown synced to TV Broadcast
+          const sel = document.getElementById('camSelect');
+          if (sel && sel.value !== 'broadcast') sel.value = 'broadcast';
         }
       }
 
