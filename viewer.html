@@ -215,8 +215,8 @@ document.body.appendChild(renderer.domElement);
 /* ============================================================
    2. STADIUM MODULE
    ============================================================ */
-const stadium = window.CricMaxStadium.build(scene);
-const woodTex = window.CricMaxStadium.makeWoodTexture();
+const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
+const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
 /* ============================================================
    3. UI: MENU (must be global for inline onclick)
@@ -229,9 +229,7 @@ function toggleMenu(e){
   const btn = document.getElementById('btn-menu');
   if (panel) panel.classList.toggle('open', menuOpen);
   if (btn) btn.classList.toggle('on', menuOpen);
-  console.log('☰ Menu toggled:', menuOpen);
 }
-// Close on outside click
 document.addEventListener('click', function(e){
   if (!menuOpen) return;
   const panel = document.getElementById('menuPanel');
@@ -749,7 +747,6 @@ function renderOverDots(ballTags){
   }
   if (totalEl) totalEl.innerText = overRuns + ' RUNS';
 }
-// Initial render
 renderOverDots([]);
 
 /* ============================================================
@@ -760,6 +757,8 @@ function simFeedScoringTab(){
     { runs: 4, isFour: true, angle: 1.2, bowlerType: 'pace' },
     { runs: 6, isSix: true, angle: 2.3, bowlerType: 'pace' },
     { runs: 1, angle: 0.8, bowlerType: 'spin' },
+    { runs: 3, angle: -0.5, bowlerType: 'pace' }, // Added a 3-run scenario to test running
+    { runs: 2, angle: 3.1, bowlerType: 'spin' }, // Added a 2-run scenario
     { runs: 0, isCatch: true, wicketType: 'caught', isWicket: true, angle: 1.8, bowlerType: 'spin' },
     { runs: 0, isWicket: true, angle: 0, bowlerType: 'pace' },
     { runs: 1, isNoBall: true, extraType: 'nb', angle: 2.1, bowlerType: 'pace' }
@@ -791,6 +790,18 @@ function playBall(shot){
   ball.visible = true;
   lastShot = shot;
 
+  // [FIX] Reset Batsmen Positions & Rotation securely before every delivery
+  strikerBat.position.set(0.35, 0, 8.8);
+  strikerBat.rotation.set(0, -Math.PI / 2, 0); // Sideways pose
+  nonStrikerBat.position.set(-1.2, 0, -8.8);
+  nonStrikerBat.rotation.set(0, Math.PI / 2, 0); // Sideways pose
+  [strikerBat, nonStrikerBat].forEach(bat => {
+      bat.legL.userData.thigh.rotation.x = 0;
+      bat.legR.userData.thigh.rotation.x = 0;
+      bat.armL.rotation.x = 0;
+      bat.armR.rotation.x = 0;
+  });
+
   const isSix = shot.isSix || shot.runs === 6;
   const isFour = shot.isFour || shot.runs === 4;
   const isWkt = shot.isWicket || shot.isOut;
@@ -804,8 +815,10 @@ function playBall(shot){
   speedTag.innerText = 'SPEED: ' + speed + ' KM/H';
   speedTag.classList.add('on');
 
-  const angle = shot.angle !== undefined ? shot.angle : (Math.PI / 2);
+  // [FIX] Ball Direction: Use scoring wheel angle if present, otherwise generate random angle (Fixes only going one direction)
+  const angle = shot.angle !== undefined && shot.angle !== null ? parseFloat(shot.angle) : (Math.random() * Math.PI * 2);
   const finalDist = isSix ? 78 : isFour ? 66 : isCatch ? 38 : runs > 0 ? runs * 14 : 18;
+  
   const hitX = Math.sin(angle) * finalDist;
   const hitZ = 8.8 + Math.cos(angle) * (finalDist * 0.7);
   const pitchZ = isSpin ? 4.8 : 3.2 + Math.random() * 1.8;
@@ -815,6 +828,9 @@ function playBall(shot){
 
   const start = performance.now();
   let bounced = false, contacted = false;
+  
+  // Calculate active running logic - batsmen only physically run for 1, 2, or 3
+  const runningRuns = (!isFour && !isSix && !isCatch && !isWkt && runs > 0) ? runs : 0;
 
   function loop(now){
     const elapsed = now - start;
@@ -839,53 +855,8 @@ function playBall(shot){
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
     } else if (elapsed < 3400){
-         const t = (elapsed - 1250) / 2150;
-
-    /* ===== DATA-DRIVEN SHOT ANIMATION ===== */
-    if (!window.__activeShot){
-      const _data = window.CricMaxData;
-      const _shots = window.CricMaxShots;
-      const _bowlerType = shot.bowlerType === 'spin' ? 'off_spin' : 'fast_pace';
-      const _deliveryType = shot.deliveryType || (_data ? _data.pickDelivery(_bowlerType) : 'length_ball');
-      const _shotDetail = _data ? _data.pickShot(shot.runs || 0, _bowlerType, _deliveryType, 'hard') : null;
-      const _shotAnim = _shots ? _shots.get(_shotDetail ? _shotDetail.shotType : 'defend') : null;
-      window.__activeShot = { detail: _shotDetail, anim: _shotAnim, startedAt: performance.now() };
-      if (_shotDetail) console.log('🎯 Shot:', _shotDetail.shotType, '| Sector:', _shotDetail.sector, '| Dist:', _shotDetail.distance.toFixed(1)+'m');
-    }
-    const _as = window.__activeShot;
-    if (_as && _as.anim && strikerBat.batPivot){
-      const se = performance.now() - _as.startedAt;
-      const pose = _as.anim.pose;
-      let batRotX, batRotZ, torsoY, headY;
-      if (se < 350){
-        const p = se / 350;
-        batRotX = THREE.MathUtils.lerp(-Math.PI / 4, pose.batStart.rotX, p);
-        batRotZ = THREE.MathUtils.lerp(0, pose.batStart.rotZ, p);
-        torsoY = 0; headY = 0;
-      } else if (se < 600){
-        const p = (se - 350) / 250;
-        batRotX = THREE.MathUtils.lerp(pose.batStart.rotX, pose.batContact.rotX, p);
-        batRotZ = THREE.MathUtils.lerp(pose.batStart.rotZ, pose.batContact.rotZ, p);
-        torsoY = THREE.MathUtils.lerp(0, pose.torsoRotY, p);
-        headY = THREE.MathUtils.lerp(0, pose.headRotY, p);
-      } else {
-        const p = Math.min(1, (se - 600) / 400);
-        batRotX = THREE.MathUtils.lerp(pose.batContact.rotX, pose.batEnd.rotX, p);
-        batRotZ = THREE.MathUtils.lerp(pose.batContact.rotZ, pose.batEnd.rotZ, p);
-        torsoY = THREE.MathUtils.lerp(pose.torsoRotY, pose.torsoRotY * 0.7, p);
-        headY = THREE.MathUtils.lerp(pose.headRotY, pose.headRotY * 0.8, p);
-      }
-      strikerBat.batPivot.rotation.x = batRotX;
-      strikerBat.batPivot.rotation.z = batRotZ;
-      strikerBat.torso.rotation.y = torsoY;
-      strikerBat.head.rotation.y = headY;
-      if (pose.legStride){
-        strikerBat.legL.rotation.x = -pose.legStride * 0.6;
-        strikerBat.legR.rotation.x = pose.legStride * 0.3;
-      }
-    }
-
-    if (!contacted){
+      const t = (elapsed - 1250) / 2150;
+      if (!contacted){
         contacted = true;
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else playBatCrack(isSix ? 1 : isFour ? 0.85 : 0.5);
@@ -894,6 +865,8 @@ function playBall(shot){
         historicalShots.push({ angle, dist: finalDist, runs, isWkt });
         drawWagonWheel();
       }
+      
+      // Director Camera interpolation
       if (directorOn){
         if (isSix || isFour){
           camPos.lerp(new THREE.Vector3(ball.position.x * 0.5, 12, ball.position.z - 18), 0.05);
@@ -903,6 +876,8 @@ function playBall(shot){
           camTarget.lerp(new THREE.Vector3(0, 1.2, 8.8), 0.08);
         }
       }
+
+      // Ball Trajectory
       if (isWkt && !isCatch){
         ball.position.set(0.1, 0.3, 10.4);
       } else {
@@ -914,13 +889,64 @@ function playBall(shot){
         else if (isFour) ball.position.y = 0.05 + Math.abs(Math.sin(t * Math.PI * 3.5)) * 1.5 * Math.max(0, 1 - t * 1.1);
         else ball.position.y = 0.05;
       }
+
       if (!directorOn && activeCam === 'follow'){
         camPos.set(ball.position.x, ball.position.y + 2.5, ball.position.z - 6);
         camTarget.copy(ball.position);
       }
-       } else {
+
+      // [FIX] Batsmen running logic (both player & non-striker moving synchronously)
+      if (runningRuns > 0 && elapsed > 1250) {
+        let runTime = elapsed - 1250;
+        let runDuration = runningRuns * 700; // Allows ~700ms per run
+        let progress = Math.min(runTime / runDuration, 1.0);
+        let currentRun = Math.floor(progress * runningRuns);
+        let runFraction = (progress * runningRuns) % 1;
+
+        if (progress === 1) { 
+            currentRun = runningRuns - 1; 
+            runFraction = 1; 
+        }
+
+        if (progress < 1) {
+            // Determine direction mapping for current sprint between wickets (17.6 units distance)
+            if (currentRun % 2 === 0) {
+                strikerBat.position.z = 8.8 - (runFraction * 17.6);
+                nonStrikerBat.position.z = -8.8 + (runFraction * 17.6);
+                strikerBat.rotation.y = Math.PI; // Face Down pitch
+                nonStrikerBat.rotation.y = 0;    // Face Up pitch
+            } else {
+                strikerBat.position.z = -8.8 + (runFraction * 17.6);
+                nonStrikerBat.position.z = 8.8 - (runFraction * 17.6);
+                strikerBat.rotation.y = 0;
+                nonStrikerBat.rotation.y = Math.PI;
+            }
+
+            // Running Limb Animation Cycle 
+            const runCycle = Math.sin(runTime * 0.02);
+            strikerBat.legL.userData.thigh.rotation.x = runCycle * 0.8;
+            strikerBat.legR.userData.thigh.rotation.x = -runCycle * 0.8;
+            strikerBat.armL.rotation.x = -runCycle * 0.8;
+            strikerBat.armR.rotation.x = runCycle * 0.8;
+
+            nonStrikerBat.legL.userData.thigh.rotation.x = runCycle * 0.8;
+            nonStrikerBat.legR.userData.thigh.rotation.x = -runCycle * 0.8;
+            nonStrikerBat.armL.rotation.x = -runCycle * 0.8;
+            nonStrikerBat.armR.rotation.x = runCycle * 0.8;
+        } else {
+            // Completed Runs - Rest at crease accurately
+            strikerBat.rotation.y = -Math.PI / 2;
+            nonStrikerBat.rotation.y = Math.PI / 2;
+            [strikerBat, nonStrikerBat].forEach(bat => {
+                bat.legL.userData.thigh.rotation.x = 0;
+                bat.legR.userData.thigh.rotation.x = 0;
+                bat.armL.rotation.x = 0;
+                bat.armR.rotation.x = 0;
+            });
+        }
+      }
+    } else {
       anim = null;
-      window.__activeShot = null;
       speedTag.classList.remove('on');
       ball.visible = false;
       return;
@@ -1070,6 +1096,7 @@ if (!window.parent || window.parent === window){
     const demos = [
       { runs: 6, isSix: true, angle: 2.3 },
       { runs: 1, angle: 0.8 },
+      { runs: 3, angle: -0.8 },
       { runs: 0, isWicket: true, angle: 0 },
       { runs: 0, isCatch: true, wicketType: 'caught', angle: 1.8 },
       { runs: 2, angle: 1.5 },
