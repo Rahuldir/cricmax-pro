@@ -330,14 +330,7 @@ function setSky(mode){
 }
 setSky('day');
 
-function navTo(pane){
-  document.querySelectorAll('.menu-tile[data-pane]').forEach(t => {
-    t.classList.toggle('on', t.getAttribute('data-pane') === pane);
-  });
-  if (pane === 'pitch'){ toggleMenu(); return; }
-  try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
-  toggleMenu();
-}
+
 
 /* ============================================================
    3. KINEMATIC PLAYER MODEL
