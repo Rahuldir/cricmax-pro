@@ -3890,3 +3890,106 @@ window.addEventListener('message', function(ev) {
     }
   }
 });
+
+
+/* ============================================================
+   BUG FIX PATCH — Overs lock + End Innings reliability
+   ============================================================ */
+(function(){
+  'use strict';
+
+  var _origFinalize = window.finalizeMatchStart;
+  window.finalizeMatchStart = function(){
+    if(_origFinalize) _origFinalize();
+    try {
+      if(currentTourn && currentTourn.overs && currentTourn.overs > 0){
+        match.totalOvers = parseInt(currentTourn.overs, 10);
+        match.originalOvers = parseInt(currentTourn.overs, 10);
+      }
+      if(match.totalOvers <= 0){
+        var inp = document.getElementById('tOversInput');
+        if(inp && inp.value){
+          match.totalOvers = parseInt(inp.value, 10) || 20;
+          match.originalOvers = match.totalOvers;
+        }
+      }
+      match.totalOversLocked = true;
+      console.log('🔒 Overs locked at', match.totalOvers);
+    } catch(e){ console.warn('Lock overs error:', e); }
+  };
+
+  setInterval(function(){
+    try {
+      if(match && match.totalOversLocked && match.originalOvers > 0){
+        if(match.totalOvers !== match.originalOvers){
+          match.totalOvers = match.originalOvers;
+        }
+      }
+      if(match && !match.isActive){
+        inningsTransitionLock = false;
+      }
+    } catch(e){}
+  }, 500);
+
+  window.endInningsPrompt = function(){
+    if(!match || !match.isActive || isViewerMode) return;
+    try {
+      var t = document.getElementById('endInningsTitle');
+      var d = document.getElementById('endInningsDesc');
+      var s = document.getElementById('endInningsScore');
+      var o = document.getElementById('endInningsOvers');
+      var ovStr = Math.floor(match.legalBalls/6) + '.' + (match.legalBalls%6);
+      if(match.innings === 1){
+        if(t) t.innerText = 'End 1st Innings?';
+        if(d) d.innerText = (match.teamBatting||'Batting') + ' innings will end and ' + (match.teamBowling||'opponent') + ' will chase.';
+        if(s) s.innerText = (match.runs||0) + '/' + (match.wickets||0);
+        if(o) o.innerText = ovStr + ' / ' + match.totalOvers + ' overs';
+      } else {
+        if(t) t.innerText = 'End 2nd Innings?';
+        if(d) d.innerText = 'Match will end. Winner will be declared.';
+        if(s) s.innerText = (match.runs||0) + '/' + (match.wickets||0);
+        if(o) o.innerText = ovStr + ' / ' + match.totalOvers + ' overs (Target: ' + (match.target||0) + ')';
+      }
+      var modal = document.getElementById('endInningsModal');
+      if(modal) modal.style.display = 'flex';
+    } catch(e){ console.error('endInningsPrompt error:', e); }
+  };
+
+  window.confirmEndInnings = function(){
+    try { closeModal('endInningsModal'); } catch(e){}
+    inningsTransitionLock = false;
+    if(!match || !match.isActive) return;
+    if(match.innings === 1){
+      try { saveInnings1Snapshot(); } catch(e){}
+      try { transitionToInnings2(); } catch(e){}
+      try { showInningsBreakModal(); } catch(e){}
+    } else {
+      try { endMatchAndDeclareWinner(true); } catch(e){}
+    }
+  };
+
+  var _origRecord = window.recordBall;
+  window.recordBall = function(){
+    var result = _origRecord ? _origRecord.apply(this, arguments) : undefined;
+    try {
+      if(match && match.isActive && match.totalOvers > 0){
+        if(match.legalBalls >= match.totalOvers * 6 && !inningsTransitionLock){
+          inningsTransitionLock = true;
+          setTimeout(function(){
+            inningsTransitionLock = false;
+            if(match.innings === 1){
+              try { saveInnings1Snapshot(); } catch(e){}
+              try { transitionToInnings2(); } catch(e){}
+              try { showInningsBreakModal(); } catch(e){}
+            } else {
+              try { endMatchAndDeclareWinner(true); } catch(e){}
+            }
+          }, 900);
+        }
+      }
+    } catch(e){}
+    return result;
+  };
+
+  console.log('✅ Bug fixes applied');
+})();
