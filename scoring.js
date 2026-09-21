@@ -1,8 +1,8 @@
 /* ============================================================
-   scoring.js — recordBall, wicket flow, next batter/bowler, innings/match end
+   scoring.js — Scoring engine, wickets, bowler change, retire
    ============================================================ */
 
-/* Extras / penalties */
+/* ─── Extras / Penalties ─────────────────────────────────── */
 function promptWideWithRuns() {
   if (!match.isActive || isViewerMode) return;
   document.getElementById('wideRunsModal').style.display = 'flex';
@@ -26,30 +26,146 @@ function addPenaltyRuns(teamName, runs) {
   closeModal('extrasModal');
 }
 
-function retireBatter(mode) {
-  if (!match.isActive || isViewerMode) return;
-  const who = mode.includes('Striker') ? 'striker' : 'nonStriker';
-  const name = match[who];
-  if (!name || !match.batters[name]) return;
-  match.batters[name].status = mode;
-  const next = prompt(`Retire ${name} as "${mode}". Enter new batter name:`, '');
-  if (next && next.trim()) {
-    const n = autoCapitalize(next.trim());
-    if (!match.batters[n]) {
-      match.batters[n] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: "batting" };
-      match.playerTeamMap[n] = match.teamBattingAbbr;
-      autoAddPlayerToTeam(n, match.teamBatting);
-    } else match.batters[n].status = 'batting';
-    match[who] = n;
-    autoPersist();
-    scheduleRender();
-    broadcastMatchState();
-    if (isCommentaryVoiceActive) speak(`${name} retired. ${n} comes to the crease.`);
+/* ═══════════════════════════════════════════════════════════
+   RETIRE BATSMAN — Full modal-based UI
+   ═══════════════════════════════════════════════════════════ */
+function openRetireModal() {
+  if (!match.isActive || isViewerMode) {
+    showToast('Match not active');
+    return;
   }
-  closeModal('extrasModal');
+  /* Build the modal dynamically if it doesn't exist yet */
+  let modal = document.getElementById('retireModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'retireModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+      <div style="background:linear-gradient(160deg,#0f172a,#020713);border:1px solid rgba(0,230,118,.4);border-radius:16px;padding:20px;max-width:420px;width:100%;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.8);">
+        <div style="font-size:15px;font-weight:900;color:#00e676;margin-bottom:14px;letter-spacing:.6px;">🔄 RETIRE BATSMAN</div>
+
+        <label style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Who is retiring?</label>
+        <select id="retireWho" class="form-control" style="width:100%;margin:6px 0 14px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;"></select>
+
+        <label style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Reason</label>
+        <select id="retireReason" class="form-control" style="width:100%;margin:6px 0 14px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;">
+          <option value="Retired Hurt">Retired Hurt (can resume later — no wicket)</option>
+          <option value="Retired Out">Retired Out (counts as a wicket)</option>
+        </select>
+
+        <label style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Replacement batter</label>
+        <select id="retireReplacementDD" class="form-control" style="width:100%;margin:6px 0 6px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;"></select>
+        <input id="retireReplacementTxt" type="text" placeholder="…or type a new name" style="width:100%;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;margin-bottom:16px;">
+
+        <div style="display:flex;gap:8px;">
+          <button onclick="closeModal('retireModal')" style="flex:1;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#94a3b8;font-weight:800;cursor:pointer;">Cancel</button>
+          <button onclick="confirmRetire()" style="flex:1;padding:12px;background:linear-gradient(135deg,#009270,#00e676);border:none;border-radius:8px;color:#0a0e1a;font-weight:900;cursor:pointer;">Retire</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  /* Populate who-dropdown */
+  const who = document.getElementById('retireWho');
+  who.innerHTML = '';
+  if (match.striker) who.innerHTML += `<option value="striker">Striker: ${escapeHtml(match.striker)}</option>`;
+  if (match.nonStriker) who.innerHTML += `<option value="nonStriker">Non-Striker: ${escapeHtml(match.nonStriker)}</option>`;
+
+  /* Populate replacement dropdown from squad */
+  const dd = document.getElementById('retireReplacementDD');
+  dd.innerHTML = '<option value="">-- From squad --</option>';
+  const squad = (savedTeams.find(t => t.name === match.teamBatting) || {}).squad || [];
+  const available = squad.filter(p => {
+    if (!p) return false;
+    if (p === match.striker || p === match.nonStriker) return false;
+    const b = match.batters[p];
+    if (b && b.status && b.status !== 'dnb' && b.status !== 'retired hurt') return false;
+    return true;
+  });
+  available.forEach(p => { dd.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`; });
+
+  const txt = document.getElementById('retireReplacementTxt');
+  txt.value = '';
+  dd.onchange = () => { if (dd.value) txt.value = ''; };
+  txt.oninput  = () => { if (txt.value) dd.value = ''; };
+
+  modal.style.display = 'flex';
 }
 
-/* Wicket modal */
+function confirmRetire() {
+  const who = document.getElementById('retireWho').value;
+  const reason = document.getElementById('retireReason').value;
+  const dd = document.getElementById('retireReplacementDD');
+  const txt = document.getElementById('retireReplacementTxt');
+  const newBatter = autoCapitalize((txt.value || '').trim() || (dd.value || '').trim());
+
+  if (!newBatter) {
+    showToast('Please pick or type a replacement batter');
+    return;
+  }
+  if (newBatter === match.striker || newBatter === match.nonStriker) {
+    showToast('Replacement must be different');
+    return;
+  }
+
+  const retiringPlayer = who === 'striker' ? match.striker : match.nonStriker;
+  if (!retiringPlayer) {
+    showToast('No batter to retire');
+    return;
+  }
+
+  historyStack.push(JSON.parse(JSON.stringify(match)));
+  if (historyStack.length > 40) historyStack.shift();
+
+  /* Mark the retiring batter */
+  if (match.batters[retiringPlayer]) {
+    match.batters[retiringPlayer].status = reason.toLowerCase().replace(' ', '-');
+  }
+
+  /* If Retired Out — counts as a wicket (bowler does NOT get credit) */
+  if (reason === 'Retired Out') {
+    match.wickets += 1;
+    match.fow.push(`${match.runs}/${match.wickets} (${retiringPlayer} retired out)`);
+    triggerBanner('RETIRED OUT', `${retiringPlayer}`, 'fx-wicket');
+  } else {
+    triggerBanner('RETIRED HURT 🤕', `${retiringPlayer}`, 'fx-milestone');
+  }
+
+  /* Register new batter */
+  if (!match.batters[newBatter]) {
+    match.batters[newBatter] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: 'batting' };
+    match.playerTeamMap[newBatter] = match.teamBattingAbbr;
+    autoAddPlayerToTeam(newBatter, match.teamBatting);
+  } else {
+    match.batters[newBatter].status = 'batting';
+  }
+
+  /* Swap the retiring batter out */
+  if (who === 'striker') match.striker = newBatter;
+  else match.nonStriker = newBatter;
+
+  /* Reset partnership */
+  match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
+
+  closeModal('retireModal');
+
+  const ov = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
+  match.commentary.unshift({
+    ball: ov,
+    desc: `${retiringPlayer} ${reason === 'Retired Out' ? 'retired out' : 'retired hurt'}. ${newBatter} comes to the crease.`,
+    type: 'normal'
+  });
+
+  autoPersist();
+  scheduleRender();
+  broadcastMatchState();
+  if (isCommentaryVoiceActive) speak(`${retiringPlayer} retired. ${newBatter} comes to the crease.`);
+  showToast(`✅ ${retiringPlayer} retired — ${newBatter} is in`);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WICKET MODAL
+   ═══════════════════════════════════════════════════════════ */
 function handleWicketMethodChange(m) {
   const fg = document.getElementById('fielderGroup');
   const fl = document.getElementById('fielderLabel');
@@ -69,6 +185,7 @@ function handleWicketMethodChange(m) {
 function promptWicketTypeModal() {
   if (!match.isActive || isViewerMode) return;
   if (match.wickets >= 10) { showToast('All out — 10 wickets already'); return; }
+
   const mSel = document.getElementById('wktMethodSelect');
   if (match.isFreeHit) {
     mSel.innerHTML = '<option value="Run Out">Run Out (Free Hit — only legal dismissal)</option>';
@@ -82,7 +199,6 @@ function promptWicketTypeModal() {
       <option value="LBW">LBW</option>
       <option value="Run Out">Run Out</option>
       <option value="Stumped">Stumped</option>
-      <option value="Retired Hurt">Retired Hurt</option>
       <option value="Obstructing Field">Obstructing the Field</option>`;
     mSel.value = 'Bowled';
     handleWicketMethodChange('Bowled');
@@ -148,9 +264,8 @@ function confirmWicketDelivery() {
   closeModal('wicketTypeModal');
 
   const dismissedBatterName = (dismissedRole === 'nonStriker') ? match.nonStriker : match.striker;
-  const isRetired = method === 'Retired Hurt';
 
-  recordBall(runOutRuns, null, !isRetired, "", 0, { method, fielder, dismissedRole, isRetired });
+  recordBall(runOutRuns, null, true, "", 0, { method, fielder, dismissedRole });
 
   if (newBatter) {
     if (!match.batters[newBatter]) {
@@ -173,7 +288,9 @@ function confirmWicketDelivery() {
   }
 }
 
-/* Next batter / bowler */
+/* ═══════════════════════════════════════════════════════════
+   NEXT BATTER / BOWLER
+   ═══════════════════════════════════════════════════════════ */
 function promptNextBatterModal(out) {
   const notice = document.getElementById('dismissedNotice');
   if (notice) notice.innerText = (out || 'Batter') + ' out! Next batter?';
@@ -217,21 +334,34 @@ function confirmNextBatter() {
   if (isCommentaryVoiceActive) speak('New batter in: ' + n + '.');
 }
 
+/* ─── Next Bowler ───────────────────────────────────────── */
 function promptNextBowlerModal() {
   if (!match.isActive || isViewerMode) return;
   const s = document.getElementById('existingBowlerSelect');
-  if (!s) return;
+  if (!s) { console.warn('[CricMax] existingBowlerSelect not found'); return; }
   s.innerHTML = '<option value="">-- Squad --</option>';
+
+  let anyAvailable = false;
   for (const n in match.bowlers) {
+    /* Hard filter: skip the bowler who just bowled */
     if (n === match.previousBowler) continue;
+    /* Max-overs cap */
     if (matchConfig.maxOversPerBowler > 0) {
       const bowled = Math.floor((match.bowlers[n].balls || 0) / 6);
       if (bowled >= matchConfig.maxOversPerBowler) continue;
     }
     s.innerHTML += `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`;
+    anyAvailable = true;
   }
-  const inp = document.getElementById('newBowlerNameInput'); if (inp) inp.value = '';
-  const m = document.getElementById('bowlerModal'); if (m) m.style.display = 'flex';
+  if (!anyAvailable) {
+    s.innerHTML = '<option value="">-- No other bowlers — type below --</option>';
+    showToast('⚠️ No other bowlers in squad — type a new one');
+  }
+
+  const inp = document.getElementById('newBowlerNameInput');
+  if (inp) inp.value = '';
+  const m = document.getElementById('bowlerModal');
+  if (m) m.style.display = 'flex';
 }
 
 function confirmNextBowler() {
@@ -239,6 +369,11 @@ function confirmNextBowler() {
   const s = document.getElementById('existingBowlerSelect');
   const n = autoCapitalize((t ? t.value.trim() : '') || (s ? s.value : ''));
   if (!n) return alert('Please specify next bowler');
+
+  /* Hard block: no consecutive overs */
+  if (n === match.previousBowler) {
+    if (!confirm(`${n} bowled the previous over.\n\nCricket rules do not allow consecutive overs.\n\nAllow anyway?`)) return;
+  }
 
   if (t && t.value.trim()) autoAddPlayerToTeam(n, match.teamBowling);
   if (!match.bowlers[n]) {
@@ -253,10 +388,11 @@ function confirmNextBowler() {
   }
   match.currentBowler = n;
   closeModal('bowlerModal');
-  renderLive();
+  scheduleRender();
   autoPersist();
   broadcastMatchState();
   if (isCommentaryVoiceActive) speak('Bowling change. ' + n + ' comes into the attack.');
+  showToast(`🎳 ${n} into the attack`);
 }
 
 function changeBowlerMidOver() {
@@ -265,7 +401,42 @@ function changeBowlerMidOver() {
   promptNextBowlerModal();
 }
 
-/* Commentary phrases */
+/* ═══════════════════════════════════════════════════════════
+   RELIABLE BOWLER-CHANGE PROMPT (watchdog for over end)
+   ═══════════════════════════════════════════════════════════ */
+let _bowlerPromptToken = 0;
+function forceBowlerChangePrompt(attempt) {
+  attempt = attempt || 0;
+  const myToken = ++_bowlerPromptToken;
+  const delay = attempt === 0 ? 700 : 400;
+  setTimeout(function () {
+    /* Bail if a newer call superseded this one */
+    if (myToken !== _bowlerPromptToken) return;
+    if (!match.isActive || isViewerMode) return;
+
+    const wk = document.getElementById('wicketTypeModal');
+    const nb = document.getElementById('nextBatterModal');
+    const rtr = document.getElementById('retireModal');
+    const wkOpen = wk && wk.style.display === 'flex';
+    const nbOpen = nb && nb.style.display === 'flex';
+    const rtrOpen = rtr && rtr.style.display === 'flex';
+
+    if (wkOpen || nbOpen || rtrOpen) {
+      if (attempt < 12) forceBowlerChangePrompt(attempt + 1);
+      return;
+    }
+    /* Modal is already open? Don't reopen */
+    const bm = document.getElementById('bowlerModal');
+    if (bm && bm.style.display === 'flex') return;
+
+    console.info('[CricMax] Over ended — prompting next bowler (previous:', match.previousBowler, ')');
+    promptNextBowlerModal();
+  }, delay);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMMENTARY PHRASES
+   ═══════════════════════════════════════════════════════════ */
 function pickFresh(key, arr) {
   if (!usedPhrases[key]) usedPhrases[key] = [];
   const used = usedPhrases[key];
@@ -312,7 +483,6 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
     if (dd.method === 'LBW') return fill(pickFresh('WL', P.WL), v);
     if (dd.method === 'Run Out') return fill(pickFresh('WR', P.WR), v);
     if (dd.method === 'Stumped') return fill(pickFresh('WS', P.WS), v);
-    if (dd.method === 'Retired Hurt') return `${s} retires hurt.`;
     return `OUT! ${s} dismissed!`;
   }
   if (runs === 0) return fill(pickFresh('D', P.DOT), v);
@@ -324,12 +494,13 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
   return `${runs} run(s).`;
 }
 
-/* ============================================================
+/* ═══════════════════════════════════════════════════════════
    RECORD BALL — the scoring engine
-   ============================================================ */
+   ═══════════════════════════════════════════════════════════ */
 function recordBall(runs = 0, extra = null, isWicket = false, region = "", distance = 0, dd = null) {
   if (!match.isActive || isViewerMode) return;
 
+  /* ---- Safety defaults ---- */
   if (!match.striker) match.striker = 'Striker';
   if (!match.nonStriker) match.nonStriker = 'Non-Striker';
   if (!match.currentBowler) match.currentBowler = 'Bowler';
@@ -369,7 +540,6 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     match.currentPartnership.balls = (match.currentPartnership.balls || 0) + 1;
   }
 
-  // #4 Clear exact angle after capture
   const capturedAngle = (typeof window._tempExactAngle === 'number') ? window._tempExactAngle : null;
   window._tempExactAngle = undefined;
 
@@ -389,6 +559,7 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   };
   match.shotLog.push(shotPayload);
 
+  /* ---- Process delivery ---- */
   if (extra === 'WD') {
     const wideBase = (typeof matchConfig.wideRuns === 'number') ? matchConfig.wideRuns : 1;
     match.runs += wideBase + runs;
@@ -430,17 +601,15 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
       if (runs === 6) striker.sixes += 1;
     }
     const method = dd ? dd.method : 'Bowled';
-    const isRetired = dd && dd.isRetired;
-    if (method !== 'Run Out' && !isRetired) {
+    if (method !== 'Run Out') {
       bowler.wickets += 1;
       if (bowler.wickets === 3) { bowler.threeW = (bowler.threeW || 0) + 1; setTimeout(() => triggerBanner('3-WICKET HAUL! 🎩', `${match.currentBowler}`, 'fx-milestone'), 800); }
       if (bowler.wickets === 5) { bowler.fiveW = (bowler.fiveW || 0) + 1; setTimeout(() => triggerBanner('FIVE-FOR! 🔥', `${match.currentBowler} 5/${bowler.runs}`, 'fx-milestone'), 800); }
     }
     if (dismissedStats) {
-      dismissedStats.status = isRetired ? 'retired hurt'
-        : (method === 'Bowled' ? `b ${match.currentBowler}` : `${method.toLowerCase()} b ${match.currentBowler}`);
+      dismissedStats.status = method === 'Bowled' ? `b ${match.currentBowler}` : `${method.toLowerCase()} b ${match.currentBowler}`;
     }
-    tag = isRetired ? 'RH' : 'W';
+    tag = 'W';
     if (dd && ['Caught','Run Out','Stumped'].includes(dd.method)) {
       const fn = dd.fielder || 'Fielder';
       if (!match.fielding[fn]) match.fielding[fn] = { catches: 0, stumpings: 0, runOuts: 0 };
@@ -448,11 +617,8 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
       else if (dd.method === 'Stumped' && matchConfig.autoDetectStumpings) match.fielding[fn].stumpings += 1;
       else if (dd.method === 'Run Out') match.fielding[fn].runOuts += 1;
     }
-    if (!isRetired) {
-      match.fow.push(`${match.runs}/${match.wickets} (${dismissedName})`);
-      triggerBanner('WICKET! 🚨', `${dismissedName} out`, 'fx-wicket');
-    }
-    // #2 Partnership snapshot + reset
+    match.fow.push(`${match.runs}/${match.wickets} (${dismissedName})`);
+    triggerBanner('WICKET! 🚨', `${dismissedName} out`, 'fx-wicket');
     match.partnerRuns.push({ ...match.currentPartnership });
     match.currentPartnership = { runs: 0, balls: 0, batters: [] };
   } else {
@@ -469,7 +635,6 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   if (wasFH) match.isFreeHit = false;
   if (matchConfig.forceFreeHit) match.isFreeHit = true;
 
-  // #5 track explicit over runs
   match._currentOverRuns += (match.runs - prevMatchRuns);
 
   match.recentBalls.push(tag);
@@ -484,55 +649,95 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     else if (prevTeam < 100 && match.runs >= 100) setTimeout(() => triggerBanner('TEAM 100 UP! 💯', `${match.teamBatting} reach 100`, 'fx-milestone'), 1900);
   }
 
-  autoPersist();
-
+  /* ═══════════════════════════════════════════════════════════
+     OVER END — must complete in ONE atomic block
+     ═══════════════════════════════════════════════════════════ */
   let overEnded = false;
   const isRegularLegalOver = (extra !== 'WD' && extra !== 'NB' && match.legalBalls % 6 === 0 && match.legalBalls > 0);
   const isWideCountLegalOver = (matchConfig.wideCountsAsBall && extra === 'WD' && match.legalBalls % 6 === 0 && match.legalBalls > 0);
 
   if (isRegularLegalOver || isWideCountLegalOver) {
-    swapStrikers();
-    match.oversTimeline.push({ overNum: match.legalBalls / 6, balls: [...match.currentOverBalls] });
-    const overRunsThisOver = match._currentOverRuns;
-    const hasExtra = match.currentOverBalls.some(b => b.includes('Wd') || b.includes('Nb') || b.includes('B') || b.includes('Lb'));
-    if (overRunsThisOver === 0 && !hasExtra) bowler.maidens += 1;
-    match._lastOverRuns = overRunsThisOver;
-    match.currentOverBalls = [];
-    match._currentOverRuns = 0;
-    match.previousBowler = match.currentBowler;
-    overEnded = true;
+    try {
+      /* 1. Swap striker FIRST (physical swap at end of over) */
+      const __tmp = match.striker;
+      match.striker = match.nonStriker;
+      match.nonStriker = __tmp;
+
+      /* 2. Record this over's balls */
+      const overBalls = [...match.currentOverBalls];
+      match.oversTimeline.push({ overNum: match.legalBalls / 6, balls: overBalls });
+
+      /* 3. Compute over runs from the tags */
+      const overRunsThisOver = overBalls.reduce((sum, b) => {
+        const m = String(b).match(/\d+/);
+        return sum + (m ? parseInt(m[0], 10) : 0);
+      }, 0);
+      const hasExtra = overBalls.some(b => b.includes('Wd') || b.includes('Nb') || b.includes('B') || b.includes('Lb'));
+      const hasWicket = overBalls.some(b => b === 'W');
+      const bowlerWas = match.bowlers[match.currentBowler];
+
+      /* 4. Maiden detection */
+      if (overRunsThisOver === 0 && !hasExtra && !hasWicket && bowlerWas) {
+        bowlerWas.maidens = (bowlerWas.maidens || 0) + 1;
+      }
+
+      /* 5. Save over summary BEFORE clearing */
+      match._lastOverRuns = overRunsThisOver;
+
+      /* 6. Clear the per-over counters */
+      match.currentOverBalls = [];
+      match._currentOverRuns = 0;
+
+      /* 7. Mark who just bowled (for filter) */
+      match.previousBowler = match.currentBowler;
+
+      overEnded = true;
+
+      /* 8. Push end-of-over commentary */
+      const overNumber = match.legalBalls / 6;
+      const stStats = match.batters[match.striker] || { runs: 0, balls: 0 };
+      const nsStats = match.batters[match.nonStriker] || { runs: 0, balls: 0 };
+      const bw = match.bowlers[match.currentBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
+      const ovStr = `${Math.floor(bw.balls / 6)}.${bw.balls % 6}`;
+      const summaryDesc = `<span class="sum-line"><b>End of Over ${overNumber}</b> — <span class="sum-team">${match.teamBattingAbbr} ${match.runs}/${match.wickets}</span> • ${overRunsThisOver} run${overRunsThisOver !== 1 ? 's' : ''} this over</span><span class="sum-line">🏏 ${match.striker} <b>${stStats.runs}</b>(${stStats.balls}) • ${match.nonStriker} <b>${nsStats.runs}</b>(${nsStats.balls})</span><span class="sum-line">⚾ <span class="sum-bowler">${match.currentBowler}</span> ${ovStr}-${bw.maidens}-${bw.runs}-<b>${bw.wickets}</b></span>`;
+      match.commentary.unshift({ ball: `End Ov ${overNumber}`, desc: summaryDesc, type: 'summary', html: true });
+    } catch (err) {
+      console.error('[CricMax] Over-end block failed:', err);
+      /* Recovery: still mark over ended so watchdog fires */
+      match.currentOverBalls = [];
+      match._currentOverRuns = 0;
+      match.previousBowler = match.currentBowler;
+      overEnded = true;
+    }
   }
 
-  if (overEnded) {
-    const overNumber = match.legalBalls / 6;
-    const st = match.batters[match.striker] || { runs: 0, balls: 0 };
-    const ns = match.batters[match.nonStriker] || { runs: 0, balls: 0 };
-    const bw = match.bowlers[match.currentBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
-    const ovStr = `${Math.floor(bw.balls / 6)}.${bw.balls % 6}`;
-    const summaryDesc = `<span class="sum-line"><b>End of Over ${overNumber}</b> — <span class="sum-team">${match.teamBattingAbbr} ${match.runs}/${match.wickets}</span> • ${match._lastOverRuns} run${match._lastOverRuns !== 1 ? 's' : ''} this over</span><span class="sum-line">🏏 ${match.striker} <b>${st.runs}</b>(${st.balls}) • ${match.nonStriker} <b>${ns.runs}</b>(${ns.balls})</span><span class="sum-line">⚾ <span class="sum-bowler">${match.currentBowler}</span> ${ovStr}-${bw.maidens}-${bw.runs}-<b>${bw.wickets}</b></span>`;
-    match.commentary.unshift({ ball: `End Ov ${overNumber}`, desc: summaryDesc, type: 'summary', html: true });
-  }
-
+  /* ---- Persist + render (single batch) ---- */
+  autoPersist();
   scheduleRender();
   broadcastMatchState(shotPayload);
 
-  if (shouldSpeakDelivery(isWicket, runs, desc)) speak(desc);
-
-  if (overEnded) {
-    setTimeout(() => {
-      const wk = document.getElementById('wicketTypeModal');
-      if (wk && wk.style.display === 'flex') {
-        setTimeout(() => {
-          const wk2 = document.getElementById('wicketTypeModal');
-          if (!wk2 || wk2.style.display !== 'flex') promptNextBowlerModal();
-        }, 1200);
-      } else promptNextBowlerModal();
-    }, 900);
+  /* ---- Voice ---- */
+  if (isCommentaryVoiceActive) {
+    const shouldSpeak =
+      commentaryDensity === 'all' ? true :
+      commentaryDensity === 'wickets' ? isWicket :
+      commentaryDensity === 'boundaries' ? (isWicket || runs === 4 || runs === 6 || wasFH) :
+      commentaryDensity === 'milestones' ? (/CENTURY|FIFTY|WICKET|FIVE-FOR/i.test(desc)) : true;
+    if (shouldSpeak) speak(desc);
   }
 
+  /* ---- Trigger bowler-change modal reliably ---- */
+  if (overEnded) {
+    forceBowlerChangePrompt();
+  }
+
+  /* ---- Match / innings end check ---- */
   checkMatchEnd();
 }
 
+/* ═══════════════════════════════════════════════════════════
+   UNDO
+   ═══════════════════════════════════════════════════════════ */
 function undoDelivery() {
   if (historyStack.length > 0 && !isViewerMode) {
     match = historyStack.pop();
@@ -543,10 +748,13 @@ function undoDelivery() {
   }
 }
 
-/* Match / innings end */
+/* ═══════════════════════════════════════════════════════════
+   MATCH / INNINGS END
+   ═══════════════════════════════════════════════════════════ */
 function checkMatchEnd() {
   if (!match.isActive || inningsTransitionLock) return;
   if (!match.totalOvers || match.totalOvers <= 0) return;
+
   if (match.innings === 2 && match.target > 0 && match.runs >= match.target) {
     inningsTransitionLock = true;
     setTimeout(() => { inningsTransitionLock = false; endMatchAndDeclareWinner(true); }, 1500);
@@ -587,6 +795,7 @@ function transitionToInnings2() {
   match.sectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
   match.batters = {}; match.bowlers = {}; match.fielding = {}; match.playerTeamMap = {};
   match._currentOverRuns = 0; match._lastOverRuns = 0;
+  match.oversTimeline = [];
 
   const tn = match.teamBatting; match.teamBatting = match.teamBowling; match.teamBowling = tn;
   const ta = match.teamBattingAbbr; match.teamBattingAbbr = match.teamBowlingAbbr; match.teamBowlingAbbr = ta;
@@ -757,7 +966,6 @@ function beginSecondInnings() {
   });
 }
 
-/* Man of the Match helper (item 20) */
 function computeManOfTheMatch() {
   const pool = buildStatsPool();
   if (!pool.length) return null;
@@ -800,7 +1008,6 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
     }
   };
 
-  // Compute MOTM before flipping isActive
   const motm = computeManOfTheMatch();
   match.motm = motm ? { name: motm.name, mvp: motm.mvp, runs: motm.runs, balls: motm.balls, wickets: motm.wickets, bowlRuns: motm.bowlRuns, catches: motm.catches, sr: motm.sr, eco: motm.eco } : null;
 
@@ -825,7 +1032,6 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
         <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;">
           <span>${escapeHtml(i2t)}</span><b>${i2s}</b>
         </div>`;
-      // MOTM (item 20)
       if (match.motm) {
         const box = document.getElementById('motmBox');
         const nameEl = document.getElementById('motmName');
