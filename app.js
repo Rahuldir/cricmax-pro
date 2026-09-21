@@ -1,5 +1,7 @@
 /* ============================================================
    CricMax Pro — Unified & Responsive Main Application Logic
+   (Rewritten — Overs selection moved before match start;
+    all trailing patches integrated into main flow)
    ============================================================ */
 
 /* ============ APPLICATION STATE ============ */
@@ -32,6 +34,10 @@ let viewerUnsubscribe = null;
 let cloudWriteTimer = null;
 let firebaseAuthReady = false;
 
+/* Pending overs chosen in the setup step (consumed by finalizeMatchStart) */
+let pendingMatchOvers = 0;
+let pendingMatchVenue = '';
+
 const DEFAULT_CONFIG = {
   wideRuns: 1,
   wideCountsAsBall: false,
@@ -55,6 +61,7 @@ function emptyMatch() {
     innings: 1,
     totalOvers: 20,
     originalOvers: 20,
+    totalOversLocked: false,
     venue: "",
     target: 0,
     teamBatting: "",
@@ -285,6 +292,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateSettingsSummary();
   updateBottomNavActive('home');
   updateLiveShareBadge();
+  injectClearDataPanel();
 });
 
 window.addEventListener('beforeunload', () => {
@@ -301,7 +309,6 @@ function broadcastMatchState(latestShot = null) {
       broadcastChannel.postMessage({ type: 'match_state', match: match });
     }
 
-    // Interconnect directly with the 3D Stadium iframe if present
     const stadiumFrame = document.getElementById('stadiumIframe') || document.querySelector('iframe');
     if (stadiumFrame && stadiumFrame.contentWindow) {
       stadiumFrame.contentWindow.postMessage({
@@ -400,9 +407,9 @@ function startNewTournamentFlow() {
   match = emptyMatch();
   window.match = match;
   matchCode = '';
-  document.getElementById('tNameInput').value = '';
-  document.getElementById('tOversInput').value = '20';
-  document.getElementById('tVenueInput').value = '';
+  const ni = document.getElementById('tNameInput'); if (ni) ni.value = '';
+  const oi = document.getElementById('tOversInput'); if (oi) oi.value = '20';
+  const vi = document.getElementById('tVenueInput'); if (vi) vi.value = '';
   autoPersist();
   openTournamentModal();
 }
@@ -443,28 +450,32 @@ function openMatchPicker() {
   const resumeBtn = document.getElementById('btnResumeMatchFromHome');
   const hint = document.getElementById('matchPickerHint');
   if (match && match.isActive) {
-    resumeBtn.style.display = 'block';
-    resumeBtn.innerHTML = `▶ Resume: ${match.teamBatting || '?'} vs ${match.teamBowling || '?'}`;
+    if (resumeBtn) {
+      resumeBtn.style.display = 'block';
+      resumeBtn.innerHTML = `▶ Resume: ${match.teamBatting || '?'} vs ${match.teamBowling || '?'}`;
+    }
     if (hint) hint.innerText = 'A match is currently in progress';
   } else {
-    resumeBtn.style.display = 'none';
+    if (resumeBtn) resumeBtn.style.display = 'none';
     if (hint) hint.innerText = currentTourn ? `Tournament: ${currentTourn.name}` : 'No tournament set up yet';
   }
   document.getElementById('matchPickerModal').style.display = 'flex';
 }
 
+/* ============================================================
+   MATCH START FLOW — FIXED
+   Overs selection now happens BEFORE team selection.
+   ============================================================ */
 function startNewMatchFromHome() {
-  if (!currentTourn) {
-    if (confirm('You need a tournament to start a match.\n\nCreate one now?')) {
-      openTournamentPicker();
-    }
-    return;
-  }
+  closeModal('matchPickerModal');
+
   if (match && match.isActive) {
     if (!confirm('A match is already in progress.\n\nStart a NEW match?')) return;
   }
+
   launchDashboard('tournament');
-  openTeamSelectionModal();
+  // Always open the tournament/overs config modal first.
+  openTournamentModal();
 }
 
 function resumeMatchFromHome() {
@@ -991,6 +1002,7 @@ function selectSubPane(paneId) {
     renderPastMatchesList();
     renderPointsTable();
     updateContinueButton();
+    setTimeout(injectClearDataPanel, 60);
   }
   if (paneId === 'teams') renderTeamsList();
   if (paneId === 'live') {
@@ -1088,11 +1100,8 @@ function startNewMatchFlow() {
     if (!confirm('A match is already in progress.\n\nStart a NEW match?')) return;
   }
   launchDashboard('tournament');
-  if (!currentTourn) {
-    openTournamentModal();
-    return;
-  }
-  openTeamSelectionModal();
+  // Always confirm overs before teams.
+  openTournamentModal();
 }
 
 function openTeamSelectionModal() {
@@ -1138,22 +1147,38 @@ function openTournamentModal() {
     document.getElementById('tNameInput').value = currentTourn.name || '';
     document.getElementById('tOversInput').value = currentTourn.overs || 20;
     document.getElementById('tVenueInput').value = currentTourn.venue || '';
+  } else {
+    const ni = document.getElementById('tNameInput'); if (ni) ni.value = '';
+    const oi = document.getElementById('tOversInput'); if (oi) oi.value = '20';
+    const vi = document.getElementById('tVenueInput'); if (vi) vi.value = '';
   }
   document.getElementById('tournConfigModal').style.display = 'flex';
 }
 
 function saveTournamentAndProceed() {
   const name = document.getElementById('tNameInput').value.trim() || "Championship Cup";
-  const overs = parseInt(document.getElementById('tOversInput').value, 10) || 20;
+  let overs = parseInt(document.getElementById('tOversInput').value, 10);
+  if (!overs || overs <= 0) overs = 20;
+  if (overs > 50) overs = 50;
   const venue = document.getElementById('tVenueInput').value.trim() || "Local Stadium";
   const isNew = !currentTourn || !currentTournId;
   currentTourn = { name, overs, venue };
   if (isNew) {
     currentTournId = 't_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
   }
+  // Remember chosen overs for the upcoming match
+  pendingMatchOvers = overs;
+  pendingMatchVenue = venue;
+
+  // Also make sure match object has the right overs, ready for finalizeMatchStart
+  match.totalOvers = overs;
+  match.originalOvers = overs;
+  match.venue = venue;
+
   updateTournamentProfileCard();
   closeModal('tournConfigModal');
   autoPersist();
+  // Overs are now locked in — move on to team selection
   openTeamSelectionModal();
 }
 
@@ -1281,6 +1306,9 @@ function playIPLOpening(t1Name, t1Abbr, t2Name, t2Abbr, venue, cb, opts = {}) {
   }, 9000);
 }
 
+/* ============================================================
+   FINALIZE MATCH START — overs are locked here
+   ============================================================ */
 function finalizeMatchStart() {
   const batName = document.getElementById('battingTeamSelect').value;
   let bowlName;
@@ -1301,11 +1329,24 @@ function finalizeMatchStart() {
   autoAddPlayerToTeam(nonStriker, batName);
   autoAddPlayerToTeam(bowler, bowlName);
 
+  // Determine total overs: pending → tournament → input → 20
+  let lockedOvers = 0;
+  if (pendingMatchOvers && pendingMatchOvers > 0) lockedOvers = pendingMatchOvers;
+  else if (currentTourn && currentTourn.overs > 0) lockedOvers = parseInt(currentTourn.overs, 10);
+  else {
+    const inp = document.getElementById('tOversInput');
+    if (inp && inp.value) lockedOvers = parseInt(inp.value, 10) || 20;
+    else lockedOvers = 20;
+  }
+  if (lockedOvers <= 0) lockedOvers = 20;
+  if (lockedOvers > 50) lockedOvers = 50;
+
   match.isActive = true;
   match.innings = 1;
-  match.totalOvers = currentTourn.overs;
-  match.originalOvers = currentTourn.overs;
-  match.venue = currentTourn.venue;
+  match.totalOvers = lockedOvers;
+  match.originalOvers = lockedOvers;
+  match.totalOversLocked = true;
+  match.venue = pendingMatchVenue || (currentTourn ? currentTourn.venue : 'Local Stadium');
   match.teamBatting = batName;
   match.teamBowling = bowlName;
   match.teamBattingAbbr = batName.substring(0, 3).toUpperCase();
@@ -1346,8 +1387,8 @@ function finalizeMatchStart() {
 
   matchCode = generateMatchCode();
   match.shareCode = matchCode;
-   localStorage.setItem('currentMatchCode', matchCode);
-console.info('[CricMax] 📡 Match code saved:', matchCode);
+  try { localStorage.setItem('currentMatchCode', matchCode); } catch (e) {}
+  console.info('[CricMax] 📡 Match code saved:', matchCode, '| Overs locked:', lockedOvers);
 
   const bT = savedTeams.find(t => t.name === batName) || { squad: [] };
   const wT = savedTeams.find(t => t.name === bowlName) || { squad: [] };
@@ -1367,13 +1408,13 @@ console.info('[CricMax] 📡 Match code saved:', matchCode);
   const hTitle = document.getElementById('headerMainTitle');
   const hSub = document.getElementById('headerSubTitle');
   if (hTitle) hTitle.innerText = `${batName} vs ${bowlName}`;
-  if (hSub) hSub.innerText = `${match.venue} • Innings 1`;
+  if (hSub) hSub.innerText = `${match.venue} • Innings 1 • ${lockedOvers} ov`;
 
   const infoTourn = document.getElementById('infoTourn');
   const infoFix = document.getElementById('infoFixture');
   const infoVen = document.getElementById('infoVenue');
   const infoOv = document.getElementById('infoOvers');
-  if (infoTourn) infoTourn.innerText = currentTourn.name;
+  if (infoTourn) infoTourn.innerText = currentTourn ? currentTourn.name : 'Match';
   if (infoFix) infoFix.innerText = `${batName} vs ${bowlName}`;
   if (infoVen) infoVen.innerText = match.venue;
   if (infoOv) infoOv.innerText = match.totalOvers;
@@ -1941,9 +1982,6 @@ function populateWicketBatsmanDropdown() {
   }
 }
 
-/* ============================================================
-   SINGLE DEFINITIVE WICKET HANDLER (Fixes Issues 1, 2, & 3)
-   ============================================================ */
 function confirmWicketDelivery() {
   const methodEl = document.getElementById('wktMethodSelect');
   const method = methodEl ? methodEl.value : 'Bowled';
@@ -1966,10 +2004,8 @@ function confirmWicketDelivery() {
 
   const dismissedBatter = match.striker;
 
-  // Single-pass recordBall invocation carrying runs completed before run-out
   recordBall(runOutRuns, null, true, "", 0, { method, fielder });
 
-  // If new batter was provided, assign and activate immediately
   if (newBatter) {
     if (!match.batters[newBatter]) {
       autoAddPlayerToTeam(newBatter, match.teamBatting);
@@ -1981,7 +2017,6 @@ function confirmWicketDelivery() {
 
     match.striker = newBatter;
 
-    // Clean up non-striker slot if the dismissed player remained
     if (match.nonStriker === dismissedBatter) {
       let partner = '';
       for (const k in match.batters) {
@@ -2012,7 +2047,6 @@ function confirmWicketDelivery() {
       speak(`New batter in: ${newBatter}.`);
     }
   } else {
-    // If no replacement was chosen, prompt the next batter modal
     promptNextBatterModal(dismissedBatter);
   }
 }
@@ -2134,7 +2168,7 @@ function promptWagonWheel(runs) {
 
 function drawFieldBase() {
   const cv = document.getElementById('wagonCanvas');
-  if (!cv) return; // Guard against missing canvas
+  if (!cv) return;
   const ctx = cv.getContext('2d');
   const cx = cv.width / 2, cy = cv.height / 2;
   const rope = (cv.width / 2) * 0.8;
@@ -2197,7 +2231,6 @@ if (cvWheel) {
     let deg = Math.atan2(dy, dx) * (180 / Math.PI);
     if (deg < 0) deg += 360;
 
-    // --- NEW: Exact angle for the 3D Viewer ---
     window._tempExactAngle = Math.atan2(dx, -dy);
 
     const sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
@@ -2352,12 +2385,12 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
 }
 
 /* ============================================================
-   ROBUST RECORD-BALL SCORING ENGINE (Fixes Issues 4 & 5)
+   ROBUST RECORD-BALL SCORING ENGINE
+   (Includes automatic innings/match-end detection)
    ============================================================ */
 function recordBall(runs = 0, extra = null, isWicket = false, region = "", distance = 0, dd = null) {
   if (!match.isActive || isViewerMode) return;
 
-  // Ensure participants exist in state to eliminate undefined crashes
   if (!match.striker) match.striker = 'Striker';
   if (!match.nonStriker) match.nonStriker = 'Non-Striker';
   if (!match.currentBowler) match.currentBowler = 'Bowler';
@@ -2464,7 +2497,6 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     bowler.balls += 1;
     striker.balls += 1;
 
-    // Credit runs completed before run-out
     if (runs > 0) {
       striker.runs += runs;
       match.runs += runs;
@@ -2538,7 +2570,6 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
 
   autoPersist();
 
-  // Over completion evaluation
   let overEnded = false;
   let overRunsThisOver = 0;
   const isRegularLegalOver = (extra !== 'WD' && extra !== 'NB' && match.legalBalls % 6 === 0 && match.legalBalls > 0);
@@ -2549,7 +2580,6 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     match.oversTimeline.push({ overNum: match.legalBalls / 6, balls: [...match.currentOverBalls] });
     const lastOver = match.oversTimeline[match.oversTimeline.length - 1];
 
-    // Resilient run tallying from ball badge strings
     overRunsThisOver = lastOver.balls.reduce((sum, b) => {
       const matchNum = String(b).match(/\d+/);
       return sum + (matchNum ? parseInt(matchNum[0], 10) : 0);
@@ -2598,8 +2628,14 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   checkMatchEnd();
 }
 
+/* ============================================================
+   MATCH-END & INNINGS-END DETECTION
+   ============================================================ */
 function checkMatchEnd() {
   if (!match.isActive || inningsTransitionLock) return;
+  if (!match.totalOvers || match.totalOvers <= 0) return;
+
+  // Chase completed
   if (match.innings === 2 && match.target > 0 && match.runs >= match.target) {
     inningsTransitionLock = true;
     setTimeout(() => {
@@ -2608,6 +2644,8 @@ function checkMatchEnd() {
     }, 1500);
     return;
   }
+
+  // Overs completed
   if (match.legalBalls >= match.totalOvers * 6) {
     inningsTransitionLock = true;
     if (match.innings === 1) {
@@ -2625,6 +2663,20 @@ function checkMatchEnd() {
     }
   }
 }
+
+/* Watchdog: ensures state doesn't get stuck if transition was missed */
+setInterval(() => {
+  try {
+    if (match && !match.isActive) {
+      inningsTransitionLock = false;
+    }
+    if (match && match.totalOversLocked && match.originalOvers > 0) {
+      if (match.totalOvers !== match.originalOvers) {
+        match.totalOvers = match.originalOvers;
+      }
+    }
+  } catch (e) {}
+}, 500);
 
 function saveInnings1Snapshot() {
   match.innings1Score = { team: match.teamBatting, runs: match.runs, wickets: match.wickets, balls: match.legalBalls };
@@ -2732,34 +2784,40 @@ function proceedToSecondInningsSetup() {
   openInnings2Setup();
 }
 
+/* ============================================================
+   END INNINGS PROMPT — Clean, non-patched version
+   ============================================================ */
 function endInningsPrompt() {
   if (!match.isActive || isViewerMode) return;
   const title = document.getElementById('endInningsTitle');
   const desc = document.getElementById('endInningsDesc');
   const score = document.getElementById('endInningsScore');
   const overs = document.getElementById('endInningsOvers');
+  const ovStr = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
   if (match.innings === 1) {
-    title.innerText = 'End 1st Innings?';
-    desc.innerText = `${match.teamBatting} will be finalized and ${match.teamBowling} will chase.`;
-    score.innerText = `${match.runs}/${match.wickets}`;
-    overs.innerText = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6} overs`;
+    if (title) title.innerText = 'End 1st Innings?';
+    if (desc) desc.innerText = `${match.teamBatting} innings will end and ${match.teamBowling} will chase.`;
+    if (score) score.innerText = `${match.runs}/${match.wickets}`;
+    if (overs) overs.innerText = `${ovStr} / ${match.totalOvers} overs`;
   } else {
-    title.innerText = 'End 2nd Innings?';
-    desc.innerText = `Match will end. Winner will be declared.`;
-    score.innerText = `${match.runs}/${match.wickets}`;
-    overs.innerText = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6} overs (Target: ${match.target})`;
+    if (title) title.innerText = 'End 2nd Innings?';
+    if (desc) desc.innerText = 'Match will end. Winner will be declared.';
+    if (score) score.innerText = `${match.runs}/${match.wickets}`;
+    if (overs) overs.innerText = `${ovStr} / ${match.totalOvers} overs (Target: ${match.target})`;
   }
   document.getElementById('endInningsModal').style.display = 'flex';
 }
 
 function confirmEndInnings() {
   closeModal('endInningsModal');
+  inningsTransitionLock = false;
+  if (!match || !match.isActive) return;
   if (match.innings === 1) {
-    saveInnings1Snapshot();
-    transitionToInnings2();
-    showInningsBreakModal();
+    try { saveInnings1Snapshot(); } catch (e) {}
+    try { transitionToInnings2(); } catch (e) {}
+    try { showInningsBreakModal(); } catch (e) {}
   } else {
-    endMatchAndDeclareWinner(true);
+    try { endMatchAndDeclareWinner(true); } catch (e) {}
   }
 }
 
@@ -3858,7 +3916,6 @@ function triggerReplay() {
   }
   const lastShot = match.shotLog[match.shotLog.length - 1];
 
-  // Dispatch to 3D stadium iframe if connected
   const stadiumFrame = document.getElementById('vppIframe') || document.getElementById('stadiumIframe') || document.querySelector('iframe');
   if (stadiumFrame && stadiumFrame.contentWindow) {
     stadiumFrame.contentWindow.postMessage({
@@ -3875,339 +3932,186 @@ function triggerReplay() {
     showToast(`Replaying Ball ${lastShot.over}.${lastShot.ball}: ${lastShot.runs} runs`);
   }
 }
+
 /* ============================================================
    3D VIEWER NAVIGATION LISTENER
    ============================================================ */
 window.addEventListener('message', function(ev) {
   if (ev.data && ev.data.type === 'CM_NAV_TO') {
     const pane = ev.data.pane;
-    // When the user clicks Card, Analysis, or Stats in the 3D viewer menu
     if (['scorecard', 'analytics', 'leaderboards'].includes(pane)) {
       if (typeof launchDashboard === 'function' && typeof selectSubPane === 'function') {
-        launchDashboard('live'); 
+        launchDashboard('live');
         selectSubPane(pane);
       }
     }
   }
 });
 
-
 /* ============================================================
-   BUG FIX PATCH — Overs lock + End Innings reliability
+   CLEAR DATA PANEL & FUNCTIONS (integrated — no patches)
    ============================================================ */
-(function(){
-  'use strict';
+function injectClearDataPanel() {
+  const pane = document.getElementById('pane-tournament');
+  if (!pane) return;
+  if (document.getElementById('clearDataPanel')) return;
 
-  var _origFinalize = window.finalizeMatchStart;
-  window.finalizeMatchStart = function(){
-    if(_origFinalize) _origFinalize();
-    try {
-      if(currentTourn && currentTourn.overs && currentTourn.overs > 0){
-        match.totalOvers = parseInt(currentTourn.overs, 10);
-        match.originalOvers = parseInt(currentTourn.overs, 10);
-      }
-      if(match.totalOvers <= 0){
-        var inp = document.getElementById('tOversInput');
-        if(inp && inp.value){
-          match.totalOvers = parseInt(inp.value, 10) || 20;
-          match.originalOvers = match.totalOvers;
-        }
-      }
-      match.totalOversLocked = true;
-      console.log('🔒 Overs locked at', match.totalOvers);
-    } catch(e){ console.warn('Lock overs error:', e); }
-  };
+  const html = ''
+    + '<div class="section-header-banner" style="margin-top:20px;border-left-color:var(--red);background:linear-gradient(90deg,rgba(239,68,68,.15),transparent);">'
+    +   '<span>🗑️</span> Clear Data'
+    + '</div>'
+    + '<div class="panel-card" id="clearDataPanel" style="border:1px solid rgba(239,68,68,.35);">'
+    +   '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Delete specific data. This cannot be undone.</div>'
+    +   '<div style="display:grid;gap:8px;">'
+    +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5;" onclick="clearMatchStats()">'
+    +       '<b>🧹 Clear Match Stats</b><br><small style="font-size:10px;opacity:.8;">Clears shots, commentary, worm, wagon wheel — keeps teams & players</small>'
+    +     '</button>'
+    +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4);color:#fbbf24;" onclick="clearPlayerStats()">'
+    +       '<b>👤 Clear Player Stats</b><br><small style="font-size:10px;opacity:.8;">Resets all player career records, batting/bowling/fielding stats</small>'
+    +     '</button>'
+    +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:#e9d5ff;" onclick="clearTournamentData()">'
+    +       '<b>🏆 Delete Tournament</b><br><small style="font-size:10px;opacity:.8;">Removes current tournament, its teams, and past matches</small>'
+    +     '</button>'
+    +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.2);border-color:var(--red);color:#fca5a5;" onclick="clearEverything()">'
+    +       '<b>⚠️ Clear ALL Data</b><br><small style="font-size:10px;opacity:.8;">Full wipe — everything from localStorage & cloud</small>'
+    +     '</button>'
+    +   '</div>'
+    + '</div>';
+  pane.insertAdjacentHTML('beforeend', html);
+}
 
-  setInterval(function(){
-    try {
-      if(match && match.totalOversLocked && match.originalOvers > 0){
-        if(match.totalOvers !== match.originalOvers){
-          match.totalOvers = match.originalOvers;
-        }
-      }
-      if(match && !match.isActive){
-        inningsTransitionLock = false;
-      }
-    } catch(e){}
-  }, 500);
-
-  window.endInningsPrompt = function(){
-    if(!match || !match.isActive || isViewerMode) return;
-    try {
-      var t = document.getElementById('endInningsTitle');
-      var d = document.getElementById('endInningsDesc');
-      var s = document.getElementById('endInningsScore');
-      var o = document.getElementById('endInningsOvers');
-      var ovStr = Math.floor(match.legalBalls/6) + '.' + (match.legalBalls%6);
-      if(match.innings === 1){
-        if(t) t.innerText = 'End 1st Innings?';
-        if(d) d.innerText = (match.teamBatting||'Batting') + ' innings will end and ' + (match.teamBowling||'opponent') + ' will chase.';
-        if(s) s.innerText = (match.runs||0) + '/' + (match.wickets||0);
-        if(o) o.innerText = ovStr + ' / ' + match.totalOvers + ' overs';
-      } else {
-        if(t) t.innerText = 'End 2nd Innings?';
-        if(d) d.innerText = 'Match will end. Winner will be declared.';
-        if(s) s.innerText = (match.runs||0) + '/' + (match.wickets||0);
-        if(o) o.innerText = ovStr + ' / ' + match.totalOvers + ' overs (Target: ' + (match.target||0) + ')';
-      }
-      var modal = document.getElementById('endInningsModal');
-      if(modal) modal.style.display = 'flex';
-    } catch(e){ console.error('endInningsPrompt error:', e); }
-  };
-
-  window.confirmEndInnings = function(){
-    try { closeModal('endInningsModal'); } catch(e){}
-    inningsTransitionLock = false;
-    if(!match || !match.isActive) return;
-    if(match.innings === 1){
-      try { saveInnings1Snapshot(); } catch(e){}
-      try { transitionToInnings2(); } catch(e){}
-      try { showInningsBreakModal(); } catch(e){}
-    } else {
-      try { endMatchAndDeclareWinner(true); } catch(e){}
-    }
-  };
-
-  var _origRecord = window.recordBall;
-  window.recordBall = function(){
-    var result = _origRecord ? _origRecord.apply(this, arguments) : undefined;
-    try {
-      if(match && match.isActive && match.totalOvers > 0){
-        if(match.legalBalls >= match.totalOvers * 6 && !inningsTransitionLock){
-          inningsTransitionLock = true;
-          setTimeout(function(){
-            inningsTransitionLock = false;
-            if(match.innings === 1){
-              try { saveInnings1Snapshot(); } catch(e){}
-              try { transitionToInnings2(); } catch(e){}
-              try { showInningsBreakModal(); } catch(e){}
-            } else {
-              try { endMatchAndDeclareWinner(true); } catch(e){}
-            }
-          }, 900);
-        }
-      }
-    } catch(e){}
-    return result;
-  };
-
-  console.log('✅ Bug fixes applied');
-})();
-
-/* ============================================================
-   OVERS POPUP ON DIRECT START + DATA CLEAR OPTIONS
-   ============================================================ */
-(function(){
-  'use strict';
-
-  /* ---------- PART 1: Show overs modal when starting match directly ---------- */
-  var _origStartNewMatchFromHome = window.startNewMatchFromHome;
-  window.startNewMatchFromHome = function(){
-    try { closeModal('matchPickerModal'); } catch(e){}
-    // If no tournament, go to tournament config (which includes overs)
-    if(!currentTourn){
-      try { openTournamentModal(); } catch(e){}
-      return;
-    }
-    // If match in progress, confirm first
-    if(match && match.isActive){
-      if(!confirm('A match is already in progress.\n\nStart a NEW match?')) return;
-    }
-    // Always show tournament config so scorer can set/change overs
-    try { openTournamentModal(); } catch(e){}
-  };
-
-  /* ---------- PART 2: Inject "Clear Data" panel into Tournament pane ---------- */
-  function injectClearDataPanel(){
-    var pane = document.getElementById('pane-tournament');
-    if(!pane) return;
-    if(document.getElementById('clearDataPanel')) return; // already added
-
-    var html = ''
-      + '<div class="section-header-banner" style="margin-top:20px;border-left-color:var(--red);background:linear-gradient(90deg,rgba(239,68,68,.15),transparent);">'
-      +   '<span>🗑️</span> Clear Data'
-      + '</div>'
-      + '<div class="panel-card" id="clearDataPanel" style="border:1px solid rgba(239,68,68,.35);">'
-      +   '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Delete specific data. This cannot be undone.</div>'
-      +   '<div style="display:grid;gap:8px;">'
-      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5;" onclick="clearMatchStats()">'
-      +       '<b>🧹 Clear Match Stats</b><br><small style="font-size:10px;opacity:.8;">Clears shots, commentary, worm, wagon wheel — keeps teams & players</small>'
-      +     '</button>'
-      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4);color:#fbbf24;" onclick="clearPlayerStats()">'
-      +       '<b>👤 Clear Player Stats</b><br><small style="font-size:10px;opacity:.8;">Resets all player career records, batting/bowling/fielding stats</small>'
-      +     '</button>'
-      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:#e9d5ff;" onclick="clearTournamentData()">'
-      +       '<b>🏆 Delete Tournament</b><br><small style="font-size:10px;opacity:.8;">Removes current tournament, its teams, and past matches</small>'
-      +     '</button>'
-      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.2);border-color:var(--red);color:#fca5a5;" onclick="clearEverything()">'
-      +       '<b>⚠️ Clear ALL Data</b><br><small style="font-size:10px;opacity:.8;">Full wipe — everything from localStorage & cloud</small>'
-      +     '</button>'
-      +   '</div>'
-      + '</div>';
-    pane.insertAdjacentHTML('beforeend', html);
+function clearMatchStats() {
+  if (!confirm('🧹 Clear all match stats?\n\nThis will remove:\n• Shots log\n• Commentary\n• Wagon wheel data\n• Worm chart\n• This over history\n\nTeams & players stay.\n\nContinue?')) return;
+  try {
+    match.shotLog = [];
+    match.commentary = [];
+    match.recentBalls = [];
+    match.currentOverBalls = [];
+    match.cumulativeWorm = [0];
+    match.oversTimeline = [];
+    match.sectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
+    match.fow = [];
+    match.partnerRuns = [];
+    match.currentPartnership = { runs: 0, balls: 0, batters: [] };
+    match.innings1BattingSnapshot = null;
+    match.innings1BowlingSnapshot = null;
+    match.innings1FieldingSnapshot = null;
+    match.innings1Fow = [];
+    match.innings1PartnerRuns = [];
+    match.innings1SectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
+    match.innings2SectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
+    historyStack = [];
+    autoPersist();
+    renderLive();
+    renderCommentary();
+    renderSummary();
+    renderScorecard();
+    broadcastMatchState();
+    showToast('✅ Match stats cleared');
+  } catch (e) {
+    console.error('clearMatchStats error:', e);
+    showToast('⚠️ Some stats could not be cleared');
   }
+}
 
-  /* ---------- PART 3: Clear functions ---------- */
-
-  window.clearMatchStats = function(){
-    if(!confirm('🧹 Clear all match stats?\n\nThis will remove:\n• Shots log\n• Commentary\n• Wagon wheel data\n• Worm chart\n• This over history\n\nTeams & players stay.\n\nContinue?')) return;
-    try {
-      match.shotLog = [];
-      match.commentary = [];
-      match.recentBalls = [];
-      match.currentOverBalls = [];
-      match.cumulativeWorm = [0];
-      match.oversTimeline = [];
-      match.sectorRuns = [0,0,0,0,0,0,0,0];
-      match.fow = [];
-      match.partnerRuns = [];
-      match.currentPartnership = { runs: 0, balls: 0, batters: [] };
-      match.innings1BattingSnapshot = null;
-      match.innings1BowlingSnapshot = null;
-      match.innings1FieldingSnapshot = null;
-      match.innings1Fow = [];
-      match.innings1PartnerRuns = [];
-      match.innings1SectorRuns = [0,0,0,0,0,0,0,0];
-      match.innings2SectorRuns = [0,0,0,0,0,0,0,0];
-      try { historyStack = []; } catch(e){}
-      autoPersist();
-      renderLive();
-      renderCommentary();
-      renderSummary();
-      renderScorecard();
-      broadcastMatchState();
-      showToast('✅ Match stats cleared');
-    } catch(e){
-      console.error('clearMatchStats error:', e);
-      showToast('⚠️ Some stats could not be cleared');
+function clearPlayerStats() {
+  if (!confirm('👤 Clear all player career stats?\n\nThis resets:\n• Batting averages & totals\n• Bowling figures\n• Fielding records\n• Career match log\n\nPlayer names in teams stay.\nTeam totals for the current live match stay.\n\nContinue?')) return;
+  try {
+    for (const n in match.batters) {
+      match.batters[n] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: match.batters[n].status || 'dnb' };
     }
-  };
-
-  window.clearPlayerStats = function(){
-    if(!confirm('👤 Clear all player career stats?\n\nThis resets:\n• Batting averages & totals\n• Bowling figures\n• Fielding records\n• Career match log\n\nPlayer names in teams stay.\nTeam totals for the current live match stay.\n\nContinue?')) return;
-    try {
-      // Reset live batter stats
-      for(var n in match.batters){
-        match.batters[n] = { runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status: match.batters[n].status || 'dnb' };
+    for (const bn in match.bowlers) {
+      match.bowlers[bn] = { balls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, threeW: 0, fiveW: 0 };
+    }
+    for (const fn in match.fielding) {
+      match.fielding[fn] = { catches: 0, stumpings: 0, runOuts: 0 };
+    }
+    pastMatchesLedger.forEach(pm => {
+      if (pm.innings1) {
+        pm.innings1.batters = {};
+        pm.innings1.bowlers = {};
+        pm.innings1.fielding = {};
       }
-      // Reset live bowler stats
-      for(var bn in match.bowlers){
-        match.bowlers[bn] = { balls:0, maidens:0, runs:0, wickets:0, dots:0, threeW:0, fiveW:0 };
+      if (pm.innings2) {
+        pm.innings2.batters = {};
+        pm.innings2.bowlers = {};
+        pm.innings2.fielding = {};
       }
-      // Reset live fielder stats
-      for(var fn in match.fielding){
-        match.fielding[fn] = { catches:0, stumpings:0, runOuts:0 };
-      }
-      // Reset all career stats in past matches (strip batting/bowling/fielding numbers)
-      pastMatchesLedger.forEach(function(pm){
-        if(pm.innings1){
-          pm.innings1.batters = {};
-          pm.innings1.bowlers = {};
-          pm.innings1.fielding = {};
-        }
-        if(pm.innings2){
-          pm.innings2.batters = {};
-          pm.innings2.bowlers = {};
-          pm.innings2.fielding = {};
-        }
-      });
-      autoPersist();
-      renderLive();
-      renderScorecard();
-      renderStatsCategory(currentStatsCategory);
-      broadcastMatchState();
-      showToast('✅ Player career stats cleared');
-    } catch(e){
-      console.error('clearPlayerStats error:', e);
-      showToast('⚠️ Could not clear player stats');
-    }
-  };
-
-  window.clearTournamentData = function(){
-    if(!confirm('🏆 Delete this tournament?\n\nThis removes:\n• Current tournament\n• All teams & squads\n• All past matches\n• Points table\n\nThis CANNOT be undone.\n\nContinue?')) return;
-    try {
-      // Archive first (in case they change mind — this keeps a copy in history)
-      // but only if tournament exists
-      try { archiveCurrentTournament(); } catch(e){}
-      // Now wipe current tournament data
-      currentTourn = null;
-      currentTournId = null;
-      savedTeams = [];
-      pastMatchesLedger = [];
-      match = emptyMatch();
-      matchCode = '';
-      try { historyStack = []; } catch(e){}
-      // Reset UI
-      try { updateTournamentProfileCard(); } catch(e){}
-      try { renderPastMatchesList(); } catch(e){}
-      try { renderTeamsList(); } catch(e){}
-      try { renderPointsTable(); } catch(e){}
-      try { updateContinueButton(); } catch(e){}
-      autoPersist();
-      showToast('✅ Tournament data deleted');
-    } catch(e){
-      console.error('clearTournamentData error:', e);
-      showToast('⚠️ Could not fully clear tournament');
-    }
-  };
-
-  window.clearEverything = function(){
-    if(!confirm('⚠️ DELETE ALL DATA?\n\nThis will remove:\n• Every tournament & match\n• All teams & players\n• All career stats\n• Settings\n• Cloud backup\n\nThis CANNOT be undone!\n\nAre you absolutely sure?')) return;
-    if(!confirm('🚨 FINAL WARNING\n\nAre you REALLY sure? Type OK below or press Cancel.')) return;
-    try {
-      // Reset all in-memory state
-      savedTeams = [];
-      currentTourn = null;
-      currentTournId = null;
-      tournamentsHistory = [];
-      pastMatchesLedger = [];
-      match = emptyMatch();
-      matchCode = '';
-      bowlerTypeMap = {};
-      matchConfig = Object.assign({}, DEFAULT_CONFIG);
-      try { historyStack = []; } catch(e){}
-      try { usedPhrases = {}; } catch(e){}
-      // Clear localStorage
-      try { localStorage.removeItem('CricMax_Data'); } catch(e){}
-      try { localStorage.removeItem('CricMax_Theme'); } catch(e){}
-      // Clear cloud doc if possible
-      try {
-        if(window.firebaseReady && window.fbAuth && window.fbAuth.currentUser && matchCode){
-          window.fbSetDoc(window.fbDoc(window.fbDb, 'matches', matchCode), { isActive: false, cleared: true, updatedAt: new Date().toISOString() });
-        }
-      } catch(e){}
-      // Reset UI
-      try { updateTournamentProfileCard(); } catch(e){}
-      try { renderPastMatchesList(); } catch(e){}
-      try { renderTeamsList(); } catch(e){}
-      try { renderPointsTable(); } catch(e){}
-      try { updateContinueButton(); } catch(e){}
-      try { syncSettingsUI(); } catch(e){}
-      try { updateSettingsSummary(); } catch(e){}
-      try { updateLiveShareBadge(); } catch(e){}
-      showToast('✅ ALL data cleared. Reloading…', 3000);
-      setTimeout(function(){ location.reload(); }, 2000);
-    } catch(e){
-      console.error('clearEverything error:', e);
-      showToast('⚠️ Could not clear all data');
-    }
-  };
-
-  /* ---------- PART 4: Inject panel when tournament pane is shown ---------- */
-  var _origSelectSubPane = window.selectSubPane;
-  window.selectSubPane = function(paneId){
-    if(_origSelectSubPane) _origSelectSubPane(paneId);
-    if(paneId === 'tournament'){
-      setTimeout(injectClearDataPanel, 100);
-    }
-  };
-
-  // Also inject on initial load
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(injectClearDataPanel, 500); });
-  } else {
-    setTimeout(injectClearDataPanel, 500);
+    });
+    autoPersist();
+    renderLive();
+    renderScorecard();
+    renderStatsCategory(currentStatsCategory);
+    broadcastMatchState();
+    showToast('✅ Player career stats cleared');
+  } catch (e) {
+    console.error('clearPlayerStats error:', e);
+    showToast('⚠️ Could not clear player stats');
   }
+}
 
-  console.log('✅ Overs popup + Clear Data options loaded');
-})();
+function clearTournamentData() {
+  if (!confirm('🏆 Delete this tournament?\n\nThis removes:\n• Current tournament\n• All teams & squads\n• All past matches\n• Points table\n\nThis CANNOT be undone.\n\nContinue?')) return;
+  try {
+    try { archiveCurrentTournament(); } catch (e) {}
+    currentTourn = null;
+    currentTournId = null;
+    savedTeams = [];
+    pastMatchesLedger = [];
+    match = emptyMatch();
+    window.match = match;
+    matchCode = '';
+    historyStack = [];
+    updateTournamentProfileCard();
+    renderPastMatchesList();
+    renderTeamsList();
+    renderPointsTable();
+    updateContinueButton();
+    autoPersist();
+    showToast('✅ Tournament data deleted');
+  } catch (e) {
+    console.error('clearTournamentData error:', e);
+    showToast('⚠️ Could not fully clear tournament');
+  }
+}
+
+function clearEverything() {
+  if (!confirm('⚠️ DELETE ALL DATA?\n\nThis will remove:\n• Every tournament & match\n• All teams & players\n• All career stats\n• Settings\n• Cloud backup\n\nThis CANNOT be undone!\n\nAre you absolutely sure?')) return;
+  if (!confirm('🚨 FINAL WARNING\n\nAre you REALLY sure? Press OK to confirm.')) return;
+  try {
+    savedTeams = [];
+    currentTourn = null;
+    currentTournId = null;
+    tournamentsHistory = [];
+    pastMatchesLedger = [];
+    match = emptyMatch();
+    window.match = match;
+    matchCode = '';
+    bowlerTypeMap = {};
+    matchConfig = Object.assign({}, DEFAULT_CONFIG);
+    historyStack = [];
+    usedPhrases = {};
+    try { localStorage.removeItem('CricMax_Data'); } catch (e) {}
+    try { localStorage.removeItem('CricMax_Theme'); } catch (e) {}
+    try {
+      if (window.firebaseReady && window.fbAuth && window.fbAuth.currentUser && matchCode) {
+        window.fbSetDoc(window.fbDoc(window.fbDb, 'matches', matchCode), { isActive: false, cleared: true, updatedAt: new Date().toISOString() });
+      }
+    } catch (e) {}
+    updateTournamentProfileCard();
+    renderPastMatchesList();
+    renderTeamsList();
+    renderPointsTable();
+    updateContinueButton();
+    syncSettingsUI();
+    updateSettingsSummary();
+    updateLiveShareBadge();
+    showToast('✅ ALL data cleared. Reloading…', 3000);
+    setTimeout(() => location.reload(), 2000);
+  } catch (e) {
+    console.error('clearEverything error:', e);
+    showToast('⚠️ Could not clear all data');
+  }
+}
+
+/* ============ END OF FILE ============ */
