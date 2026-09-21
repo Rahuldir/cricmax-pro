@@ -1230,10 +1230,15 @@
     } else { renderStatsScope(); }
   };
 
+   /* ─── Hook the existing pill-click handler to respect scope ─── */
   var _origRenderStatsCategory = window.renderStatsCategory;
   window.renderStatsCategory = function(cat, btn){
-    if (typeof _origRenderStatsCategory === 'function') _origRenderStatsCategory(cat, btn);
-    if (currentScope !== 'match') setTimeout(renderStatsScope, 30);
+    if (typeof _origRenderStatsCategory === 'function'){
+      _origRenderStatsCategory(cat, btn);
+    }
+    if (currentScope !== 'match'){
+      setTimeout(renderStatsScope, 30);
+    }
   };
 
   var _origBottomNav = window.bottomNavAction;
