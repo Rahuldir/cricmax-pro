@@ -330,7 +330,27 @@ function setSky(mode){
 }
 setSky('day');
 
+function navTo(pane){
+  document.querySelectorAll('.menu-tile[data-pane]').forEach(t => {
+    t.classList.toggle('on', t.getAttribute('data-pane') === pane);
+  });
+  if (pane === 'pitch'){ toggleMenu(); return; }
 
+  /* Try iframe parent first */
+  try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
+
+  /* Fallback — if opened standalone, redirect to main app with tab hash */
+  if (window.parent === window){
+    const urls = {
+      'scorecard':    '/index.html#card',
+      'analytics':    '/index.html#analysis',
+      'leaderboards': '/index.html#stats'
+    };
+    if (urls[pane]) window.location.href = urls[pane];
+  }
+
+  toggleMenu();
+}
 
 /* ============================================================
    3. KINEMATIC PLAYER MODEL
