@@ -1032,40 +1032,55 @@
 <script src="viewer-bridge.js?v=5" defer></script>
  <script>
 /* ═══════════════════════════════════════════════════════════════
-   CricMax — Firebase Auto-Sync Bridge (v2 — self-initializing)
+   CricMax — Firebase Auto-Sync Bridge (v3 — authenticated)
+   Signs in anonymously so the scoring app has write permission.
    ═══════════════════════════════════════════════════════════════ */
 (function(){
-  /* Your Firebase config — matches the viewer */
   const FIREBASE_CONFIG = {
     projectId: "cricket-8cb1b",
     databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app"
   };
 
-  /* Ensure a default Firebase app exists — initialize if not */
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
     try {
-      firebase.app();  /* throws if not initialized */
+      firebase.app();   /* Already initialized? */
       return true;
     } catch (e) {
       try {
         firebase.initializeApp(FIREBASE_CONFIG);
-        console.info('[CricMax] 🔥 Firebase app initialized by auto-sync');
+        console.info('[CricMax] 🔥 Firebase app initialized');
         return true;
       } catch (e2) {
-        console.warn('[CricMax] Firebase init failed:', e2);
         return false;
       }
     }
   }
 
-  function initFirebaseSync(){
-    if (!ensureFirebaseApp()){
-      console.warn('[CricMax] Firebase not ready — retrying...');
-      setTimeout(initFirebaseSync, 200);
-      return;
-    }
+  /* Resolve when an auth state exists (existing or new anonymous user) */
+  function ensureAuth(){
+    return new Promise(function(resolve){
+      const unsub = firebase.auth().onAuthStateChanged(function(user){
+        unsub();
+        if (user){
+          console.info('[CricMax] 🔐 Existing auth detected');
+          resolve(user);
+        } else {
+          firebase.auth().signInAnonymously()
+            .then(function(cred){
+              console.info('[CricMax] 🔐 Anonymous auth created');
+              resolve(cred.user);
+            })
+            .catch(function(err){
+              console.warn('[CricMax] Auth failed — writes will be blocked:', err);
+              resolve(null);
+            });
+        }
+      });
+    });
+  }
 
+  function armSyncBridge(){
     const fireDB = firebase.database();
     const ref = fireDB.ref('cricmax/match_current');
     const originalSetItem = localStorage.setItem.bind(localStorage);
@@ -1078,8 +1093,8 @@
           const parsed = JSON.parse(value);
           if (parsed && parsed.match){
             ref.set(parsed.match)
-              .then(() => console.info('[CricMax] 🔥 Firebase synced'))
-              .catch(err => console.warn('[CricMax] Firebase write failed:', err));
+              .then(function(){ console.info('[CricMax] 🔥 Firebase synced'); })
+              .catch(function(err){ console.warn('[CricMax] Write failed:', err.message); });
           }
         } catch(e){
           console.warn('[CricMax] Sync parse error:', e);
@@ -1100,6 +1115,14 @@
     } catch(e){}
 
     console.info('[CricMax] 🔥 Firebase Auto-Sync Bridge armed');
+  }
+
+  function initFirebaseSync(){
+    if (!ensureFirebaseApp()){
+      setTimeout(initFirebaseSync, 200);
+      return;
+    }
+    ensureAuth().then(function(){ armSyncBridge(); });
   }
 
   initFirebaseSync();
