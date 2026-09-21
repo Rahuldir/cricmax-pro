@@ -1,0 +1,21 @@
+{
+  "name": "cricmax-pro",
+  "version": "1.0.0",
+  "description": "CricMax Pro - Cricket tournament and match management system",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server -p 3000",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "cricket",
+    "sports",
+    "tournament",
+    "game"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
