@@ -108,6 +108,22 @@
   .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
   .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
 
+  /* ── AUDIO MODE PICKER ────────────────────────────────── */
+  .ic .snd-caret{font-size:7px;margin-left:1px;opacity:.8;line-height:1;}
+  #audioMenu{position:absolute;top:44px;left:6px;width:min(80vw,250px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:8px;z-index:100002;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;}
+  #audioMenu.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
+  .audio-opt{display:flex;align-items:center;gap:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px 10px;color:#e2e8f0;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:5px;text-align:left;}
+  .audio-opt:last-child{margin-bottom:0;}
+  .audio-opt:active{transform:scale(.98);}
+  .audio-opt .ai{font-size:15px;line-height:1;}
+  .audio-opt .as{margin-left:auto;font-size:8.5px;font-weight:900;color:#94a3b8;letter-spacing:.5px;}
+  .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
+  .audio-opt.on .as{color:#00e676;}
+
+  /* ── COMMENTARY TICKER ────────────────────────────────── */
+  #commTicker{position:absolute;left:6px;right:6px;bottom:84px;background:rgba(8,15,30,.94);border:1px solid rgba(0,230,118,.35);border-left:3px solid #00e676;border-radius:8px;padding:6px 9px;color:#e2e8f0;font-size:10.5px;font-weight:700;line-height:1.3;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none;z-index:10000;}
+  #commTicker.show{opacity:1;transform:translateY(0);}
+
   @media (max-width:360px){
     .ic{width:28px;height:28px;font-size:12px;border-radius:8px;}
     .live{padding:3px 6px;font-size:8.5px;}
@@ -117,6 +133,7 @@
     .sc-bowl{font-size:8.5px;padding-left:5px;}
     .b{width:16px;height:16px;font-size:7.5px;}
     .over-row{font-size:8px;padding:2px 6px;}
+    .audio-opt{font-size:10px;padding:8px;}
   }
   @media (max-width:320px){
     .live{display:none;}
@@ -132,7 +149,7 @@
   <div class="top-bar">
     <div class="top-left">
       <div class="live">VR LIVE</div>
-      <div class="ic on" id="util-snd" onclick="toggleAudio()"><span id="snd-ico">🔊</span></div>
+      <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)"><span id="snd-ico">🏟️</span><span class="snd-caret">▾</span></div>
       <div class="ic" onclick="triggerReplay()">↻</div>
       <div class="ic" onclick="toggleFullscreen()">⛶</div>
     </div>
@@ -154,6 +171,20 @@
       <div class="ic" id="btn-tv" onclick="toggleTVMode()">📺</div>
       <div class="ic" id="btn-menu" onclick="toggleMenu(event)" style="background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;">☰</div>
     </div>
+  </div>
+
+  <!-- ── AUDIO MODE PICKER ─────────────────────────────── -->
+  <div id="audioMenu">
+    <div class="menu-ttl">Audio Mode</div>
+    <button class="audio-opt on" id="aud-stadium" onclick="setAudioMode('stadium')">
+      <span class="ai">🏟️</span><span>Stadium Sound</span><span class="as">AMBIENCE</span>
+    </button>
+    <button class="audio-opt" id="aud-commentary" onclick="setAudioMode('commentary')">
+      <span class="ai">🎙️</span><span>Ball-by-Ball</span><span class="as">COMMS</span>
+    </button>
+    <button class="audio-opt" id="aud-mute" onclick="setAudioMode('mute')">
+      <span class="ai">🔇</span><span>Mute</span><span class="as">OFF</span>
+    </button>
   </div>
 
   <div id="menuPanel">
@@ -208,6 +239,8 @@
   <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
 
   <div class="banner" id="banner">FOUR!</div>
+
+  <div id="commTicker"></div>
 
   <div class="bottom">
     <div class="over-row">
@@ -739,12 +772,201 @@ function playStumps(){
     }, i * 35);
   }
 }
-function toggleAudio(){
-  audioOn = !audioOn;
-  const el = document.getElementById('snd-ico'); if (el) el.innerText = audioOn ? '🔊' : '🔇';
-  const btn = document.getElementById('util-snd'); if (btn) btn.classList.toggle('on', audioOn);
-  if (audioOn) initAudio();
+
+/* ═══════════════════════════════════════════════════════════════
+   AUDIO MODES — Stadium Sound / Ball-by-Ball Commentary / Mute
+   ═══════════════════════════════════════════════════════════════ */
+let audioMode = 'stadium';
+let lastAudibleMode = 'stadium';
+let audioMenuOpen = false;
+let ambienceNodes = null;
+let commentaryVoice = null;
+let commTickerTimer = null;
+
+function toggleAudioMenu(e){
+  if (e && e.stopPropagation) e.stopPropagation();
+  audioMenuOpen = !audioMenuOpen;
+  const p = document.getElementById('audioMenu');
+  if (p) p.classList.toggle('open', audioMenuOpen);
 }
+function closeAudioMenu(){
+  audioMenuOpen = false;
+  const p = document.getElementById('audioMenu');
+  if (p) p.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  if (!audioMenuOpen) return;
+  const panel = document.getElementById('audioMenu');
+  const btn = document.getElementById('util-snd');
+  if (panel && panel.contains(e.target)) return;
+  if (btn && btn.contains(e.target)) return;
+  closeAudioMenu();
+}, true);
+
+function startAmbience(){
+  if (!actx || ambienceNodes) return;
+  try {
+    const len = Math.floor(actx.sampleRate * 3);
+    const buf = actx.createBuffer(1, len, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++){
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      d[i] = last * 3.2;
+    }
+    const src = actx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const hp = actx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 130;
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = 950; lp.Q.value = 0.6;
+    const g  = actx.createGain(); g.gain.value = 0.0001;
+    const lfo = actx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.07;
+    const lfoG = actx.createGain(); lfoG.gain.value = 0.03;
+    lfo.connect(lfoG); lfoG.connect(g.gain);
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(actx.destination);
+    src.start(); lfo.start();
+    g.gain.setTargetAtTime(0.07, actx.currentTime, 1.5);
+    ambienceNodes = { src: src, lfo: lfo, g: g };
+  } catch(err){ ambienceNodes = null; }
+}
+function stopAmbience(){
+  if (!ambienceNodes) return;
+  const nodes = ambienceNodes;
+  ambienceNodes = null;
+  try {
+    nodes.g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.35);
+    setTimeout(function(){ try { nodes.src.stop(); nodes.lfo.stop(); } catch(e){} }, 1000);
+  } catch(e){}
+}
+function crowdRoar(intensity){
+  if (audioMode === 'mute' || !audioOn || !actx) return;
+  try {
+    const dur = 1.4;
+    const len = Math.floor(actx.sampleRate * dur);
+    const buf = actx.createBuffer(1, len, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++){
+      const env = Math.sin(Math.PI * (i / len));
+      d[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 780; bp.Q.value = 0.7;
+    const g = actx.createGain(); g.gain.value = 0.15 * (intensity || 1);
+    src.connect(bp); bp.connect(g); g.connect(actx.destination);
+    src.start();
+  } catch(e){}
+}
+
+function pickCommentaryVoice(){
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices() || [];
+  if (!voices.length) return null;
+  const prefer = ['en-in','en-gb','en-au','en-us','en'];
+  for (let i = 0; i < prefer.length; i++){
+    for (let j = 0; j < voices.length; j++){
+      if (String(voices[j].lang || '').toLowerCase().indexOf(prefer[i]) === 0) return voices[j];
+    }
+  }
+  return voices[0];
+}
+if ('speechSynthesis' in window){
+  try {
+    commentaryVoice = pickCommentaryVoice();
+    window.speechSynthesis.onvoiceschanged = function(){ commentaryVoice = pickCommentaryVoice(); };
+  } catch(e){}
+}
+function showCommentary(text){
+  const el = document.getElementById('commTicker');
+  if (!el) return;
+  el.innerText = text;
+  el.classList.add('show');
+  if (commTickerTimer) clearTimeout(commTickerTimer);
+  commTickerTimer = setTimeout(function(){ el.classList.remove('show'); }, 4200);
+}
+function speakCommentary(text){
+  if (audioMode !== 'commentary' || !text) return;
+  showCommentary(text);
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (commentaryVoice) u.voice = commentaryVoice;
+    u.rate = 1.06; u.pitch = 1.0; u.volume = 1.0;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+function buildCommentaryLine(shot){
+  const m = window.__cricmaxLastMatch || {};
+  const bowler = m.currentBowler || 'the bowler';
+  const bat = m.striker || 'the batter';
+  const runs = shot.runs || 0;
+  const isWkt = !!(shot.isWicket || shot.isOut);
+  const isCatch = !!(shot.isCatch || shot.wicketType === 'caught');
+  const spd = shot.ballSpeed ? Math.round(parseFloat(shot.ballSpeed)) + ' kilometres per hour' : '';
+  const pick = function(a){ return a[Math.floor(Math.random() * a.length)]; };
+  if (isCatch) return pick([
+    'Caught! ' + bat + ' goes aerial and finds the fielder. Terrific take!',
+    'Up in the air... and taken! ' + bat + ' has to go. What a catch!'
+  ]);
+  if (isWkt) return pick([
+    'Bowled him! ' + bowler + ' knocks him over. ' + bat + ' is gone!',
+    'Through the gate, timber! ' + bat + ' has been cleaned up by ' + bowler + '.'
+  ]);
+  if (runs === 6) return pick([
+    'That is huge! ' + bat + ' sends it into the stands for six!',
+    'Maximum! Clean strike from ' + bat + ' — six runs' + (spd ? ', at ' + spd : '') + '!'
+  ]);
+  if (runs === 4) return pick([
+    'Beautiful shot! ' + bat + ' finds the gap and it races away for four!',
+    'Cracking stroke — four runs to ' + bat + '. The fielder had no chance.'
+  ]);
+  if (runs === 3) return 'Three runs! Good running between the wickets by ' + bat + '.';
+  if (runs === 2) return pick(['Two runs, nicely placed by ' + bat + '.', 'They come back for the second — good running.']);
+  if (runs === 1) return pick(['Single taken, ' + bat + ' rotates the strike.', 'Just the one run.']);
+  return pick([
+    'Dot ball. ' + bowler + ' keeps it tight.',
+    'No run — good line and length from ' + bowler + '.',
+    'Defended solidly by ' + bat + '. No run.'
+  ]);
+}
+
+function setAudioMode(mode){
+  if (['stadium','commentary','mute'].indexOf(mode) < 0) mode = 'stadium';
+  audioMode = mode;
+  if (mode !== 'mute') lastAudibleMode = mode;
+  audioOn = (mode !== 'mute');
+
+  const ico = document.getElementById('snd-ico');
+  if (ico) ico.innerText = mode === 'mute' ? '🔇' : (mode === 'commentary' ? '🎙️' : '🏟️');
+  const btn = document.getElementById('util-snd');
+  if (btn) btn.classList.toggle('on', mode !== 'mute');
+  ['stadium','commentary','mute'].forEach(function(k){
+    const el = document.getElementById('aud-' + k);
+    if (el) el.classList.toggle('on', k === mode);
+  });
+
+  if (mode === 'mute'){
+    stopAmbience();
+    if ('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
+  } else {
+    initAudio();
+    startAmbience();
+    if (mode !== 'commentary' && 'speechSynthesis' in window){
+      try { window.speechSynthesis.cancel(); } catch(e){}
+    }
+  }
+  closeAudioMenu();
+}
+
+function toggleAudio(){
+  setAudioMode(audioMode === 'mute' ? lastAudibleMode : 'mute');
+}
+
+function audioFirstGesture(){
+  if (audioMode !== 'mute'){ initAudio(); startAmbience(); }
+  document.removeEventListener('pointerdown', audioFirstGesture);
+}
+document.addEventListener('pointerdown', audioFirstGesture);
 
 const RunningState = {
   active: false, totalRuns: 0, progress: 0, durationPerRun: 1.35,
@@ -1348,6 +1570,15 @@ function playBall(shot){
           });
           if (closest) closest.chase(hitPoint);
         }
+        /* ── Commentary + crowd reaction ── */
+        if (audioMode === 'commentary'){
+          setTimeout(function(){
+            speakCommentary(buildCommentaryLine(Object.assign({}, shot, { ballSpeed: speedVal })));
+          }, 220);
+        }
+        if (audioMode !== 'mute' && (isWkt || isCatch || runs >= 4)){
+          crowdRoar(runs >= 6 ? 1.25 : 1);
+        }
       }
       if (runningPending && !runningStarted && elapsed >= T_CONTACT + RUNNING_START_DELAY){
         runningStarted = true;
@@ -1669,6 +1900,9 @@ window.simFeedScoringTab = simFeedScoringTab;
 window.triggerReplay = triggerReplay;
 window.toggleAudio = toggleAudio;
 window.toggleFullscreen = toggleFullscreen;
+/* ── New audio-mode API ── */
+window.toggleAudioMenu = toggleAudioMenu;
+window.setAudioMode = setAudioMode;
 
 /* ═══ Boot: wagon wheel open by default ═══ */
 setStadiumView(false);
