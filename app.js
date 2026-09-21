@@ -3993,3 +3993,221 @@ window.addEventListener('message', function(ev) {
 
   console.log('✅ Bug fixes applied');
 })();
+
+/* ============================================================
+   OVERS POPUP ON DIRECT START + DATA CLEAR OPTIONS
+   ============================================================ */
+(function(){
+  'use strict';
+
+  /* ---------- PART 1: Show overs modal when starting match directly ---------- */
+  var _origStartNewMatchFromHome = window.startNewMatchFromHome;
+  window.startNewMatchFromHome = function(){
+    try { closeModal('matchPickerModal'); } catch(e){}
+    // If no tournament, go to tournament config (which includes overs)
+    if(!currentTourn){
+      try { openTournamentModal(); } catch(e){}
+      return;
+    }
+    // If match in progress, confirm first
+    if(match && match.isActive){
+      if(!confirm('A match is already in progress.\n\nStart a NEW match?')) return;
+    }
+    // Always show tournament config so scorer can set/change overs
+    try { openTournamentModal(); } catch(e){}
+  };
+
+  /* ---------- PART 2: Inject "Clear Data" panel into Tournament pane ---------- */
+  function injectClearDataPanel(){
+    var pane = document.getElementById('pane-tournament');
+    if(!pane) return;
+    if(document.getElementById('clearDataPanel')) return; // already added
+
+    var html = ''
+      + '<div class="section-header-banner" style="margin-top:20px;border-left-color:var(--red);background:linear-gradient(90deg,rgba(239,68,68,.15),transparent);">'
+      +   '<span>🗑️</span> Clear Data'
+      + '</div>'
+      + '<div class="panel-card" id="clearDataPanel" style="border:1px solid rgba(239,68,68,.35);">'
+      +   '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Delete specific data. This cannot be undone.</div>'
+      +   '<div style="display:grid;gap:8px;">'
+      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5;" onclick="clearMatchStats()">'
+      +       '<b>🧹 Clear Match Stats</b><br><small style="font-size:10px;opacity:.8;">Clears shots, commentary, worm, wagon wheel — keeps teams & players</small>'
+      +     '</button>'
+      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4);color:#fbbf24;" onclick="clearPlayerStats()">'
+      +       '<b>👤 Clear Player Stats</b><br><small style="font-size:10px;opacity:.8;">Resets all player career records, batting/bowling/fielding stats</small>'
+      +     '</button>'
+      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:#e9d5ff;" onclick="clearTournamentData()">'
+      +       '<b>🏆 Delete Tournament</b><br><small style="font-size:10px;opacity:.8;">Removes current tournament, its teams, and past matches</small>'
+      +     '</button>'
+      +     '<button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.2);border-color:var(--red);color:#fca5a5;" onclick="clearEverything()">'
+      +       '<b>⚠️ Clear ALL Data</b><br><small style="font-size:10px;opacity:.8;">Full wipe — everything from localStorage & cloud</small>'
+      +     '</button>'
+      +   '</div>'
+      + '</div>';
+    pane.insertAdjacentHTML('beforeend', html);
+  }
+
+  /* ---------- PART 3: Clear functions ---------- */
+
+  window.clearMatchStats = function(){
+    if(!confirm('🧹 Clear all match stats?\n\nThis will remove:\n• Shots log\n• Commentary\n• Wagon wheel data\n• Worm chart\n• This over history\n\nTeams & players stay.\n\nContinue?')) return;
+    try {
+      match.shotLog = [];
+      match.commentary = [];
+      match.recentBalls = [];
+      match.currentOverBalls = [];
+      match.cumulativeWorm = [0];
+      match.oversTimeline = [];
+      match.sectorRuns = [0,0,0,0,0,0,0,0];
+      match.fow = [];
+      match.partnerRuns = [];
+      match.currentPartnership = { runs: 0, balls: 0, batters: [] };
+      match.innings1BattingSnapshot = null;
+      match.innings1BowlingSnapshot = null;
+      match.innings1FieldingSnapshot = null;
+      match.innings1Fow = [];
+      match.innings1PartnerRuns = [];
+      match.innings1SectorRuns = [0,0,0,0,0,0,0,0];
+      match.innings2SectorRuns = [0,0,0,0,0,0,0,0];
+      try { historyStack = []; } catch(e){}
+      autoPersist();
+      renderLive();
+      renderCommentary();
+      renderSummary();
+      renderScorecard();
+      broadcastMatchState();
+      showToast('✅ Match stats cleared');
+    } catch(e){
+      console.error('clearMatchStats error:', e);
+      showToast('⚠️ Some stats could not be cleared');
+    }
+  };
+
+  window.clearPlayerStats = function(){
+    if(!confirm('👤 Clear all player career stats?\n\nThis resets:\n• Batting averages & totals\n• Bowling figures\n• Fielding records\n• Career match log\n\nPlayer names in teams stay.\nTeam totals for the current live match stay.\n\nContinue?')) return;
+    try {
+      // Reset live batter stats
+      for(var n in match.batters){
+        match.batters[n] = { runs:0, balls:0, fours:0, sixes:0, dots:0, fifties:0, hundreds:0, status: match.batters[n].status || 'dnb' };
+      }
+      // Reset live bowler stats
+      for(var bn in match.bowlers){
+        match.bowlers[bn] = { balls:0, maidens:0, runs:0, wickets:0, dots:0, threeW:0, fiveW:0 };
+      }
+      // Reset live fielder stats
+      for(var fn in match.fielding){
+        match.fielding[fn] = { catches:0, stumpings:0, runOuts:0 };
+      }
+      // Reset all career stats in past matches (strip batting/bowling/fielding numbers)
+      pastMatchesLedger.forEach(function(pm){
+        if(pm.innings1){
+          pm.innings1.batters = {};
+          pm.innings1.bowlers = {};
+          pm.innings1.fielding = {};
+        }
+        if(pm.innings2){
+          pm.innings2.batters = {};
+          pm.innings2.bowlers = {};
+          pm.innings2.fielding = {};
+        }
+      });
+      autoPersist();
+      renderLive();
+      renderScorecard();
+      renderStatsCategory(currentStatsCategory);
+      broadcastMatchState();
+      showToast('✅ Player career stats cleared');
+    } catch(e){
+      console.error('clearPlayerStats error:', e);
+      showToast('⚠️ Could not clear player stats');
+    }
+  };
+
+  window.clearTournamentData = function(){
+    if(!confirm('🏆 Delete this tournament?\n\nThis removes:\n• Current tournament\n• All teams & squads\n• All past matches\n• Points table\n\nThis CANNOT be undone.\n\nContinue?')) return;
+    try {
+      // Archive first (in case they change mind — this keeps a copy in history)
+      // but only if tournament exists
+      try { archiveCurrentTournament(); } catch(e){}
+      // Now wipe current tournament data
+      currentTourn = null;
+      currentTournId = null;
+      savedTeams = [];
+      pastMatchesLedger = [];
+      match = emptyMatch();
+      matchCode = '';
+      try { historyStack = []; } catch(e){}
+      // Reset UI
+      try { updateTournamentProfileCard(); } catch(e){}
+      try { renderPastMatchesList(); } catch(e){}
+      try { renderTeamsList(); } catch(e){}
+      try { renderPointsTable(); } catch(e){}
+      try { updateContinueButton(); } catch(e){}
+      autoPersist();
+      showToast('✅ Tournament data deleted');
+    } catch(e){
+      console.error('clearTournamentData error:', e);
+      showToast('⚠️ Could not fully clear tournament');
+    }
+  };
+
+  window.clearEverything = function(){
+    if(!confirm('⚠️ DELETE ALL DATA?\n\nThis will remove:\n• Every tournament & match\n• All teams & players\n• All career stats\n• Settings\n• Cloud backup\n\nThis CANNOT be undone!\n\nAre you absolutely sure?')) return;
+    if(!confirm('🚨 FINAL WARNING\n\nAre you REALLY sure? Type OK below or press Cancel.')) return;
+    try {
+      // Reset all in-memory state
+      savedTeams = [];
+      currentTourn = null;
+      currentTournId = null;
+      tournamentsHistory = [];
+      pastMatchesLedger = [];
+      match = emptyMatch();
+      matchCode = '';
+      bowlerTypeMap = {};
+      matchConfig = Object.assign({}, DEFAULT_CONFIG);
+      try { historyStack = []; } catch(e){}
+      try { usedPhrases = {}; } catch(e){}
+      // Clear localStorage
+      try { localStorage.removeItem('CricMax_Data'); } catch(e){}
+      try { localStorage.removeItem('CricMax_Theme'); } catch(e){}
+      // Clear cloud doc if possible
+      try {
+        if(window.firebaseReady && window.fbAuth && window.fbAuth.currentUser && matchCode){
+          window.fbSetDoc(window.fbDoc(window.fbDb, 'matches', matchCode), { isActive: false, cleared: true, updatedAt: new Date().toISOString() });
+        }
+      } catch(e){}
+      // Reset UI
+      try { updateTournamentProfileCard(); } catch(e){}
+      try { renderPastMatchesList(); } catch(e){}
+      try { renderTeamsList(); } catch(e){}
+      try { renderPointsTable(); } catch(e){}
+      try { updateContinueButton(); } catch(e){}
+      try { syncSettingsUI(); } catch(e){}
+      try { updateSettingsSummary(); } catch(e){}
+      try { updateLiveShareBadge(); } catch(e){}
+      showToast('✅ ALL data cleared. Reloading…', 3000);
+      setTimeout(function(){ location.reload(); }, 2000);
+    } catch(e){
+      console.error('clearEverything error:', e);
+      showToast('⚠️ Could not clear all data');
+    }
+  };
+
+  /* ---------- PART 4: Inject panel when tournament pane is shown ---------- */
+  var _origSelectSubPane = window.selectSubPane;
+  window.selectSubPane = function(paneId){
+    if(_origSelectSubPane) _origSelectSubPane(paneId);
+    if(paneId === 'tournament'){
+      setTimeout(injectClearDataPanel, 100);
+    }
+  };
+
+  // Also inject on initial load
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(injectClearDataPanel, 500); });
+  } else {
+    setTimeout(injectClearDataPanel, 500);
+  }
+
+  console.log('✅ Overs popup + Clear Data options loaded');
+})();
