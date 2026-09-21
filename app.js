@@ -1346,6 +1346,8 @@ function finalizeMatchStart() {
 
   matchCode = generateMatchCode();
   match.shareCode = matchCode;
+   localStorage.setItem('currentMatchCode', matchCode);
+console.info('[CricMax] 📡 Match code saved:', matchCode);
 
   const bT = savedTeams.find(t => t.name === batName) || { squad: [] };
   const wT = savedTeams.find(t => t.name === bowlName) || { squad: [] };
