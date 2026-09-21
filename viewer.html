@@ -1074,9 +1074,33 @@ function renderOverDots(ballTags){
   if (totalEl) totalEl.innerText = overRuns + ' RUNS';
 }
 
-function applyMatch(m){
-  if (!m) return;
-  currentMatchState = m;
+function applyMatch(raw){
+  if (!raw) return;
+  currentMatchState = raw;
+
+  /* ═══════════════════════════════════════════════════════════
+     SUPPORT BOTH FORMATS
+     • Nested: { innings1: {...}, innings2: {...}, currentInnings: 1|2 }
+     • Flat:   { runs, wickets, legalBalls, batters, bowlers, ... }
+     ═══════════════════════════════════════════════════════════ */
+  let m = raw;
+  if (raw.innings1 || raw.innings2){
+    const innNum = raw.currentInnings || 1;
+    const inn = innNum === 2 ? (raw.innings2 || raw.innings1) : (raw.innings1 || raw.innings2);
+    if (inn){
+      const battingTeam = inn.team || raw.teamBatting || '';
+      m = Object.assign({}, raw, {
+        runs:             inn.runs || 0,
+        wickets:          inn.wickets || 0,
+        legalBalls:       inn.balls || 0,
+        teamBatting:      battingTeam,
+        teamBattingAbbr:  (raw.teamBattingAbbr || battingTeam.substring(0,3).toUpperCase()),
+        batters:          inn.batters || raw.batters || {},
+        bowlers:          inn.bowlers || raw.bowlers || {},
+        currentOverBalls: raw.currentOverBalls || inn.currentOverBalls || null
+      });
+    }
+  }
 
   /* Auto-reset flag if legalBalls went backwards (new innings / new match) */
   const curLB = m.legalBalls || 0;
