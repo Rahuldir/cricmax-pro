@@ -11,7 +11,6 @@
 <meta name="format-detection" content="telephone=no">
 <title>CricMax Pro — Match Viewer</title>
 
-<!-- #20 Preload the 2 most critical local scripts -->
 <link rel="preload" as="script" href="stadium.js">
 <link rel="preload" as="script" href="shot-fx.js">
 
@@ -22,7 +21,6 @@
   .vignette{position:fixed;inset:0;pointer-events:none;z-index:9998;background:radial-gradient(circle at center,transparent 55%,rgba(0,0,0,.5) 100%);}
   .hud{position:fixed;inset:0;pointer-events:none;z-index:9999;touch-action:manipulation;}
 
-  /* ── LOADING SCREEN (#2) ──────────────────────────────── */
   #cm-loader{position:fixed;inset:0;background:#020713;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#00e676;font-family:-apple-system,sans-serif;transition:opacity .45s ease;}
   #cm-loader.cm-hide{opacity:0;pointer-events:none;}
   .cm-spin{font-size:46px;margin-bottom:12px;animation:cmSpin 1.2s linear infinite;display:inline-block;}
@@ -32,7 +30,6 @@
   .cm-loader-bar-wrap{width:180px;height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:20px;overflow:hidden;}
   #cm-loader-bar{width:0%;height:100%;background:linear-gradient(90deg,#009270,#00e676);transition:width .3s ease;}
 
-  /* ── TOP BAR ──────────────────────────────────────────── */
   .top-bar{position:absolute;top:6px;left:6px;right:6px;display:flex;justify-content:space-between;align-items:center;gap:4px;pointer-events:none;}
   .top-left{display:flex;gap:4px;align-items:center;pointer-events:auto;}
   .top-center{display:flex;justify-content:center;align-items:center;pointer-events:auto;flex:1;min-width:0;}
@@ -49,7 +46,6 @@
   .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
   .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
 
-  /* ── AUDIO FAB ────────────────────────────────────────── */
   .audio-fab{position:absolute;top:44px;left:6px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;touch-action:manipulation;}
   .audio-fab > .ic{width:36px;height:36px;font-size:16px;border-radius:10px;position:relative;}
   .audio-fab > .ic .snd-caret{position:absolute;bottom:2px;right:3px;font-size:8px;opacity:.9;line-height:1;}
@@ -64,7 +60,6 @@
   .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
   .audio-opt.on .as{color:#00e676;}
 
-  /* ── MENU ─────────────────────────────────────────────── */
   #menuPanel{position:absolute;top:48px;right:6px;width:min(88vw,290px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:9px;z-index:100001;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 60px);overflow-y:auto;touch-action:manipulation;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-sec{margin-bottom:8px;}
@@ -77,18 +72,15 @@
   .menu-t .i{font-size:13px;line-height:1;}
   .menu-div{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:7px 0;}
 
-  /* ── SPEED ────────────────────────────────────────────── */
   .speed{position:absolute;top:44px;right:6px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;}
   .speed.on{opacity:1;}
 
-  /* ── WAGON WRAP ───────────────────────────────────────── */
   #wagonWrap{position:fixed;top:44px;left:0;right:0;bottom:88px;display:none;align-items:center;justify-content:center;padding:4px;z-index:10001;pointer-events:none;}
   #wagonWrap.show{display:flex;}
   #wagonWheelCanvas{max-width:100%;max-height:100%;width:auto;height:auto;aspect-ratio:1/1;background:#050b0a;border:1px solid rgba(0,230,118,.4);border-radius:50%;box-shadow:0 0 40px rgba(0,230,118,.35), inset 0 0 30px rgba(0,0,0,.6);pointer-events:auto;display:block;}
   #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
   #wagonInfo.show{display:block;}
 
-  /* ── BANNER ───────────────────────────────────────────── */
   .banner{position:absolute;top:24%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(30px,8vw,60px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .3s;pointer-events:none;text-align:center;line-height:1;}
   .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
   .banner.four{color:#22d3ee;text-shadow:0 0 30px #0891b2,0 6px 16px #000;}
@@ -96,7 +88,6 @@
   .banner.wkt{color:#ef4444;text-shadow:0 0 30px #7f1d1d,0 6px 16px #000;}
   .banner.run{color:#00e676;text-shadow:0 0 30px #009270,0 6px 16px #000;}
 
-  /* ── BOTTOM ───────────────────────────────────────────── */
   .bottom{position:absolute;bottom:6px;left:6px;right:6px;display:flex;flex-direction:column;gap:4px;pointer-events:auto;z-index:10000;padding-bottom:env(safe-area-inset-bottom,0);touch-action:manipulation;}
   .over-row{display:flex;align-items:center;gap:6px;background:rgba(8,18,32,.92);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px 8px;font-size:9px;font-weight:800;color:#cbd5e1;}
   .over-row > .label{color:#94a3b8;font-size:8.5px;letter-spacing:.5px;flex-shrink:0;}
@@ -122,7 +113,6 @@
   .sc-bowl{text-align:right;color:#22d3ee;border-left:1px solid rgba(255,255,255,.12);padding-left:7px;font-weight:700;font-size:9.5px;flex-shrink:0;}
   .sc-bowl > div{white-space:nowrap;}
 
-  /* ── TV MODE ─────────────────────────────────────────── */
   #tvMode{position:fixed;inset:0;z-index:100050;background:linear-gradient(135deg,#0a0e1a 0%,#0d1424 100%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;text-align:center;}
   #tvMode.show{display:flex;}
   .tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;}
@@ -141,7 +131,6 @@
   .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
   .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
 
-  /* ── COMMENTARY TICKER ────────────────────────────────── */
   #commTicker{position:absolute;left:6px;right:6px;bottom:84px;background:rgba(8,15,30,.94);border:1px solid rgba(0,230,118,.35);border-left:3px solid #00e676;border-radius:8px;padding:6px 9px;color:#e2e8f0;font-size:10.5px;font-weight:700;line-height:1.3;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none;z-index:10000;}
   #commTicker.show{opacity:1;transform:translateY(0);}
 
@@ -165,7 +154,6 @@
 </head>
 <body>
 
-<!-- #2 Loading screen -->
 <div id="cm-loader">
   <span class="cm-spin">🏏</span>
   <div class="cm-loader-title">CRICMAX PRO</div>
@@ -340,7 +328,9 @@
 
 <script>
 (function(){
-  /* Device capability detection first (#3) */
+  /* ═══════════════════════════════════════════════════════════════
+     DEVICE TIER
+     ═══════════════════════════════════════════════════════════════ */
   const CM_DEVICE = (function(){
     const ua = navigator.userAgent || '';
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
@@ -350,22 +340,17 @@
     const cores = navigator.hardwareConcurrency || 4;
     const isLowEnd = mem < 4 || cores <= 4;
     const isMidEnd = mem >= 4 && mem < 6;
-    return {
-      isMobile, isIOS, isAndroid, mem, cores,
-      tier: isLowEnd ? 0 : (isMidEnd ? 1 : 2)
-    };
+    return { isMobile, isIOS, isAndroid, mem, cores, tier: isLowEnd ? 0 : (isMidEnd ? 1 : 2) };
   })();
   window.__cmDevice = CM_DEVICE;
   console.log('[CricMax] Device tier:', CM_DEVICE);
 
-  /* Loader progress helper (#2) */
   const __cmLoaderBar = document.getElementById('cm-loader-bar');
   window.__cmProgress = function(pct){
     if (__cmLoaderBar) __cmLoaderBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
   };
   window.__cmProgress(8);
 
-  /* Skip loading heavy optional modules on low-end (#4-lite inside this change) */
   function bootOptionalModules(){
     const HOOKS = [
       ['CricMaxEnvironment','build'],
@@ -394,14 +379,11 @@
 
   const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 800);
 
-  /* #3 Quality tuning for device tier */
   const maxDPR = CM_DEVICE.tier === 0 ? 1 : (CM_DEVICE.tier === 1 ? 1.5 : 2);
   const renderer = new THREE.WebGLRenderer({
     antialias: CM_DEVICE.tier >= 1,
     powerPreference: 'high-performance',
-    alpha: false,
-    stencil: false,
-    depth: true
+    alpha: false, stencil: false, depth: true
   });
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDPR));
@@ -419,7 +401,7 @@
   window.__cmProgress(25);
 
   /* ═══════════════════════════════════════════════════════════════
-     UI (menu, sky, nav)
+     UI
      ═══════════════════════════════════════════════════════════════ */
   let menuOpen = false;
   function toggleMenu(e){
@@ -1069,7 +1051,6 @@
   }
   function toggleAudio(){ setAudioMode(audioMode === 'mute' ? lastAudibleMode : 'mute'); }
 
-  /* #9-ish iOS audio unlock (kept simple, passive) */
   let _audioUnlocked = false;
   function unlockAudio(){
     if (_audioUnlocked) return;
@@ -1091,7 +1072,6 @@
   ['pointerdown','touchstart','touchend','click','keydown'].forEach(function(evt){
     document.addEventListener(evt, unlockAudio, { passive: true });
   });
-  /* Also honor original audioFirstGesture semantics */
   function audioFirstGesture(){
     if (audioMode !== 'mute'){
       initAudio();
@@ -1232,20 +1212,19 @@
   let prevLegalBalls = 0;
 
   /* ═══════════════════════════════════════════════════════════════
-     WAGON WHEEL  (#7 smaller on mobile, #8 dirty flag, #12 field cache)
+     WAGON WHEEL — WITH ALL FIXES
      ═══════════════════════════════════════════════════════════════ */
   const wagonCanvas = document.getElementById('wagonWheelCanvas');
   const wagonCtx = wagonCanvas ? wagonCanvas.getContext('2d') : null;
 
-  /* #7 reduce canvas resolution on mobile devices */
   if (wagonCanvas && CM_DEVICE.isMobile){
     const targetSize = CM_DEVICE.tier === 0 ? 480 : 640;
     wagonCanvas.width = targetSize;
     wagonCanvas.height = targetSize;
   }
 
-  /* #8 dirty flag */
   let __cmWagonDirty = true;
+  let __cmWagonForceUntil = 0;   /* FIX D: force redraw window */
 
   const overShots = [];
   const MAX_SHOTS_PER_OVER = 6;
@@ -1253,16 +1232,22 @@
   const ANIM_DURATION = 900;
   const TRAIL_HOLD    = 1400;
 
+  /* FIX A: Fielder markers re-anchored to the corrected top-down frame.
+     Angle convention (radians):
+       0       = toward bowler / straight down the ground (UP on canvas)
+       +π/2    = off side (RIGHT on canvas)
+       -π/2    = leg side (LEFT on canvas)
+       ±π      = behind the wicket (DOWN on canvas) */
   const FIELDER_MARKERS = [
-    { name:'Slip',    angle: Math.atan2( 3.2, 13.5), dist: 0.55 },
-    { name:'Gully',   angle: Math.atan2( 7.0, 12.0), dist: 0.55 },
-    { name:'Point',   angle: Math.atan2(18.0,  7.5), dist: 0.85 },
-    { name:'Cover',   angle: Math.atan2(20.0, -2.0), dist: 0.85 },
-    { name:'Mid-off', angle: Math.atan2( 7.5, -9.5), dist: 0.62 },
-    { name:'Mid-on',  angle: Math.atan2(-7.5, -9.5), dist: 0.62 },
-    { name:'Mid-wkt', angle: Math.atan2(-19.0, 0.0), dist: 0.85 },
-    { name:'Sq Leg',  angle: Math.atan2(-18.0, 8.0), dist: 0.85 },
-    { name:'Fine Leg',angle: Math.atan2(-35.0, 24.0), dist: 0.92 }
+    { name:'Slip',     angle:  2.65, dist: 0.55 },
+    { name:'Gully',    angle:  2.35, dist: 0.55 },
+    { name:'Point',    angle:  1.57, dist: 0.85 },
+    { name:'Cover',    angle:  0.96, dist: 0.85 },
+    { name:'Mid-off',  angle:  0.44, dist: 0.62 },
+    { name:'Mid-on',   angle: -0.44, dist: 0.62 },
+    { name:'Mid-wkt',  angle: -1.57, dist: 0.85 },
+    { name:'Sq Leg',   angle: -1.92, dist: 0.85 },
+    { name:'Fine Leg', angle: -2.55, dist: 0.92 }
   ];
 
   function recordShotForWagon(angle, runs, isWicket){
@@ -1270,6 +1255,7 @@
     overShots.push({ angle: angle, runs: runs, isWicket: !!isWicket, startTime: now });
     while (overShots.length > MAX_SHOTS_PER_OVER) overShots.shift();
     __cmWagonDirty = true;
+    __cmWagonForceUntil = now + 3000;   /* FIX D */
     if (!stadiumViewActive) drawWagonWheel();
   }
 
@@ -1287,7 +1273,7 @@
     lastOverNum = overNum;
   }
 
-  /* #12 Offscreen cached static field layer */
+  /* Static field cache (blit every frame) */
   let __cmFieldCache = null;
   function buildFieldCache(){
     if (!wagonCanvas) return null;
@@ -1316,7 +1302,6 @@
     }
     x.globalAlpha = 1;
 
-    /* Clip inside boundary for pitch + markers */
     x.save();
     x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.clip();
 
@@ -1345,10 +1330,10 @@
     x.moveTo(cx - 22, cy + R * 0.62); x.lineTo(cx + 22, cy + R * 0.62);
     x.stroke();
 
-    /* Fielder markers */
+    /* FIX A: fielder markers with corrected vertical mapping */
     FIELDER_MARKERS.forEach(f => {
       const fx = cx + Math.sin(f.angle) * R * f.dist;
-      const fy = cy + Math.cos(f.angle) * R * f.dist;
+      const fy = cy - Math.cos(f.angle) * R * f.dist;   /* was +cos */
       x.fillStyle = 'rgba(148, 163, 184, 0.45)';
       x.beginPath(); x.arc(fx, fy, 4, 0, Math.PI * 2); x.fill();
       x.strokeStyle = 'rgba(255,255,255,0.3)';
@@ -1382,7 +1367,7 @@
     x.fillText('E', cx + R + 14, cy);
     x.fillText('W', cx - R - 14, cy);
 
-    /* Static legend background */
+    /* Legend */
     const legendItems = [
       { col:'#ff8800', label:'6' },
       { col:'#00e5ff', label:'4' },
@@ -1427,16 +1412,16 @@
     const R = W / 2 - 40;
     const now = performance.now();
 
-    /* #12 blit static field */
     wagonCtx.globalAlpha = 1;
     wagonCtx.shadowBlur = 0;
     wagonCtx.setLineDash([]);
     wagonCtx.textBaseline = 'alphabetic';
     wagonCtx.clearRect(0, 0, W, H);
+
     const cache = getFieldCache();
     if (cache) wagonCtx.drawImage(cache, 0, 0);
 
-    /* Dynamic shots */
+    /* FIX A: dynamic shot lines use `cy - cos(...)` so up-clicks point up */
     overShots.forEach((shot, idx) => {
       const age = now - shot.startTime;
       const rawProgress = Math.min(1, age / ANIM_DURATION);
@@ -1453,7 +1438,7 @@
 
       const len = targetLen * progress;
       const sx = cx + Math.sin(shot.angle) * R * len;
-      const sy = cy + Math.cos(shot.angle) * R * len;
+      const sy = cy - Math.cos(shot.angle) * R * len;   /* was +cos */
 
       const col = shot.isWicket ? '#ef4444'
                 : shot.runs >= 6 ? '#ff8800'
@@ -1505,7 +1490,7 @@
       if (progress > 0.6 && ballAlpha > 0.1){
         const labelRadius = R * len + 26;
         const lx = cx + Math.sin(shot.angle) * labelRadius;
-        const ly = cy + Math.cos(shot.angle) * labelRadius;
+        const ly = cy - Math.cos(shot.angle) * labelRadius;   /* was +cos */
         const label = shot.isWicket ? 'W' : String(shot.runs);
 
         wagonCtx.globalAlpha = ballAlpha;
@@ -1522,7 +1507,7 @@
       wagonCtx.shadowBlur = 0;
     });
 
-    /* Center ball */
+    /* Centre marker */
     wagonCtx.shadowBlur = 22;
     wagonCtx.shadowColor = 'rgba(0,230,118,0.9)';
     wagonCtx.fillStyle = '#00e676';
@@ -1533,7 +1518,7 @@
     wagonCtx.fillStyle = '#00e676';
     wagonCtx.beginPath(); wagonCtx.arc(cx, cy, 2.5, 0, Math.PI * 2); wagonCtx.fill();
 
-    /* THIS OVER badge (dynamic count) */
+    /* THIS OVER badge */
     wagonCtx.fillStyle = 'rgba(8,15,30,0.85)';
     wagonCtx.strokeStyle = 'rgba(0,230,118,0.5)';
     wagonCtx.lineWidth = 1.5;
@@ -1625,8 +1610,29 @@
     const bowlerType = shot.bowlerType || 'fast_pace';
     const isSpin = bowlerType === 'spin' || bowlerType === 'off_spin' || bowlerType === 'leg_spin';
 
-    let wwAngle = Math.random() * Math.PI * 2;
-    if (shot.angle !== undefined && shot.angle !== null) wwAngle = parseFloat(shot.angle);
+    /* ═══════════════════════════════════════════════════════════
+       FIX C: Smart angle resolution with layered fallbacks
+       ═══════════════════════════════════════════════════════════ */
+    let wwAngle;
+    const numAngle = (typeof shot.angle === 'number') ? shot.angle : parseFloat(shot.angle);
+    if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined){
+      wwAngle = numAngle;
+    } else {
+      const zoneNames = ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"];
+      let zoneIdx = -1;
+      if (typeof shot.zoneIndex === 'number' && shot.zoneIndex >= 0 && shot.zoneIndex < 8){
+        zoneIdx = shot.zoneIndex;
+      } else if (typeof shot.zone === 'string' && shot.zone){
+        zoneIdx = zoneNames.findIndex(z => z.toLowerCase() === shot.zone.toLowerCase());
+      }
+      if (zoneIdx >= 0){
+        wwAngle = (zoneIdx * Math.PI / 4) + (Math.PI / 8);
+      } else if (typeof shot.ballRandom === 'number'){
+        wwAngle = shot.ballRandom * Math.PI * 2;
+      } else {
+        wwAngle = Math.random() * Math.PI * 2;
+      }
+    }
 
     const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
     const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
@@ -1634,7 +1640,7 @@
     const pitchZ = phys.length.pZ;
     const pitchX = (Math.random() - 0.5) * 0.4;
     const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
-    const hitZ = 8.8 + Math.cos(wwAngle) * phys.finalDist;
+    const hitZ = 8.8 - Math.cos(wwAngle) * phys.finalDist;   /* was 8.8 + cos */
 
     recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
 
@@ -1875,7 +1881,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     MULTI-CHANNEL SYNC
+     MULTI-CHANNEL SYNC — FIX B: play last shot on first connect
      ═══════════════════════════════════════════════════════════════ */
   let lastSeenBalls = -1;
   function handleNewMatchData(m){
@@ -1883,7 +1889,18 @@
     applyMatch(m);
     const shots = m.shotLog || [];
     const total = shots.length;
-    if (lastSeenBalls < 0){ lastSeenBalls = total; return; }
+
+    if (lastSeenBalls < 0){
+      /* First state after page load — replay the latest shot so the
+         wagon wheel immediately shows the current ball direction. */
+      lastSeenBalls = total;
+      if (total > 0){
+        const last = shots[total - 1];
+        if (last){ window.__cricmaxInningsOver = false; playBall(last); }
+      }
+      return;
+    }
+
     if (total > lastSeenBalls){
       lastSeenBalls = total;
       const last = shots[total - 1];
@@ -1921,7 +1938,6 @@
     const urlParams = new URLSearchParams(window.location.search);
     const matchCode = urlParams.get('code');
     const refPath = matchCode ? ('cricmax/matches/' + matchCode) : 'cricmax/match_current';
-    /* Defer Firebase subscription until browser is idle */
     const startFirebase = function(){
       fireDB.ref(refPath).on('value', snap => { const d = snap.val(); if (d) handleNewMatchData(d); });
     };
@@ -1929,7 +1945,6 @@
     else setTimeout(startFirebase, 1200);
   } catch(e){}
 
-  /* #6 Replace setInterval polling with event-driven checks */
   window.addEventListener('message', function(ev){
     try {
       if (ev.source && ev.source !== window && ev.source.match && ev.source.match !== currentMatchState){
@@ -2009,7 +2024,7 @@
   function simFeedScoringTab(){ playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 }); }
 
   /* ═══════════════════════════════════════════════════════════════
-     RENDER LOOP  (#13 FPS throttle, #8 dirty wagon)
+     RENDER LOOP
      ═══════════════════════════════════════════════════════════════ */
   const CM_TARGET_FPS = CM_DEVICE.tier === 0 ? 30 : (CM_DEVICE.tier === 1 ? 45 : 60);
   const CM_FRAME_INTERVAL = 1000 / CM_TARGET_FPS;
@@ -2019,8 +2034,6 @@
 
   function animate(t){
     requestAnimationFrame(animate);
-
-    /* #13 FPS throttle */
     if (t - __cmLastRenderTime < CM_FRAME_INTERVAL) return;
     __cmLastRenderTime = t;
 
@@ -2054,16 +2067,16 @@
 
       if (stadiumViewActive) renderer.render(scene, camera);
 
-      /* #8 skip wagon redraws when idle */
+      /* FIX D: keep redrawing for 3s after every shot, then rely on dirty/anim flags */
       if (!stadiumViewActive){
         const now = performance.now();
         const hasActiveAnim = overShots.some(s => (now - s.startTime) < (ANIM_DURATION + TRAIL_HOLD + 1200));
-        if (hasActiveAnim || __cmWagonDirty){
+        const forceRedraw = __cmWagonForceUntil && now < __cmWagonForceUntil;
+        if (hasActiveAnim || __cmWagonDirty || forceRedraw){
           drawWagonWheel();
         }
       }
 
-      /* First-frame hook — hide loader + kick off lazy optional modules */
       if (!__cmFirstFrame){
         __cmFirstFrame = true;
         window.__cmProgress(100);
