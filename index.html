@@ -1366,19 +1366,19 @@
 })();
 </script>
 
-  <script src="state.js"></script>
-<script src="utils.js"></script>
+ <script src="state.js"></script>       <!-- globals first -->
+<script src="utils.js"></script>       <!-- helpers + injectors -->
 <script src="speech.js"></script>
 <script src="firebase.js"></script>
 <script src="render.js"></script>
 <script src="analytics.js"></script>
-<script src="scoring.js"></script>
+<script src="scoring.js"></script>     <!-- contains openRetireModal, forceBowlerChangePrompt -->
 <script src="stats.js"></script>
 <script src="tournaments.js"></script>
 <script src="exports.js"></script>
 <script src="ui.js"></script>
 <script src="viewer.js"></script>
-<script src="dev-tools.js"></script>
-<script src="main.js"></script>
+<script src="dev-tools.js"></script>   <!-- contains editLastBall, changeBowlerMidOver -->
+<script src="main.js"></script>        <!-- boot last -->
 </body>
 </html>
