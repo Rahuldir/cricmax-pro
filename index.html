@@ -1230,99 +1230,112 @@
     } else { renderStatsScope(); }
   };
 
-   /* ─── Hook the existing pill-click handler to respect scope ─── */
   /* ═══════════════════════════════════════════════════════════════
-     WRAP EVERY ENTRY POINT THAT CAN CRASH INTO app.js's buildStatsPool
-     When app.js crashes (no active match), fall back to our renderer.
+     INSTALL WRAPPERS **AFTER** app.js FINISHES LOADING
+     (app.js is deferred → it overwrites our functions if we wrap
+      too early. So we defer installation until after DOM ready.)
      ═══════════════════════════════════════════════════════════════ */
+  function installWrappers(){
+    if (window.__cricmaxWrappersInstalled) return;
+    window.__cricmaxWrappersInstalled = true;
 
-  /* 1. renderStatsCategory — pill clicks */
-  var _origRenderStatsCategory = window.renderStatsCategory;
-  window.renderStatsCategory = function(cat, btn){
-    try {
-      if (typeof _origRenderStatsCategory === 'function') _origRenderStatsCategory(cat, btn);
-    } catch(err){
-      console.warn('[CricMax] app.js stats crashed → using scope engine');
-      if (currentScope === 'match') { setTimeout(function(){ setStatsScope('career'); }, 20); return; }
-    }
-    if (currentScope !== 'match') setTimeout(renderStatsScope, 30);
-  };
+    /* 1. renderStatsCategory — pill clicks */
+    var _origRenderStatsCategory = window.renderStatsCategory;
+    window.renderStatsCategory = function(cat, btn){
+      try {
+        if (typeof _origRenderStatsCategory === 'function') _origRenderStatsCategory(cat, btn);
+      } catch(err){
+        console.warn('[CricMax] app.js stats crashed → using scope engine');
+        if (currentScope === 'match') { setTimeout(function(){ setStatsScope('career'); }, 20); return; }
+      }
+      if (currentScope !== 'match') setTimeout(renderStatsScope, 30);
+    };
 
-  /* 2. selectSubPane — top tabs + bottom nav routing */
-  var _origSelectSubPane = window.selectSubPane;
-  window.selectSubPane = function(pane){
-    try {
-      if (typeof _origSelectSubPane === 'function') _origSelectSubPane(pane);
-    } catch(err){
-      console.warn('[CricMax] selectSubPane crashed for', pane, '→', err && err.message);
-      /* Force the tab UI to show Stats even if app.js's render failed */
+    /* 2. selectSubPane */
+    var _origSelectSubPane = window.selectSubPane;
+    window.selectSubPane = function(pane){
+      try {
+        if (typeof _origSelectSubPane === 'function') _origSelectSubPane(pane);
+      } catch(err){
+        console.warn('[CricMax] selectSubPane crashed for', pane, '→', err && err.message);
+        if (pane === 'leaderboards'){
+          document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
+          var lp = document.getElementById('pane-leaderboards');
+          if (lp) lp.classList.add('active');
+        }
+      }
       if (pane === 'leaderboards'){
-        document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
-        var lp = document.getElementById('pane-leaderboards');
-        if (lp) lp.classList.add('active');
+        setTimeout(function(){
+          if (currentScope === 'match') setStatsScope('career');
+          else renderStatsScope();
+        }, 100);
       }
-    }
-    if (pane === 'leaderboards'){
-      setTimeout(function(){
-        if (currentScope === 'match') setStatsScope('career');
-        else renderStatsScope();
-      }, 100);
-    }
-  };
+    };
 
-  /* 3. launchDashboard — home buttons and deep links */
-  var _origLaunchDashboard = window.launchDashboard;
-  window.launchDashboard = function(which){
-    try {
-      if (typeof _origLaunchDashboard === 'function') _origLaunchDashboard(which);
-    } catch(err){
-      console.warn('[CricMax] launchDashboard crashed for', which, '→', err && err.message);
-      /* Fall through — still switch to Stats pane manually */
+    /* 3. launchDashboard */
+    var _origLaunchDashboard = window.launchDashboard;
+    window.launchDashboard = function(which){
+      try {
+        if (typeof _origLaunchDashboard === 'function') _origLaunchDashboard(which);
+      } catch(err){
+        console.warn('[CricMax] launchDashboard crashed for', which, '→', err && err.message);
+        if (which === 'leaderboards'){
+          var vd = document.getElementById('view-dashboard');
+          var vh = document.getElementById('view-home');
+          if (vh) vh.style.display = 'none';
+          if (vd) vd.style.display = '';
+          document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
+          var lp = document.getElementById('pane-leaderboards');
+          if (lp) lp.classList.add('active');
+        }
+      }
       if (which === 'leaderboards'){
-        var vd = document.getElementById('view-dashboard');
-        var vh = document.getElementById('view-home');
-        if (vh) vh.style.display = 'none';
-        if (vd) vd.style.display = '';
-        document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
-        var lp = document.getElementById('pane-leaderboards');
-        if (lp) lp.classList.add('active');
+        setTimeout(function(){
+          if (currentScope === 'match') setStatsScope('career');
+          else renderStatsScope();
+        }, 100);
       }
-    }
-    if (which === 'leaderboards'){
-      setTimeout(function(){
-        if (currentScope === 'match') setStatsScope('career');
-        else renderStatsScope();
-      }, 100);
-    }
-  };
+    };
 
-  /* 4. bottomNavAction — bottom nav bar buttons */
-  var _origBottomNav = window.bottomNavAction;
-  window.bottomNavAction = function(which){
-    try {
-      if (typeof _origBottomNav === 'function') _origBottomNav(which);
-    } catch(err){
-      console.warn('[CricMax] bottomNavAction crashed for', which, '→', err && err.message);
-    }
-    if (which === 'leaderboards'){
-      setTimeout(function(){
-        if (currentScope === 'match') setStatsScope('career');
-        else renderStatsScope();
-      }, 120);
-    }
-  };
+    /* 4. bottomNavAction */
+    var _origBottomNav = window.bottomNavAction;
+    window.bottomNavAction = function(which){
+      try {
+        if (typeof _origBottomNav === 'function') _origBottomNav(which);
+      } catch(err){
+        console.warn('[CricMax] bottomNavAction crashed for', which, '→', err && err.message);
+      }
+      if (which === 'leaderboards'){
+        setTimeout(function(){
+          if (currentScope === 'match') setStatsScope('career');
+          else renderStatsScope();
+        }, 120);
+      }
+    };
 
-  /* 5. Also auto-switch on initial load if Stats tab is somehow shown without a match */
+    console.info('[CricMax] 🔒 Entry-point wrappers installed');
+  }
+
+  /* Install as soon as app.js has definitely finished executing */
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', installWrappers);
+  } else {
+    setTimeout(installWrappers, 100);
+  }
+  /* Safety net — in case app.js is slow */
+  setTimeout(installWrappers, 2000);
+
+  /* Auto-switch on initial load if Stats tab is somehow shown without a match */
   setTimeout(function(){
     var lp = document.getElementById('pane-leaderboards');
     if (lp && lp.classList.contains('active') && currentScope === 'match'){
-      /* Only auto-switch if table is empty */
       var tbody = document.getElementById('statsTableBody');
       if (tbody && tbody.children.length === 0){
         setStatsScope('career');
       }
     }
   }, 1500);
+
   function injectUI(){
     var pane = document.getElementById('pane-leaderboards');
     if (!pane) return;
