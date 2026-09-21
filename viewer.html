@@ -407,7 +407,7 @@ function setStadiumView(active){
 }
 function toggleStadiumView(){ setStadiumView(!stadiumViewActive); }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ��══════════════════════════════════════════════════════════════
    TV MODE
    ═══════════════════════════════════════════════════════════════ */
 let tvModeActive = false;
@@ -1099,7 +1099,7 @@ function drawWagonWheel(){
     wagonCtx.shadowBlur = 0;
   });
 
-  /* ── 6. Batsman at centre ─────────────────────────────── */
+  /* ─�� 6. Batsman at centre ─────────────────────────────── */
   wagonCtx.shadowBlur = 22;
   wagonCtx.shadowColor = 'rgba(0,230,118,0.9)';
   wagonCtx.fillStyle = '#00e676';
@@ -1496,7 +1496,7 @@ function applyMatch(raw){
   if (tvModeActive) refreshTVMode();
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════���═══════════════════════════════
    MULTI-CHANNEL SYNC
    ═══════════════════════════════════════════════════════════════ */
 let lastSeenBalls = -1;
@@ -1675,6 +1675,9 @@ setStadiumView(false);
 
 })();
 </script>
+
+<!-- Vercel Speed Insights -->
+<script type="module" src="./speed-insights.js"></script>
 
 </body>
 </html>
