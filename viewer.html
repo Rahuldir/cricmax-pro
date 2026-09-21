@@ -27,6 +27,7 @@
   .ic{width:30px;height:30px;border-radius:9px;background:rgba(8,14,28,.88);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;flex-shrink:0;}
   .ic:active{transform:scale(.92);}
   .ic.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
+  .ic .snd-caret{font-size:7px;margin-left:1px;opacity:.85;line-height:1;}
 
   .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
   .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
@@ -108,18 +109,6 @@
   .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
   .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
 
-  /* ── AUDIO MODE PICKER ────────────────────────────────── */
-  .ic .snd-caret{font-size:7px;margin-left:1px;opacity:.8;line-height:1;}
-  #audioMenu{position:absolute;top:44px;left:6px;width:min(80vw,250px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:8px;z-index:100002;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;}
-  #audioMenu.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
-  .audio-opt{display:flex;align-items:center;gap:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px 10px;color:#e2e8f0;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:5px;text-align:left;}
-  .audio-opt:last-child{margin-bottom:0;}
-  .audio-opt:active{transform:scale(.98);}
-  .audio-opt .ai{font-size:15px;line-height:1;}
-  .audio-opt .as{margin-left:auto;font-size:8.5px;font-weight:900;color:#94a3b8;letter-spacing:.5px;}
-  .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
-  .audio-opt.on .as{color:#00e676;}
-
   /* ── COMMENTARY TICKER ────────────────────────────────── */
   #commTicker{position:absolute;left:6px;right:6px;bottom:84px;background:rgba(8,15,30,.94);border:1px solid rgba(0,230,118,.35);border-left:3px solid #00e676;border-radius:8px;padding:6px 9px;color:#e2e8f0;font-size:10.5px;font-weight:700;line-height:1.3;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none;z-index:10000;}
   #commTicker.show{opacity:1;transform:translateY(0);}
@@ -133,7 +122,6 @@
     .sc-bowl{font-size:8.5px;padding-left:5px;}
     .b{width:16px;height:16px;font-size:7.5px;}
     .over-row{font-size:8px;padding:2px 6px;}
-    .audio-opt{font-size:10px;padding:8px;}
   }
   @media (max-width:320px){
     .live{display:none;}
@@ -173,18 +161,14 @@
     </div>
   </div>
 
-  <!-- ── AUDIO MODE PICKER ─────────────────────────────── -->
+  <!-- ── AUDIO MODE FLOATING DROPDOWN (shortcut) ─────────── -->
   <div id="audioMenu">
     <div class="menu-ttl">Audio Mode</div>
-    <button class="audio-opt on" id="aud-stadium" onclick="setAudioMode('stadium')">
-      <span class="ai">🏟️</span><span>Stadium Sound</span><span class="as">AMBIENCE</span>
-    </button>
-    <button class="audio-opt" id="aud-commentary" onclick="setAudioMode('commentary')">
-      <span class="ai">🎙️</span><span>Ball-by-Ball</span><span class="as">COMMS</span>
-    </button>
-    <button class="audio-opt" id="aud-mute" onclick="setAudioMode('mute')">
-      <span class="ai">🔇</span><span>Mute</span><span class="as">OFF</span>
-    </button>
+    <div class="menu-grid-3">
+      <button class="menu-t on" id="aud-stadium" onclick="setAudioMode('stadium')"><span class="i">🏟️</span> Stadium</button>
+      <button class="menu-t" id="aud-commentary" onclick="setAudioMode('commentary')"><span class="i">🎙️</span> Comms</button>
+      <button class="menu-t" id="aud-mute" onclick="setAudioMode('mute')"><span class="i">🔇</span> Mute</button>
+    </div>
   </div>
 
   <div id="menuPanel">
@@ -204,6 +188,15 @@
         <button class="menu-t on" id="env-day" onclick="setSky('day')"><span class="i">☀️</span> Day</button>
         <button class="menu-t" id="env-sunset" onclick="setSky('sunset')"><span class="i">🌇</span> Dusk</button>
         <button class="menu-t" id="env-night" onclick="setSky('night')"><span class="i">🌙</span> Night</button>
+      </div>
+    </div>
+    <div class="menu-div"></div>
+    <div class="menu-sec">
+      <div class="menu-ttl">Audio</div>
+      <div class="menu-grid-3">
+        <button class="menu-t on" id="menu-aud-stadium" onclick="setAudioMode('stadium')"><span class="i">🏟️</span> Stadium</button>
+        <button class="menu-t" id="menu-aud-commentary" onclick="setAudioMode('commentary')"><span class="i">🎙️</span> Comms</button>
+        <button class="menu-t" id="menu-aud-mute" onclick="setAudioMode('mute')"><span class="i">🔇</span> Mute</button>
       </div>
     </div>
     <div class="menu-div"></div>
@@ -413,7 +406,7 @@ function navTo(pane){
 /* ═══════════════════════════════════════════════════════════════
    STADIUM / WAGON TOGGLE — wagon is DEFAULT on load
    ═══════════════════════════════════════════════════════════════ */
-let stadiumViewActive = false;   /* ← wagon open by default */
+let stadiumViewActive = false;
 
 function setStadiumView(active){
   stadiumViewActive = !!active;
@@ -774,7 +767,7 @@ function playStumps(){
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   AUDIO MODES — Stadium Sound / Ball-by-Ball Commentary / Mute
+   AUDIO MODES — Stadium / Ball-by-Ball / Mute
    ═══════════════════════════════════════════════════════════════ */
 let audioMode = 'stadium';
 let lastAudibleMode = 'stadium';
@@ -788,6 +781,8 @@ function toggleAudioMenu(e){
   audioMenuOpen = !audioMenuOpen;
   const p = document.getElementById('audioMenu');
   if (p) p.classList.toggle('open', audioMenuOpen);
+  const btn = document.getElementById('util-snd');
+  if (btn) btn.classList.toggle('on', audioMenuOpen);
 }
 function closeAudioMenu(){
   audioMenuOpen = false;
@@ -940,9 +935,13 @@ function setAudioMode(mode){
   if (ico) ico.innerText = mode === 'mute' ? '🔇' : (mode === 'commentary' ? '🎙️' : '🏟️');
   const btn = document.getElementById('util-snd');
   if (btn) btn.classList.toggle('on', mode !== 'mute');
+
+  /* Update BOTH the floating dropdown AND the ☰ menu buttons */
   ['stadium','commentary','mute'].forEach(function(k){
-    const el = document.getElementById('aud-' + k);
-    if (el) el.classList.toggle('on', k === mode);
+    const a = document.getElementById('aud-' + k);
+    if (a) a.classList.toggle('on', k === mode);
+    const m = document.getElementById('menu-aud-' + k);
+    if (m) m.classList.toggle('on', k === mode);
   });
 
   if (mode === 'mute'){
@@ -1096,19 +1095,17 @@ let currentMatchState = null;
 let prevLegalBalls = 0;
 
 /* ═══════════════════════════════════════════════════════════════
-   WAGON WHEEL — Realistic animated tactical radar
+   WAGON WHEEL
    ═══════════════════════════════════════════════════════════════ */
 const wagonCanvas = document.getElementById('wagonWheelCanvas');
 const wagonCtx = wagonCanvas ? wagonCanvas.getContext('2d') : null;
 
-/* Current over shots — max 6, auto-reset when next over starts */
 const overShots = [];
 const MAX_SHOTS_PER_OVER = 6;
 let lastOverNum = 0;
-const ANIM_DURATION = 900;   /* ms for ball to fly from bat to final position */
-const TRAIL_HOLD    = 1400;  /* ms after animation ends ball/label stays bright */
+const ANIM_DURATION = 900;
+const TRAIL_HOLD    = 1400;
 
-/* Fielder positions (for markers on the wheel) — matching fielderData */
 const FIELDER_MARKERS = [
   { name:'Slip',    angle: Math.atan2( 3.2, 13.5), dist: 0.55 },
   { name:'Gully',   angle: Math.atan2( 7.0, 12.0), dist: 0.55 },
@@ -1122,15 +1119,8 @@ const FIELDER_MARKERS = [
 ];
 
 function recordShotForWagon(angle, runs, isWicket){
-  /* Detect new over — if legalBalls rolled to a new over, clear first */
-  /* This is called from playBall which fires after the ball is delivered */
   const now = performance.now();
-  overShots.push({
-    angle: angle,
-    runs: runs,
-    isWicket: !!isWicket,
-    startTime: now
-  });
+  overShots.push({ angle: angle, runs: runs, isWicket: !!isWicket, startTime: now });
   while (overShots.length > MAX_SHOTS_PER_OVER) overShots.shift();
   if (!stadiumViewActive) drawWagonWheel();
 }
@@ -1144,9 +1134,7 @@ function checkOverRollover(m){
   if (!m) return;
   const balls = m.legalBalls || 0;
   const overNum = Math.floor(balls / 6);
-  if (overNum > lastOverNum && overShots.length > 0){
-    clearOverShots();
-  }
+  if (overNum > lastOverNum && overShots.length > 0){ clearOverShots(); }
   lastOverNum = overNum;
 }
 
@@ -1158,15 +1146,12 @@ function drawWagonWheel(){
   const R = W / 2 - 40;
   const now = performance.now();
 
-  /* Reset canvas state (in case previous frame set alpha/shadow) */
   wagonCtx.globalAlpha = 1;
   wagonCtx.shadowBlur = 0;
   wagonCtx.setLineDash([]);
   wagonCtx.textBaseline = 'alphabetic';
-
   wagonCtx.clearRect(0, 0, W, H);
 
-  /* ── 1. Field — radial grass gradient ─────────────────── */
   const fieldGrad = wagonCtx.createRadialGradient(cx, cy, 0, cx, cy, R);
   fieldGrad.addColorStop(0.00, '#1f4a24');
   fieldGrad.addColorStop(0.55, '#143419');
@@ -1175,7 +1160,6 @@ function drawWagonWheel(){
   wagonCtx.fillStyle = fieldGrad;
   wagonCtx.beginPath(); wagonCtx.arc(cx, cy, R, 0, Math.PI * 2); wagonCtx.fill();
 
-  /* Subtle stripe pattern for mowed grass */
   wagonCtx.globalAlpha = 0.08;
   for (let i = -R; i < R; i += 22){
     wagonCtx.fillStyle = i % 44 === 0 ? '#ffffff' : '#000000';
@@ -1183,18 +1167,15 @@ function drawWagonWheel(){
   }
   wagonCtx.globalAlpha = 1;
 
-  /* Re-mask to circle */
   wagonCtx.save();
   wagonCtx.beginPath(); wagonCtx.arc(cx, cy, R, 0, Math.PI * 2); wagonCtx.clip();
 
-  /* ── 2. 30-yard circle (dashed white) ─────────────────── */
   wagonCtx.strokeStyle = 'rgba(255,255,255,0.4)';
   wagonCtx.lineWidth = 2;
   wagonCtx.setLineDash([10, 8]);
   wagonCtx.beginPath(); wagonCtx.arc(cx, cy, R * 0.58, 0, Math.PI * 2); wagonCtx.stroke();
   wagonCtx.setLineDash([]);
 
-  /* ── 3. Pitch strip (vertical) ────────────────────────── */
   const pitchW = 26;
   const pitchLen = R * 1.55;
   const pitchGrad = wagonCtx.createLinearGradient(cx - pitchW/2, 0, cx + pitchW/2, 0);
@@ -1204,7 +1185,6 @@ function drawWagonWheel(){
   wagonCtx.fillStyle = pitchGrad;
   wagonCtx.fillRect(cx - pitchW/2, cy - pitchLen/2, pitchW, pitchLen);
 
-  /* Crease markers on pitch */
   wagonCtx.strokeStyle = 'rgba(255,255,255,0.7)';
   wagonCtx.lineWidth = 1.5;
   wagonCtx.beginPath();
@@ -1214,7 +1194,6 @@ function drawWagonWheel(){
   wagonCtx.lineTo(cx + 22, cy + R * 0.62);
   wagonCtx.stroke();
 
-  /* ── 4. Fielder position markers ──────────────────────── */
   FIELDER_MARKERS.forEach(f => {
     const fx = cx + Math.sin(f.angle) * R * f.dist;
     const fy = cy + Math.cos(f.angle) * R * f.dist;
@@ -1225,42 +1204,36 @@ function drawWagonWheel(){
     wagonCtx.beginPath(); wagonCtx.arc(fx, fy, 4, 0, Math.PI * 2); wagonCtx.stroke();
   });
 
-  /* ── 5. Shots of current over ─────────────────────────── */
   overShots.forEach((shot, idx) => {
     const age = now - shot.startTime;
     const rawProgress = Math.min(1, age / ANIM_DURATION);
-    /* Ease-out cubic for natural ball flight */
     const progress = 1 - Math.pow(1 - rawProgress, 3);
 
-    /* Target length multiplier (relative to R) */
     let targetLen;
-    if (shot.isWicket)     targetLen = 0.14;    /* bowled, lands at stumps */
-    else if (shot.runs === 6) targetLen = 1.22; /* past boundary rope */
-    else if (shot.runs === 4) targetLen = 1.00; /* to boundary rope */
+    if (shot.isWicket)     targetLen = 0.14;
+    else if (shot.runs === 6) targetLen = 1.22;
+    else if (shot.runs === 4) targetLen = 1.00;
     else if (shot.runs === 3) targetLen = 0.78;
     else if (shot.runs === 2) targetLen = 0.58;
     else if (shot.runs === 1) targetLen = 0.40;
-    else                      targetLen = 0.14; /* dot — short mark */
+    else                      targetLen = 0.14;
 
     const len = targetLen * progress;
     const sx = cx + Math.sin(shot.angle) * R * len;
     const sy = cy + Math.cos(shot.angle) * R * len;
 
-    /* Colour per outcome */
     const col = shot.isWicket ? '#ef4444'
               : shot.runs >= 6 ? '#ff8800'
               : shot.runs >= 4 ? '#00e5ff'
               : shot.runs > 0  ? '#00e676'
               : '#94a3b8';
 
-    /* Glow color */
     const glow = shot.isWicket ? 'rgba(239,68,68,0.9)'
                : shot.runs >= 6 ? 'rgba(255,136,0,0.9)'
                : shot.runs >= 4 ? 'rgba(0,229,255,0.9)'
                : shot.runs > 0  ? 'rgba(0,230,118,0.85)'
                : 'rgba(148,163,184,0.5)';
 
-    /* ── Trail — glowing line from bat to ball ── */
     const grad = wagonCtx.createLinearGradient(cx, cy, sx, sy);
     grad.addColorStop(0.00, col + '05');
     grad.addColorStop(0.25, col + 'cc');
@@ -1280,27 +1253,22 @@ function drawWagonWheel(){
     wagonCtx.lineTo(sx, sy);
     wagonCtx.stroke();
 
-    /* ── Ball at the tip (fading with age) ── */
     const ballAlpha = age < TRAIL_HOLD ? 1 : Math.max(0, 1 - (age - TRAIL_HOLD) / 1200);
     if (ballAlpha > 0.05){
-      /* Outer glow ring */
       wagonCtx.globalAlpha = ballAlpha * 0.7;
       wagonCtx.fillStyle = glow;
       wagonCtx.beginPath(); wagonCtx.arc(sx, sy, shot.runs >= 4 ? 14 : 10, 0, Math.PI * 2); wagonCtx.fill();
 
-      /* Ball white */
       wagonCtx.globalAlpha = ballAlpha;
       wagonCtx.fillStyle = '#ffffff';
       wagonCtx.beginPath(); wagonCtx.arc(sx, sy, shot.runs >= 4 ? 8 : 6, 0, Math.PI * 2); wagonCtx.fill();
 
-      /* Ball red seam */
       wagonCtx.fillStyle = col;
       wagonCtx.beginPath(); wagonCtx.arc(sx, sy, shot.runs >= 4 ? 5 : 3.5, 0, Math.PI * 2); wagonCtx.fill();
 
       wagonCtx.globalAlpha = 1;
     }
 
-    /* ── Label at tip (runs / W) ── */
     if (progress > 0.6 && ballAlpha > 0.1){
       const labelRadius = R * len + 26;
       const lx = cx + Math.sin(shot.angle) * labelRadius;
@@ -1321,7 +1289,6 @@ function drawWagonWheel(){
     wagonCtx.shadowBlur = 0;
   });
 
-  /* ── 6. Batsman at centre ─────────────────────────────── */
   wagonCtx.shadowBlur = 22;
   wagonCtx.shadowColor = 'rgba(0,230,118,0.9)';
   wagonCtx.fillStyle = '#00e676';
@@ -1334,7 +1301,6 @@ function drawWagonWheel(){
 
   wagonCtx.restore();
 
-  /* ── 7. Boundary rope (glowing) ───────────────────────── */
   wagonCtx.strokeStyle = '#f8fafc';
   wagonCtx.lineWidth = 4;
   wagonCtx.shadowBlur = 18;
@@ -1342,14 +1308,12 @@ function drawWagonWheel(){
   wagonCtx.beginPath(); wagonCtx.arc(cx, cy, R, 0, Math.PI * 2); wagonCtx.stroke();
   wagonCtx.shadowBlur = 0;
 
-  /* Inner dashed accent */
   wagonCtx.strokeStyle = 'rgba(0,230,118,0.35)';
   wagonCtx.lineWidth = 2;
   wagonCtx.setLineDash([4, 6]);
   wagonCtx.beginPath(); wagonCtx.arc(cx, cy, R - 6, 0, Math.PI * 2); wagonCtx.stroke();
   wagonCtx.setLineDash([]);
 
-  /* ── 8. Compass ──────────────────────────────────────── */
   wagonCtx.fillStyle = 'rgba(255,255,255,0.85)';
   wagonCtx.font = 'bold 14px sans-serif';
   wagonCtx.textAlign = 'center';
@@ -1359,7 +1323,6 @@ function drawWagonWheel(){
   wagonCtx.fillText('E', cx + R + 14, cy);
   wagonCtx.fillText('W', cx - R - 14, cy);
 
-  /* ── 9. Over progress indicator (top-left) ───────────── */
   wagonCtx.fillStyle = 'rgba(8,15,30,0.85)';
   wagonCtx.strokeStyle = 'rgba(0,230,118,0.5)';
   wagonCtx.lineWidth = 1.5;
@@ -1379,7 +1342,6 @@ function drawWagonWheel(){
   wagonCtx.font = 'bold 16px sans-serif';
   wagonCtx.fillText(overShots.length + ' / ' + MAX_SHOTS_PER_OVER, badgeX + 12, badgeY + 22);
 
-  /* Small dots showing ball count */
   for (let i = 0; i < MAX_SHOTS_PER_OVER; i++){
     const dotX = badgeX + 78 + i * 8;
     const dotY = badgeY + 22;
@@ -1396,7 +1358,6 @@ function drawWagonWheel(){
     wagonCtx.beginPath(); wagonCtx.arc(dotX, dotY, 3, 0, Math.PI * 2); wagonCtx.fill();
   }
 
-  /* ── 10. Legend bottom-right ─────────────────────────── */
   const legendItems = [
     { col:'#ff8800', label:'6' },
     { col:'#00e5ff', label:'4' },
@@ -1490,7 +1451,6 @@ function playBall(shot){
   const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
   const hitZ = 8.8 + Math.cos(wwAngle) * phys.finalDist;
 
-  /* Record on wagon wheel with animation start time */
   recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
 
   let runningPending = (runs > 0 && runs < 4 && !isWkt);
@@ -1570,7 +1530,6 @@ function playBall(shot){
           });
           if (closest) closest.chase(hitPoint);
         }
-        /* ── Commentary + crowd reaction ── */
         if (audioMode === 'commentary'){
           setTimeout(function(){
             speakCommentary(buildCommentaryLine(Object.assign({}, shot, { ballSpeed: speedVal })));
@@ -1689,7 +1648,6 @@ function applyMatch(raw){
     }
   }
 
-  /* ═══ Reset wagon wheel shots on new over ═══ */
   checkOverRollover(m);
 
   const curLB = m.legalBalls || 0;
@@ -1871,7 +1829,6 @@ function animate(t){
     camera.position.copy(camPos);
     camera.lookAt(camTarget);
     if (stadiumViewActive) renderer.render(scene, camera);
-    /* Wagon wheel redraw every frame while it's active */
     if (!stadiumViewActive) drawWagonWheel();
   } catch(err){
     if (frameErrors < 3){ frameErrors++; console.error('[CricMax] frame error:', err); }
@@ -1900,11 +1857,9 @@ window.simFeedScoringTab = simFeedScoringTab;
 window.triggerReplay = triggerReplay;
 window.toggleAudio = toggleAudio;
 window.toggleFullscreen = toggleFullscreen;
-/* ── New audio-mode API ── */
 window.toggleAudioMenu = toggleAudioMenu;
 window.setAudioMode = setAudioMode;
 
-/* ═══ Boot: wagon wheel open by default ═══ */
 setStadiumView(false);
 
 })();
