@@ -1023,200 +1023,202 @@
   }, { once: true });
 </script>
 
-<!-- Scripts loaded with defer to preserve execution order -->
-<!-- Scripts loaded with defer to preserve execution order -->
+<!-- Firebase Compat SDK (needed by the auto-sync bridge below) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- App scripts -->
 <script src="app.js?v=5" defer></script>
 <script src="viewer-bridge.js?v=5" defer></script>
- <script>
-/* ═══════════════════════════════════════════════════════════════
-   CricMax — Firebase Auto-Sync Bridge (v3 — authenticated)
-   Signs in anonymously so the scoring app has write permission.
-   ═══════════════════════════════════════════════════════════════ */
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     CricMax — Firebase Auto-Sync Bridge (COMPLETE)
+     • Signs in anonymously (so writes are allowed if rules require auth)
+     • Mirrors every localStorage.setItem('CricMax_Data', ...) to Firebase RTDB
+     • Subscribes to remote match state and refreshes Stats/Analysis/Card tabs
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
 (function(){
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
-  authDomain: "cricket-8cb1b.firebaseapp.com",
-  databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "cricket-8cb1b",
-  storageBucket: "cricket-8cb1b.firebasestorage.app",
-  messagingSenderId: "489545634269",
-  appId: "1:489545634269:web:20b29fa190c4500670e634"
-};
+  'use strict';
+
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
+    authDomain: "cricket-8cb1b.firebaseapp.com",
+    databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "cricket-8cb1b",
+    storageBucket: "cricket-8cb1b.firebasestorage.app",
+    messagingSenderId: "489545634269",
+    appId: "1:489545634269:web:20b29fa190c4500670e634"
+  };
+
+  /* Shared flag — used to prevent feedback loop when remote state is applied */
+  window.__cricmaxFromRemote = false;
+
+  /* Resolve the current match code from localStorage or URL */
+  function resolveMatchCode(){
+    var c = localStorage.getItem('currentMatchCode');
+    if (!c) {
+      try {
+        var p = new URLSearchParams(window.location.search);
+        c = p.get('code');
+      } catch(e){}
+    }
+    return c || 'match_current';
+  }
+
+  /* Ensure the default Firebase app exists (compat SDK) */
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
-    try {
-      firebase.app();   /* Already initialized? */
-      return true;
-    } catch (e) {
+    try { firebase.app(); return true; }
+    catch (e) {
       try {
         firebase.initializeApp(FIREBASE_CONFIG);
-        console.info('[CricMax] 🔥 Firebase app initialized');
+        console.info('[CricMax] 🔥 Firebase compat app initialized');
         return true;
-      } catch (e2) {
+      } catch (e2){
+        console.warn('[CricMax] Firebase compat init failed:', e2);
         return false;
       }
     }
   }
 
-  /* Resolve when an auth state exists (existing or new anonymous user) */
+  /* Ensure an auth user exists — anonymous if needed */
   function ensureAuth(){
     return new Promise(function(resolve){
-      const unsub = firebase.auth().onAuthStateChanged(function(user){
-        unsub();
-        if (user){
-          console.info('[CricMax] 🔐 Existing auth detected');
-          resolve(user);
-        } else {
-          firebase.auth().signInAnonymously()
-            .then(function(cred){
-              console.info('[CricMax] 🔐 Anonymous auth created');
-              resolve(cred.user);
-            })
-            .catch(function(err){
-              console.warn('[CricMax] Auth failed — writes will be blocked:', err);
-              resolve(null);
-            });
-        }
-      });
+      try {
+        var unsub = firebase.auth().onAuthStateChanged(function(user){
+          unsub();
+          if (user){
+            console.info('[CricMax] 🔐 Auth ready:', user.uid.substring(0,6) + '…');
+            resolve(user);
+          } else {
+            firebase.auth().signInAnonymously()
+              .then(function(cred){
+                console.info('[CricMax] 🔐 Anonymous auth created');
+                resolve(cred.user);
+              })
+              .catch(function(err){
+                console.warn('[CricMax] Auth failed — writes may be blocked:', err && err.message);
+                resolve(null);
+              });
+          }
+        });
+      } catch(e){
+        console.warn('[CricMax] Auth unavailable:', e);
+        resolve(null);
+      }
     });
   }
 
-  function armSyncBridge(){
-    const fireDB = firebase.database();
-   /* Read the current match code from localStorage (set by scoring app) */
-let __liveMatchCode = localStorage.getItem('currentMatchCode');
+  /* Write bridge — mirror every CricMax_Data save to Firebase */
+  function armWriteBridge(matchCode){
+    var fireDB = firebase.database();
+    var ref = fireDB.ref('cricmax/matches/' + matchCode);
+    var originalSetItem = localStorage.setItem.bind(localStorage);
 
-/* Fallback — try URL param */
-if (!matchCode) {
-  const p = new URLSearchParams(window.location.search);
-  matchCode = p.get('code');
-}
-
-/* Last fallback — use default path */
-if (!matchCode) {
-  console.warn('[CricMax] No match code — using default path');
-  matchCode = 'match_current';
-}
-
-console.info('[CricMax] 📡 Syncing to match:', matchCode);
-/* Read the current match code from localStorage */
-let __liveMatchCode = localStorage.getItem('currentMatchCode');
-if (!matchCode) {
-  const p = new URLSearchParams(window.location.search);
-  matchCode = p.get('code');
-}
-if (!matchCode) {
-  console.warn('[CricMax] No match code — using default path');
-  matchCode = 'match_current';
-}
-console.info('[CricMax] 📡 Syncing to match:', matchCode);
-const ref = fireDB.ref('cricmax/matches/' + matchCode);
-    const originalSetItem = localStorage.setItem.bind(localStorage);
-
-    /* Override setItem — mirror every CricMax_Data write to Firebase */
     localStorage.setItem = function(key, value){
       originalSetItem(key, value);
-      if (key === 'CricMax_Data'){
-        try {
-          const parsed = JSON.parse(value);
-          if (parsed && parsed.match){
-            ref.set(parsed.match)
-              .then(function(){ console.info('[CricMax] 🔥 Firebase synced'); })
-              .catch(function(err){ console.warn('[CricMax] Write failed:', err.message); });
-          }
-        } catch(e){
-          console.warn('[CricMax] Sync parse error:', e);
+      if (window.__cricmaxFromRemote) return;      /* prevent feedback loop */
+      if (key !== 'CricMax_Data') return;
+      try {
+        var parsed = JSON.parse(value);
+        if (parsed && parsed.match){
+          ref.set(parsed.match)
+            .then(function(){ console.info('[CricMax] 🔥 Firebase synced'); })
+            .catch(function(err){ console.warn('[CricMax] Write failed:', err && err.message); });
         }
+      } catch(e){
+        console.warn('[CricMax] Sync parse error:', e);
       }
     };
 
     /* Push current state once on load */
     try {
-      const raw = localStorage.getItem('CricMax_Data');
+      var raw = localStorage.getItem('CricMax_Data');
       if (raw){
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.match){
-          ref.set(parsed.match);
+        var p = JSON.parse(raw);
+        if (p && p.match){
+          ref.set(p.match);
           console.info('[CricMax] 🔥 Firebase initial sync pushed');
         }
       }
     } catch(e){}
 
-    console.info('[CricMax] 🔥 Firebase Auto-Sync Bridge armed');
+    console.info('[CricMax] 🔥 Write bridge armed for:', matchCode);
   }
- initFirebaseSync();  
-  
-  /* ═══════════════════════════════════════════════════════════════
-     READ FROM FIREBASE — Stats / Analysis / Card tabs
-     Isolated in IIFE — no variable collisions
-     ═══════════════════════════════════════════════════════════════ */
-  (function(){
-    function applyRemoteStateToApp(raw){
-      if (!raw) return;
-      let flat = raw;
-      if (raw.innings1 || raw.innings2){
-        const innNum = raw.currentInnings || 1;
-        const inn = innNum === 2 ? (raw.innings2 || raw.innings1) : (raw.innings1 || raw.innings2);
+
+  /* Read bridge — subscribe to Firebase and refresh the UI */
+  function armReadBridge(matchCode){
+    var fireDB = firebase.database();
+    var ref = fireDB.ref('cricmax/matches/' + matchCode);
+
+    console.info('[CricMax] 📡 Subscribing to live match:', matchCode);
+
+    ref.on('value', function(snap){
+      var data = snap.val();
+      if (!data) return;
+
+      /* Flatten nested innings format to the flat format the app expects */
+      var flat = data;
+      if (data.innings1 || data.innings2){
+        var innNum = data.currentInnings || 1;
+        var inn = innNum === 2 ? (data.innings2 || data.innings1) : (data.innings1 || data.innings2);
         if (inn){
-          const battingTeam = inn.team || raw.teamBatting || '';
-          flat = Object.assign({}, raw, {
+          var battingTeam = inn.team || data.teamBatting || '';
+          flat = Object.assign({}, data, {
             runs:             inn.runs || 0,
             wickets:          inn.wickets || 0,
             legalBalls:       inn.balls || 0,
             teamBatting:      battingTeam,
-            teamBattingAbbr:  (raw.teamBattingAbbr || battingTeam.substring(0,3).toUpperCase()),
-            batters:          inn.batters || raw.batters || {},
-            bowlers:          inn.bowlers || raw.bowlers || {}
+            teamBattingAbbr:  (data.teamBattingAbbr || battingTeam.substring(0,3).toUpperCase()),
+            batters:          inn.batters || data.batters || {},
+            bowlers:          inn.bowlers || data.bowlers || {}
           });
         }
       }
+
+      /* Write to localStorage but suppress the write bridge for this pass */
+      window.__cricmaxFromRemote = true;
       try {
-        const existing = localStorage.getItem('CricMax_Data');
-        const wrapper = existing ? JSON.parse(existing) : {};
+        var existing = localStorage.getItem('CricMax_Data');
+        var wrapper = existing ? JSON.parse(existing) : {};
         wrapper.match = flat;
         localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
       } catch(e){}
-    }
+      window.__cricmaxFromRemote = false;
 
-    function subscribeToLiveMatchInner(){
-      const liveCode = localStorage.getItem('currentMatchCode')
-                    || new URLSearchParams(location.search).get('code');
-      if (!liveCode){
-        console.info('[CricMax] No match code — skipping live subscribe');
-        return;
-      }
-      console.info('[CricMax] 📡 Subscribing to live match:', liveCode);
-      firebase.database().ref('cricmax/matches/' + liveCode).on('value', (snap) => {
-        const data = snap.val();
-        if (!data) return;
-        applyRemoteStateToApp(data);
-        console.info('[CricMax] 📥 Remote state applied');
-        const refreshers = [
-          'renderScorecardTab', 'renderStatsTab', 'renderAnalysisTab',
-          'renderCardTab', 'renderSummaryTab', 'renderAll',
-          'updateScoreboard', 'refreshUI', 'renderUI', 'rerenderUI',
-          'updateAllUI', 'drawScorecard', 'updateLiveTab'
-        ];
-        refreshers.forEach(fn => {
-          try { if (typeof window[fn] === 'function') window[fn](); } catch(e){}
-        });
+      console.info('[CricMax] 📥 Remote state applied');
+
+      /* Refresh whatever UI functions exist */
+      var refreshers = [
+        'renderScorecardTab', 'renderStatsTab', 'renderAnalysisTab',
+        'renderCardTab', 'renderSummaryTab', 'renderAll',
+        'updateScoreboard', 'refreshUI', 'renderUI', 'rerenderUI',
+        'updateAllUI', 'drawScorecard', 'updateLiveTab', 'updateMatchUI'
+      ];
+      refreshers.forEach(function(fn){
+        try { if (typeof window[fn] === 'function') window[fn](); } catch(e){}
       });
-    }
+    });
+  }
 
-    setTimeout(function(){
-      try {
-        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length){
-          subscribeToLiveMatchInner();
-        } else {
-          setTimeout(subscribeToLiveMatchInner, 1500);
-        }
-      } catch(e){}
-    }, 1200);
-  })();
+  /* Bootstrap */
+  function boot(){
+    if (!ensureFirebaseApp()){
+      setTimeout(boot, 300);
+      return;
+    }
+    ensureAuth().then(function(){
+      var code = resolveMatchCode();
+      try { armWriteBridge(code); } catch(e){ console.warn('[CricMax] Write bridge error:', e); }
+      try { armReadBridge(code);  } catch(e){ console.warn('[CricMax] Read bridge error:',  e); }
+    });
+  }
+
+  boot();
 })();
 </script>
+
 </body>
 </html>
