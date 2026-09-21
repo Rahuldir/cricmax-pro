@@ -1219,6 +1219,405 @@
   boot();
 })();
 </script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CricMax — Stats Scope Module
+   Adds Match / Tournament / Career toggle to the Stats tab.
+   Auto-aggregates from every saved match. Zero changes to app.js.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
 
+  var currentScope = 'match';
+
+  /* ─── Shared aggregation: takes array of matches, returns player map ─── */
+  function aggregateMatches(matches){
+    var players = {};
+
+    function ensure(name){
+      if (!name) return null;
+      if (!players[name]) {
+        players[name] = {
+          name: name, teams: {}, matches: 0,
+          runs: 0, balls: 0, fours: 0, sixes: 0, notOuts: 0, dismissals: 0,
+          fifties: 0, hundreds: 0, hs: 0,
+          wkts: 0, bowlRuns: 0, bowlBalls: 0, maidens: 0,
+          bestWkts: 0, bestRuns: 9999,
+          catches: 0, stumpings: 0, runOuts: 0
+        };
+      }
+      return players[name];
+    }
+
+    matches.forEach(function(m){
+      if (!m || (!m.innings1 && !m.innings2)) return;
+      var appeared = {};
+
+      [1, 2].forEach(function(n){
+        var inn = m['innings' + n];
+        if (!inn) return;
+        var teamName = inn.team || inn.battingTeam || '';
+
+        /* Batting */
+        if (inn.batters){
+          Object.keys(inn.batters).forEach(function(name){
+            var b = inn.batters[name];
+            var p = ensure(name);
+            if (!p) return;
+            if (teamName) p.teams[teamName] = true;
+            appeared[name] = true;
+            p.runs  += b.runs  || 0;
+            p.balls += b.balls || 0;
+            p.fours += b.fours || 0;
+            p.sixes += b.sixes || 0;
+            var s = (b.status || '').toLowerCase();
+            var isOut = s && s !== 'dnb' && s.indexOf('not out') === -1 && s.indexOf('retired') === -1;
+            if (s && s !== 'dnb'){ if (isOut) p.dismissals++; else p.notOuts++; }
+            if ((b.runs || 0) > p.hs) p.hs = b.runs;
+            if (b.runs >= 100) p.hundreds++;
+            else if (b.runs >= 50) p.fifties++;
+          });
+        }
+
+        /* Bowling */
+        if (inn.bowlers){
+          Object.keys(inn.bowlers).forEach(function(name){
+            var b = inn.bowlers[name];
+            var p = ensure(name);
+            if (!p) return;
+            appeared[name] = true;
+            var w = b.wickets || 0;
+            var r = b.runs || 0;
+            p.wkts      += w;
+            p.bowlRuns  += r;
+            p.bowlBalls += b.balls || 0;
+            p.maidens   += b.maidens || 0;
+            if (w > p.bestWkts || (w === p.bestWkts && r < p.bestRuns)){
+              p.bestWkts = w;
+              p.bestRuns = r;
+            }
+          });
+        }
+      });
+
+      /* Fielding (from the wickets array, if present) */
+      var wktsArr = m.wickets || [];
+      if (Array.isArray(wktsArr)){
+        wktsArr.forEach(function(w){
+          var f = w.fielder || w.fielderName;
+          if (!f) return;
+          var p = ensure(f);
+          if (!p) return;
+          appeared[f] = true;
+          var t = (w.type || w.method || '').toLowerCase();
+          if (t.indexOf('catch') >= 0 || t.indexOf('caught') >= 0) p.catches++;
+          else if (t.indexOf('run out') >= 0) p.runOuts++;
+          else if (t.indexOf('stump') >= 0) p.stumpings++;
+        });
+      }
+
+      Object.keys(appeared).forEach(function(n){
+        if (players[n]) players[n].matches++;
+      });
+    });
+
+    return players;
+  }
+
+  /* ─── Collect every completed match from localStorage ─── */
+  function collectAllMatches(){
+    var out = [];
+    var seen = {};
+    function add(m){
+      if (!m) return;
+      var id = m.id || m.matchId || (m.fixture && m.fixture.date) || JSON.stringify(m).slice(0, 80);
+      if (seen[id]) return;
+      seen[id] = true;
+      out.push(m);
+    }
+
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      if (!raw) return out;
+      var data = JSON.parse(raw);
+
+      /* Source 1 — tournament history */
+      if (data.currentTourn && Array.isArray(data.currentTourn.pastMatches))
+        data.currentTourn.pastMatches.forEach(add);
+
+      /* Source 2 — top-level past matches */
+      if (Array.isArray(data.pastMatches)) data.pastMatches.forEach(add);
+
+      /* Source 3 — explicit match archive */
+      if (data.matchArchive && typeof data.matchArchive === 'object')
+        Object.values(data.matchArchive).forEach(add);
+
+      /* Source 4 — tournament history array */
+      if (Array.isArray(data.tournamentHistory))
+        data.tournamentHistory.forEach(function(t){
+          if (t && Array.isArray(t.pastMatches)) t.pastMatches.forEach(add);
+        });
+
+      /* Source 5 — top-level completedMatches */
+      if (Array.isArray(data.completedMatches)) data.completedMatches.forEach(add);
+    } catch(e){ console.warn('[CricMax] collectAllMatches error:', e); }
+    return out;
+  }
+
+  /* ─── Career (all matches) ─── */
+  function buildCareerStats(){
+    var matches = collectAllMatches();
+    return { players: aggregateMatches(matches), matchesProcessed: matches.length };
+  }
+
+  /* ─── Tournament (only this tournament + current live match) ─── */
+  function buildTournamentStats(){
+    var players = {};
+    var name = '';
+    var matches = [];
+
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      if (!raw) return { players: players, matchesProcessed: 0, tournamentName: '' };
+      var data = JSON.parse(raw);
+
+      if (data.currentTourn){
+        name = data.currentTourn.name || '';
+        if (Array.isArray(data.currentTourn.pastMatches))
+          matches = matches.concat(data.currentTourn.pastMatches);
+
+        /* Include the live match if a tournament is active */
+        if (data.match && name) matches.push(data.match);
+      }
+    } catch(e){}
+
+    players = aggregateMatches(matches);
+    return { players: players, matchesProcessed: matches.length, tournamentName: name };
+  }
+
+  /* ─── Render the current scope into the existing stats table ─── */
+  function renderStatsScope(){
+    var players, subtitle;
+
+    if (currentScope === 'career'){
+      var c = buildCareerStats();
+      players = c.players;
+      subtitle = '📈 Career • ' + c.matchesProcessed + ' match' + (c.matchesProcessed === 1 ? '' : 'es');
+    } else if (currentScope === 'tournament'){
+      var t = buildTournamentStats();
+      players = t.players;
+      if (!t.matchesProcessed){
+        subtitle = '🏆 No tournament active';
+      } else {
+        subtitle = '🏆 ' + (t.tournamentName || 'Tournament') + ' • ' + t.matchesProcessed + ' match' + (t.matchesProcessed === 1 ? '' : 'es');
+      }
+    } else {
+      return; /* match scope → let the app handle it */
+    }
+
+    var titleEl = document.getElementById('statsHubTitle');
+    if (titleEl) titleEl.textContent = subtitle;
+
+    /* Discover the currently selected pill */
+    var activePill = document.querySelector('.stat-pill.active');
+    var category = 'mvp';
+    if (activePill){
+      var oc = activePill.getAttribute('onclick') || '';
+      var m = oc.match(/renderStatsCategory\('([^']+)'/);
+      if (m) category = m[1];
+    }
+
+    var list = Object.keys(players).map(function(k){ return players[k]; });
+
+    if (category === 'runs')         list.sort(function(a,b){ return b.runs - a.runs; });
+    else if (category === 'wickets') list.sort(function(a,b){ return b.wkts - a.wkts; });
+    else if (category === 'fours')   list.sort(function(a,b){ return b.fours - a.fours; });
+    else if (category === 'sixes')   list.sort(function(a,b){ return b.sixes - a.sixes; });
+    else if (category === 'fielding')list.sort(function(a,b){ return (b.catches + b.stumpings + b.runOuts) - (a.catches + a.stumpings + a.runOuts); });
+    else                             list.sort(function(a,b){ return (b.runs + b.wkts * 20) - (a.runs + a.wkts * 20); });
+
+    var thead = document.getElementById('statsTableHead');
+    var tbody = document.getElementById('statsTableBody');
+    if (!thead || !tbody) return;
+
+    /* Category-aware column set */
+    var isBatting  = (category === 'runs' || category === 'fours' || category === 'sixes' || category === 'batting' || category === 'mvp');
+    var isBowling  = (category === 'wickets' || category === 'bowling');
+    var isFielding = (category === 'fielding');
+
+    var headers, rows;
+
+    if (isBowling){
+      headers = ['Bowler','M','O','R','W','Eco','Best','Mdns'];
+      rows = list.map(function(p){
+        var overs = (p.bowlBalls / 6);
+        var oversStr = Math.floor(overs) + '.' + (p.bowlBalls % 6);
+        var eco = p.bowlBalls ? (p.bowlRuns / overs).toFixed(2) : '0.00';
+        var best = p.bestWkts ? (p.bestWkts + '/' + p.bestRuns) : '—';
+        return '<tr>' +
+          '<td style="font-weight:800;">' + escapeHtml(p.name) + '</td>' +
+          '<td>' + p.matches + '</td>' +
+          '<td>' + oversStr + '</td>' +
+          '<td>' + p.bowlRuns + '</td>' +
+          '<td style="color:var(--red);font-weight:800;">' + p.wkts + '</td>' +
+          '<td>' + eco + '</td>' +
+          '<td style="color:var(--gold);font-weight:800;">' + best + '</td>' +
+          '<td>' + p.maidens + '</td>' +
+          '</tr>';
+      });
+    } else if (isFielding){
+      headers = ['Player','M','Catches','Stumpings','Run Outs','Total'];
+      rows = list.map(function(p){
+        return '<tr>' +
+          '<td style="font-weight:800;">' + escapeHtml(p.name) + '</td>' +
+          '<td>' + p.matches + '</td>' +
+          '<td>' + p.catches + '</td>' +
+          '<td>' + p.stumpings + '</td>' +
+          '<td>' + p.runOuts + '</td>' +
+          '<td style="color:var(--gold);font-weight:800;">' + (p.catches + p.stumpings + p.runOuts) + '</td>' +
+          '</tr>';
+      });
+    } else {
+      headers = ['Batter','M','Runs','Balls','4s','6s','SR','50s','100s','HS'];
+      rows = list.map(function(p){
+        var sr = p.balls ? (p.runs / p.balls * 100).toFixed(1) : '0.0';
+        return '<tr>' +
+          '<td style="font-weight:800;">' + escapeHtml(p.name) + '</td>' +
+          '<td>' + p.matches + '</td>' +
+          '<td style="color:var(--green);font-weight:800;">' + p.runs + '</td>' +
+          '<td>' + p.balls + '</td>' +
+          '<td>' + p.fours + '</td>' +
+          '<td>' + p.sixes + '</td>' +
+          '<td>' + sr + '</td>' +
+          '<td>' + p.fifties + '</td>' +
+          '<td style="color:var(--purple);font-weight:800;">' + p.hundreds + '</td>' +
+          '<td style="color:var(--gold);font-weight:800;">' + p.hs + '</td>' +
+          '</tr>';
+      });
+    }
+
+    thead.innerHTML = '<tr>' + headers.map(function(h){ return '<th>' + h + '</th>'; }).join('') + '</tr>';
+
+    if (!list.length){
+      var msg = currentScope === 'tournament' && !matches.length
+        ? 'No tournament active — start a tournament to track stats.'
+        : 'No data yet — complete a match to see ' + currentScope + ' stats.';
+      tbody.innerHTML = '<tr><td colspan="' + headers.length + '" style="text-align:center;padding:24px;color:var(--muted);">' + msg + '</td></tr>';
+    } else {
+      tbody.innerHTML = rows.slice(0, 100).join('');
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  /* ─── Public API ─── */
+  window.setStatsScope = function(scope){
+    currentScope = scope;
+    document.querySelectorAll('.stats-scope-toggle .scope-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-scope') === scope);
+    });
+    if (scope === 'match'){
+      var titleEl = document.getElementById('statsHubTitle');
+      if (titleEl) titleEl.textContent = 'Match Stats Hub';
+      var activePill = document.querySelector('.stat-pill.active');
+      if (activePill && activePill.getAttribute('onclick')){
+        try { eval(activePill.getAttribute('onclick')); } catch(e){}
+      }
+    } else {
+      renderStatsScope();
+    }
+  };
+
+  /* ─── Hook the existing pill-click handler to respect scope ─── */
+  var _origRenderStatsCategory = window.renderStatsCategory;
+  window.renderStatsCategory = function(cat, btn){
+    if (typeof _origRenderStatsCategory === 'function'){
+      _origRenderStatsCategory(cat, btn);
+    }
+    if (currentScope !== 'match'){
+      setTimeout(renderStatsScope, 30);
+    }
+  };
+
+  /* ─── Re-render when the Stats tab is opened ─── */
+  var _origBottomNav = window.bottomNavAction;
+  window.bottomNavAction = function(which){
+    if (typeof _origBottomNav === 'function') _origBottomNav(which);
+    if (which === 'leaderboards'){
+      setTimeout(function(){
+        if (currentScope !== 'match') renderStatsScope();
+      }, 100);
+    }
+  };
+
+  /* ─── Inject toggle UI + CSS on load ─── */
+  function injectUI(){
+    var pane = document.getElementById('pane-leaderboards');
+    if (!pane) return;
+
+    /* Inject CSS once */
+    if (!document.getElementById('statsScopeCSS')){
+      var style = document.createElement('style');
+      style.id = 'statsScopeCSS';
+      style.textContent = [
+        '.stats-scope-toggle {',
+        '  display: flex; gap: 4px; padding: 4px;',
+        '  background: rgba(255,255,255,0.04); border-radius: 12px;',
+        '  margin-bottom: 12px;',
+        '}',
+        '.stats-scope-toggle .scope-btn {',
+        '  flex: 1; padding: 10px; background: transparent; border: none;',
+        '  color: var(--muted); font-weight: 800; font-size: 12px;',
+        '  border-radius: 9px; cursor: pointer; font-family: inherit;',
+        '  transition: all 0.2s;',
+        '}',
+        '.stats-scope-toggle .scope-btn.active {',
+        '  background: linear-gradient(135deg, rgba(0,230,118,.28), rgba(34,211,238,.16));',
+        '  color: var(--green);',
+        '  box-shadow: 0 0 12px rgba(0,230,118,.35);',
+        '}',
+        '.stats-scope-toggle .scope-btn:hover:not(.active) {',
+        '  color: #fff; background: rgba(255,255,255,0.06);',
+        '}'
+      ].join('\n');
+      document.head.appendChild(style);
+    }
+
+    /* Give the first section-header-banner a title id */
+    var firstBanner = pane.querySelector('.section-header-banner');
+    if (firstBanner && !document.getElementById('statsHubTitle')){
+      var bannerText = firstBanner.textContent.replace(/[🏅📊🏏]/g, '').trim() || 'Match Stats Hub';
+      firstBanner.innerHTML = '<span>🏅</span> <span id="statsHubTitle">' + bannerText + '</span>';
+    }
+
+    /* Insert toggle before the first banner */
+    if (!pane.querySelector('.stats-scope-toggle')){
+      var toggle = document.createElement('div');
+      toggle.className = 'stats-scope-toggle';
+      toggle.innerHTML =
+        '<button class="scope-btn active" data-scope="match" onclick="setStatsScope(\'match\')">🏏 Match</button>' +
+        '<button class="scope-btn" data-scope="tournament" onclick="setStatsScope(\'tournament\')">🏆 Tournament</button>' +
+        '<button class="scope-btn" data-scope="career" onclick="setStatsScope(\'career\')">📈 Career</button>';
+      if (firstBanner){
+        pane.insertBefore(toggle, firstBanner);
+      } else {
+        pane.insertBefore(toggle, pane.firstChild);
+      }
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', injectUI);
+  } else {
+    injectUI();
+  }
+
+  console.info('[CricMax] 🏅 Stats Scope Module ready (Match / Tournament / Career)');
+})();
+</script>
 </body>
 </html>
