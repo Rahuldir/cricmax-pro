@@ -390,7 +390,6 @@ function toggleMenu(e){
   const btn = document.getElementById('btn-menu');
   if (panel) panel.classList.toggle('open', menuOpen);
   if (btn) btn.classList.toggle('on', menuOpen);
-  /* close audio dropdown to prevent overlap */
   if (menuOpen) closeAudioMenu();
 }
 document.addEventListener('click', function(e){
@@ -809,7 +808,6 @@ function toggleAudioMenu(e){
   if (p) p.classList.toggle('open', audioMenuOpen);
   const btn = document.getElementById('util-snd');
   if (btn) btn.classList.toggle('on', audioMenuOpen);
-  /* close the ☰ menu to prevent overlap */
   if (audioMenuOpen){
     menuOpen = false;
     const mp = document.getElementById('menuPanel');
@@ -865,12 +863,18 @@ function stopAmbience(){
   const nodes = ambienceNodes;
   ambienceNodes = null;
   try {
-    nodes.g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.35);
-    setTimeout(function(){ try { nodes.src.stop(); nodes.lfo.stop(); } catch(e){} }, 1000);
-  } catch(e){}
+    /* Quick fade so it doesn't linger */
+    nodes.g.gain.cancelScheduledValues(actx.currentTime);
+    nodes.g.gain.setValueAtTime(nodes.g.gain.value, actx.currentTime);
+    nodes.g.gain.linearRampToValueAtTime(0.0001, actx.currentTime + 0.12);
+    setTimeout(function(){ try { nodes.src.stop(); nodes.lfo.stop(); } catch(e){} }, 250);
+  } catch(e){
+    try { nodes.src.stop(); nodes.lfo.stop(); } catch(e2){}
+  }
 }
 function crowdRoar(intensity){
-  if (audioMode === 'mute' || !audioOn || !actx) return;
+  /* Crowd roar only in stadium mode */
+  if (audioMode !== 'stadium' || !audioOn || !actx) return;
   try {
     const dur = 1.4;
     const len = Math.floor(actx.sampleRate * dur);
@@ -972,7 +976,6 @@ function setAudioMode(mode){
   const btn = document.getElementById('util-snd');
   if (btn) btn.classList.toggle('on', mode !== 'mute');
 
-  /* Update BOTH the dropdown buttons AND the ☰ menu buttons */
   ['stadium','commentary','mute'].forEach(function(k){
     const a = document.getElementById('aud-' + k);
     if (a) a.classList.toggle('on', k === mode);
@@ -980,15 +983,19 @@ function setAudioMode(mode){
     if (m) m.classList.toggle('on', k === mode);
   });
 
-  if (mode === 'mute'){
+  initAudio();
+
+  if (mode === 'stadium'){
+    /* Stadium: ambience ON, speech OFF */
+    startAmbience();
+    if ('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
+  } else if (mode === 'commentary'){
+    /* Commentary: ambience OFF (fully silenced), speech allowed */
+    stopAmbience();
+  } else {
+    /* Mute: everything off */
     stopAmbience();
     if ('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
-  } else {
-    initAudio();
-    startAmbience();
-    if (mode !== 'commentary' && 'speechSynthesis' in window){
-      try { window.speechSynthesis.cancel(); } catch(e){}
-    }
   }
   closeAudioMenu();
 }
@@ -998,7 +1005,11 @@ function toggleAudio(){
 }
 
 function audioFirstGesture(){
-  if (audioMode !== 'mute'){ initAudio(); startAmbience(); }
+  /* Only resume context; only start ambience if user is in stadium mode */
+  if (audioMode !== 'mute'){
+    initAudio();
+    if (audioMode === 'stadium') startAmbience();
+  }
   document.removeEventListener('pointerdown', audioFirstGesture);
 }
 document.addEventListener('pointerdown', audioFirstGesture);
@@ -1571,7 +1582,7 @@ function playBall(shot){
             speakCommentary(buildCommentaryLine(Object.assign({}, shot, { ballSpeed: speedVal })));
           }, 220);
         }
-        if (audioMode !== 'mute' && (isWkt || isCatch || runs >= 4)){
+        if (audioMode === 'stadium' && (isWkt || isCatch || runs >= 4)){
           crowdRoar(runs >= 6 ? 1.25 : 1);
         }
       }
