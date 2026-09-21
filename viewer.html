@@ -1173,26 +1173,53 @@ try {
   };
 } catch(e){}
 
-/* ─── Firebase Realtime Database Integration ─── */
+/* ═══════════════════════════════════════════════════════════════
+   FIREBASE REALTIME DATABASE — live sync with match code
+   URL params supported:
+     ?code=XXXXXX   →  watch that specific match
+     (no code)      →  fall back to default path
+   ═══════════════════════════════════════════════════════════════ */
 const firebaseConfig = {
- apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
-    authDomain: "cricket-8cb1b.firebaseapp.com",
-    databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "cricket-8cb1b",
-    storageBucket: "cricket-8cb1b.firebasestorage.app",
-    messagingSenderId: "489545634269",
-    appId: "1:489545634269:web:20b29fa190c4500670e634",
+  apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
+  authDomain: "cricket-8cb1b.firebaseapp.com",
+  databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "cricket-8cb1b",
+  storageBucket: "cricket-8cb1b.firebasestorage.app",
+  messagingSenderId: "489545634269",
+  appId: "1:489545634269:web:20b29fa190c4500670e634"
 };
 
-firebase.initializeApp(firebaseConfig);
-const fireDB = firebase.database();
+try {
+  firebase.initializeApp(firebaseConfig);
+  const fireDB = firebase.database();
 
-fireDB.ref('cricmax/match_current').on('value', (snapshot) => {
-  const matchData = snapshot.val();
-  if (matchData) {
-    handleNewMatchData(matchData);
+  /* Read match code from URL (?code=XXXXXX) */
+  const urlParams = new URLSearchParams(window.location.search);
+  const matchCode = urlParams.get('code');
+
+  if (matchCode) {
+    console.info('[CricMax] 🔍 Watching match:', matchCode);
+    fireDB.ref('cricmax/matches/' + matchCode).on('value', (snapshot) => {
+      const matchData = snapshot.val();
+      if (matchData) {
+        console.info('[CricMax] 🔥 Live update for', matchCode);
+        handleNewMatchData(matchData);
+      }
+    });
+  } else {
+    console.info('[CricMax] 🔍 No code — using default path');
+    fireDB.ref('cricmax/match_current').on('value', (snapshot) => {
+      const matchData = snapshot.val();
+      if (matchData) {
+        console.info('[CricMax] 🔥 Live update (default path)');
+        handleNewMatchData(matchData);
+      }
+    });
   }
-});
+  console.info('[CricMax] 🔥 Firebase connected');
+} catch(e) {
+  console.warn('[CricMax] Firebase init failed:', e);
+}
 
 /* Keep the parent-iframe fallback too (harmless, useful for dev) */
 setInterval(() => {
