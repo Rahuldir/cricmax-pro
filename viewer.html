@@ -752,41 +752,52 @@ const bowlerWicket = new Wicket(-10.0);
 
 let actx = null, audioOn = true;
 function initAudio(){ if (actx){ if (actx.state === 'suspended') actx.resume(); return; } try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+
+/* ── Active one-shot sounds (so we can kill them on mode switch) ── */
+let activeRoarSrc = null;
+let activeSpeechUtter = null;
+
 function playThud(power){
   if (!audioOn || !actx) return;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(110, actx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(38, actx.currentTime + 0.07);
-  g.gain.setValueAtTime(0.45 * power, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
-  o.connect(g); g.connect(actx.destination);
-  o.start(); o.stop(actx.currentTime + 0.09);
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(110, actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(38, actx.currentTime + 0.07);
+    g.gain.setValueAtTime(0.45 * power, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.08);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + 0.09);
+  } catch(e){}
 }
 function playBatCrack(power){
   if (!audioOn || !actx) return;
-  const buf = actx.createBuffer(1, actx.sampleRate * 0.05, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  const src = actx.createBufferSource(); src.buffer = buf;
-  const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(0.8 * power, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.05);
-  src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start();
+  try {
+    const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.05), actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.8 * power, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.05);
+    src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start();
+  } catch(e){}
 }
 function playStumps(){
   if (!audioOn || !actx) return;
   for (let i = 0; i < 3; i++){
     setTimeout(() => {
-      const o = actx.createOscillator(), g = actx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(600 + i * 220, actx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(110, actx.currentTime + 0.11);
-      g.gain.setValueAtTime(0.5, actx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.11);
-      o.connect(g); g.connect(actx.destination);
-      o.start(); o.stop(actx.currentTime + 0.12);
+      try {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'square';
+        o.frequency.setValueAtTime(600 + i * 220, actx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(110, actx.currentTime + 0.11);
+        g.gain.setValueAtTime(0.5, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.11);
+        o.connect(g); g.connect(actx.destination);
+        o.start(); o.stop(actx.currentTime + 0.12);
+      } catch(e){}
     }, i * 35);
   }
 }
@@ -800,6 +811,8 @@ let audioMenuOpen = false;
 let ambienceNodes = null;
 let commentaryVoice = null;
 let commTickerTimer = null;
+let lastSpeakTime = 0;
+let lastRoarTime = 0;
 
 function toggleAudioMenu(e){
   if (e && e.stopPropagation) e.stopPropagation();
@@ -854,7 +867,7 @@ function startAmbience(){
     lfo.connect(lfoG); lfoG.connect(g.gain);
     src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(actx.destination);
     src.start(); lfo.start();
-    g.gain.setTargetAtTime(0.07, actx.currentTime, 1.5);
+    g.gain.setTargetAtTime(0.07, actx.currentTime, 1.2);
     ambienceNodes = { src: src, lfo: lfo, g: g };
   } catch(err){ ambienceNodes = null; }
 }
@@ -863,20 +876,48 @@ function stopAmbience(){
   const nodes = ambienceNodes;
   ambienceNodes = null;
   try {
-    /* Quick fade so it doesn't linger */
-    nodes.g.gain.cancelScheduledValues(actx.currentTime);
-    nodes.g.gain.setValueAtTime(nodes.g.gain.value, actx.currentTime);
-    nodes.g.gain.linearRampToValueAtTime(0.0001, actx.currentTime + 0.12);
-    setTimeout(function(){ try { nodes.src.stop(); nodes.lfo.stop(); } catch(e){} }, 250);
+    const g = nodes.g.gain;
+    const now = actx.currentTime;
+    /* cancel any pending automation (setTargetAtTime etc.) */
+    if (typeof g.cancelScheduledValues === 'function') g.cancelScheduledValues(now);
+    /* pin current value then ramp hard down over 30 ms */
+    g.setValueAtTime(g.value || 0.0001, now);
+    g.linearRampToValueAtTime(0.0001, now + 0.03);
+    /* hard stop shortly after */
+    setTimeout(function(){
+      try { nodes.src.stop(); } catch(e){}
+      try { nodes.lfo.stop(); } catch(e){}
+    }, 50);
   } catch(e){
-    try { nodes.src.stop(); nodes.lfo.stop(); } catch(e2){}
+    try { nodes.src.stop(); } catch(e2){}
+    try { nodes.lfo.stop(); } catch(e2){}
   }
 }
+
+/* Kill any one-shot sound currently in flight (roar / speech) */
+function stopAllTransients(){
+  /* Crowd roar */
+  if (activeRoarSrc){
+    try { activeRoarSrc.stop(); } catch(e){}
+    activeRoarSrc = null;
+  }
+  /* Speech */
+  if ('speechSynthesis' in window){
+    try { window.speechSynthesis.cancel(); } catch(e){}
+    activeSpeechUtter = null;
+  }
+}
+
 function crowdRoar(intensity){
-  /* Crowd roar only in stadium mode */
   if (audioMode !== 'stadium' || !audioOn || !actx) return;
+  /* Prevent overlapping roars */
+  const now = performance.now();
+  if (now - lastRoarTime < 1200) return;
+  lastRoarTime = now;
+  /* Kill previous if still going */
+  if (activeRoarSrc){ try { activeRoarSrc.stop(); } catch(e){} activeRoarSrc = null; }
   try {
-    const dur = 1.4;
+    const dur = 1.2;
     const len = Math.floor(actx.sampleRate * dur);
     const buf = actx.createBuffer(1, len, actx.sampleRate);
     const d = buf.getChannelData(0);
@@ -888,7 +929,9 @@ function crowdRoar(intensity){
     const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 780; bp.Q.value = 0.7;
     const g = actx.createGain(); g.gain.value = 0.15 * (intensity || 1);
     src.connect(bp); bp.connect(g); g.connect(actx.destination);
+    src.onended = function(){ if (activeRoarSrc === src) activeRoarSrc = null; };
     src.start();
+    activeRoarSrc = src;
   } catch(e){}
 }
 
@@ -922,12 +965,26 @@ function speakCommentary(text){
   if (audioMode !== 'commentary' || !text) return;
   showCommentary(text);
   if (!('speechSynthesis' in window)) return;
+  /* debounce so rapid balls don't stutter */
+  const now = performance.now();
+  if (now - lastSpeakTime < 200) return;
+  lastSpeakTime = now;
   try {
+    /* Fully cancel anything queued/speaking */
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    if (commentaryVoice) u.voice = commentaryVoice;
-    u.rate = 1.06; u.pitch = 1.0; u.volume = 1.0;
-    window.speechSynthesis.speak(u);
+    /* Small delay so the cancel actually completes before we queue new text */
+    setTimeout(function(){
+      if (audioMode !== 'commentary') return;
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        if (commentaryVoice) u.voice = commentaryVoice;
+        u.rate = 1.06; u.pitch = 1.0; u.volume = 1.0;
+        u.onend = function(){ if (activeSpeechUtter === u) activeSpeechUtter = null; };
+        u.onerror = function(){ if (activeSpeechUtter === u) activeSpeechUtter = null; };
+        activeSpeechUtter = u;
+        window.speechSynthesis.speak(u);
+      } catch(e){}
+    }, 60);
   } catch(e){}
 }
 function buildCommentaryLine(shot){
@@ -967,6 +1024,7 @@ function buildCommentaryLine(shot){
 
 function setAudioMode(mode){
   if (['stadium','commentary','mute'].indexOf(mode) < 0) mode = 'stadium';
+  const prev = audioMode;
   audioMode = mode;
   if (mode !== 'mute') lastAudibleMode = mode;
   audioOn = (mode !== 'mute');
@@ -983,19 +1041,17 @@ function setAudioMode(mode){
     if (m) m.classList.toggle('on', k === mode);
   });
 
+  /* Stop everything from the previous mode before switching */
+  if (prev !== mode) stopAllTransients();
+
   initAudio();
 
   if (mode === 'stadium'){
-    /* Stadium: ambience ON, speech OFF */
     startAmbience();
-    if ('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
   } else if (mode === 'commentary'){
-    /* Commentary: ambience OFF (fully silenced), speech allowed */
     stopAmbience();
   } else {
-    /* Mute: everything off */
     stopAmbience();
-    if ('speechSynthesis' in window){ try { window.speechSynthesis.cancel(); } catch(e){} }
   }
   closeAudioMenu();
 }
@@ -1005,7 +1061,6 @@ function toggleAudio(){
 }
 
 function audioFirstGesture(){
-  /* Only resume context; only start ambience if user is in stadium mode */
   if (audioMode !== 'mute'){
     initAudio();
     if (audioMode === 'stadium') startAmbience();
@@ -1519,6 +1574,7 @@ function playBall(shot){
 
   const start = performance.now();
   let bounced = false, contacted = false;
+  let releaseThudPlayed = false;   /* ← FIX: only play the release thud once */
 
   function loop(now){
     const elapsed = now - start;
@@ -1547,7 +1603,11 @@ function playBall(shot){
       bowler.armR.rotation.x = -Math.PI * 4 * t;
       bowler.armL.rotation.x = Math.PI * 4 * t;
       ball.position.set(bowler.position.x + 0.3, 2.0, bowler.position.z);
-      if (isWkt || isCatch || runs >= 4) playThud(0.3 + t * 0.4);
+      /* FIX: release-phase thud only plays ONCE (previously ran every frame → 42 overlapping oscillators) */
+      if (!releaseThudPlayed && (isWkt || isCatch || runs >= 4)){
+        releaseThudPlayed = true;
+        playThud(0.55);
+      }
     } else if (elapsed < T_PITCH){
       const t = (elapsed - T_RELEASE) / (T_PITCH - T_RELEASE);
       ball.position.x = THREE.MathUtils.lerp(0.55, pitchX, t);
