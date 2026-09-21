@@ -1102,6 +1102,17 @@ if (!matchCode) {
 }
 
 console.info('[CricMax] 📡 Syncing to match:', matchCode);
+/* Read the current match code from localStorage */
+let matchCode = localStorage.getItem('currentMatchCode');
+if (!matchCode) {
+  const p = new URLSearchParams(window.location.search);
+  matchCode = p.get('code');
+}
+if (!matchCode) {
+  console.warn('[CricMax] No match code — using default path');
+  matchCode = 'match_current';
+}
+console.info('[CricMax] 📡 Syncing to match:', matchCode);
 const ref = fireDB.ref('cricmax/matches/' + matchCode);
     const originalSetItem = localStorage.setItem.bind(localStorage);
 
