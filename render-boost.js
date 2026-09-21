@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   CricMax — Render Boost v3  (LIGHT GOVERNOR)
+   CricMax — Render Boost v4  (LIGHT GOVERNOR, NO CROWD)
    Keeps ALL modules enabled. Runs LAST. Strips redundant lights so
    environment.js / stadium-detail.js / crowd-animation.js can't
    over-expose the scene. Only THIS rig survives.
@@ -55,97 +55,9 @@ window.CricMaxRenderBoost = {
     })();
 
     /* ═════════════════════════════════════════════════════════════
-       2. PACKED CROWD  (colored via instanceColor)
+       2. CROWD — REMOVED (v4)
+       No crowd instances are rendered. Performance-friendly.
        ═════════════════════════════════════════════════════════════ */
-    (function buildCrowd(){
-      const TOTAL = 18000;
-      const bodyGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.55, 5);
-      const headGeo = new THREE.SphereGeometry(0.13, 6, 5);
-
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0xffffff, roughness: 0.9, metalness: 0.0
-      });
-      const headMat = new THREE.MeshStandardMaterial({
-        color: 0xb08050, roughness: 0.8
-      });
-
-      const bodies = new THREE.InstancedMesh(bodyGeo, bodyMat, TOTAL);
-      const heads  = new THREE.InstancedMesh(headGeo, headMat, TOTAL);
-      bodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      heads.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-
-      const dummy = new THREE.Object3D();
-      const col   = new THREE.Color();
-      const palette = [
-        0x0284c7, 0xdc2626, 0xfbbf24, 0x00e676,
-        0xffffff, 0x1e293b, 0xef4444, 0x22d3ee,
-        0x8b5cf6, 0xf97316
-      ];
-      const seatRanges = [
-        { rMin: 69,  rMax: 82,  yMin: 2.5,  yMax: 8,  count: 6000 },
-        { rMin: 85,  rMax: 98,  yMin: 9.5,  yMax: 17, count: 6000 },
-        { rMin: 101, rMax: 116, yMin: 18.5, yMax: 27, count: 6000 }
-      ];
-
-      const baseY = new Float32Array(TOTAL);
-      const phase = new Float32Array(TOTAL);
-
-      let idx = 0;
-      seatRanges.forEach(range => {
-        for (let i = 0; i < range.count; i++, idx++){
-          const angle = Math.random() * Math.PI * 2;
-          const r = range.rMin + Math.random() * (range.rMax - range.rMin);
-          const y = range.yMin + Math.random() * (range.yMax - range.yMin);
-
-          dummy.position.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
-          dummy.rotation.y = -angle + Math.PI / 2;
-          dummy.scale.setScalar(0.85 + Math.random() * 0.35);
-          dummy.updateMatrix();
-          bodies.setMatrixAt(idx, dummy.matrix);
-
-          dummy.position.y = y + 0.42 * dummy.scale.x;
-          dummy.updateMatrix();
-          heads.setMatrixAt(idx, dummy.matrix);
-
-          col.setHex(palette[(Math.random() * palette.length) | 0]);
-          bodies.setColorAt(idx, col);
-
-          baseY[idx] = y;
-          phase[idx] = Math.random() * Math.PI * 2;
-        }
-      });
-
-      bodies.instanceMatrix.needsUpdate = true;
-      heads.instanceMatrix.needsUpdate = true;
-      if (bodies.instanceColor) bodies.instanceColor.needsUpdate = true;
-
-      scene.add(bodies);
-      scene.add(heads);
-
-      const dummy2 = new THREE.Object3D();
-      window.updateCrowd = function(dt){
-        const t = performance.now() * 0.001;
-        const frameStep = 400;
-        if (!window.__crowdCursor) window.__crowdCursor = 0;
-        const start = window.__crowdCursor;
-        const end = Math.min(start + frameStep, TOTAL);
-
-        for (let i = start; i < end; i++){
-          const wave = Math.sin(t * 1.4 + phase[i]) * 0.06;
-          bodies.getMatrixAt(i, dummy2.matrix);
-          dummy2.matrix.decompose(dummy2.position, dummy2.quaternion, dummy2.scale);
-          dummy2.position.y = baseY[i] + wave;
-          dummy2.updateMatrix();
-          bodies.setMatrixAt(i, dummy2.matrix);
-          dummy2.position.y += 0.42 * dummy2.scale.x;
-          dummy2.updateMatrix();
-          heads.setMatrixAt(i, dummy2.matrix);
-        }
-        bodies.instanceMatrix.needsUpdate = true;
-        heads.instanceMatrix.needsUpdate = true;
-        window.__crowdCursor = end >= TOTAL ? 0 : end;
-      };
-    })();
 
     /* ═════════════════════════════════════════════════════════════
        3. FLOODLIGHTS  (off by default)
@@ -390,7 +302,7 @@ window.CricMaxRenderBoost = {
       original(mode);
     };
 
-    console.log('[CricMax] ✅ Render Boost v3 — light governor armed');
+    console.log('[CricMax] ✅ Render Boost v4 — light governor armed (crowd disabled)');
   }
 };
 
