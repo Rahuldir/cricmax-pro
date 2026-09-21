@@ -1036,11 +1036,15 @@
    Signs in anonymously so the scoring app has write permission.
    ═══════════════════════════════════════════════════════════════ */
 (function(){
-  const FIREBASE_CONFIG = {
-    projectId: "cricket-8cb1b",
-    databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app"
-  };
-
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
+  authDomain: "cricket-8cb1b.firebaseapp.com",
+  databaseURL: "https://cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "cricket-8cb1b",
+  storageBucket: "cricket-8cb1b.firebasestorage.app",
+  messagingSenderId: "489545634269",
+  appId: "1:489545634269:web:20b29fa190c4500670e634"
+};
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
     try {
