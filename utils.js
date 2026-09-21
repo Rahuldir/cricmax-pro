@@ -1,173 +1,302 @@
 /* ============================================================
-   utils.js — Toast, render scheduler, helpers, HTML injector
+   main.js — DOMContentLoaded init, keyboard shortcuts,
+             canvas polyfill, cross-frame message bus
+   ============================================================
+   This file is loaded LAST. It:
+     1. Applies canvas roundRect polyfill
+     2. Injects all optional UI elements
+     3. Loads persisted state from localStorage
+     4. Starts Firebase anonymous auth
+     5. Wires up viewer mode landing + subscription
+     6. Registers keyboard shortcuts (0-6, W, U, S, R)
+     7. Auto-capitalizes text inputs on the fly
+     8. Listens for 3D-viewer navigation messages
    ============================================================ */
 
-function showToast(msg, duration = 2600) {
-  let toast = document.getElementById('globalToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'globalToast';
-    toast.style.cssText = 'position:fixed;bottom:105px;left:50%;transform:translateX(-50%) translateY(30px);background:linear-gradient(135deg,rgba(0,146,112,.97),rgba(0,230,118,.97));color:#fff;padding:12px 24px;border-radius:14px;font-size:12.5px;font-weight:800;z-index:9999999;box-shadow:0 10px 40px rgba(0,0,0,.65),0 0 30px rgba(0,230,118,.4);max-width:90vw;text-align:center;opacity:0;transition:all .35s cubic-bezier(.175,.885,.32,1.275);pointer-events:none;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.3);word-break:break-word;';
-    document.body.appendChild(toast);
+/* ── Canvas roundRect polyfill for older browsers ── */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    this.beginPath();
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+
+  /* ── 1. Inject optional UI elements (Retire btn, MOTM box, etc.) ── */
+  injectHelpElements();
+
+  /* ── 2. Speech synthesis voice loading ── */
+  if (speechSynth) {
+    loadSpeechVoices();
+    speechSynth.onvoiceschanged = loadSpeechVoices;
   }
-  toast.innerText = msg;
-  requestAnimationFrame(() => {
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateX(-50%) translateY(0)';
-  });
-  clearTimeout(toast._hideTimer);
-  toast._hideTimer = setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(-50%) translateY(30px)';
-  }, duration);
-}
 
-function scheduleRender() {
-  if (_renderScheduled) return;
-  _renderScheduled = true;
-  requestAnimationFrame(() => {
-    _renderScheduled = false;
-    renderLive();
-    renderCommentary();
-    renderSummary();
-    renderScorecard();
-  });
-}
+  /* ── 3. Restore voice-density preference ── */
+  try {
+    commentaryDensity = localStorage.getItem('CricMax_VoiceDensity') || 'boundaries';
+  } catch (e) {}
+  const densSel = document.getElementById('cfgVoiceDensity');
+  if (densSel) densSel.value = commentaryDensity;
 
-function autoCapitalize(s) {
-  if (!s) return '';
-  return s.replace(/(^|\s|[\-'])\S/g, m => m.toUpperCase());
-}
-
-function escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-}
-
-function autoAddPlayerToTeam(playerName, teamName) {
-  if (!playerName || !teamName) return;
-  playerName = autoCapitalize(playerName.trim());
-  if (!playerName) return;
-  const t = savedTeams.find(x => x.name === teamName);
-  if (!t) return;
-  if (!t.squad) t.squad = [];
-  if (!t.squad.includes(playerName)) {
-    t.squad.push(playerName);
-    autoPersist();
-  }
-}
-
-function detectBowlerType(name) {
-  if (!name) return 'pace';
-  if (bowlerTypeMap[name]) return bowlerTypeMap[name];
-  const lower = name.toLowerCase();
-  const spinKeywords = ['spin','ashwin','jadeja','chahal','kuldeep','rashid','tahir','zampa','shakib','moeen','lyon','herath','sodhi','santner','swepson','parkinson','bishnoi','chakaravarthy','axar','sundar','hooda','markram','maxwell','root','shah','mujeeb','noor','hasaranga','theekshana','wellalage'];
-  for (const k of spinKeywords) if (lower.includes(k)) return 'spin';
-  return 'pace';
-}
-
-/* Injects optional UI elements so no HTML file edits are needed */
-function injectHelpElements() {
-  const wkModal = document.getElementById('wicketTypeModal');
-  const mSel = document.getElementById('wktMethodSelect');
-  if (wkModal && mSel) {
-    if (!document.getElementById('wktDismissedGroup')) {
-      const dg = document.createElement('div');
-      dg.className = 'form-group';
-      dg.id = 'wktDismissedGroup';
-      dg.style.display = 'none';
-      dg.innerHTML = `
-        <label class="form-label">🚪 Who is OUT?</label>
-        <select id="wktDismissedBatter" class="form-control">
-          <option value="striker">Striker</option>
-          <option value="nonStriker">Non-Striker</option>
-        </select>`;
-      mSel.parentElement.parentElement.insertBefore(dg, mSel.parentElement.nextSibling);
+  /* ── 4. Firebase anonymous auth (with retry until SDK ready) ── */
+  function startFirebaseAuth() {
+    if (!window.fbOnAuthStateChanged || !window.fbAuth) {
+      setTimeout(startFirebaseAuth, 300);
+      return;
     }
-    const opts = Array.from(mSel.options).map(o => o.value);
-    if (!opts.includes('Retired Hurt')) mSel.insertAdjacentHTML('beforeend', '<option value="Retired Hurt">Retired Hurt</option>');
-    if (!opts.includes('Obstructing Field')) mSel.insertAdjacentHTML('beforeend', '<option value="Obstructing Field">Obstructing the Field</option>');
+    window.fbOnAuthStateChanged(window.fbAuth, (user) => {
+      if (user) {
+        window.firebaseReady = true;
+        firebaseAuthReady = true;
+      } else {
+        window.fbSignInAnonymously(window.fbAuth)
+          .catch(err => console.error("Firebase auth failed:", err));
+      }
+    });
+  }
+  startFirebaseAuth();
+
+  /* ── 5. Viewer-mode detection ── */
+  const params = new URLSearchParams(location.search);
+  if (params.get('viewer') === '1') {
+    isViewerMode = true;
+    document.body.classList.add('viewer-mode');
+    const subTitle = document.getElementById('headerSubTitle');
+    if (subTitle) subTitle.innerText = '📺 Viewer Mode';
+
+    /* Show landing overlay until first state arrives */
+    const landing = document.getElementById('viewerLanding');
+    const landingCode = document.getElementById('viewerLandingCode');
+    if (landing) {
+      landing.style.display = 'flex';
+      const cp = params.get('code');
+      if (landingCode) landingCode.innerText = cp ? `Match Code: ${cp}` : '';
+    }
+
+    /* Kick off the 3D viewer if available */
+    setTimeout(() => {
+      if (typeof vppStart === 'function') vppStart();
+    }, 400);
   }
 
-  const resultModal = document.getElementById('resultModal');
-  const resultScores = document.getElementById('resultScores');
-  if (resultModal && resultScores && !document.getElementById('motmBox')) {
-    resultScores.insertAdjacentHTML('afterend', `
-      <div id="motmBox" style="margin-top:14px;padding:14px;background:linear-gradient(135deg,rgba(255,193,7,.15),rgba(255,152,0,.08));border-radius:12px;border:1px solid rgba(255,193,7,.4);display:none;">
-        <div style="font-size:10px;color:#ffc107;font-weight:900;text-transform:uppercase;letter-spacing:1px;">🏅 Man of the Match</div>
-        <div id="motmName" style="font-size:18px;font-weight:900;color:#fff;margin-top:4px;"></div>
-        <div id="motmStats" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
-      </div>`);
-  }
+  /* ── 6. Restore saved state from localStorage ── */
+  const s = localStorage.getItem('CricMax_Data');
+  if (s) {
+    try {
+      const p = JSON.parse(s);
+      currentTourn       = p.currentTourn || null;
+      currentTournId     = p.currentTournId || null;
+      tournamentsHistory = p.tournamentsHistory || [];
+      savedTeams         = p.savedTeams || [];
+      pastMatchesLedger  = p.pastMatchesLedger || [];
+      bowlerTypeMap      = p.bowlerTypeMap || {};
 
-  const settingsModal = document.getElementById('settingsModal');
-  if (settingsModal && !document.getElementById('cfgVoiceDensity')) {
-    const anchor = settingsModal.querySelector('.settings-scroll') || settingsModal;
-    anchor.insertAdjacentHTML('beforeend', `
-      <div class="setting-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);margin-top:8px;">
-        <span style="font-size:12px;font-weight:700;">🎙️ Commentary Density</span>
-        <select id="cfgVoiceDensity" class="form-control" onchange="setVoiceDensity(this.value)" style="width:180px;">
-          <option value="all">Every Ball</option>
-          <option value="boundaries" selected>Boundaries + Wickets</option>
-          <option value="wickets">Wickets Only</option>
-          <option value="milestones">Milestones Only</option>
-        </select>
-      </div>`);
-  }
+      if (p.matchConfig) matchConfig = Object.assign({}, DEFAULT_CONFIG, p.matchConfig);
 
-  const lbPane = document.getElementById('pane-leaderboards');
-  const statsHead = document.getElementById('statsTableHead');
-  if (lbPane && statsHead && !document.getElementById('statsScopeAll')) {
-    const tbl = statsHead.closest('table');
-    if (tbl) {
-      tbl.insertAdjacentHTML('beforebegin', `
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-          <button class="stat-pill active" id="statsScopeAll" onclick="setStatsScope('live')">This Match</button>
-          <button class="stat-pill" id="statsScopeTourn" onclick="setStatsScope('tournament')">This Tournament</button>
-        </div>`);
+      if (!isViewerMode) match = p.match || emptyMatch();
+      window.match = match;
+      matchCode = p.matchCode || (p.match && p.match.shareCode) || '';
+
+      /* Ensure new-format fields exist */
+      if (!match.shotLog) match.shotLog = [];
+      if (!match.innings1PartnerRuns) match.innings1PartnerRuns = [];
+      if (!match.innings1Fow) match.innings1Fow = [];
+      if (!match.innings1SectorRuns) match.innings1SectorRuns = [0,0,0,0,0,0,0,0];
+      if (!match.innings2SectorRuns) match.innings2SectorRuns = [0,0,0,0,0,0,0,0];
+      if (typeof match._currentOverRuns !== 'number') match._currentOverRuns = 0;
+      if (typeof match._lastOverRuns !== 'number') match._lastOverRuns = 0;
+      if (!Array.isArray(match.oversTimeline)) match.oversTimeline = [];
+
+      updateTournamentProfileCard();
+      renderPastMatchesList();
+      renderTeamsList();
+      renderPointsTable();
+
+      if (match.isActive && !isViewerMode) {
+        const soundBtn = document.getElementById('btnSoundToggle');
+        if (soundBtn) soundBtn.style.display = 'flex';
+      }
+    } catch (e) {
+      console.error('LocalStorage load error:', e);
     }
   }
 
-  if (!document.getElementById('viewerLanding')) {
-    document.body.insertAdjacentHTML('beforeend', `
-      <div id="viewerLanding" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0a0e1a,#0f172a);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;">
-        <div style="font-size:60px;">📡</div>
-        <div style="font-size:22px;font-weight:900;color:#00e676;margin-top:16px;">Connecting to Live Match</div>
-        <div id="viewerLandingCode" style="font-size:14px;color:#94a3b8;margin-top:8px;"></div>
-        <div style="margin-top:30px;font-size:12px;color:#64748b;">Waiting for host to start…</div>
-      </div>`);
+  /* ── 7. Theme restore ── */
+  try {
+    if (localStorage.getItem('CricMax_Theme') === 'light') {
+      document.body.classList.add('light-mode');
+    }
+  } catch (e) {}
+
+  /* ── 8. Broadcast channel + Firebase subscription ── */
+  setupBroadcast();
+
+  /* ── 9. UI summary + initial pane state ── */
+  syncSettingsUI();
+  updateSettingsSummary();
+  updateBottomNavActive('home');
+  updateLiveShareBadge();
+  injectClearDataPanel();
+
+  /* ── 10. Settings dropdown upgrade (segmented → select) ── */
+  setTimeout(upgradeSettingsDropdowns, 300);
+
+  /* ── 11. Dev-mode seeder (?dev=1) ── */
+  if (params.get('dev') === '1' && !isViewerMode) {
+    setTimeout(() => {
+      if (!match.isActive && confirm('🌱 Load demo match data? (5 overs of random play)')) {
+        seedDemoMatch();
+      }
+    }, 900);
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   CLEANUP ON UNLOAD
+   ═══════════════════════════════════════════════════════════════ */
+window.addEventListener('beforeunload', () => {
+  if (viewerUnsubscribe) {
+    try { viewerUnsubscribe(); } catch (e) {}
+  }
+  if (viewerCountUnsub) {
+    try { viewerCountUnsub(); } catch (e) {}
+  }
+  if (viewerPresenceDocRef && window.fbDeleteDoc) {
+    try { window.fbDeleteDoc(viewerPresenceDocRef); } catch (e) {}
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ═══════════════════════════════════════════════════════════════
+   Numeric keys: 0,1,2,3,4,6 → score that many runs
+   W            → open wicket modal
+   U            → undo last ball
+   S            → open settings modal
+   R            → open Retire Batsman modal
+   Esc          → close topmost modal
+   ═══════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  /* Ignore if typing in an input/textarea/select */
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.target && e.target.isContentEditable) return;
+
+  const k = e.key;
+
+  /* Escape closes any open modal */
+  if (k === 'Escape') {
+    ['wicketTypeModal','nextBatterModal','bowlerModal','retireModal',
+     'settingsModal','extrasModal','moreOptionsModal','tournConfigModal',
+     'teamSelectionModal','openingRolesModal','i2Modal','endInningsModal',
+     'inningsBreakModal','resultModal','wideRunsModal','nbRunsModal',
+     'wagonModal','tournamentPickerModal','matchPickerModal',
+     'playerCareerModal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.style.display === 'flex') el.style.display = 'none';
+    });
+    return;
   }
 
-  const shareBadge = document.getElementById('liveShareBadge');
-  if (shareBadge && !document.getElementById('liveViewerCount')) {
-    shareBadge.insertAdjacentHTML('afterend', `
-      <span id="liveViewerCount" style="display:none;font-size:10px;color:#22d3ee;font-weight:800;padding:4px 8px;background:rgba(34,211,238,.12);border-radius:8px;margin-left:6px;">👁 <span id="liveViewerCountNum">0</span></span>`);
-  }
+  if (!match.isActive || isViewerMode) return;
 
-  const moreModal = document.getElementById('moreOptionsModal');
-  if (moreModal && !document.getElementById('btnEditLastBall')) {
-    const anchor = moreModal.querySelector('.modal-body, .modal-content, div');
-    if (anchor) {
-      anchor.insertAdjacentHTML('beforeend', `
-        <button class="btn-ui" id="btnEditLastBall" onclick="editLastBall(); closeModal('moreOptionsModal');">✏️ Edit Last Ball</button>
-        <button class="btn-ui" id="btnChangeBowlerMid" onclick="changeBowlerMidOver(); closeModal('moreOptionsModal');">🎳 Change Bowler Mid-Over</button>
-      `);
+  if (['0','1','2','3','4','6'].includes(k)) {
+    const r = parseInt(k, 10);
+    if (r === 0) recordBall(0);
+    else promptWagonWheel(r);
+  } else if (k === 'w' || k === 'W') {
+    promptWicketTypeModal();
+  } else if (k === 'u' || k === 'U') {
+    undoDelivery();
+  } else if (k === 's' || k === 'S') {
+    openSettingsModal();
+  } else if (k === 'r' || k === 'R') {
+    if (typeof openRetireModal === 'function') openRetireModal();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTO-CAPITALIZE ALL TEXT INPUTS
+   ═══════════════════════════════════════════════════════════════ */
+document.addEventListener('input', function (e) {
+  const el = e.target;
+  if (!el || !el.matches) return;
+  if (!el.matches('input[type="text"], input:not([type])')) return;
+  /* Skip password and email fields */
+  const type = (el.type || 'text').toLowerCase();
+  if (type === 'password' || type === 'email' || type === 'number') return;
+
+  const val = el.value;
+  if (!val) return;
+
+  const newVal = autoCapitalize(val);
+  if (newVal !== val) {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    el.value = newVal;
+    try { el.setSelectionRange(start, end); } catch (err) {}
+  }
+}, true);
+
+/* ═══════════════════════════════════════════════════════════════
+   3D VIEWER → MAIN APP  NAVIGATION BUS
+   ═══════════════════════════════════════════════════════════════
+   When the user taps "Card", "Stats", or "Boards" inside the
+   3D viewer iframe, it posts {type:'CM_NAV_TO', pane:'scorecard'}
+   and we jump to the right pane here.
+   ═══════════════════════════════════════════════════════════════ */
+window.addEventListener('message', function (ev) {
+  if (!ev.data || ev.data.type !== 'CM_NAV_TO') return;
+  const pane = ev.data.pane;
+  if (!['scorecard', 'analytics', 'leaderboards', 'live', 'summary'].includes(pane)) return;
+
+  try {
+    if (typeof launchDashboard === 'function' && typeof selectSubPane === 'function') {
+      launchDashboard('live');
+      selectSubPane(pane);
+    }
+  } catch (e) {
+    console.warn('[CricMax] CM_NAV_TO failed:', e);
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   VISIBILITY RESUME HANDLER
+   ═══════════════════════════════════════════════════════════════
+   If the tab was backgrounded mid-over, some browsers throttle
+   setTimeouts (e.g., bowler-change modal). On resume, re-trigger
+   any pending modal.
+   ═══════════════════════════════════════════════════════════════ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!match.isActive || isViewerMode) return;
+
+  /* If the last over ended but no modal is open, prompt for bowler */
+  const lastBall = match.currentOverBalls.length === 0
+                && match.legalBalls > 0
+                && match.legalBalls % 6 === 0;
+
+  if (lastBall && match.previousBowler === match.currentBowler) {
+    const bm = document.getElementById('bowlerModal');
+    const wk = document.getElementById('wicketTypeModal');
+    const nb = document.getElementById('nextBatterModal');
+    const anyOpen = (bm && bm.style.display === 'flex')
+                 || (wk && wk.style.display === 'flex')
+                 || (nb && nb.style.display === 'flex');
+    if (!anyOpen && typeof forceBowlerChangePrompt === 'function') {
+      forceBowlerChangePrompt();
     }
   }
-}
-
-function toggleFullScreen() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.warn(err));
-  else if (document.exitFullscreen) document.exitFullscreen();
-}
-
-function triggerReplay() {
-  if (!match.shotLog || match.shotLog.length === 0) return showToast('No balls to replay yet');
-  const lastShot = match.shotLog[match.shotLog.length - 1];
-  const f = document.getElementById('vppIframe') || document.getElementById('stadiumIframe') || document.querySelector('iframe');
-  if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'TRIGGER_DELIVERY', shot: Object.assign({}, lastShot, { isReplay: true }) }, '*');
-  if (typeof window.vppPlayDelivery === 'function') window.vppPlayDelivery(lastShot);
-  else if (typeof window.playBallAnimation === 'function') window.playBallAnimation(lastShot);
-  else showToast(`Replaying Ball ${lastShot.over}.${lastShot.ball}: ${lastShot.runs} runs`);
-}
+});
