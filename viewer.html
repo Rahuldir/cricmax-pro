@@ -5,44 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CricMax Pro — Match Viewer</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
-  canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;}
-  .vignette{position:fixed;inset:0;pointer-events:none;z-index:9998;background:radial-gradient(circle at center,transparent 40%,rgba(0,0,0,0.55) 100%);}
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;}
+  canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:9998;background:radial-gradient(circle at center,transparent 45%,rgba(0,0,0,.55) 100%);}
   .hud{position:fixed;inset:0;pointer-events:none;z-index:9999;}
-  .top-row{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;}
-  .top-left-stack{display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:auto;}
+
+  /* ── TOP ROW ────────────────────────────────────────────── */
+  .top-row{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;pointer-events:none;}
+  .top-left-stack{display:flex;flex-direction:column;gap:6px;align-items:flex-start;pointer-events:auto;}
   .top-center{display:flex;justify-content:center;align-items:flex-start;pointer-events:auto;flex:1;min-width:0;}
-  .top-right{display:flex;gap:8px;align-items:flex-start;pointer-events:auto;}
-  .cluster{display:flex;gap:6px;background:rgba(8,14,28,.85);padding:5px 8px;border-radius:14px;backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);pointer-events:auto;align-items:center;}
-  .live{background:#ef4444;color:#fff;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:1.5px;display:inline-flex;align-items:center;gap:7px;box-shadow:0 0 16px rgba(239,68,68,.75);}
-  .live::before{content:'';width:8px;height:8px;background:#fff;border-radius:50%;animation:blink 1s infinite alternate;}
+  .top-right{display:flex;gap:5px;align-items:flex-start;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end;}
+  .cluster{display:flex;gap:5px;background:rgba(8,14,28,.85);padding:4px 7px;border-radius:12px;border:1px solid rgba(255,255,255,.14);pointer-events:auto;align-items:center;}
+  .live{background:#ef4444;color:#fff;padding:5px 10px;border-radius:16px;font-size:10px;font-weight:900;letter-spacing:1.2px;display:inline-flex;align-items:center;gap:5px;box-shadow:0 0 12px rgba(239,68,68,.7);}
+  .live::before{content:'';width:6px;height:6px;background:#fff;border-radius:50%;animation:blink 1s infinite alternate;}
   @keyframes blink{0%{opacity:.3;}100%{opacity:1;}}
-  .btn{background:transparent;border:1px solid rgba(255,255,255,.12);color:#cbd5e1;padding:6px 11px;border-radius:8px;font-size:10.5px;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
+
+  .btn{background:rgba(8,14,28,.85);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;padding:7px 9px;border-radius:10px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;pointer-events:auto;}
   .btn:hover{background:rgba(0,230,118,.18);color:#fff;border-color:rgba(0,230,118,.5);}
-  .btn.on{background:linear-gradient(135deg,#009270,#00e676);color:#0a0e1a;border-color:transparent;box-shadow:0 0 16px rgba(0,230,118,.6);}
-  .ctrl{width:38px;height:38px;border-radius:11px;background:rgba(8,14,28,.85);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(12px);transition:transform .15s;font-family:inherit;pointer-events:auto;}
-  .ctrl:active{transform:scale(.92);}
-  .ctrl.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;box-shadow:0 0 14px rgba(0,230,118,.5);color:#0a0e1a;}
-  .cam-select-center{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:12px;font-weight:800;padding:9px 16px;border-radius:12px;outline:none;cursor:pointer;font-family:inherit;backdrop-filter:blur(14px);min-width:180px;}
+  .btn.on{background:linear-gradient(135deg,#009270,#00e676);color:#0a0e1a;border-color:transparent;box-shadow:0 0 10px rgba(0,230,118,.55);}
+  .btn.warn{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.55);color:#fca5a5;}
+
+  .ctrl{width:34px;height:34px;border-radius:10px;background:rgba(8,14,28,.85);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;}
+  .ctrl:active{transform:scale(.94);}
+  .ctrl.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
+
+  .cam-select-center{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:11px;font-weight:800;padding:7px 10px;border-radius:10px;outline:none;cursor:pointer;font-family:inherit;min-width:130px;max-width:180px;}
   .cam-select-center option{background:#0b1329;color:#fff;font-weight:700;}
-  .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 18px rgba(0,230,118,.45);transition:all .2s;font-family:inherit;pointer-events:auto;z-index:10000;position:relative;}
+
+  .menu-btn{background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;padding:7px 11px;border-radius:10px;font-size:11px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 3px 14px rgba(0,230,118,.4);font-family:inherit;pointer-events:auto;position:relative;}
   .menu-btn.on{background:linear-gradient(135deg,#ef4444,#f43f5e);}
-  #menuPanel{position:absolute;top:64px;right:14px;width:min(92vw,340px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:16px;padding:14px;backdrop-filter:blur(20px);z-index:100001;opacity:0;transform:translateY(-12px) scale(.95);transition:all .25s;visibility:hidden;pointer-events:auto;}
+
+  #menuPanel{position:absolute;top:54px;right:8px;width:min(90vw,320px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:14px;padding:12px;z-index:100001;opacity:0;transform:translateY(-10px) scale(.96);transition:all .22s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 70px);overflow-y:auto;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
-  .menu-section{margin-bottom:14px;}
-  .menu-title{font-size:9.5px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;margin-bottom:8px;}
-  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .menu-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
-  .menu-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 8px;color:#e2e8f0;font-size:11.5px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;justify-content:center;text-align:center;}
+  .menu-section{margin-bottom:10px;}
+  .menu-title{font-size:9px;font-weight:900;letter-spacing:2px;color:#00e676;text-transform:uppercase;margin-bottom:6px;}
+  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .menu-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+  .menu-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px 6px;color:#e2e8f0;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;justify-content:center;text-align:center;}
   .menu-tile.on{background:linear-gradient(135deg,rgba(0,146,112,.35),rgba(0,230,118,.25));border-color:#00e676;color:#fff;}
-  .menu-tile .ico{font-size:16px;line-height:1;}
-  .menu-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:12px 0;}
-  .menu-tile-cam{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#e2e8f0;font-size:12px;font-weight:800;font-family:inherit;width:100%;outline:none;}
+  .menu-tile .ico{font-size:14px;line-height:1;}
+  .menu-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:10px 0;}
+  .menu-tile-cam{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 10px;color:#e2e8f0;font-size:11px;font-weight:800;font-family:inherit;width:100%;outline:none;}
   .menu-tile-cam option{background:#0b1329;color:#fff;font-weight:700;}
-  .bottom-wrap{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);width:min(92vw,720px);display:flex;flex-direction:column;gap:8px;pointer-events:auto;z-index:10000;}
-  .over-summary{background:rgba(8,18,32,.85);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;color:#cbd5e1;}
-  .over-dots{display:flex;gap:6px;align-items:center;}
-  .badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);}
+
+  /* ── SPEED TAG ─────────────────────────────────────────── */
+  .speed-tag{position:absolute;top:60px;right:8px;background:rgba(15,23,42,.9);border:1px solid rgba(34,211,238,.4);padding:4px 10px;border-radius:7px;color:#38bdf8;font-family:monospace;font-size:12px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;}
+  .speed-tag.on{opacity:1;}
+
+  /* ── WAGON WHEEL (main view) ───────────────────────────── */
+  #wagonWheelCanvas{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(88vw,88vh);height:min(88vw,88vh);background:rgba(8,15,30,.94);border:1px solid rgba(0,230,118,.4);border-radius:50%;display:none;z-index:10001;box-shadow:0 0 40px rgba(0,230,118,.3);}
+  #wagonWheelCanvas.show{display:block;}
+  .wagon-info{position:absolute;bottom:calc(50% - min(44vw,44vh) - 40px);left:50%;transform:translateX(-50%);color:#00e676;font-size:11px;font-weight:800;text-align:center;pointer-events:none;z-index:10002;display:none;letter-spacing:1px;}
+  .wagon-info.show{display:block;}
+
+  /* ── BANNER ────────────────────────────────────────────── */
+  .banner{position:absolute;top:22%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(34px,6.5vw,72px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .35s;pointer-events:none;text-align:center;line-height:1;}
+  .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
+  .banner.four{color:#22d3ee;text-shadow:0 0 40px #0891b2,0 8px 20px #000;}
+  .banner.six{color:#ff6d00;text-shadow:0 0 40px #fbbf24,0 8px 20px #000;}
+  .banner.wkt{color:#ef4444;text-shadow:0 0 40px #7f1d1d,0 8px 20px #000;}
+  .banner.run{color:#00e676;text-shadow:0 0 40px #009270,0 8px 20px #000;}
+
+  /* ── BOTTOM WRAP ───────────────────────────────────────── */
+  .bottom-wrap{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:min(96vw,720px);display:flex;flex-direction:column;gap:5px;pointer-events:auto;z-index:10000;}
+  .over-summary{background:rgba(8,18,32,.9);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:4px 10px;display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:800;color:#cbd5e1;gap:6px;}
+  .over-dots{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+  .badge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);}
   .badge.dot{background:rgba(148,163,184,.2);}
   .badge.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
   .badge.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
@@ -50,24 +78,61 @@
   .badge.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
   .badge.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
   .badge.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
-  .bottom-bar{background:linear-gradient(90deg,rgba(8,18,32,.95),rgba(3,8,16,.98));border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:10px 20px;display:flex;align-items:center;gap:20px;backdrop-filter:blur(18px);color:#fff;font-size:12px;font-weight:800;}
-  .bb-team{display:flex;align-items:center;gap:10px;border-right:1px solid rgba(255,255,255,.12);padding-right:16px;}
-  .bb-badge{background:#00e676;color:#0a0e1a;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:900;}
-  .bb-score{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;}
-  .bb-ov{font-size:11px;color:#94a3b8;font-weight:700;}
-  .bb-bats{display:flex;flex-direction:column;gap:2px;flex:1;}
-  .bb-row{display:flex;justify-content:space-between;font-weight:700;}
+
+  .bottom-bar{background:linear-gradient(90deg,rgba(8,18,32,.95),rgba(3,8,16,.98));border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:7px 12px;display:flex;align-items:center;gap:10px;color:#fff;font-size:11px;font-weight:800;}
+  .bb-team{display:flex;align-items:center;gap:6px;border-right:1px solid rgba(255,255,255,.12);padding-right:10px;}
+  .bb-badge{background:#00e676;color:#0a0e1a;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:900;}
+  .bb-score{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;}
+  .bb-ov{font-size:10px;color:#94a3b8;font-weight:700;}
+  .bb-bats{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
+  .bb-row{display:flex;justify-content:space-between;font-weight:700;font-size:10.5px;gap:6px;}
   .bb-row.striker{color:#00e676;}
-  .bb-bowl{text-align:right;color:#22d3ee;border-left:1px solid rgba(255,255,255,.12);padding-left:16px;font-weight:700;}
-  .banner{position:absolute;top:22%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(38px,7vw,78px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .35s;pointer-events:none;text-align:center;line-height:1;}
-  .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
-  .banner.four{color:#22d3ee;text-shadow:0 0 45px #0891b2,0 8px 24px #000;}
-  .banner.six{color:#ff6d00;text-shadow:0 0 45px #fbbf24,0 8px 24px #000;}
-  .banner.wkt{color:#ef4444;text-shadow:0 0 45px #7f1d1d,0 8px 24px #000;}
-  .banner.run{color:#00e676;text-shadow:0 0 45px #009270,0 8px 24px #000;}
-  .speed-tag{position:absolute;top:80px;right:14px;background:rgba(15,23,42,.9);border:1px solid rgba(34,211,238,.4);padding:6px 14px;border-radius:8px;color:#38bdf8;font-family:monospace;font-size:14px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999;}
-  .speed-tag.on{opacity:1;}
-  #wagonWheelCanvas{position:absolute;top:80px;left:14px;width:150px;height:150px;background:rgba(8,15,30,0.88);border:1px solid rgba(255,255,255,0.2);border-radius:50%;pointer-events:auto;display:none;z-index:10001;}
+  .bb-bowl{text-align:right;color:#22d3ee;border-left:1px solid rgba(255,255,255,.12);padding-left:10px;font-weight:700;font-size:10.5px;}
+
+  /* ── TV MODE OVERLAY ───────────────────────────────────── */
+  #tvMode{position:fixed;inset:0;z-index:100050;background:linear-gradient(135deg,#0a0e1a 0%,#0d1424 100%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;color:#fff;text-align:center;}
+  #tvMode.show{display:flex;}
+  .tv-close{position:absolute;top:14px;right:14px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;}
+  .tv-teams{font-size:clamp(16px,3vw,24px);font-weight:900;color:#00e676;margin-bottom:12px;letter-spacing:1px;}
+  .tv-score{font-size:clamp(52px,14vw,110px);font-weight:900;line-height:1;margin-bottom:8px;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 40px rgba(0,230,118,.4);}
+  .tv-meta{font-size:clamp(11px,1.6vw,14px);color:#94a3b8;font-weight:700;letter-spacing:1px;margin-bottom:20px;}
+  .tv-batters{display:flex;gap:24px;font-size:clamp(13px,2vw,18px);flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
+  .tv-bat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 18px;min-width:130px;}
+  .tv-bat.striker{border-color:#00e676;box-shadow:0 0 18px rgba(0,230,118,.35);}
+  .tv-bat-name{font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+  .tv-bat-runs{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;}
+  .tv-bat.striker .tv-bat-runs{color:#00e676;}
+  .tv-recent{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:600px;}
+  .tv-ball{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);}
+  .tv-ball.four{background:rgba(34,211,238,.3);color:#22d3ee;border-color:#22d3ee;}
+  .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
+  .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
+
+  /* ── MOBILE COMPACT ────────────────────────────────────── */
+  @media (max-width: 600px){
+    .top-row{gap:4px;}
+    .cluster{padding:3px 5px;border-radius:10px;}
+    .live{padding:4px 8px;font-size:9px;letter-spacing:1px;}
+    .live::before{width:5px;height:5px;}
+    .ctrl{width:30px;height:30px;border-radius:8px;font-size:12px;}
+    .btn{padding:6px 7px;font-size:10px;border-radius:8px;}
+    .menu-btn{padding:6px 8px;font-size:10px;}
+    .cam-select-center{font-size:10px;padding:6px 8px;min-width:90px;max-width:140px;}
+    .speed-tag{font-size:11px;padding:3px 8px;top:52px;}
+    .over-summary{font-size:9px;padding:3px 8px;}
+    .badge{width:17px;height:17px;font-size:8px;}
+    .bottom-bar{padding:5px 8px;gap:6px;border-radius:10px;}
+    .bb-score{font-size:14px;}
+    .bb-row{font-size:9.5px;}
+    .bb-bowl{font-size:9.5px;padding-left:6px;}
+    #menuPanel{top:46px;padding:10px;}
+    .menu-tile{padding:7px 4px;font-size:10px;}
+  }
+
+  @media (max-width: 380px){
+    .live{display:none;}
+    .cam-select-center{min-width:70px;max-width:110px;}
+  }
 </style>
 </head>
 <body>
@@ -78,7 +143,7 @@
   <div class="top-row">
     <div class="top-left-stack">
       <div class="cluster"><div class="live">VR LIVE</div></div>
-      <div class="cluster" style="gap:6px;">
+      <div class="cluster" style="gap:5px;">
         <div class="ctrl on" id="util-snd" onclick="toggleAudio()" title="Sound"><span id="snd-ico">🔊</span></div>
         <div class="ctrl" onclick="triggerReplay()" title="Replay">↻</div>
         <div class="ctrl" onclick="toggleFullscreen()" title="Fullscreen">⛶</div>
@@ -86,19 +151,21 @@
     </div>
     <div class="top-center">
       <select class="cam-select-center" id="camSel" onchange="setCamera(this.value)">
-        <option value="broadcast">📺 TV Broadcast</option>
-        <option value="bowler">🎯 Bowler View</option>
-        <option value="keeper">🧤 Keeper View</option>
-        <option value="slip">👐 Slip Cord</option>
-        <option value="side">🎬 Square Side</option>
+        <option value="broadcast">📺 Broadcast</option>
+        <option value="bowler">🎯 Bowler</option>
+        <option value="keeper">🧤 Keeper</option>
+        <option value="slip">👐 Slip</option>
+        <option value="side">🎬 Square</option>
         <option value="drone">🚁 Drone</option>
-        <option value="helmet">⛑️ Helmet Cam</option>
-        <option value="follow">⚾ Ball Follow</option>
+        <option value="helmet">⛑️ Helmet</option>
+        <option value="follow">⚾ Follow</option>
       </select>
     </div>
     <div class="top-right">
-      <button class="btn on" id="btn-dir" onclick="toggleDirector()">🎬 Director</button>
-      <button class="menu-btn" id="btn-menu" onclick="toggleMenu(event)"><span class="hamburger">☰</span> MENU</button>
+      <button class="btn on" id="btn-dir" onclick="toggleDirector()" title="Director">🎬</button>
+      <button class="btn on" id="btn-stadium" onclick="toggleStadiumView()" title="Stadium View">🏟️</button>
+      <button class="btn" id="btn-tv" onclick="toggleTVMode()" title="TV Mode">📺</button>
+      <button class="menu-btn" id="btn-menu" onclick="toggleMenu(event)">☰</button>
     </div>
   </div>
 
@@ -106,10 +173,10 @@
     <div class="menu-section">
       <div class="menu-title">Navigate</div>
       <div class="menu-grid">
-        <button class="menu-tile on" data-pane="pitch" onclick="navTo('pitch')"><span class="ico">🏏</span> 3D Pitch</button>
+        <button class="menu-tile on" data-pane="pitch" onclick="navTo('pitch')"><span class="ico">🏏</span> Pitch</button>
         <button class="menu-tile" data-pane="scorecard" onclick="navTo('scorecard')"><span class="ico">🃏</span> Card</button>
-        <button class="menu-tile" data-pane="analytics" onclick="navTo('analytics')"><span class="ico">📊</span> Analysis</button>
-        <button class="menu-tile" data-pane="leaderboards" onclick="navTo('leaderboards')"><span class="ico">📈</span> Stats</button>
+        <button class="menu-tile" data-pane="analytics" onclick="navTo('analytics')"><span class="ico">📊</span> Stats</button>
+        <button class="menu-tile" data-pane="leaderboards" onclick="navTo('leaderboards')"><span class="ico">📈</span> Boards</button>
       </div>
     </div>
     <div class="menu-divider"></div>
@@ -117,7 +184,7 @@
       <div class="menu-title">Environment</div>
       <div class="menu-grid-3">
         <button class="menu-tile on" id="env-day" onclick="setSky('day')"><span class="ico">☀️</span> Day</button>
-        <button class="menu-tile" id="env-sunset" onclick="setSky('sunset')"><span class="ico">🌇</span> Sunset</button>
+        <button class="menu-tile" id="env-sunset" onclick="setSky('sunset')"><span class="ico">🌇</span> Dusk</button>
         <button class="menu-tile" id="env-night" onclick="setSky('night')"><span class="ico">🌙</span> Night</button>
       </div>
     </div>
@@ -125,7 +192,7 @@
     <div class="menu-section">
       <div class="menu-title">Camera</div>
       <select class="menu-tile-cam" id="camSelMenu" onchange="setCamera(this.value)">
-        <option value="broadcast">📺 TV Broadcast</option>
+        <option value="broadcast">📺 Broadcast</option>
         <option value="bowler">🎯 Bowler View</option>
         <option value="keeper">🧤 Keeper View</option>
         <option value="slip">👐 Slip Cord</option>
@@ -147,7 +214,8 @@
   </div>
 
   <div class="speed-tag" id="speedTag">SPEED: -- KM/H</div>
-  <canvas id="wagonWheelCanvas" width="300" height="300"></canvas>
+  <canvas id="wagonWheelCanvas" width="600" height="600"></canvas>
+  <div class="wagon-info" id="wagonInfo">🕸️ WAGON WHEEL — tap the 🏟️ button to return to stadium</div>
   <div class="banner" id="banner">FOUR!</div>
 
   <div class="bottom-wrap">
@@ -174,6 +242,16 @@
   </div>
 </div>
 
+<!-- TV MODE OVERLAY -->
+<div id="tvMode">
+  <button class="tv-close" onclick="toggleTVMode()">✕ Exit</button>
+  <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
+  <div class="tv-score" id="tvScore">0/0</div>
+  <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
+  <div class="tv-batters" id="tvBatters"></div>
+  <div class="tv-recent" id="tvRecent"></div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -186,52 +264,30 @@
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     MODULE SCRIPTS
-     ═══════════════════════════════════════════════════════════════ -->
 <script src="stadium.js"></script>
 <script src="render-boost.js"></script>
 <script src="player-upgrades.js"></script>
 <script src="shot-fx.js"></script>
 
-<!-- OPTIONAL MODULES — post-fx.js disabled to prevent error spam.
-     Replace with the CSS-only version if you want post-processing back. -->
 <script>
 (function(){
   var OPTIONAL = [
     { src: 'environment.js',     global: 'CricMaxEnvironment'  },
     { src: 'crowd-animation.js', global: 'CricMaxCrowd'        },
     { src: 'particles.js',       global: 'CricMaxParticles'    },
-    /* { src: 'post-fx.js',      global: 'CricMaxPostFX'       },  ← disabled */
     { src: 'stadium-detail.js',  global: 'CricMaxStadiumDetail'}
   ];
-
-  var loaded = {};
-
   OPTIONAL.forEach(function(mod){
     fetch(mod.src, { method: 'HEAD' })
       .then(function(res){
-        if (!res.ok){
-          console.info('[CricMax] optional module not deployed, skipping: ' + mod.src);
-          return;
-        }
+        if (!res.ok){ console.info('[CricMax] skip: ' + mod.src); return; }
         var s = document.createElement('script');
         s.src = mod.src;
-        s.onload = function(){
-          loaded[mod.global] = true;
-          console.info('[CricMax] ✅ loaded optional module: ' + mod.src);
-        };
-        s.onerror = function(){
-          console.info('[CricMax] ⚠ failed to execute: ' + mod.src);
-        };
+        s.onload = function(){ console.info('[CricMax] ✅ ' + mod.src); };
         document.head.appendChild(s);
       })
-      .catch(function(){
-        console.info('[CricMax] optional module unreachable: ' + mod.src);
-      });
+      .catch(function(){});
   });
-
-  window.__CricMaxOptionalLoaded = loaded;
 })();
 </script>
 
@@ -239,9 +295,9 @@
 (function(){
 'use strict';
 
-/* ============================================================
-   1. SCENE SETUP
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   SCENE SETUP
+   ═══════════════════════════════════════════════════════════════ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020713);
 scene.fog = new THREE.FogExp2(0x050d24, 0.0055);
@@ -254,15 +310,16 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.domElement.id = 'three-canvas';
 renderer.domElement.style.zIndex = '0';
 document.body.appendChild(renderer.domElement);
 
 const stadium = window.CricMaxStadium ? window.CricMaxStadium.build(scene) : null;
 const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() : null;
 
-/* ═══════════════════════════════════════════════════════════
-   BOOT HOOKS
-   ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   BOOT OPTIONAL MODULES
+   ═══════════════════════════════════════════════════════════════ */
 (function bootOptionalModules(){
   const HOOKS = [
     ['CricMaxEnvironment',    'build'],
@@ -285,7 +342,7 @@ const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() 
           mod.__cricmaxBooted = true;
           console.info('[CricMax] booted ' + pair[0]);
         } catch(err){
-          console.warn('[CricMax] ' + pair[0] + ' boot error:', err);
+          console.warn('[CricMax] ' + pair[0] + ' err:', err);
           mod.__cricmaxBooted = true;
         }
       }
@@ -295,9 +352,9 @@ const woodTex = window.CricMaxStadium ? window.CricMaxStadium.makeWoodTexture() 
   }, 250);
 })();
 
-/* ============================================================
-   2. UI HANDLERS
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   UI HANDLERS
+   ═══════════════════════════════════════════════════════════════ */
 let menuOpen = false;
 function toggleMenu(e){
   if (e && e.stopPropagation) e.stopPropagation();
@@ -335,11 +392,7 @@ function navTo(pane){
     t.classList.toggle('on', t.getAttribute('data-pane') === pane);
   });
   if (pane === 'pitch'){ toggleMenu(); return; }
-
-  /* Try iframe parent first */
   try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
-
-  /* Fallback — if opened standalone, redirect to main app with tab hash */
   if (window.parent === window){
     const urls = {
       'scorecard':    '/index.html#card',
@@ -348,13 +401,102 @@ function navTo(pane){
     };
     if (urls[pane]) window.location.href = urls[pane];
   }
-
   toggleMenu();
 }
 
-/* ============================================================
-   3. KINEMATIC PLAYER MODEL
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   STADIUM VIEW / WAGON TOGGLE
+   ═══════════════════════════════════════════════════════════════ */
+let stadiumViewActive = true;
+
+function setStadiumView(active){
+  stadiumViewActive = !!active;
+  const canvas = renderer.domElement;
+  const wagon = document.getElementById('wagonWheelCanvas');
+  const wagonInfo = document.getElementById('wagonInfo');
+  const btn = document.getElementById('btn-stadium');
+  const wagonBtn = document.getElementById('util-wagon');
+
+  if (stadiumViewActive){
+    canvas.style.display = 'block';
+    if (wagon) wagon.classList.remove('show');
+    if (wagonInfo) wagonInfo.classList.remove('show');
+    if (btn) { btn.classList.add('on'); btn.innerText = '🏟️'; }
+    if (wagonBtn) wagonBtn.classList.remove('on');
+  } else {
+    canvas.style.display = 'none';
+    if (wagon) wagon.classList.add('show');
+    if (wagonInfo) wagonInfo.classList.add('show');
+    if (btn) { btn.classList.remove('on'); btn.innerText = '🕸️'; }
+    if (wagonBtn) wagonBtn.classList.add('on');
+    drawWagonWheel();
+  }
+  toggleMenu();
+}
+
+function toggleStadiumView(){
+  setStadiumView(!stadiumViewActive);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TV MODE
+   ═══════════════════════════════════════════════════════════════ */
+let tvModeActive = false;
+
+function toggleTVMode(){
+  tvModeActive = !tvModeActive;
+  const overlay = document.getElementById('tvMode');
+  const btn = document.getElementById('btn-tv');
+  if (overlay) overlay.classList.toggle('show', tvModeActive);
+  if (btn) btn.classList.toggle('on', tvModeActive);
+  if (tvModeActive) refreshTVMode();
+}
+
+function refreshTVMode(){
+  if (!tvModeActive) return;
+  const m = window.__cricmaxLastMatch;
+  if (!m) return;
+  const batting = m.teamBatting || 'Team';
+  const bowling = m.teamBowling || 'Opponent';
+  const runs = m.runs || 0;
+  const wkts = m.wickets || 0;
+  const balls = m.legalBalls || 0;
+  const overs = Math.floor(balls / 6) + '.' + (balls % 6);
+  const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
+
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt('tvTeams', batting + ' vs ' + bowling);
+  setTxt('tvScore', runs + '/' + wkts);
+  setTxt('tvMeta', 'Overs: ' + overs + ' • CRR: ' + crr);
+
+  const bWrap = document.getElementById('tvBatters');
+  if (bWrap){
+    const st = m.striker || 'Striker';
+    const nst = m.nonStriker || 'Non-Striker';
+    const sB = (m.batters && m.batters[st]) || { runs: 0, balls: 0 };
+    const nB = (m.batters && m.batters[nst]) || { runs: 0, balls: 0 };
+    bWrap.innerHTML =
+      '<div class="tv-bat striker"><div class="tv-bat-name">' + st + ' *</div><div class="tv-bat-runs">' + sB.runs + ' (' + sB.balls + ')</div></div>' +
+      '<div class="tv-bat"><div class="tv-bat-name">' + nst + '</div><div class="tv-bat-runs">' + nB.runs + ' (' + nB.balls + ')</div></div>';
+  }
+
+  const rWrap = document.getElementById('tvRecent');
+  if (rWrap){
+    const tags = Array.isArray(m.currentOverBalls) ? m.currentOverBalls : (Array.isArray(m.recentBalls) ? m.recentBalls.slice(-6) : []);
+    rWrap.innerHTML = tags.map(t => {
+      const s = String(t);
+      let cls = 'tv-ball';
+      if (s === '4') cls += ' four';
+      else if (s === '6') cls += ' six';
+      else if (s.indexOf('W') >= 0) cls += ' wkt';
+      return '<div class="' + cls + '">' + s + '</div>';
+    }).join('');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAYER MODEL
+   ═══════════════════════════════════════════════════════════════ */
 const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
 const PAD  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
 const SHOE = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
@@ -410,10 +552,8 @@ function makePlayer(opts){
   torso.position.y = 0.91;
   const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.22), PAD);
   pelvis.castShadow = true; torso.add(pelvis);
-  
   const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.54, 12), rig.jerseyMat);
   chest.position.y = 0.34; chest.castShadow = true; torso.add(chest);
-  
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), rig.skinMat);
   head.position.y = 0.77; head.castShadow = true; torso.add(head);
   if (isBat || isKeeper){
@@ -451,15 +591,14 @@ function makePlayer(opts){
   rig.add(torso);
   rig.torso = torso;
   rig.head = head;
-  
   const s = 0.96 + Math.random() * 0.08;
   rig.scale.set(s, s, s);
   return rig;
 }
 
-/* ============================================================
-   4. FIELDERS & RUNNERS
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   FIELDERS
+   ═══════════════════════════════════════════════════════════════ */
 class Fielder {
   constructor(name, x, z, skinIdx){
     this.name = name;
@@ -560,9 +699,9 @@ keeper.position.set(0, 0, 14.5);
 keeper.rotation.y = Math.PI;
 scene.add(keeper);
 
-/* ============================================================
-   5. BALL & AUDIO
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   BALL & AUDIO
+   ═══════════════════════════════════════════════════════════════ */
 const ballTex = (function(){
   const c = document.createElement('canvas'); c.width = c.height = 128; const ctx = c.getContext('2d');
   ctx.fillStyle = '#991b1b'; ctx.fillRect(0, 0, 128, 128); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
@@ -624,18 +763,14 @@ function toggleAudio(){
   audioOn = !audioOn; const el = document.getElementById('snd-ico'); if (el) el.innerText = audioOn ? '🔊' : '🔇'; const btn = document.getElementById('util-snd'); if (btn) btn.classList.toggle('on', audioOn); if (audioOn) initAudio();
 }
 
-/* ============================================================
-   6. REALISTIC RUNNING & CREASE SLIDE
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   RUNNING STATE
+   ═══════════════════════════════════════════════════════════════ */
 const RunningState = {
-  active: false,
-  totalRuns: 0,
-  progress: 0,
-  durationPerRun: 1.35,
+  active: false, totalRuns: 0, progress: 0, durationPerRun: 1.35,
   update(dt){
     if (!this.active) return;
     this.progress += dt / this.durationPerRun;
-
     if (this.progress >= this.totalRuns){
       this.active = false;
       const swapped = this.totalRuns % 2 === 1;
@@ -649,56 +784,43 @@ const RunningState = {
       [strikerBat, nonStrikerBat].forEach(b => {
         b.torso.rotation.set(0,0,0);
         if (b.batPivot) b.batPivot.rotation.set(-Math.PI/4, 0, 0);
-        b.legL.userData.thigh.rotation.x = 0;
-        b.legR.userData.thigh.rotation.x = 0;
-        b.armL.rotation.x = 0;
-        b.armR.rotation.x = 0;
-        b.position.y = 0;
+        b.legL.userData.thigh.rotation.x = 0; b.legR.userData.thigh.rotation.x = 0;
+        b.armL.rotation.x = 0; b.armR.rotation.x = 0; b.position.y = 0;
       });
       return;
     }
-
     const lap = this.progress;
     const currentLap = Math.floor(lap);
     const frac = lap - currentLap;
     const goingAtoB = currentLap % 2 === 0;
-
     const sZ = goingAtoB ? THREE.MathUtils.lerp(8.8, -8.8, frac) : THREE.MathUtils.lerp(-8.8, 8.8, frac);
     const nZ = goingAtoB ? THREE.MathUtils.lerp(-8.8, 8.8, frac) : THREE.MathUtils.lerp(8.8, -8.8, frac);
-
-    strikerBat.position.set(0.6, 0, sZ);
-    strikerBat.rotation.y = goingAtoB ? Math.PI : 0;
-    nonStrikerBat.position.set(-0.6, 0, nZ);
-    nonStrikerBat.rotation.y = goingAtoB ? 0 : Math.PI;
-
+    strikerBat.position.set(0.6, 0, sZ); strikerBat.rotation.y = goingAtoB ? Math.PI : 0;
+    nonStrikerBat.position.set(-0.6, 0, nZ); nonStrikerBat.rotation.y = goingAtoB ? 0 : Math.PI;
     const isLastRun = currentLap === (this.totalRuns - 1);
     const isSliding = isLastRun && (frac > 0.85);
-
     [strikerBat, nonStrikerBat].forEach(b => {
-      if (isSliding) {
-        b.torso.rotation.x = 0.55;
-        b.armR.rotation.x = -1.5;
+      if (isSliding){
+        b.torso.rotation.x = 0.55; b.armR.rotation.x = -1.5;
         if (b.batPivot) b.batPivot.rotation.x = -Math.PI / 1.5;
         b.position.y = -0.1;
-        b.legL.userData.thigh.rotation.x = -0.5;
-        b.legR.userData.thigh.rotation.x = 0.2;
+        b.legL.userData.thigh.rotation.x = -0.5; b.legR.userData.thigh.rotation.x = 0.2;
       } else {
         b.torso.rotation.x = 0.25;
         if (b.batPivot) b.batPivot.rotation.x = -Math.PI / 4;
         const cycle = Math.sin(lap * Math.PI * 14);
         b.legL.userData.thigh.rotation.x = cycle * 0.9;
         b.legR.userData.thigh.rotation.x = -cycle * 0.9;
-        b.armL.rotation.x = -cycle * 0.9;
-        b.armR.rotation.x = cycle * 0.9;
+        b.armL.rotation.x = -cycle * 0.9; b.armR.rotation.x = cycle * 0.9;
         b.position.y = Math.abs(cycle) * 0.08;
       }
     });
   }
 };
 
-/* ============================================================
-   7. 10 DYNAMIC SHOT KINEMATICS
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   SHOT KINEMATICS
+   ═══════════════════════════════════════════════════════════════ */
 const SHOT_KINEMATICS = {
   defend: { prepTime: 200, contactTime: 100, followTime: 300, pose: { batX: -0.5, batZ: 0, torsoY: 0.1, lean: 0, stride: 0.2 } },
   leave: { prepTime: 300, contactTime: 100, followTime: 400, pose: { batX: -2.0, batZ: 0, torsoY: 0, lean: -0.1, stride: 0.1 } },
@@ -712,7 +834,7 @@ const SHOT_KINEMATICS = {
   glance: { prepTime: 200, contactTime: 100, followTime: 300, pose: { batX: 0, batZ: 0.8, torsoY: -0.3, lean: 0.1, stride: 0.2 } }
 };
 
-function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle) {
+function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle){
   const lengths = [
     { type: 'yorker', pZ: 8.5 },
     { type: 'full', pZ: 7.5 },
@@ -721,90 +843,57 @@ function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle) {
   ];
   let length = lengths[Math.floor(Math.random() * lengths.length)];
   if (isSpin) length = { type: 'good', pZ: 4.8 };
-
   let shotType = 'defend';
   let peakHeight = 0.5;
   let finalDist = 10;
-
   let deg = (wwAngle * 180) / Math.PI;
   if (deg < 0) deg += 360;
   const isOffside = (deg > 0 && deg < 180);
   const isStraight = (deg > 140 && deg < 220);
   const isBehind = (deg < 40 || deg > 320);
-
-  if (isWkt && !isCatch) {
-     shotType = 'defend';
-     finalDist = 2;
-  } else if (runs === 6) {
-      peakHeight = 15;
-      finalDist = 75 + Math.random() * 10;
-      if (isSpin && !isOffside) shotType = 'sweep';
-      else if (length.type === 'short' && !isOffside) shotType = 'pull';
-      else shotType = 'lofted_straight';
-  } else if (runs === 4) {
-      peakHeight = 1.2;
-      finalDist = 65;
-      if (isSpin && !isOffside) shotType = 'sweep';
-      else if (isOffside && length.type === 'short') shotType = 'cut';
-      else if (isOffside && !isBehind) shotType = 'cover_drive';
-      else if (isStraight) shotType = 'straight_drive';
-      else shotType = 'pull';
-  } else if (runs > 0) {
-      peakHeight = 0.8;
-      finalDist = 15 + (runs * 10);
-      if (isOffside && !isBehind) shotType = 'cover_drive';
-      else if (isStraight) shotType = 'on_drive';
-      else shotType = 'glance';
+  if (isWkt && !isCatch){ shotType = 'defend'; finalDist = 2; }
+  else if (runs === 6){
+    peakHeight = 15;
+    finalDist = 75 + Math.random() * 10;
+    if (isSpin && !isOffside) shotType = 'sweep';
+    else if (length.type === 'short' && !isOffside) shotType = 'pull';
+    else shotType = 'lofted_straight';
+  } else if (runs === 4){
+    peakHeight = 1.2; finalDist = 65;
+    if (isSpin && !isOffside) shotType = 'sweep';
+    else if (isOffside && length.type === 'short') shotType = 'cut';
+    else if (isOffside && !isBehind) shotType = 'cover_drive';
+    else if (isStraight) shotType = 'straight_drive';
+    else shotType = 'pull';
+  } else if (runs > 0){
+    peakHeight = 0.8; finalDist = 15 + (runs * 10);
+    if (isOffside && !isBehind) shotType = 'cover_drive';
+    else if (isStraight) shotType = 'on_drive';
+    else shotType = 'glance';
   } else {
-      peakHeight = 0.3;
-      finalDist = 10;
-      shotType = Math.random() > 0.3 ? 'defend' : 'leave';
+    peakHeight = 0.3; finalDist = 10;
+    shotType = Math.random() > 0.3 ? 'defend' : 'leave';
   }
-
-  if (isCatch) {
-     peakHeight = 6;
-     finalDist = 35;
-     shotType = 'lofted_straight';
-  }
-
+  if (isCatch){ peakHeight = 6; finalDist = 35; shotType = 'lofted_straight'; }
   return { length, shotType, peakHeight, finalDist };
 }
 
-/* ============================================================
-   8. INNINGS / MATCH END DETECTION
-   ============================================================ */
 function isInningsOrMatchOver(m){
   if (!m) return false;
-  if (m.matchOver === true)       return true;
-  if (m.isMatchOver === true)     return true;
-  if (m.matchEnded === true)      return true;
-  if (m.matchCompleted === true)  return true;
-  if (m.inningsOver === true)     return true;
-  if (m.isInningsOver === true)   return true;
-  if (m.inningsEnded === true)    return true;
-  if (m.inningsComplete === true) return true;
-  if (m.ended === true)           return true;
-  if (m.isComplete === true)      return true;
-
+  if (m.matchOver || m.isMatchOver || m.matchEnded || m.matchCompleted) return true;
+  if (m.inningsOver || m.isInningsOver || m.inningsEnded || m.inningsComplete) return true;
+  if (m.ended || m.isComplete) return true;
   if (typeof m.status === 'string'){
     const s = m.status.toLowerCase().trim();
-    if (s === 'completed' || s === 'finished' || s === 'ended' ||
-        s === 'over'      || s === 'abandoned' || s === 'complete' ||
-        s === 'match over'|| s === 'innings over' || s === 'result') {
-      return true;
-    }
+    if (['completed','finished','ended','over','abandoned','complete','match over','innings over','result'].indexOf(s) >= 0) return true;
   }
   if (typeof m.result === 'string' && m.result.length > 0){
     const r = m.result.toLowerCase();
     if (r !== 'in progress' && r !== 'live' && r !== 'tbd') return true;
   }
   if (typeof m.wickets === 'number' && m.wickets >= 10) return true;
-  if (typeof m.oversLimit === 'number' && typeof m.legalBalls === 'number'){
-    if (m.legalBalls >= m.oversLimit * 6) return true;
-  }
-  if (typeof m.target === 'number' && typeof m.runs === 'number'){
-    if (m.runs >= m.target) return true;
-  }
+  if (typeof m.oversLimit === 'number' && typeof m.legalBalls === 'number' && m.legalBalls >= m.oversLimit * 6) return true;
+  if (typeof m.target === 'number' && typeof m.runs === 'number' && m.runs >= m.target) return true;
   return false;
 }
 
@@ -812,18 +901,15 @@ window.__cricmaxInningsOver = false;
 let currentMatchState = null;
 let prevLegalBalls = 0;
 
-/* ============================================================
-   9. CORE DELIVERY ENGINE
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   DELIVERY ENGINE
+   ═══════════════════════════════════════════════════════════════ */
 let anim = null;
 let lastShot = null;
 let currentShotAngle = 0;
 
 function playBall(shot){
-  const isReplay = shot && shot.__isReplay === true;
-  /* Trust the caller — if a shot reaches us, play it */
   if (shot && shot.__isReplay) delete shot.__isReplay;
-
   if (anim) cancelAnimationFrame(anim);
   initAudio();
   lastShot = shot;
@@ -831,8 +917,6 @@ function playBall(shot){
   strikerWicket.reset(); bowlerWicket.reset();
   fielders.forEach(f => f.reset());
   ball.visible = true;
-
-  /* Reset trail on every new delivery */
   if (window.fxTrailStop) window.fxTrailStop();
 
   strikerBat.position.set(0.35, 0, 8.8);
@@ -856,14 +940,12 @@ function playBall(shot){
   const isSpin = bowlerType === 'spin' || bowlerType === 'off_spin' || bowlerType === 'leg_spin';
 
   let wwAngle = Math.random() * Math.PI * 2;
-  if (shot.angle !== undefined && shot.angle !== null) {
-      wwAngle = parseFloat(shot.angle);
-  }
+  if (shot.angle !== undefined && shot.angle !== null) wwAngle = parseFloat(shot.angle);
   currentShotAngle = wwAngle;
 
   const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
   const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
-  
+
   const pitchZ = phys.length.pZ;
   const pitchX = (Math.random() - 0.5) * 0.4;
   const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
@@ -880,17 +962,11 @@ function playBall(shot){
 
   const speedVal = shot.ballSpeed || (isSpin ? (85 + Math.random()*10).toFixed(1) : (135 + Math.random()*15).toFixed(1));
   const sTag = document.getElementById('speedTag');
-  if (sTag) {
-    sTag.innerText = 'SPEED: ' + speedVal + ' KM/H';
-    sTag.classList.add('on');
-  }
+  if (sTag){ sTag.innerText = 'SPEED: ' + speedVal + ' KM/H'; sTag.classList.add('on'); }
 
-  const T_RELEASE = 700;
-  const T_PITCH   = 1000;
-  const T_CONTACT = 1250;
+  const T_RELEASE = 700, T_PITCH = 1000, T_CONTACT = 1250;
   const flightTime = (runs === 6) ? 4000 : (runs === 4) ? 2500 : 3000;
   const T_END = T_CONTACT + Math.max(flightTime, animPose.followTime + 400);
-
   const T_SHOT_START = T_CONTACT - animPose.prepTime;
   const T_FOLLOW_END = T_CONTACT + animPose.followTime;
 
@@ -900,7 +976,6 @@ function playBall(shot){
   function loop(now){
     const elapsed = now - start;
 
-    /* Bat Swing Kinematics */
     if (strikerBat.batPivot && !isWkt){
       const pose = animPose.pose;
       if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
@@ -919,7 +994,6 @@ function playBall(shot){
       }
     }
 
-    /* Ball Trajectory */
     if (elapsed < T_RELEASE){
       const t = elapsed / T_RELEASE;
       bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
@@ -937,11 +1011,7 @@ function playBall(shot){
     }
     else if (elapsed < T_CONTACT){
       const t = (elapsed - T_PITCH) / (T_CONTACT - T_PITCH);
-      if (!bounced){
-        playThud(1.0);
-        bounced = true;
-        if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z);
-      }
+      if (!bounced){ playThud(1.0); bounced = true; if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z); }
       ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBat.position.x - 0.1, t);
       ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
       ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
@@ -953,11 +1023,7 @@ function playBall(shot){
         if (isWkt && !isCatch){ playStumps(); strikerWicket.shatter(); }
         else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
 
-        /* Spark burst + trail start on contact */
-        const sparkColor = isWkt ? 0xff4444
-                         : runs >= 6 ? 0xff6d00
-                         : runs >= 4 ? 0x22d3ee
-                         : 0xffcc44;
+        const sparkColor = isWkt ? 0xff4444 : runs >= 6 ? 0xff6d00 : runs >= 4 ? 0x22d3ee : 0xffcc44;
         if (window.fxSparkBurst) window.fxSparkBurst(ball.position.x, ball.position.y, ball.position.z, sparkColor);
         if (runs > 0 && window.fxTrailStart) window.fxTrailStart();
 
@@ -972,7 +1038,6 @@ function playBall(shot){
         }
       }
 
-      /* Batsman runs 200ms AFTER contact */
       if (runningPending && !runningStarted && elapsed >= T_CONTACT + RUNNING_START_DELAY){
         runningStarted = true;
         RunningState.active = true;
@@ -1004,7 +1069,7 @@ function playBall(shot){
         if (sTag) sTag.classList.remove('on');
         return;
       }
-      if (elapsed >= T_END + 3000) {
+      if (elapsed >= T_END + 3000){
         anim = null; ball.visible = false;
         if (window.fxTrailStop) window.fxTrailStop();
         if (sTag) sTag.classList.remove('on');
@@ -1012,9 +1077,7 @@ function playBall(shot){
       }
     }
 
-    /* Publish ball position for trail sampling */
     window.__cricmaxBallPos = ball.position;
-
     anim = requestAnimationFrame(loop);
   }
   anim = requestAnimationFrame(loop);
@@ -1023,18 +1086,18 @@ function playBall(shot){
     const b = document.getElementById('banner');
     if (!b) return;
     b.className = 'banner on';
-    if (isCatch) { b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
-    else if (isWkt) { b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
-    else if (runs===6) { b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
-    else if (runs===4) { b.innerText = 'FOUR!'; b.classList.add('four'); }
+    if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
+    else if (isWkt){ b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
+    else if (runs===6){ b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
+    else if (runs===4){ b.innerText = 'FOUR!'; b.classList.add('four'); }
     else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run'); }
     setTimeout(() => b.classList.remove('on'), 2400);
   }, 1300);
 }
 
-/* ============================================================
-   10. SCORECARD & OVER SUMMARY
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   SCORECARD
+   ═══════════════════════════════════════════════════════════════ */
 function renderOverDots(ballTags){
   const container = document.getElementById('overDotsContainer');
   const totalEl = document.getElementById('overTotalRuns');
@@ -1042,33 +1105,24 @@ function renderOverDots(ballTags){
   container.innerHTML = '';
   let overRuns = 0;
   const tags = Array.isArray(ballTags) ? ballTags : [];
-
   for (let i = 0; i < 6; i++){
     const tag = tags[i] !== undefined && tags[i] !== null ? String(tags[i]) : null;
     const dot = document.createElement('div');
     dot.className = 'badge dot';
-
     if (tag !== null && tag !== ''){
       const isWkt = tag.indexOf('W') >= 0;
       const isWd = tag.indexOf('Wd') >= 0;
       const isNb = tag.indexOf('Nb') >= 0;
       const isBye = /B$/.test(tag) && !isNb;
       const isLb = /Lb$/i.test(tag);
-
       if (isWkt){ dot.className = 'badge wkt'; dot.innerText = 'W'; }
       else if (isWd){ const n = parseInt(tag) || 1; dot.className = 'badge nb'; dot.innerText = n > 1 ? String(n) : 'wd'; overRuns += n; }
       else if (isNb){ const n = parseInt(tag) || 1; dot.className = 'badge nb'; dot.innerText = n > 1 ? String(n) : 'nb'; overRuns += n; }
       else if (isBye || isLb){ const n = parseInt(tag) || 0; dot.className = 'badge bye'; dot.innerText = n > 0 ? String(n) : 'b'; overRuns += n; }
       else if (tag === '4'){ dot.className = 'badge four'; dot.innerText = '4'; overRuns += 4; }
       else if (tag === '6'){ dot.className = 'badge six'; dot.innerText = '6'; overRuns += 6; }
-      else {
-        const n = parseInt(tag) || 0;
-        if (n === 0){ dot.className = 'badge dot'; dot.innerText = '0'; }
-        else { dot.className = 'badge run'; dot.innerText = String(n); overRuns += n; }
-      }
-    } else {
-      dot.innerText = '·';
-    }
+      else { const n = parseInt(tag) || 0; if (n === 0){ dot.className = 'badge dot'; dot.innerText = '0'; } else { dot.className = 'badge run'; dot.innerText = String(n); overRuns += n; } }
+    } else { dot.innerText = '·'; }
     container.appendChild(dot);
   }
   if (totalEl) totalEl.innerText = overRuns + ' RUNS';
@@ -1077,12 +1131,8 @@ function renderOverDots(ballTags){
 function applyMatch(raw){
   if (!raw) return;
   currentMatchState = raw;
+  window.__cricmaxLastMatch = raw;
 
-  /* ═══════════════════════════════════════════════════════════
-     SUPPORT BOTH FORMATS
-     • Nested: { innings1: {...}, innings2: {...}, currentInnings: 1|2 }
-     • Flat:   { runs, wickets, legalBalls, batters, bowlers, ... }
-     ═══════════════════════════════════════════════════════════ */
   let m = raw;
   if (raw.innings1 || raw.innings2){
     const innNum = raw.currentInnings || 1;
@@ -1090,34 +1140,25 @@ function applyMatch(raw){
     if (inn){
       const battingTeam = inn.team || raw.teamBatting || '';
       m = Object.assign({}, raw, {
-        runs:             inn.runs || 0,
-        wickets:          inn.wickets || 0,
-        legalBalls:       inn.balls || 0,
-        teamBatting:      battingTeam,
-        teamBattingAbbr:  (raw.teamBattingAbbr || battingTeam.substring(0,3).toUpperCase()),
-        batters:          inn.batters || raw.batters || {},
-        bowlers:          inn.bowlers || raw.bowlers || {},
+        runs: inn.runs || 0, wickets: inn.wickets || 0, legalBalls: inn.balls || 0,
+        teamBatting: battingTeam,
+        teamBattingAbbr: (raw.teamBattingAbbr || battingTeam.substring(0,3).toUpperCase()),
+        batters: inn.batters || raw.batters || {},
+        bowlers: inn.bowlers || raw.bowlers || {},
         currentOverBalls: raw.currentOverBalls || inn.currentOverBalls || null
       });
     }
   }
 
-  /* Auto-reset flag if legalBalls went backwards (new innings / new match) */
   const curLB = m.legalBalls || 0;
   if (prevLegalBalls > 0 && curLB < prevLegalBalls){
     window.__cricmaxInningsOver = false;
-    console.info('[CricMax] 🔄 New innings detected — flag reset');
   }
   prevLegalBalls = curLB;
 
   const over = isInningsOrMatchOver(m);
   if (over !== window.__cricmaxInningsOver){
     window.__cricmaxInningsOver = over;
-    if (over){
-      console.info('[CricMax] 🏁 Innings/Match ended — new deliveries blocked');
-    } else {
-      console.info('[CricMax] ▶ Innings/Match active — deliveries enabled');
-    }
   }
 
   const abbr = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');
@@ -1125,50 +1166,43 @@ function applyMatch(raw){
   const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
 
   setTxt('bbAbbr', abbr);
-  setTxt('bbScore', `${m.runs || 0}/${m.wickets || 0}`);
-  setTxt('bbOvers', `(${Math.floor(balls / 6)}.${balls % 6})`);
+  setTxt('bbScore', (m.runs || 0) + '/' + (m.wickets || 0));
+  setTxt('bbOvers', '(' + Math.floor(balls / 6) + '.' + (balls % 6) + ')');
 
   const st = m.striker || 'Striker';
   const nst = m.nonStriker || 'Non-Striker';
   const sB = (m.batters && m.batters[st]) || { runs: 0, balls: 0 };
   const nB = (m.batters && m.batters[nst]) || { runs: 0, balls: 0 };
-
   setTxt('bbStriker', st + '*');
-  setTxt('bbStrikerRuns', `${sB.runs || 0}(${sB.balls || 0})`);
+  setTxt('bbStrikerRuns', (sB.runs || 0) + '(' + (sB.balls || 0) + ')');
   setTxt('bbNonStriker', nst);
-  setTxt('bbNonStrikerRuns', `${nB.runs || 0}(${nB.balls || 0})`);
+  setTxt('bbNonStrikerRuns', (nB.runs || 0) + '(' + (nB.balls || 0) + ')');
 
   const bwName = m.currentBowler || 'Bowler';
   const bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
   setTxt('bbBowler', bwName);
-  setTxt('bbBowlerFigs', `${Math.floor((bw.balls || 0) / 6)}.${(bw.balls || 0) % 6}-${bw.maidens || 0}-${bw.runs || 0}-${bw.wickets || 0}`);
+  setTxt('bbBowlerFigs', Math.floor((bw.balls || 0) / 6) + '.' + ((bw.balls || 0) % 6) + '-' + (bw.maidens || 0) + '-' + (bw.runs || 0) + '-' + (bw.wickets || 0));
 
-  if (Array.isArray(m.currentOverBalls)){
-    renderOverDots(m.currentOverBalls);
-  } else if (Array.isArray(m.recentBalls)){
-    renderOverDots(m.recentBalls.slice(-6));
-  }
+  if (Array.isArray(m.currentOverBalls)) renderOverDots(m.currentOverBalls);
+  else if (Array.isArray(m.recentBalls)) renderOverDots(m.recentBalls.slice(-6));
+
+  if (tvModeActive) refreshTVMode();
 }
 
-/* ============================================================
-   11. UNIVERSAL MULTI-CHANNEL DATA SYNC
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   MULTI-CHANNEL SYNC
+   ═══════════════════════════════════════════════════════════════ */
 let lastSeenBalls = -1;
-function handleNewMatchData(m) {
+function handleNewMatchData(m){
   if (!m || !m.teamBatting) return;
   applyMatch(m);
   const shots = m.shotLog || [];
   const total = shots.length;
-
-  if (lastSeenBalls < 0) {
-    lastSeenBalls = total;
-    return;
-  }
-  if (total > lastSeenBalls) {
+  if (lastSeenBalls < 0){ lastSeenBalls = total; return; }
+  if (total > lastSeenBalls){
     lastSeenBalls = total;
     const last = shots[total - 1];
     if (last){
-      /* A new shot in the log = innings is active = reset flag & play */
       window.__cricmaxInningsOver = false;
       playBall(last);
     }
@@ -1177,11 +1211,10 @@ function handleNewMatchData(m) {
 
 window.addEventListener('message', ev => {
   const d = ev.data || {};
-  if ((d.type === 'SYNC_MATCH_STATE' || d.type === 'match_state') && (d.payload || d.match)) {
+  if ((d.type === 'SYNC_MATCH_STATE' || d.type === 'match_state') && (d.payload || d.match)){
     applyMatch(d.payload || d.match);
   }
-  if (d.type === 'TRIGGER_DELIVERY' && d.shot) {
-    /* Parent explicitly asked us to render this — always obey */
+  if (d.type === 'TRIGGER_DELIVERY' && d.shot){
     window.__cricmaxInningsOver = false;
     playBall(d.shot);
   }
@@ -1191,18 +1224,11 @@ try {
   const bc = new BroadcastChannel('cricmax_live');
   bc.onmessage = ev => {
     const d = ev.data || {};
-    if (d.type === 'match_state' && d.match) {
-      handleNewMatchData(d.match);
-    }
+    if (d.type === 'match_state' && d.match) handleNewMatchData(d.match);
   };
 } catch(e){}
 
-/* ═══════════════════════════════════════════════════════════════
-   FIREBASE REALTIME DATABASE — live sync with match code
-   URL params supported:
-     ?code=XXXXXX   →  watch that specific match
-     (no code)      →  fall back to default path
-   ═══════════════════════════════════════════════════════════════ */
+/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
   authDomain: "cricket-8cb1b.firebaseapp.com",
@@ -1216,39 +1242,26 @@ const firebaseConfig = {
 try {
   firebase.initializeApp(firebaseConfig);
   const fireDB = firebase.database();
-
-  /* Read match code from URL (?code=XXXXXX) */
   const urlParams = new URLSearchParams(window.location.search);
   const matchCode = urlParams.get('code');
-
-  if (matchCode) {
-    console.info('[CricMax] 🔍 Watching match:', matchCode);
-    fireDB.ref('cricmax/matches/' + matchCode).on('value', (snapshot) => {
-      const matchData = snapshot.val();
-      if (matchData) {
-        console.info('[CricMax] 🔥 Live update for', matchCode);
-        handleNewMatchData(matchData);
-      }
+  if (matchCode){
+    console.info('[CricMax] 🔍 Watching:', matchCode);
+    fireDB.ref('cricmax/matches/' + matchCode).on('value', (snap) => {
+      const d = snap.val();
+      if (d) handleNewMatchData(d);
     });
   } else {
-    console.info('[CricMax] 🔍 No code — using default path');
-    fireDB.ref('cricmax/match_current').on('value', (snapshot) => {
-      const matchData = snapshot.val();
-      if (matchData) {
-        console.info('[CricMax] 🔥 Live update (default path)');
-        handleNewMatchData(matchData);
-      }
+    fireDB.ref('cricmax/match_current').on('value', (snap) => {
+      const d = snap.val();
+      if (d) handleNewMatchData(d);
     });
   }
   console.info('[CricMax] 🔥 Firebase connected');
-} catch(e) {
-  console.warn('[CricMax] Firebase init failed:', e);
-}
+} catch(e) { console.warn('[CricMax] Firebase init failed:', e); }
 
-/* Keep the parent-iframe fallback too (harmless, useful for dev) */
 setInterval(() => {
   try {
-    if (window.parent && window.parent !== window && window.parent.match) {
+    if (window.parent && window.parent !== window && window.parent.match){
       handleNewMatchData(window.parent.match);
     }
   } catch(e){}
@@ -1256,20 +1269,20 @@ setInterval(() => {
 
 try {
   const raw = localStorage.getItem('CricMax_Data');
-  if (raw) {
+  if (raw){
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.match) {
+    if (parsed && parsed.match){
       applyMatch(parsed.match);
-      if (parsed.match.shotLog && parsed.match.shotLog.length) {
+      if (parsed.match.shotLog && parsed.match.shotLog.length){
         lastSeenBalls = parsed.match.shotLog.length;
       }
     }
   }
 } catch(e){}
 
-/* ============================================================
-   12. CAMERAS & RENDER LOOP
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   CAMERAS
+   ═══════════════════════════════════════════════════════════════ */
 const CAM_MODES = {
   broadcast: { pos: new THREE.Vector3(0,16,32), target: new THREE.Vector3(0,1.2,2) },
   bowler:    { pos: new THREE.Vector3(0,4.2,-22), target: new THREE.Vector3(0,1.0,9) },
@@ -1301,7 +1314,7 @@ function toggleDirector(){
   directorOn = !directorOn;
   const btn = document.getElementById('btn-dir');
   if (btn) btn.classList.toggle('on', directorOn);
-  if (directorOn){ activeCam = 'broadcast'; }
+  if (directorOn) activeCam = 'broadcast';
 }
 
 function triggerReplay(){
@@ -1311,15 +1324,11 @@ function triggerReplay(){
   }
 }
 function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+function simFeedScoringTab(){ playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 }); }
 
-function simFeedScoringTab(){
-  /* Manual feed always plays — user explicitly clicked */
-  playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 });
-}
-
-/* ------------------------------------------------------------
+/* ═══════════════════════════════════════════════════════════════
    WAGON WHEEL
-   ------------------------------------------------------------ */
+   ═══════════════════════════════════════════════════════════════ */
 const wagonCanvas = document.getElementById('wagonWheelCanvas');
 const wagonCtx = wagonCanvas ? wagonCanvas.getContext('2d') : null;
 const shotAngles = [];
@@ -1327,22 +1336,24 @@ const shotAngles = [];
 function recordShotForWagon(angle, runs, isWicket){
   shotAngles.push({ angle: angle, runs: runs, isWicket: !!isWicket });
   if (shotAngles.length > 200) shotAngles.shift();
-  if (wagonCanvas && wagonCanvas.style.display === 'block') drawWagonWheel();
+  if (wagonCanvas && wagonCanvas.classList.contains('show')) drawWagonWheel();
 }
 
 function drawWagonWheel(){
   if (!wagonCtx || !wagonCanvas) return;
   const W = wagonCanvas.width, H = wagonCanvas.height;
-  const cx = W / 2, cy = H / 2, R = W / 2 - 14;
+  const cx = W / 2, cy = H / 2, R = W / 2 - 30;
 
   wagonCtx.clearRect(0, 0, W, H);
 
-  wagonCtx.strokeStyle = 'rgba(255,255,255,0.12)';
-  wagonCtx.lineWidth = 2;
+  wagonCtx.strokeStyle = 'rgba(255,255,255,0.18)';
+  wagonCtx.lineWidth = 3;
   [0.35, 0.65, 1].forEach(f => {
     wagonCtx.beginPath(); wagonCtx.arc(cx, cy, R * f, 0, Math.PI * 2); wagonCtx.stroke();
   });
 
+  wagonCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+  wagonCtx.lineWidth = 2;
   for (let i = 0; i < 12; i++){
     const a = i * Math.PI / 6;
     wagonCtx.beginPath();
@@ -1351,43 +1362,42 @@ function drawWagonWheel(){
     wagonCtx.stroke();
   }
 
-  wagonCtx.fillStyle = 'rgba(0,230,118,0.16)';
-  wagonCtx.fillRect(cx - 9, cy - R, 18, R * 2);
+  wagonCtx.fillStyle = 'rgba(0,230,118,0.14)';
+  wagonCtx.fillRect(cx - 16, cy - R, 32, R * 2);
 
   shotAngles.forEach(s => {
     const len = s.runs >= 6 ? 1.0 : s.runs >= 4 ? 0.9 : s.runs > 0 ? 0.62 : 0.32;
     const sx = cx + Math.sin(s.angle) * R * len;
     const sy = cy + Math.cos(s.angle) * R * len;
-
-    const col = s.isWicket ? '#ef4444'
-              : s.runs >= 6 ? '#ff6d00'
-              : s.runs >= 4 ? '#22d3ee'
-              : s.runs > 0  ? '#00e676'
-              : '#64748b';
-
+    const col = s.isWicket ? '#ef4444' : s.runs >= 6 ? '#ff6d00' : s.runs >= 4 ? '#22d3ee' : s.runs > 0 ? '#00e676' : '#64748b';
     wagonCtx.strokeStyle = col;
-    wagonCtx.lineWidth = s.runs >= 4 ? 3 : 2;
+    wagonCtx.lineWidth = s.runs >= 4 ? 5 : 3;
     wagonCtx.beginPath(); wagonCtx.moveTo(cx, cy); wagonCtx.lineTo(sx, sy); wagonCtx.stroke();
-
     wagonCtx.fillStyle = col;
-    wagonCtx.beginPath(); wagonCtx.arc(sx, sy, 3.5, 0, Math.PI * 2); wagonCtx.fill();
+    wagonCtx.beginPath(); wagonCtx.arc(sx, sy, 6, 0, Math.PI * 2); wagonCtx.fill();
   });
 
   wagonCtx.fillStyle = '#00e676';
-  wagonCtx.beginPath(); wagonCtx.arc(cx, cy, 5, 0, Math.PI * 2); wagonCtx.fill();
+  wagonCtx.beginPath(); wagonCtx.arc(cx, cy, 10, 0, Math.PI * 2); wagonCtx.fill();
+  wagonCtx.fillStyle = '#0a0e1a';
+  wagonCtx.beginPath(); wagonCtx.arc(cx, cy, 4, 0, Math.PI * 2); wagonCtx.fill();
+
+  /* Count of shots */
+  wagonCtx.fillStyle = 'rgba(255,255,255,.7)';
+  wagonCtx.font = 'bold 20px sans-serif';
+  wagonCtx.textAlign = 'center';
+  wagonCtx.fillText(shotAngles.length + ' shots', cx, cy - R - 14);
 }
 
 function toggleWagonWheel(){
-  if (!wagonCanvas) return;
-  const on = wagonCanvas.style.display === 'block';
-  wagonCanvas.style.display = on ? 'none' : 'block';
-  const btn = document.getElementById('util-wagon');
-  if (btn) btn.classList.toggle('on', !on);
-  if (!on) drawWagonWheel();
+  /* Wagon from menu: switch to wagon view if in stadium, else back to stadium */
+  setStadiumView(!stadiumViewActive ? true : false);
+  if (!stadiumViewActive) setStadiumView(false);
 }
 
-/* ------------------------------------------------------------ */
-
+/* ═══════════════════════════════════════════════════════════════
+   RENDER LOOP
+   ═══════════════════════════════════════════════════════════════ */
 let frameErrors = 0;
 function animate(t){
   requestAnimationFrame(animate);
@@ -1397,7 +1407,6 @@ function animate(t){
 
   try {
     if (stadium && stadium.update) stadium.update(dt, elapsed);
-
     if (typeof window.updateSparks    === 'function') { try { window.updateSparks(dt);    } catch(e){} }
     if (typeof window.updateParticles === 'function') { try { window.updateParticles(dt); } catch(e){} }
     if (typeof window.updateCrowd     === 'function') { try { window.updateCrowd(dt);     } catch(e){} }
@@ -1423,14 +1432,16 @@ function animate(t){
 
     camera.position.copy(camPos);
     camera.lookAt(camTarget);
-    renderer.render(scene, camera);
 
+    if (stadiumViewActive){
+      renderer.render(scene, camera);
+    }
   } catch(err){
     if (frameErrors < 3){
       frameErrors++;
-      console.error('[CricMax] frame error (render loop kept alive):', err);
+      console.error('[CricMax] frame error:', err);
     }
-    try { renderer.render(scene, camera); } catch(e2){}
+    try { if (stadiumViewActive) renderer.render(scene, camera); } catch(e2){}
   }
 }
 requestAnimationFrame(animate);
@@ -1440,13 +1451,29 @@ window.addEventListener('resize', function(){
   camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
+  if (!stadiumViewActive) drawWagonWheel();
 });
 
-window.toggleMenu = toggleMenu; window.setSky = setSky; window.navTo = navTo; window.setCamera = setCamera;
-window.toggleDirector = toggleDirector; window.toggleWagonWheel = toggleWagonWheel;
-window.simFeedScoringTab = simFeedScoringTab; window.triggerReplay = triggerReplay; window.toggleAudio = toggleAudio; window.toggleFullscreen = toggleFullscreen;
+/* EXPORTS */
+window.toggleMenu = toggleMenu;
+window.setSky = setSky;
+window.navTo = navTo;
+window.setCamera = setCamera;
+window.toggleDirector = toggleDirector;
+window.toggleWagonWheel = toggleWagonWheel;
+window.toggleStadiumView = toggleStadiumView;
+window.setStadiumView = setStadiumView;
+window.toggleTVMode = toggleTVMode;
+window.simFeedScoringTab = simFeedScoringTab;
+window.triggerReplay = triggerReplay;
+window.toggleAudio = toggleAudio;
+window.toggleFullscreen = toggleFullscreen;
+
+/* Auto-enable stadium view on load */
+setStadiumView(true);
+
 })();
 </script>
- 
+
 </body>
 </html>
