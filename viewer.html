@@ -27,10 +27,24 @@
   .ic{width:30px;height:30px;border-radius:9px;background:rgba(8,14,28,.88);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;flex-shrink:0;}
   .ic:active{transform:scale(.92);}
   .ic.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
-  .ic .snd-caret{font-size:7px;margin-left:1px;opacity:.85;line-height:1;}
 
   .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
   .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
+
+  /* ── AUDIO FAB (top-left, below top-bar) ─────────────── */
+  .audio-fab{position:absolute;top:44px;left:6px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;}
+  .audio-fab > .ic{width:36px;height:36px;font-size:16px;border-radius:10px;position:relative;}
+  .audio-fab > .ic .snd-caret{position:absolute;bottom:2px;right:3px;font-size:8px;opacity:.9;line-height:1;}
+
+  #audioMenu{position:absolute;top:42px;left:0;width:min(74vw,220px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.4);border-radius:12px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,.7);opacity:0;transform:translateY(-6px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;}
+  #audioMenu.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
+  .audio-opt{display:flex;align-items:center;gap:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:10px;color:#e2e8f0;font-size:11.5px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:5px;text-align:left;}
+  .audio-opt:last-child{margin-bottom:0;}
+  .audio-opt:active{transform:scale(.98);}
+  .audio-opt .ai{font-size:15px;line-height:1;}
+  .audio-opt .as{margin-left:auto;font-size:8.5px;font-weight:900;color:#94a3b8;letter-spacing:.5px;}
+  .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
+  .audio-opt.on .as{color:#00e676;}
 
   /* ── MENU ─────────────────────────────────────────────── */
   #menuPanel{position:absolute;top:48px;right:6px;width:min(88vw,290px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:9px;z-index:100001;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 60px);overflow-y:auto;}
@@ -122,6 +136,7 @@
     .sc-bowl{font-size:8.5px;padding-left:5px;}
     .b{width:16px;height:16px;font-size:7.5px;}
     .over-row{font-size:8px;padding:2px 6px;}
+    .audio-fab > .ic{width:34px;height:34px;font-size:15px;}
   }
   @media (max-width:320px){
     .live{display:none;}
@@ -137,7 +152,6 @@
   <div class="top-bar">
     <div class="top-left">
       <div class="live">VR LIVE</div>
-      <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)"><span id="snd-ico">🏟️</span><span class="snd-caret">▾</span></div>
       <div class="ic" onclick="triggerReplay()">↻</div>
       <div class="ic" onclick="toggleFullscreen()">⛶</div>
     </div>
@@ -161,13 +175,23 @@
     </div>
   </div>
 
-  <!-- ── AUDIO MODE FLOATING DROPDOWN (shortcut) ─────────── -->
-  <div id="audioMenu">
-    <div class="menu-ttl">Audio Mode</div>
-    <div class="menu-grid-3">
-      <button class="menu-t on" id="aud-stadium" onclick="setAudioMode('stadium')"><span class="i">🏟️</span> Stadium</button>
-      <button class="menu-t" id="aud-commentary" onclick="setAudioMode('commentary')"><span class="i">🎙️</span> Comms</button>
-      <button class="menu-t" id="aud-mute" onclick="setAudioMode('mute')"><span class="i">🔇</span> Mute</button>
+  <!-- ── AUDIO BUTTON (top-left, below top-bar) ──────────── -->
+  <div class="audio-fab">
+    <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)">
+      <span id="snd-ico">🏟️</span>
+      <span class="snd-caret">▾</span>
+    </div>
+    <div id="audioMenu">
+      <div class="menu-ttl">Audio Mode</div>
+      <button class="audio-opt on" id="aud-stadium" onclick="setAudioMode('stadium')">
+        <span class="ai">🏟️</span><span>Stadium Sound</span><span class="as">ON</span>
+      </button>
+      <button class="audio-opt" id="aud-commentary" onclick="setAudioMode('commentary')">
+        <span class="ai">🎙️</span><span>Ball-by-Ball</span><span class="as">LIVE</span>
+      </button>
+      <button class="audio-opt" id="aud-mute" onclick="setAudioMode('mute')">
+        <span class="ai">🔇</span><span>Mute</span><span class="as">OFF</span>
+      </button>
     </div>
   </div>
 
@@ -366,6 +390,8 @@ function toggleMenu(e){
   const btn = document.getElementById('btn-menu');
   if (panel) panel.classList.toggle('open', menuOpen);
   if (btn) btn.classList.toggle('on', menuOpen);
+  /* close audio dropdown to prevent overlap */
+  if (menuOpen) closeAudioMenu();
 }
 document.addEventListener('click', function(e){
   if (!menuOpen) return;
@@ -404,7 +430,7 @@ function navTo(pane){
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STADIUM / WAGON TOGGLE — wagon is DEFAULT on load
+   STADIUM / WAGON TOGGLE
    ═══════════════════════════════════════════════════════════════ */
 let stadiumViewActive = false;
 
@@ -783,11 +809,21 @@ function toggleAudioMenu(e){
   if (p) p.classList.toggle('open', audioMenuOpen);
   const btn = document.getElementById('util-snd');
   if (btn) btn.classList.toggle('on', audioMenuOpen);
+  /* close the ☰ menu to prevent overlap */
+  if (audioMenuOpen){
+    menuOpen = false;
+    const mp = document.getElementById('menuPanel');
+    const mb = document.getElementById('btn-menu');
+    if (mp) mp.classList.remove('open');
+    if (mb) mb.classList.remove('on');
+  }
 }
 function closeAudioMenu(){
   audioMenuOpen = false;
   const p = document.getElementById('audioMenu');
   if (p) p.classList.remove('open');
+  const btn = document.getElementById('util-snd');
+  if (btn) btn.classList.remove('on');
 }
 document.addEventListener('click', function(e){
   if (!audioMenuOpen) return;
@@ -936,7 +972,7 @@ function setAudioMode(mode){
   const btn = document.getElementById('util-snd');
   if (btn) btn.classList.toggle('on', mode !== 'mute');
 
-  /* Update BOTH the floating dropdown AND the ☰ menu buttons */
+  /* Update BOTH the dropdown buttons AND the ☰ menu buttons */
   ['stadium','commentary','mute'].forEach(function(k){
     const a = document.getElementById('aud-' + k);
     if (a) a.classList.toggle('on', k === mode);
