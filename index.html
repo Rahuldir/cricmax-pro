@@ -1087,7 +1087,7 @@ const FIREBASE_CONFIG = {
   function armSyncBridge(){
     const fireDB = firebase.database();
    /* Read the current match code from localStorage (set by scoring app) */
-let matchCode = localStorage.getItem('currentMatchCode');
+let __liveMatchCode = localStorage.getItem('currentMatchCode');
 
 /* Fallback — try URL param */
 if (!matchCode) {
@@ -1103,7 +1103,7 @@ if (!matchCode) {
 
 console.info('[CricMax] 📡 Syncing to match:', matchCode);
 /* Read the current match code from localStorage */
-let matchCode = localStorage.getItem('currentMatchCode');
+let __liveMatchCode = localStorage.getItem('currentMatchCode');
 if (!matchCode) {
   const p = new URLSearchParams(window.location.search);
   matchCode = p.get('code');
