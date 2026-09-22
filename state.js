@@ -1,17 +1,17 @@
 /* ============================================================
-   state.js — Application state, config, empty match
+   state.js — Application state, config, empty match,
+              + normalizeMatch() for self-healing remote data
    ⚠️ NEVER deletes user data automatically.
    ============================================================ */
 
-/* ─── Global state ──────────────────────────────────────── */
 let savedTeams = [];
 let currentTourn = null;
 let currentTournId = null;
 let tournamentsHistory = [];
-let pastMatchesLedger = [];      /* ← NEVER auto-trimmed */
+let pastMatchesLedger = [];
 let selectedTeam1 = { name: "", squad: [] };
 let selectedTeam2 = { name: "", squad: [] };
-let historyStack = [];           /* ← undo stack; grows up to MAX_UNDO */
+let historyStack = [];
 let pendingRuns = 0;
 
 let isCommentaryVoiceActive = false;
@@ -42,12 +42,8 @@ let _renderScheduled = false;
 let viewerCountUnsub = null;
 let viewerPresenceDocRef = null;
 
-/* Undo cap — user can undo 100 balls. Adjust freely. */
 const MAX_UNDO = 100;
 
-/* ═══════════════════════════════════════════════════════════
-   DEFAULT CONFIG
-   ═══════════════════════════════════════════════════════════ */
 const DEFAULT_CONFIG = {
   wideRuns: 1,
   wideCountsAsBall: false,
@@ -122,11 +118,76 @@ let match = emptyMatch();
 window.match = match;
 
 /* ═══════════════════════════════════════════════════════════
-   RETIRE HELPERS (used by scoring.js)
-   These mark the retiring batter's status. No auto-deletion.
+   NORMALIZE MATCH — self-heals incomplete remote/local data.
+   Safe to call anytime. Returns the same object (mutated).
+   ═══════════════════════════════════════════════════════════ */
+function normalizeMatch(m) {
+  if (!m || typeof m !== 'object') return m;
+
+  /* ── Arrays that MUST exist ── */
+  var arrayFields = [
+    'recentBalls', 'commentary', 'fow', 'oversTimeline',
+    'currentOverBalls', 'partnerRuns', 'shotLog',
+    'innings1PartnerRuns', 'innings1Fow', 'lastBowlerWkts',
+    'cumulativeWorm'
+  ];
+  for (var i = 0; i < arrayFields.length; i++) {
+    if (!Array.isArray(m[arrayFields[i]])) m[arrayFields[i]] = [];
+  }
+
+  /* cumulativeWorm must start with [0] */
+  if (m.cumulativeWorm.length === 0) m.cumulativeWorm = [0];
+
+  /* 8-sector arrays */
+  var sectorFields = ['sectorRuns', 'innings1SectorRuns', 'innings2SectorRuns'];
+  for (var j = 0; j < sectorFields.length; j++) {
+    if (!Array.isArray(m[sectorFields[j]]) || m[sectorFields[j]].length !== 8) {
+      m[sectorFields[j]] = [0, 0, 0, 0, 0, 0, 0, 0];
+    }
+  }
+
+  /* ── Objects ── */
+  var objFields = ['batters', 'bowlers', 'fielding', 'playerTeamMap'];
+  for (var k = 0; k < objFields.length; k++) {
+    if (!m[objFields[k]] || typeof m[objFields[k]] !== 'object') m[objFields[k]] = {};
+  }
+
+  /* ── Numbers ── */
+  var numFields = {
+    runs: 0, wickets: 0, legalBalls: 0, totalOvers: 20, originalOvers: 20,
+    innings: 1, target: 0, _currentOverRuns: 0, _lastOverRuns: 0
+  };
+  for (var nf in numFields) {
+    if (typeof m[nf] !== 'number' || isNaN(m[nf])) m[nf] = numFields[nf];
+  }
+
+  /* ── Strings ── */
+  var strFields = ['teamBatting', 'teamBowling', 'teamBattingAbbr', 'teamBowlingAbbr', 'striker', 'nonStriker', 'currentBowler', 'previousBowler', 'venue'];
+  for (var si = 0; si < strFields.length; si++) {
+    if (typeof m[strFields[si]] !== 'string') m[strFields[si]] = '';
+  }
+
+  /* ── Booleans ── */
+  if (typeof m.isActive !== 'boolean') m.isActive = false;
+  if (typeof m.isFreeHit !== 'boolean') m.isFreeHit = false;
+
+  /* ── currentPartnership ── */
+  if (!m.currentPartnership || typeof m.currentPartnership !== 'object') {
+    m.currentPartnership = { runs: 0, balls: 0, batters: [] };
+  } else {
+    if (typeof m.currentPartnership.runs !== 'number')  m.currentPartnership.runs = 0;
+    if (typeof m.currentPartnership.balls !== 'number') m.currentPartnership.balls = 0;
+    if (!Array.isArray(m.currentPartnership.batters))   m.currentPartnership.batters = [];
+  }
+
+  return m;
+}
+window.normalizeMatch = normalizeMatch;
+
+/* ═══════════════════════════════════════════════════════════
+   RETIRE HELPERS
    ═══════════════════════════════════════════════════════════ */
 function markBatterRetired(role, reason) {
-  /* role: 'striker' | 'nonStriker'; reason: 'Retired Hurt' | 'Retired Out' */
   if (!match.isActive) return null;
   const name = match[role];
   if (!name || !match.batters[name]) return null;
@@ -135,7 +196,6 @@ function markBatterRetired(role, reason) {
   match.batters[name].status = statusKey;
 
   if (reason === 'Retired Out') {
-    /* Retired Out = counts as a wicket (bowler gets no credit) */
     match.wickets += 1;
     match.fow.push(`${match.runs}/${match.wickets} (${name} retired out)`);
   }
