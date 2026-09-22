@@ -1,19 +1,69 @@
 /* ============================================================
    main.js — DOMContentLoaded init, keyboard shortcuts,
-             canvas polyfill, cross-frame message bus
+             canvas polyfill, cross-frame message bus,
+             loading screen controller
    ============================================================
-   This file is loaded LAST. It:
-     1. Applies canvas roundRect polyfill
-     2. Injects all optional UI elements
-     3. Loads persisted state from localStorage
-     4. Starts Firebase anonymous auth
-     5. Wires up viewer mode landing + subscription
-     6. Registers keyboard shortcuts (0-6, W, U, S, R)
-     7. Auto-capitalizes text inputs on the fly
-     8. Listens for 3D-viewer navigation messages
+   Loaded LAST. Contains:
+     1. Loading screen controller (cmSetProgress, cmHideLoader)
+     2. Canvas roundRect polyfill
+     3. DOMContentLoaded boot
+     4. Keyboard shortcuts
+     5. Auto-capitalize inputs
+     6. Cross-frame message bus (viewer → app nav)
+     7. Visibility resume handler
    ============================================================ */
 
-/* ── Canvas roundRect polyfill for older browsers ── */
+/* ═══════════════════════════════════════════════════════════
+   LOADING SCREEN CONTROLLER
+   ═══════════════════════════════════════════════════════════ */
+var _cmLoaderBarEl = null;
+var _cmLoaderSubEl = null;
+var _cmLoaderEl    = null;
+var _cmLoaderDone  = false;
+
+function cmSetProgress(pct, subText) {
+  if (!_cmLoaderBarEl) _cmLoaderBarEl = document.getElementById('cm-loader-bar');
+  if (!_cmLoaderSubEl) _cmLoaderSubEl = document.getElementById('cm-loader-sub');
+  if (_cmLoaderBarEl)  _cmLoaderBarEl.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  if (subText && _cmLoaderSubEl) _cmLoaderSubEl.innerText = subText;
+}
+
+function cmHideLoader() {
+  if (_cmLoaderDone) return;
+  _cmLoaderDone = true;
+  if (!_cmLoaderEl) _cmLoaderEl = document.getElementById('cm-loader');
+  if (!_cmLoaderEl) return;
+  cmSetProgress(100, 'Ready');
+  setTimeout(function () {
+    _cmLoaderEl.classList.add('cm-hide');
+    setTimeout(function () {
+      try { _cmLoaderEl.remove(); } catch (e) {}
+    }, 700);
+  }, 250);
+}
+
+var _cmLoadStages = [
+  [10, 'Booting CricMax…'],
+  [25, 'Loading tournament hub…'],
+  [45, 'Warming up the pitch…'],
+  [65, 'Syncing live match…'],
+  [85, 'Restoring your data…'],
+  [95, 'Almost there…']
+];
+var _cmStageIdx = 0;
+
+function cmAdvanceStage() {
+  if (_cmStageIdx >= _cmLoadStages.length) return;
+  var stage = _cmLoadStages[_cmStageIdx++];
+  cmSetProgress(stage[0], stage[1]);
+}
+
+/* Failsafe — force-hide after 4.5s even if boot crashes */
+setTimeout(function () { if (!_cmLoaderDone) cmHideLoader(); }, 4500);
+
+/* ═══════════════════════════════════════════════════════════
+   CANVAS roundRect POLYFILL
+   ═══════════════════════════════════════════════════════════ */
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
     if (w < 2 * r) r = w / 2;
@@ -29,17 +79,22 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    BOOT
-   ═══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
 
+  /* ── 0. Loading screen — start ── */
+  cmSetProgress(5, 'Initializing…');
+  setTimeout(cmAdvanceStage, 120);   /* → 10%  Booting        */
+  setTimeout(cmAdvanceStage, 280);   /* → 25%  Loading hub    */
+
   /* ── 1. Inject optional UI elements (Retire btn, MOTM box, etc.) ── */
-  injectHelpElements();
+  try { injectHelpElements(); } catch (e) { console.warn('[CricMax] injectHelpElements:', e); }
 
   /* ── 2. Speech synthesis voice loading ── */
-  if (speechSynth) {
-    loadSpeechVoices();
+  if (typeof speechSynth !== 'undefined' && speechSynth) {
+    try { loadSpeechVoices(); } catch (e) {}
     speechSynth.onvoiceschanged = loadSpeechVoices;
   }
 
@@ -60,6 +115,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (user) {
         window.firebaseReady = true;
         firebaseAuthReady = true;
+        cmSetProgress(90, 'Connected…');
       } else {
         window.fbSignInAnonymously(window.fbAuth)
           .catch(err => console.error("Firebase auth failed:", err));
@@ -141,14 +197,14 @@ window.addEventListener('DOMContentLoaded', () => {
   } catch (e) {}
 
   /* ── 8. Broadcast channel + Firebase subscription ── */
-  setupBroadcast();
+  try { setupBroadcast(); } catch (e) { console.warn('[CricMax] setupBroadcast:', e); }
 
   /* ── 9. UI summary + initial pane state ── */
-  syncSettingsUI();
-  updateSettingsSummary();
-  updateBottomNavActive('home');
-  updateLiveShareBadge();
-  injectClearDataPanel();
+  try { syncSettingsUI(); } catch (e) {}
+  try { updateSettingsSummary(); } catch (e) {}
+  try { updateBottomNavActive('home'); } catch (e) {}
+  try { updateLiveShareBadge(); } catch (e) {}
+  try { injectClearDataPanel(); } catch (e) {}
 
   /* ── 10. Settings dropdown upgrade (segmented → select) ── */
   setTimeout(upgradeSettingsDropdowns, 300);
@@ -161,11 +217,19 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }, 900);
   }
+
+  /* ── 12. Loading screen — finish ── */
+  setTimeout(cmAdvanceStage, 200);   /* → 45%  Warming up    */
+  setTimeout(cmAdvanceStage, 400);   /* → 65%  Syncing       */
+  setTimeout(cmAdvanceStage, 600);   /* → 85%  Restoring     */
+  setTimeout(function () { cmSetProgress(95, 'Almost there…'); }, 750);
+  setTimeout(cmHideLoader, 900);
+
 });
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    CLEANUP ON UNLOAD
-   ═══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 window.addEventListener('beforeunload', () => {
   if (viewerUnsubscribe) {
     try { viewerUnsubscribe(); } catch (e) {}
@@ -178,16 +242,16 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    KEYBOARD SHORTCUTS
-   ═══════════════════════════════════════════════════════════════
+   ═══════════════════════════════════════════════════════════
    Numeric keys: 0,1,2,3,4,6 → score that many runs
    W            → open wicket modal
    U            → undo last ball
    S            → open settings modal
    R            → open Retire Batsman modal
    Esc          → close topmost modal
-   ═══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
   /* Ignore if typing in an input/textarea/select */
   const tag = (e.target && e.target.tagName) || '';
@@ -227,9 +291,9 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    AUTO-CAPITALIZE ALL TEXT INPUTS
-   ═══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('input', function (e) {
   const el = e.target;
   if (!el) return;
@@ -251,7 +315,7 @@ document.addEventListener('input', function (e) {
   if (!val) return;
 
   const newVal = autoCapitalize(val);
-  if (newVal === val) return;   // nothing to change → do not touch selection
+  if (newVal === val) return;   /* nothing to change → do not touch selection */
 
   /* Preserve caret position */
   let start = null, end = null;
@@ -267,13 +331,9 @@ document.addEventListener('input', function (e) {
   }
 }, true);
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    3D VIEWER → MAIN APP  NAVIGATION BUS
-   ═══════════════════════════════════════════════════════════════
-   When the user taps "Card", "Stats", or "Boards" inside the
-   3D viewer iframe, it posts {type:'CM_NAV_TO', pane:'scorecard'}
-   and we jump to the right pane here.
-   ═══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 window.addEventListener('message', function (ev) {
   if (!ev.data || ev.data.type !== 'CM_NAV_TO') return;
   const pane = ev.data.pane;
@@ -289,13 +349,9 @@ window.addEventListener('message', function (ev) {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    VISIBILITY RESUME HANDLER
-   ═══════════════════════════════════════════════════════════════
-   If the tab was backgrounded mid-over, some browsers throttle
-   setTimeouts (e.g., bowler-change modal). On resume, re-trigger
-   any pending modal.
-   ═══════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   if (!match.isActive || isViewerMode) return;
