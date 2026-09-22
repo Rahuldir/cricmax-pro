@@ -883,13 +883,27 @@
 
 <div class="modal-overlay" id="bowlerModal">
   <div class="modal-card">
-    <h3 style="margin-bottom:4px;font-size:15px;color:var(--cyan);">Next Bowler</h3>
-    <div class="form-group"><label>From Squad</label><select id="existingBowlerSelect" class="form-control"></select></div>
-    <div class="form-group"><label>Or Type New Name</label><input type="text" id="newBowlerNameInput" class="form-control" placeholder="Auto-added to team"></div>
-    <div style="text-align:right;margin-top:14px;"><button class="btn-ui btn-primary" onclick="confirmNextBowler()">Confirm</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:900;color:var(--cyan);">⚾ Next Bowler</h3>
+        <p style="font-size:11px;color:var(--muted);margin-top:2px;">Pick from squad or type a new name</p>
+      </div>
+      <button class="btn-ui" onclick="closeModal('bowlerModal')" title="Close" aria-label="Close" style="min-width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:16px;">✕</button>
+    </div>
+    <div class="form-group">
+      <label>From Squad</label>
+      <select id="existingBowlerSelect" class="form-control"></select>
+    </div>
+    <div class="form-group">
+      <label>Or Type New Name</label>
+      <input type="text" id="newBowlerNameInput" class="form-control" placeholder="Auto-added to team">
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
+      <button class="btn-ui" onclick="closeModal('bowlerModal')" style="min-width:110px;">Cancel</button>
+      <button class="btn-ui btn-primary" style="flex:1;" onclick="confirmNextBowler()">✓ Confirm Bowler</button>
+    </div>
   </div>
 </div>
-
 <div class="modal-overlay" id="wagonModal">
   <div class="modal-card" style="text-align:center;position:relative;">
     <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:6px;">
