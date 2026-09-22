@@ -1,6 +1,13 @@
 /* ============================================================
    scoring.js — Scoring engine, wickets, bowler change, retire
+   ✅ Self-contained: no external helpers required
+   ✅ No duplicate functions
+   ✅ No auto-deletion of pastMatchesLedger
+   ✅ Retire Batsman fully integrated (Retired Hurt + Retired Out)
    ============================================================ */
+
+/* Local undo cap — independent of state.js */
+var _SCORING_MAX_UNDO = 100;
 
 /* ─── Extras / Penalties ─────────────────────────────────── */
 function promptWideWithRuns() {
@@ -15,7 +22,7 @@ function promptNoBallWithRuns() {
 function addPenaltyRuns(teamName, runs) {
   if (!match.isActive || isViewerMode) return;
   historyStack.push(JSON.parse(JSON.stringify(match)));
-  if (historyStack.length > 40) historyStack.shift();
+  if (historyStack.length > _SCORING_MAX_UNDO) historyStack.shift();
   match.runs += runs;
   const ovStr = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
   match.commentary.unshift({ ball: ovStr, desc: `${runs} penalty runs awarded to ${teamName}.`, type: 'normal' });
@@ -27,14 +34,15 @@ function addPenaltyRuns(teamName, runs) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   RETIRE BATSMAN — Full modal-based UI
+   RETIRE BATSMAN — Modal UI + flow (self-contained)
    ═══════════════════════════════════════════════════════════ */
 function openRetireModal() {
   if (!match.isActive || isViewerMode) {
     showToast('Match not active');
     return;
   }
-  /* Build the modal dynamically if it doesn't exist yet */
+
+  /* Build the modal on first use */
   let modal = document.getElementById('retireModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -45,16 +53,16 @@ function openRetireModal() {
         <div style="font-size:15px;font-weight:900;color:#00e676;margin-bottom:14px;letter-spacing:.6px;">🔄 RETIRE BATSMAN</div>
 
         <label style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Who is retiring?</label>
-        <select id="retireWho" class="form-control" style="width:100%;margin:6px 0 14px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;"></select>
+        <select id="retireWho" style="width:100%;margin:6px 0 14px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;"></select>
 
         <label style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Reason</label>
-        <select id="retireReason" class="form-control" style="width:100%;margin:6px 0 14px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;">
-          <option value="Retired Hurt">Retired Hurt (can resume later — no wicket)</option>
+        <select id="retireReason" style="width:100%;margin:6px 0 14px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;">
+          <option value="Retired Hurt">Retired Hurt (no wicket — can resume later)</option>
           <option value="Retired Out">Retired Out (counts as a wicket)</option>
         </select>
 
         <label style="font-size:11px;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Replacement batter</label>
-        <select id="retireReplacementDD" class="form-control" style="width:100%;margin:6px 0 6px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;"></select>
+        <select id="retireReplacementDD" style="width:100%;margin:6px 0 6px;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;"></select>
         <input id="retireReplacementTxt" type="text" placeholder="…or type a new name" style="width:100%;padding:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-weight:700;margin-bottom:16px;">
 
         <div style="display:flex;gap:8px;">
@@ -68,21 +76,19 @@ function openRetireModal() {
   /* Populate who-dropdown */
   const who = document.getElementById('retireWho');
   who.innerHTML = '';
-  if (match.striker) who.innerHTML += `<option value="striker">Striker: ${escapeHtml(match.striker)}</option>`;
+  if (match.striker)    who.innerHTML += `<option value="striker">Striker: ${escapeHtml(match.striker)}</option>`;
   if (match.nonStriker) who.innerHTML += `<option value="nonStriker">Non-Striker: ${escapeHtml(match.nonStriker)}</option>`;
 
-  /* Populate replacement dropdown from squad */
+  /* Populate replacement dropdown */
   const dd = document.getElementById('retireReplacementDD');
   dd.innerHTML = '<option value="">-- From squad --</option>';
   const squad = (savedTeams.find(t => t.name === match.teamBatting) || {}).squad || [];
-  const available = squad.filter(p => {
-    if (!p) return false;
-    if (p === match.striker || p === match.nonStriker) return false;
+  squad.forEach(p => {
+    if (!p || p === match.striker || p === match.nonStriker) return;
     const b = match.batters[p];
-    if (b && b.status && b.status !== 'dnb' && b.status !== 'retired hurt') return false;
-    return true;
+    if (b && b.status && b.status !== 'dnb' && b.status !== 'batting' && b.status !== 'retired hurt') return;
+    dd.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
   });
-  available.forEach(p => { dd.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`; });
 
   const txt = document.getElementById('retireReplacementTxt');
   txt.value = '';
@@ -93,11 +99,12 @@ function openRetireModal() {
 }
 
 function confirmRetire() {
-  const who = document.getElementById('retireWho').value;
+  const who    = document.getElementById('retireWho').value;
   const reason = document.getElementById('retireReason').value;
-  const dd = document.getElementById('retireReplacementDD');
-  const txt = document.getElementById('retireReplacementTxt');
-  const newBatter = autoCapitalize((txt.value || '').trim() || (dd.value || '').trim());
+  const dd     = document.getElementById('retireReplacementDD');
+  const txt    = document.getElementById('retireReplacementTxt');
+
+  const newBatter = autoCapitalize(((txt.value || '').trim() || (dd.value || '').trim()));
 
   if (!newBatter) {
     showToast('Please pick or type a replacement batter');
@@ -108,21 +115,22 @@ function confirmRetire() {
     return;
   }
 
-  const retiringPlayer = who === 'striker' ? match.striker : match.nonStriker;
+  const retiringPlayer = (who === 'striker') ? match.striker : match.nonStriker;
   if (!retiringPlayer) {
     showToast('No batter to retire');
     return;
   }
 
+  /* Snapshot for undo */
   historyStack.push(JSON.parse(JSON.stringify(match)));
-  if (historyStack.length > 40) historyStack.shift();
+  if (historyStack.length > _SCORING_MAX_UNDO) historyStack.shift();
 
-  /* Mark the retiring batter */
+  /* ── 1. Mark the retiring batter ── */
   if (match.batters[retiringPlayer]) {
-    match.batters[retiringPlayer].status = reason.toLowerCase().replace(' ', '-');
+    match.batters[retiringPlayer].status = (reason === 'Retired Out') ? 'retired out' : 'retired hurt';
   }
 
-  /* If Retired Out — counts as a wicket (bowler does NOT get credit) */
+  /* ── 2. If Retired Out, it counts as a wicket (no bowler credit) ── */
   if (reason === 'Retired Out') {
     match.wickets += 1;
     match.fow.push(`${match.runs}/${match.wickets} (${retiringPlayer} retired out)`);
@@ -131,31 +139,40 @@ function confirmRetire() {
     triggerBanner('RETIRED HURT 🤕', `${retiringPlayer}`, 'fx-milestone');
   }
 
-  /* Register new batter */
+  /* ── 3. Register the replacement batter ── */
   if (!match.batters[newBatter]) {
-    match.batters[newBatter] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: 'batting' };
+    match.batters[newBatter] = {
+      runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0,
+      fifties: 0, hundreds: 0, status: 'batting'
+    };
     match.playerTeamMap[newBatter] = match.teamBattingAbbr;
     autoAddPlayerToTeam(newBatter, match.teamBatting);
   } else {
     match.batters[newBatter].status = 'batting';
   }
 
-  /* Swap the retiring batter out */
+  /* ── 4. Swap the retiring batter out ── */
   if (who === 'striker') match.striker = newBatter;
-  else match.nonStriker = newBatter;
+  else                   match.nonStriker = newBatter;
 
-  /* Reset partnership */
-  match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
+  /* ── 5. Reset partnership ── */
+  match.currentPartnership = {
+    runs: 0, balls: 0,
+    batters: [match.striker, match.nonStriker]
+  };
 
+  /* ── 6. Close + commentary ── */
   closeModal('retireModal');
 
   const ov = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
+  const reasonText = (reason === 'Retired Out') ? 'retired out' : 'retired hurt';
   match.commentary.unshift({
     ball: ov,
-    desc: `${retiringPlayer} ${reason === 'Retired Out' ? 'retired out' : 'retired hurt'}. ${newBatter} comes to the crease.`,
+    desc: `${escapeHtml(retiringPlayer)} ${reasonText}. ${escapeHtml(newBatter)} comes to the crease.`,
     type: 'normal'
   });
 
+  /* ── 7. Persist + render ── */
   autoPersist();
   scheduleRender();
   broadcastMatchState();
@@ -176,10 +193,10 @@ function handleWicketMethodChange(m) {
   if (dg) dg.style.display = (m === 'Run Out' || m === 'Stumped') ? 'block' : 'none';
 
   if (!fg || !fl) return;
-  if (m === 'Caught') { fg.style.display = 'block'; fl.innerText = 'Catching Fielder'; }
-  else if (m === 'Run Out') { fg.style.display = 'block'; fl.innerText = 'Run-Out Fielder'; }
-  else if (m === 'Stumped') { fg.style.display = 'block'; fl.innerText = 'Wicketkeeper'; }
-  else fg.style.display = 'none';
+  if (m === 'Caught')      { fg.style.display = 'block'; fl.innerText = 'Catching Fielder'; }
+  else if (m === 'Run Out'){ fg.style.display = 'block'; fl.innerText = 'Run-Out Fielder'; }
+  else if (m === 'Stumped'){ fg.style.display = 'block'; fl.innerText = 'Wicketkeeper'; }
+  else                       fg.style.display = 'none';
 }
 
 function promptWicketTypeModal() {
@@ -226,11 +243,13 @@ function populateWicketBatsmanDropdown() {
     const pl = p.trim();
     if (!pl || pl === match.nonStriker || pl === match.striker) return;
     const b = match.batters[pl];
-    if (b && b.status && b.status !== 'dnb' && b.status !== 'batting') return;
+    if (b && b.status && b.status !== 'dnb' && b.status !== 'batting' && b.status !== 'retired hurt') return;
     if (!available.includes(pl)) available.push(pl);
   });
   for (const k in match.batters) {
-    if (match.batters[k].status === 'dnb' && k !== match.nonStriker && k !== match.striker && !available.includes(k)) available.push(k);
+    if (match.batters[k].status === 'dnb' && k !== match.nonStriker && k !== match.striker && !available.includes(k)) {
+      available.push(k);
+    }
   }
   available.forEach(p => { dd.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`; });
 
@@ -243,9 +262,11 @@ function confirmWicketDelivery() {
   const methodEl = document.getElementById('wktMethodSelect');
   const method = methodEl ? methodEl.value : 'Bowled';
   let fielder = (document.getElementById('fielderCustomInput').value || '').trim();
-  if (['Caught', 'Run Out', 'Stumped'].includes(method) && !fielder) fielder = method === 'Stumped' ? 'Wicketkeeper' : 'Fielder';
+  if (['Caught', 'Run Out', 'Stumped'].includes(method) && !fielder) {
+    fielder = (method === 'Stumped') ? 'Wicketkeeper' : 'Fielder';
+  }
 
-  const typed = (document.getElementById('wktNewBatsmanInput').value || '').trim();
+  const typed    = (document.getElementById('wktNewBatsmanInput').value || '').trim();
   const selected = (document.getElementById('wktNewBatsmanSelect').value || '').trim();
   let newBatter = autoCapitalize(typed || selected || '');
 
@@ -275,7 +296,7 @@ function confirmWicketDelivery() {
     } else match.batters[newBatter].status = 'batting';
 
     if (dismissedRole === 'nonStriker') match.nonStriker = newBatter;
-    else match.striker = newBatter;
+    else                                match.striker    = newBatter;
 
     match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
     window.match = match;
@@ -320,11 +341,12 @@ function confirmNextBatter() {
     match.playerTeamMap[n] = match.teamBattingAbbr;
   } else match.batters[n].status = 'batting';
 
-  const strikerOut = !match.striker || !match.batters[match.striker] || match.batters[match.striker].status !== 'batting';
+  const strikerOut    = !match.striker    || !match.batters[match.striker]    || match.batters[match.striker].status    !== 'batting';
   const nonStrikerOut = !match.nonStriker || !match.batters[match.nonStriker] || match.batters[match.nonStriker].status !== 'batting';
-  if (strikerOut && !nonStrikerOut) match.striker = n;
+
+  if (strikerOut && !nonStrikerOut)      match.striker = n;
   else if (!strikerOut && nonStrikerOut) match.nonStriker = n;
-  else match.striker = n;
+  else                                    match.striker = n;
 
   closeModal('nextBatterModal');
   match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
@@ -334,7 +356,6 @@ function confirmNextBatter() {
   if (isCommentaryVoiceActive) speak('New batter in: ' + n + '.');
 }
 
-/* ─── Next Bowler ───────────────────────────────────────── */
 function promptNextBowlerModal() {
   if (!match.isActive || isViewerMode) return;
   const s = document.getElementById('existingBowlerSelect');
@@ -343,9 +364,7 @@ function promptNextBowlerModal() {
 
   let anyAvailable = false;
   for (const n in match.bowlers) {
-    /* Hard filter: skip the bowler who just bowled */
     if (n === match.previousBowler) continue;
-    /* Max-overs cap */
     if (matchConfig.maxOversPerBowler > 0) {
       const bowled = Math.floor((match.bowlers[n].balls || 0) / 6);
       if (bowled >= matchConfig.maxOversPerBowler) continue;
@@ -370,7 +389,6 @@ function confirmNextBowler() {
   const n = autoCapitalize((t ? t.value.trim() : '') || (s ? s.value : ''));
   if (!n) return alert('Please specify next bowler');
 
-  /* Hard block: no consecutive overs */
   if (n === match.previousBowler) {
     if (!confirm(`${n} bowled the previous over.\n\nCricket rules do not allow consecutive overs.\n\nAllow anyway?`)) return;
   }
@@ -408,24 +426,23 @@ let _bowlerPromptToken = 0;
 function forceBowlerChangePrompt(attempt) {
   attempt = attempt || 0;
   const myToken = ++_bowlerPromptToken;
-  const delay = attempt === 0 ? 700 : 400;
+  const delay = (attempt === 0) ? 700 : 400;
+
   setTimeout(function () {
-    /* Bail if a newer call superseded this one */
     if (myToken !== _bowlerPromptToken) return;
     if (!match.isActive || isViewerMode) return;
 
-    const wk = document.getElementById('wicketTypeModal');
-    const nb = document.getElementById('nextBatterModal');
+    const wk  = document.getElementById('wicketTypeModal');
+    const nb  = document.getElementById('nextBatterModal');
     const rtr = document.getElementById('retireModal');
-    const wkOpen = wk && wk.style.display === 'flex';
-    const nbOpen = nb && nb.style.display === 'flex';
+    const wkOpen  = wk  && wk.style.display  === 'flex';
+    const nbOpen  = nb  && nb.style.display  === 'flex';
     const rtrOpen = rtr && rtr.style.display === 'flex';
 
     if (wkOpen || nbOpen || rtrOpen) {
       if (attempt < 12) forceBowlerChangePrompt(attempt + 1);
       return;
     }
-    /* Modal is already open? Don't reopen */
     const bm = document.getElementById('bowlerModal');
     if (bm && bm.style.display === 'flex') return;
 
@@ -448,39 +465,45 @@ function pickFresh(key, arr) {
   return c;
 }
 function fill(t, v) {
-  return t.replace(/{STRIKER}/g, v.striker || '').replace(/{BOWLER}/g, v.bowler || '').replace(/{REGION}/g, v.region || 'the field').replace(/{DIST}/g, v.dist || '');
+  return t.replace(/{STRIKER}/g, v.striker || '')
+          .replace(/{BOWLER}/g,  v.bowler  || '')
+          .replace(/{REGION}/g,  v.region  || 'the field')
+          .replace(/{DIST}/g,    v.dist    || '');
 }
 
 const P = {
-  DOT: ["{STRIKER} defends into {REGION}, no run.", "Good length from {BOWLER}, defended.", "Beaten! Past the outside edge.", "Dot ball, pushed to {REGION}.", "Fielded at {REGION}.", "Straight to hand.", "Solid forward defence.", "Tight line from {BOWLER}."],
-  ONE: ["Nudged into {REGION}, quick single.", "Worked off pads, one run.", "Pushed down to {REGION}, single.", "Driven into {REGION} for one."],
-  TWO: ["Placed into {REGION}, brace.", "Flicked away, two runs.", "Couple taken."],
+  DOT:   ["{STRIKER} defends into {REGION}, no run.", "Good length from {BOWLER}, defended.", "Beaten! Past the outside edge.", "Dot ball, pushed to {REGION}.", "Fielded at {REGION}.", "Straight to hand.", "Solid forward defence.", "Tight line from {BOWLER}."],
+  ONE:   ["Nudged into {REGION}, quick single.", "Worked off pads, one run.", "Pushed down to {REGION}, single.", "Driven into {REGION} for one."],
+  TWO:   ["Placed into {REGION}, brace.", "Flicked away, two runs.", "Couple taken."],
   THREE: ["Drilled wide of {REGION}, three runs!", "Timed beautifully, three runs."],
-  FOUR: ["FOUR! Cracking shot through {REGION}!", "FOUR! Races past the rope at {REGION}!", "FOUR! Pure timing through {REGION}!", "FOUR! Finds the fence at {REGION}!", "FOUR! Caressed through {REGION}!", "FOUR! Tracer bullet to {REGION}!"],
-  SIX: ["SIX! {STRIKER} goes big over {REGION} {DIST}!", "SIX! Into the stands over {REGION}!", "SIX! Massive hit! {DIST}", "SIX! Out of the ground! {DIST}", "SIX! Enormous over {REGION}!"],
-  WB: ["BOWLED! {BOWLER} through the gate! {STRIKER} gone!", "CLEANED HIM UP! {BOWLER} finds the timber!", "BOWLED! What a delivery!"],
-  WC: ["CAUGHT! {STRIKER} has holed out!", "TAKEN! Great catch!", "CAUGHT! Straight down the throat!"],
-  WL: ["LBW! {BOWLER} traps {STRIKER} plumb!", "LBW! Out!"],
-  WR: ["RUN OUT! Direct hit!", "RUN OUT! Brilliant work!"],
-  WS: ["STUMPED! Lightning glovework!"],
-  WD: ["Wide! {BOWLER} strays down the side.", "That's a wide!"],
-  NB: ["No ball! {BOWLER} overstepped!", "Front foot no ball!"],
-  LB: ["Leg bye! Off the pad, they steal a run."]
+  FOUR:  ["FOUR! Cracking shot through {REGION}!", "FOUR! Races past the rope at {REGION}!", "FOUR! Pure timing through {REGION}!", "FOUR! Finds the fence at {REGION}!", "FOUR! Caressed through {REGION}!", "FOUR! Tracer bullet to {REGION}!"],
+  SIX:   ["SIX! {STRIKER} goes big over {REGION} {DIST}!", "SIX! Into the stands over {REGION}!", "SIX! Massive hit! {DIST}", "SIX! Out of the ground! {DIST}", "SIX! Enormous over {REGION}!"],
+  WB:    ["BOWLED! {BOWLER} through the gate! {STRIKER} gone!", "CLEANED HIM UP! {BOWLER} finds the timber!", "BOWLED! What a delivery!"],
+  WC:    ["CAUGHT! {STRIKER} has holed out!", "TAKEN! Great catch!", "CAUGHT! Straight down the throat!"],
+  WL:    ["LBW! {BOWLER} traps {STRIKER} plumb!", "LBW! Out!"],
+  WR:    ["RUN OUT! Direct hit!", "RUN OUT! Brilliant work!"],
+  WS:    ["STUMPED! Lightning glovework!"],
+  WD:    ["Wide! {BOWLER} strays down the side.", "That's a wide!"],
+  NB:    ["No ball! {BOWLER} overstepped!", "Front foot no ball!"],
+  LB:    ["Leg bye! Off the pad, they steal a run."]
 };
 
 function genComm(runs, extra, isWkt, region, distance, dd) {
-  const s = match.striker || 'Batter', b = match.currentBowler || 'Bowler', dir = region || 'the field';
+  const s = match.striker || 'Batter';
+  const b = match.currentBowler || 'Bowler';
+  const dir = region || 'the field';
   const d = distance > 0 ? `[${distance}m]` : '';
   const v = { striker: s, bowler: b, region: dir, dist: d };
+
   if (extra === 'WD') return fill(pickFresh('WD', P.WD), v);
   if (extra === 'NB') return fill(pickFresh('NB', P.NB), v);
-  if (extra === 'B') return "Bye taken.";
+  if (extra === 'B')  return "Bye taken.";
   if (extra === 'LB') return fill(pickFresh('LB', P.LB), v);
   if (isWkt) {
     if (!dd || !dd.method) return `OUT! ${s} dismissed!`;
-    if (dd.method === 'Bowled') return fill(pickFresh('WB', P.WB), v);
-    if (dd.method === 'Caught') return fill(pickFresh('WC', P.WC), v);
-    if (dd.method === 'LBW') return fill(pickFresh('WL', P.WL), v);
+    if (dd.method === 'Bowled')  return fill(pickFresh('WB', P.WB), v);
+    if (dd.method === 'Caught')  return fill(pickFresh('WC', P.WC), v);
+    if (dd.method === 'LBW')     return fill(pickFresh('WL', P.WL), v);
     if (dd.method === 'Run Out') return fill(pickFresh('WR', P.WR), v);
     if (dd.method === 'Stumped') return fill(pickFresh('WS', P.WS), v);
     return `OUT! ${s} dismissed!`;
@@ -500,9 +523,9 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
 function recordBall(runs = 0, extra = null, isWicket = false, region = "", distance = 0, dd = null) {
   if (!match.isActive || isViewerMode) return;
 
-  /* ---- Safety defaults ---- */
-  if (!match.striker) match.striker = 'Striker';
-  if (!match.nonStriker) match.nonStriker = 'Non-Striker';
+  /* Safety defaults */
+  if (!match.striker)       match.striker       = 'Striker';
+  if (!match.nonStriker)    match.nonStriker    = 'Non-Striker';
   if (!match.currentBowler) match.currentBowler = 'Bowler';
   if (typeof match._currentOverRuns !== 'number') match._currentOverRuns = 0;
 
@@ -518,18 +541,18 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   }
 
   historyStack.push(JSON.parse(JSON.stringify(match)));
-  if (historyStack.length > 40) historyStack.shift();
+  if (historyStack.length > _SCORING_MAX_UNDO) historyStack.shift();
 
-  const striker = match.batters[match.striker];
-  const bowler = match.bowlers[match.currentBowler];
+  const striker  = match.batters[match.striker];
+  const bowler   = match.bowlers[match.currentBowler];
   const prevMatchRuns = match.runs;
-  const prevRuns = striker.runs;
-  const prevTeam = match.runs;
-  const wasFH = match.isFreeHit;
+  const prevRuns      = striker.runs;
+  const prevTeam      = match.runs;
+  const wasFH         = match.isFreeHit;
 
   let dismissedKey = 'striker';
   if (isWicket && dd && dd.dismissedRole === 'nonStriker') dismissedKey = 'nonStriker';
-  const dismissedName = match[dismissedKey];
+  const dismissedName  = match[dismissedKey];
   const dismissedStats = match.batters[dismissedName];
 
   let tag = runs.toString();
@@ -543,13 +566,15 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   const capturedAngle = (typeof window._tempExactAngle === 'number') ? window._tempExactAngle : null;
   window._tempExactAngle = undefined;
 
-  const zoneIndex = region ? ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"].indexOf(region) : -1;
+  const zoneIndex = region
+    ? ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"].indexOf(region)
+    : -1;
   const overNum = Math.floor(match.legalBalls / 6) + 1;
   const bowlerType = detectBowlerType(match.currentBowler);
 
   const shotPayload = {
     inns: match.innings, over: overNum, ball: match.legalBalls + 1,
-    batter: dismissedKey === 'nonStriker' ? dismissedName : match.striker,
+    batter: (dismissedKey === 'nonStriker') ? dismissedName : match.striker,
     bowler: match.currentBowler,
     runs: runs || 0, zone: region || '', angle: capturedAngle, zoneIndex,
     isWicket: !!isWicket, isFour: runs === 4, isSix: runs === 6,
@@ -603,19 +628,27 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     const method = dd ? dd.method : 'Bowled';
     if (method !== 'Run Out') {
       bowler.wickets += 1;
-      if (bowler.wickets === 3) { bowler.threeW = (bowler.threeW || 0) + 1; setTimeout(() => triggerBanner('3-WICKET HAUL! 🎩', `${match.currentBowler}`, 'fx-milestone'), 800); }
-      if (bowler.wickets === 5) { bowler.fiveW = (bowler.fiveW || 0) + 1; setTimeout(() => triggerBanner('FIVE-FOR! 🔥', `${match.currentBowler} 5/${bowler.runs}`, 'fx-milestone'), 800); }
+      if (bowler.wickets === 3) {
+        bowler.threeW = (bowler.threeW || 0) + 1;
+        setTimeout(() => triggerBanner('3-WICKET HAUL! 🎩', `${match.currentBowler}`, 'fx-milestone'), 800);
+      }
+      if (bowler.wickets === 5) {
+        bowler.fiveW = (bowler.fiveW || 0) + 1;
+        setTimeout(() => triggerBanner('FIVE-FOR! 🔥', `${match.currentBowler} 5/${bowler.runs}`, 'fx-milestone'), 800);
+      }
     }
     if (dismissedStats) {
-      dismissedStats.status = method === 'Bowled' ? `b ${match.currentBowler}` : `${method.toLowerCase()} b ${match.currentBowler}`;
+      dismissedStats.status = (method === 'Bowled')
+        ? `b ${match.currentBowler}`
+        : `${method.toLowerCase()} b ${match.currentBowler}`;
     }
     tag = 'W';
     if (dd && ['Caught','Run Out','Stumped'].includes(dd.method)) {
       const fn = dd.fielder || 'Fielder';
       if (!match.fielding[fn]) match.fielding[fn] = { catches: 0, stumpings: 0, runOuts: 0 };
-      if (dd.method === 'Caught') match.fielding[fn].catches += 1;
-      else if (dd.method === 'Stumped' && matchConfig.autoDetectStumpings) match.fielding[fn].stumpings += 1;
-      else if (dd.method === 'Run Out') match.fielding[fn].runOuts += 1;
+      if (dd.method === 'Caught')                                                        match.fielding[fn].catches   += 1;
+      else if (dd.method === 'Stumped' && matchConfig.autoDetectStumpings)               match.fielding[fn].stumpings += 1;
+      else if (dd.method === 'Run Out')                                                  match.fielding[fn].runOuts   += 1;
     }
     match.fow.push(`${match.runs}/${match.wickets} (${dismissedName})`);
     triggerBanner('WICKET! 🚨', `${dismissedName} out`, 'fx-wicket');
@@ -628,8 +661,13 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     if (runs === 4) striker.fours += 1;
     if (runs === 6) striker.sixes += 1;
     if (runs % 2 !== 0) swapStrikers();
-    if (prevRuns < 50 && striker.runs >= 50) { striker.fifties += 1; triggerBanner('HALF CENTURY! 🌟', `${match.striker} 50!`, 'fx-milestone'); }
-    else if (prevRuns < 100 && striker.runs >= 100) { striker.hundreds += 1; triggerBanner('CENTURY! 👑', `${match.striker} 100!`, 'fx-milestone'); }
+    if (prevRuns < 50 && striker.runs >= 50) {
+      striker.fifties += 1;
+      triggerBanner('HALF CENTURY! 🌟', `${match.striker} 50!`, 'fx-milestone');
+    } else if (prevRuns < 100 && striker.runs >= 100) {
+      striker.hundreds += 1;
+      triggerBanner('CENTURY! 👑', `${match.striker} 100!`, 'fx-milestone');
+    }
   }
 
   if (wasFH) match.isFreeHit = false;
@@ -642,37 +680,44 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   match.cumulativeWorm.push(match.runs);
 
   const ov = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
-  match.commentary.unshift({ ball: ov, desc, type: isWicket ? 'w' : (runs === 4 ? 'four' : (runs === 6 ? 'six' : 'normal')) });
+  match.commentary.unshift({
+    ball: ov,
+    desc: desc,
+    type: isWicket ? 'w' : (runs === 4 ? 'four' : (runs === 6 ? 'six' : 'normal'))
+  });
 
   if (!isWicket) {
-    if (prevTeam < 50 && match.runs >= 50) setTimeout(() => triggerBanner('TEAM 50 UP! 💯', `${match.teamBatting} reach 50`, 'fx-milestone'), 1900);
-    else if (prevTeam < 100 && match.runs >= 100) setTimeout(() => triggerBanner('TEAM 100 UP! 💯', `${match.teamBatting} reach 100`, 'fx-milestone'), 1900);
+    if (prevTeam < 50 && match.runs >= 50) {
+      setTimeout(() => triggerBanner('TEAM 50 UP! 💯', `${match.teamBatting} reach 50`, 'fx-milestone'), 1900);
+    } else if (prevTeam < 100 && match.runs >= 100) {
+      setTimeout(() => triggerBanner('TEAM 100 UP! 💯', `${match.teamBatting} reach 100`, 'fx-milestone'), 1900);
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════
-     OVER END — must complete in ONE atomic block
+     OVER END — atomic block
      ═══════════════════════════════════════════════════════════ */
   let overEnded = false;
-  const isRegularLegalOver = (extra !== 'WD' && extra !== 'NB' && match.legalBalls % 6 === 0 && match.legalBalls > 0);
+  const isRegularLegalOver   = (extra !== 'WD' && extra !== 'NB' && match.legalBalls % 6 === 0 && match.legalBalls > 0);
   const isWideCountLegalOver = (matchConfig.wideCountsAsBall && extra === 'WD' && match.legalBalls % 6 === 0 && match.legalBalls > 0);
 
   if (isRegularLegalOver || isWideCountLegalOver) {
     try {
-      /* 1. Swap striker FIRST (physical swap at end of over) */
+      /* 1. Swap striker */
       const __tmp = match.striker;
-      match.striker = match.nonStriker;
+      match.striker    = match.nonStriker;
       match.nonStriker = __tmp;
 
-      /* 2. Record this over's balls */
+      /* 2. Record over */
       const overBalls = [...match.currentOverBalls];
       match.oversTimeline.push({ overNum: match.legalBalls / 6, balls: overBalls });
 
-      /* 3. Compute over runs from the tags */
+      /* 3. Over runs */
       const overRunsThisOver = overBalls.reduce((sum, b) => {
         const m = String(b).match(/\d+/);
         return sum + (m ? parseInt(m[0], 10) : 0);
       }, 0);
-      const hasExtra = overBalls.some(b => b.includes('Wd') || b.includes('Nb') || b.includes('B') || b.includes('Lb'));
+      const hasExtra  = overBalls.some(b => b.includes('Wd') || b.includes('Nb') || b.includes('B') || b.includes('Lb'));
       const hasWicket = overBalls.some(b => b === 'W');
       const bowlerWas = match.bowlers[match.currentBowler];
 
@@ -681,37 +726,36 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
         bowlerWas.maidens = (bowlerWas.maidens || 0) + 1;
       }
 
-      /* 5. Save over summary BEFORE clearing */
+      /* 5. Save summary */
       match._lastOverRuns = overRunsThisOver;
 
-      /* 6. Clear the per-over counters */
-      match.currentOverBalls = [];
-      match._currentOverRuns = 0;
+      /* 6. Clear counters */
+      match.currentOverBalls  = [];
+      match._currentOverRuns  = 0;
 
-      /* 7. Mark who just bowled (for filter) */
+      /* 7. Lock previous bowler */
       match.previousBowler = match.currentBowler;
 
       overEnded = true;
 
       /* 8. Push end-of-over commentary */
       const overNumber = match.legalBalls / 6;
-      const stStats = match.batters[match.striker] || { runs: 0, balls: 0 };
+      const stStats = match.batters[match.striker]    || { runs: 0, balls: 0 };
       const nsStats = match.batters[match.nonStriker] || { runs: 0, balls: 0 };
-      const bw = match.bowlers[match.currentBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
+      const bw = match.bowlers[match.currentBowler]   || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
       const ovStr = `${Math.floor(bw.balls / 6)}.${bw.balls % 6}`;
       const summaryDesc = `<span class="sum-line"><b>End of Over ${overNumber}</b> — <span class="sum-team">${match.teamBattingAbbr} ${match.runs}/${match.wickets}</span> • ${overRunsThisOver} run${overRunsThisOver !== 1 ? 's' : ''} this over</span><span class="sum-line">🏏 ${match.striker} <b>${stStats.runs}</b>(${stStats.balls}) • ${match.nonStriker} <b>${nsStats.runs}</b>(${nsStats.balls})</span><span class="sum-line">⚾ <span class="sum-bowler">${match.currentBowler}</span> ${ovStr}-${bw.maidens}-${bw.runs}-<b>${bw.wickets}</b></span>`;
       match.commentary.unshift({ ball: `End Ov ${overNumber}`, desc: summaryDesc, type: 'summary', html: true });
     } catch (err) {
       console.error('[CricMax] Over-end block failed:', err);
-      /* Recovery: still mark over ended so watchdog fires */
       match.currentOverBalls = [];
       match._currentOverRuns = 0;
-      match.previousBowler = match.currentBowler;
+      match.previousBowler   = match.currentBowler;
       overEnded = true;
     }
   }
 
-  /* ---- Persist + render (single batch) ---- */
+  /* ---- Persist + render ---- */
   autoPersist();
   scheduleRender();
   broadcastMatchState(shotPayload);
@@ -726,12 +770,10 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     if (shouldSpeak) speak(desc);
   }
 
-  /* ---- Trigger bowler-change modal reliably ---- */
-  if (overEnded) {
-    forceBowlerChangePrompt();
-  }
+  /* ---- Trigger bowler prompt ---- */
+  if (overEnded) forceBowlerChangePrompt();
 
-  /* ---- Match / innings end check ---- */
+  /* ---- Match / innings end ---- */
   checkMatchEnd();
 }
 
@@ -763,26 +805,39 @@ function checkMatchEnd() {
   if (match.legalBalls >= match.totalOvers * 6) {
     inningsTransitionLock = true;
     if (match.innings === 1) {
-      setTimeout(() => { inningsTransitionLock = false; saveInnings1Snapshot(); transitionToInnings2(); showInningsBreakModal(); }, 1200);
+      setTimeout(() => {
+        inningsTransitionLock = false;
+        saveInnings1Snapshot();
+        transitionToInnings2();
+        showInningsBreakModal();
+      }, 1200);
     } else {
-      setTimeout(() => { inningsTransitionLock = false; endMatchAndDeclareWinner(true); }, 1200);
+      setTimeout(() => {
+        inningsTransitionLock = false;
+        endMatchAndDeclareWinner(true);
+      }, 1200);
     }
   }
 }
 
 function saveInnings1Snapshot() {
-  match.innings1Score = { team: match.teamBatting, runs: match.runs, wickets: match.wickets, balls: match.legalBalls };
-  match.innings1PartnerRuns = [...match.partnerRuns];
-  match.innings1Fow = [...match.fow];
-  match.innings1SectorRuns = [...match.sectorRuns];
+  match.innings1Score = {
+    team: match.teamBatting,
+    runs: match.runs,
+    wickets: match.wickets,
+    balls: match.legalBalls
+  };
+  match.innings1PartnerRuns     = [...match.partnerRuns];
+  match.innings1Fow             = [...match.fow];
+  match.innings1SectorRuns      = [...match.sectorRuns];
   match.innings1BattingSnapshot = JSON.parse(JSON.stringify(match.batters));
   match.innings1BowlingSnapshot = JSON.parse(JSON.stringify(match.bowlers));
-  match.innings1FieldingSnapshot = JSON.parse(JSON.stringify(match.fielding));
+  match.innings1FieldingSnapshot= JSON.parse(JSON.stringify(match.fielding));
 }
 
 function transitionToInnings2() {
   match.innings = 2;
-  match.target = match.runs + 1;
+  match.target  = match.runs + 1;
   match.runs = 0; match.wickets = 0; match.legalBalls = 0;
   match.recentBalls = []; match.currentOverBalls = [];
   match.cumulativeWorm = [0];
@@ -801,13 +856,13 @@ function transitionToInnings2() {
   const ta = match.teamBattingAbbr; match.teamBattingAbbr = match.teamBowlingAbbr; match.teamBowlingAbbr = ta;
 
   const hTitle = document.getElementById('headerMainTitle');
-  const hSub = document.getElementById('headerSubTitle');
+  const hSub   = document.getElementById('headerSubTitle');
   const tBlock = document.getElementById('targetBlock');
-  const tVal = document.getElementById('targetVal');
+  const tVal   = document.getElementById('targetVal');
   if (hTitle) hTitle.innerText = `${match.teamBatting} vs ${match.teamBowling}`;
-  if (hSub) hSub.innerText = `Target: ${match.target}`;
+  if (hSub)   hSub.innerText   = `Target: ${match.target}`;
   if (tBlock) tBlock.style.display = 'block';
-  if (tVal) tVal.innerText = match.target;
+  if (tVal)   tVal.innerText = match.target;
 
   autoPersist();
   broadcastMatchState();
@@ -856,7 +911,9 @@ function showInningsBreakModal() {
     : 'No wickets fell.';
 
   document.getElementById('inningsBreakModal').style.display = 'flex';
-  if (isCommentaryVoiceActive) speak(`First innings concluded. ${s.team} scored ${s.runs} for ${s.wickets}. ${match.teamBatting} need ${match.target} to win.`);
+  if (isCommentaryVoiceActive) {
+    speak(`First innings concluded. ${s.team} scored ${s.runs} for ${s.wickets}. ${match.teamBatting} need ${match.target} to win.`);
+  }
 }
 
 function proceedToSecondInningsSetup() {
@@ -866,19 +923,19 @@ function proceedToSecondInningsSetup() {
 
 function endInningsPrompt() {
   if (!match.isActive || isViewerMode) return;
-  const title = document.getElementById('endInningsTitle');
-  const desc = document.getElementById('endInningsDesc');
-  const score = document.getElementById('endInningsScore');
-  const overs = document.getElementById('endInningsOvers');
-  const ovStr = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
+  const title  = document.getElementById('endInningsTitle');
+  const desc   = document.getElementById('endInningsDesc');
+  const score  = document.getElementById('endInningsScore');
+  const overs  = document.getElementById('endInningsOvers');
+  const ovStr  = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
   if (match.innings === 1) {
     if (title) title.innerText = 'End 1st Innings?';
-    if (desc) desc.innerText = `${match.teamBatting} innings will end and ${match.teamBowling} will chase.`;
+    if (desc)  desc.innerText  = `${match.teamBatting} innings will end and ${match.teamBowling} will chase.`;
     if (score) score.innerText = `${match.runs}/${match.wickets}`;
     if (overs) overs.innerText = `${ovStr} / ${match.totalOvers} overs`;
   } else {
     if (title) title.innerText = 'End 2nd Innings?';
-    if (desc) desc.innerText = 'Match will end. Winner will be declared.';
+    if (desc)  desc.innerText  = 'Match will end. Winner will be declared.';
     if (score) score.innerText = `${match.runs}/${match.wickets}`;
     if (overs) overs.innerText = `${ovStr} / ${match.totalOvers} overs (Target: ${match.target})`;
   }
@@ -899,31 +956,33 @@ function confirmEndInnings() {
 }
 
 function openInnings2Setup() {
-  const bat = savedTeams.find(t => t.name === match.teamBatting) || { name: match.teamBatting, squad: [] };
+  const bat  = savedTeams.find(t => t.name === match.teamBatting) || { name: match.teamBatting, squad: [] };
   const bowl = savedTeams.find(t => t.name === match.teamBowling) || { name: match.teamBowling, squad: [] };
-  const bo = (bat.squad || []).map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('') || '<option value="">-- No players --</option>';
+  const bo = (bat.squad  || []).map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('') || '<option value="">-- No players --</option>';
   const wo = (bowl.squad || []).map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('') || '<option value="">-- No players --</option>';
   document.getElementById('i2Subtitle').innerText = `${bat.name} need ${match.target} to win`;
-  document.getElementById('i2Striker').innerHTML = bo;
+  document.getElementById('i2Striker').innerHTML    = bo;
   document.getElementById('i2NonStriker').innerHTML = bo;
-  document.getElementById('i2Bowler').innerHTML = wo;
-  document.getElementById('i2StrikerNew').value = '';
+  document.getElementById('i2Bowler').innerHTML     = wo;
+  document.getElementById('i2StrikerNew').value    = '';
   document.getElementById('i2NonStrikerNew').value = '';
-  document.getElementById('i2BowlerNew').value = '';
+  document.getElementById('i2BowlerNew').value     = '';
   document.getElementById('i2Modal').style.display = 'flex';
 }
 
 function beginSecondInnings() {
-  const s = autoCapitalize((document.getElementById('i2StrikerNew').value || document.getElementById('i2Striker').value || '').trim());
+  const s  = autoCapitalize((document.getElementById('i2StrikerNew').value    || document.getElementById('i2Striker').value    || '').trim());
   const ns = autoCapitalize((document.getElementById('i2NonStrikerNew').value || document.getElementById('i2NonStriker').value || '').trim());
-  const b = autoCapitalize((document.getElementById('i2BowlerNew').value || document.getElementById('i2Bowler').value || '').trim());
+  const b  = autoCapitalize((document.getElementById('i2BowlerNew').value     || document.getElementById('i2Bowler').value     || '').trim());
+
   if (!s || !ns || !b) return alert("Select all players");
   if (s.toLowerCase() === ns.toLowerCase()) return alert("Must be different");
-  if (document.getElementById('i2StrikerNew').value.trim()) autoAddPlayerToTeam(s, match.teamBatting);
-  if (document.getElementById('i2NonStrikerNew').value.trim()) autoAddPlayerToTeam(ns, match.teamBatting);
-  if (document.getElementById('i2BowlerNew').value.trim()) autoAddPlayerToTeam(b, match.teamBowling);
 
-  const bat = savedTeams.find(t => t.name === match.teamBatting) || { squad: [] };
+  if (document.getElementById('i2StrikerNew').value.trim())    autoAddPlayerToTeam(s,  match.teamBatting);
+  if (document.getElementById('i2NonStrikerNew').value.trim()) autoAddPlayerToTeam(ns, match.teamBatting);
+  if (document.getElementById('i2BowlerNew').value.trim())     autoAddPlayerToTeam(b,  match.teamBowling);
+
+  const bat  = savedTeams.find(t => t.name === match.teamBatting) || { squad: [] };
   const bowl = savedTeams.find(t => t.name === match.teamBowling) || { squad: [] };
   match.batters = {};
   match.bowlers = {};
@@ -931,7 +990,7 @@ function beginSecondInnings() {
     match.batters[p] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: "dnb" };
     match.playerTeamMap[p] = match.teamBattingAbbr;
   });
-  match.batters[s].status = "batting";
+  match.batters[s].status  = "batting";
   match.batters[ns].status = "batting";
   [...new Set([...(bowl.squad || []), b])].forEach(p => {
     match.bowlers[p] = { balls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, threeW: 0, fiveW: 0 };
@@ -975,6 +1034,7 @@ function computeManOfTheMatch() {
 function endMatchAndDeclareWinner(skipConfirm = false) {
   if (!match.isActive) return;
   if (!skipConfirm && !confirm("End match?")) return;
+
   let winner = 'tie', margin = 'Match tied';
   const first = match.innings1Score;
   const i1t = first ? first.team : match.teamBowling;
@@ -983,9 +1043,9 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
   const i2s = `${match.runs}/${match.wickets}`;
 
   if (match.innings === 2 && first) {
-    if (match.runs >= match.target) { winner = i2t; margin = `${i2t} won by ${10 - match.wickets} wkts`; }
-    else if (match.runs === first.runs) { winner = 'tie'; margin = 'Match tied'; }
-    else { winner = i1t; margin = `${i1t} won by ${first.runs - match.runs} runs`; }
+    if (match.runs >= match.target)       { winner = i2t; margin = `${i2t} won by ${10 - match.wickets} wkts`; }
+    else if (match.runs === first.runs)   { winner = 'tie'; margin = 'Match tied'; }
+    else                                   { winner = i1t; margin = `${i1t} won by ${first.runs - match.runs} runs`; }
   }
 
   const entry = {
@@ -995,22 +1055,32 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
     date: new Date().toLocaleDateString(),
     teamA: i1t, teamB: i2t, winner: winner,
     innings1: {
-      team: i1t, runs: first ? first.runs : 0, wickets: first ? first.wickets : 0, balls: first ? first.balls : 0,
-      batters: match.innings1BattingSnapshot || {},
-      bowlers: match.innings1BowlingSnapshot || {},
+      team: i1t,
+      runs:    first ? first.runs    : 0,
+      wickets: first ? first.wickets : 0,
+      balls:   first ? first.balls   : 0,
+      batters:  match.innings1BattingSnapshot  || {},
+      bowlers:  match.innings1BowlingSnapshot  || {},
       fielding: match.innings1FieldingSnapshot || {}
     },
     innings2: {
-      team: i2t, runs: match.runs, wickets: match.wickets, balls: match.legalBalls,
-      batters: JSON.parse(JSON.stringify(match.batters)),
-      bowlers: JSON.parse(JSON.stringify(match.bowlers)),
+      team: i2t,
+      runs: match.runs, wickets: match.wickets, balls: match.legalBalls,
+      batters:  JSON.parse(JSON.stringify(match.batters)),
+      bowlers:  JSON.parse(JSON.stringify(match.bowlers)),
       fielding: JSON.parse(JSON.stringify(match.fielding))
     }
   };
 
   const motm = computeManOfTheMatch();
-  match.motm = motm ? { name: motm.name, mvp: motm.mvp, runs: motm.runs, balls: motm.balls, wickets: motm.wickets, bowlRuns: motm.bowlRuns, catches: motm.catches, sr: motm.sr, eco: motm.eco } : null;
+  match.motm = motm ? {
+    name: motm.name, mvp: motm.mvp,
+    runs: motm.runs, balls: motm.balls,
+    wickets: motm.wickets, bowlRuns: motm.bowlRuns,
+    catches: motm.catches, sr: motm.sr, eco: motm.eco
+  } : null;
 
+  /* ⚠️ NO trimming — user data must persist forever */
   pastMatchesLedger.unshift(entry);
   match.isActive = false;
 
@@ -1023,7 +1093,7 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
     winner === 'tie' ? 'TIE' : (winner === i1t ? i2t : i1t).substring(0, 3).toUpperCase(),
     '🏆 ' + margin,
     () => {
-      document.getElementById('resultWinner').innerText = winner === 'tie' ? 'Match Tied' : `🏆 ${winner}`;
+      document.getElementById('resultWinner').innerText = (winner === 'tie') ? 'Match Tied' : `🏆 ${winner}`;
       document.getElementById('resultMargin').innerText = margin;
       document.getElementById('resultScores').innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:8px;">
@@ -1033,21 +1103,21 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
           <span>${escapeHtml(i2t)}</span><b>${i2s}</b>
         </div>`;
       if (match.motm) {
-        const box = document.getElementById('motmBox');
-        const nameEl = document.getElementById('motmName');
+        const box     = document.getElementById('motmBox');
+        const nameEl  = document.getElementById('motmName');
         const statsEl = document.getElementById('motmStats');
         if (box) {
           box.style.display = 'block';
           nameEl.innerText = match.motm.name;
           const parts = [];
-          if (match.motm.runs > 0) parts.push(`${match.motm.runs}(${match.motm.balls}) • SR ${match.motm.sr.toFixed(1)}`);
+          if (match.motm.runs > 0)    parts.push(`${match.motm.runs}(${match.motm.balls}) • SR ${match.motm.sr.toFixed(1)}`);
           if (match.motm.wickets > 0) parts.push(`${match.motm.wickets}/${match.motm.bowlRuns} • Eco ${match.motm.eco.toFixed(2)}`);
-          if (match.motm.catches) parts.push(`${match.motm.catches} catch${match.motm.catches > 1 ? 'es' : ''}`);
+          if (match.motm.catches)     parts.push(`${match.motm.catches} catch${match.motm.catches > 1 ? 'es' : ''}`);
           statsEl.innerText = parts.join('  |  ');
         }
       }
       document.getElementById('resultModal').style.display = 'flex';
-      const ub = document.getElementById('undoBtn'); if (ub) ub.style.display = 'none';
+      const ub = document.getElementById('undoBtn');        if (ub) ub.style.display = 'none';
       const sb = document.getElementById('btnSoundToggle'); if (sb) sb.style.display = 'none';
       renderPointsTable();
       renderPastMatchesList();
