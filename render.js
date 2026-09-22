@@ -1,11 +1,12 @@
 /* ============================================================
    render.js — Live pane, commentary, scorecard, TV mode,
                theme/sky toggles, wagon wheel, clickable names
-   ✅ Self-contained. No IIFEs. All button handlers work.
+   ✅ Self-healing: normalizeMatch() runs at every render entry
+   ✅ Safe array access for remote state
    ============================================================ */
 
 /* ═══════════════════════════════════════════════════════════
-   PLAYER LINK HELPER — makes any name clickable to open career stats
+   PLAYER LINK HELPER — clickable names everywhere
    ═══════════════════════════════════════════════════════════ */
 function _playerLink(name) {
   if (!name) return '';
@@ -22,7 +23,7 @@ function updateLiveShareBadge() {
   var badge = document.getElementById('liveShareBadge');
   var codeEl = document.getElementById('liveShareCodeText');
   if (!badge || !codeEl) return;
-  if (typeof matchCode === 'string' && matchCode && match.isActive && !isViewerMode) {
+  if (typeof matchCode === 'string' && matchCode && match && match.isActive && !isViewerMode) {
     badge.style.display = 'inline-flex';
     codeEl.innerText = matchCode;
   } else {
@@ -39,34 +40,30 @@ function showLiveViewerPulse() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   THEME — light / dark toggle
+   THEME
    ═══════════════════════════════════════════════════════════ */
 function toggleTheme() {
   document.body.classList.toggle('light-mode');
   var isLight = document.body.classList.contains('light-mode');
   try { localStorage.setItem('CricMax_Theme', isLight ? 'light' : 'dark'); } catch (e) {}
-  /* Update moon/sun button icon if present */
   var btn = document.getElementById('btn-theme') || document.getElementById('btnTheme');
   if (btn) btn.innerText = isLight ? '☀️' : '🌙';
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SKY — Day / Dusk / Night toggle
-   Works with either: dropdown (env-day/env-sunset/env-night)
-   OR single cycling moon button
+   SKY TOGGLE
    ═══════════════════════════════════════════════════════════ */
 var _currentSky = 'day';
+
 function setSky(mode) {
   if (!mode) return;
   _currentSky = mode;
 
-  /* Highlight matching button if dropdown style */
   ['day', 'sunset', 'night'].forEach(function (m) {
     var b = document.getElementById('env-' + m);
     if (b) b.classList.toggle('on', m === mode);
   });
 
-  /* Tell viewer iframe (if any) to switch sky */
   try {
     var frame = document.getElementById('stadiumIframe')
              || document.getElementById('vppIframe')
@@ -77,7 +74,6 @@ function setSky(mode) {
     }
   } catch (e) {}
 
-  /* Optional stadium / environment modules */
   try {
     if (typeof stadium !== 'undefined' && stadium && typeof stadium.setSky === 'function') {
       stadium.setSky(mode);
@@ -90,7 +86,6 @@ function setSky(mode) {
     }
   } catch (e) {}
 
-  /* Persist */
   try { localStorage.setItem('CricMax_Sky', mode); } catch (e) {}
 }
 
@@ -102,7 +97,6 @@ function cycleSky() {
   showToast('🌤 ' + next.charAt(0).toUpperCase() + next.slice(1));
 }
 
-/* Restore saved sky on load */
 try {
   var savedSky = localStorage.getItem('CricMax_Sky');
   if (savedSky) setTimeout(function () { setSky(savedSky); }, 300);
@@ -112,6 +106,7 @@ try {
    TV MODE
    ═══════════════════════════════════════════════════════════ */
 var tvModeActive = false;
+
 function toggleTVMode() {
   var tv = document.getElementById('tvMode');
   var btn = document.getElementById('btn-tv') || document.getElementById('btnTV');
@@ -123,7 +118,6 @@ function toggleTVMode() {
 
   tvModeActive = !tvModeActive;
 
-  /* Support both .active and .show class names + inline fallback */
   tv.classList.toggle('active', tvModeActive);
   tv.classList.toggle('show', tvModeActive);
   tv.style.display = tvModeActive ? 'flex' : 'none';
@@ -139,6 +133,7 @@ function renderTVMode() {
   if (!tvModeActive) return;
   var m = (window.__cricmaxLastMatch) || (typeof match !== 'undefined' ? match : null);
   if (!m) return;
+  if (typeof normalizeMatch === 'function') normalizeMatch(m);
 
   var runs = m.runs || 0;
   var wkts = m.wickets || 0;
@@ -183,10 +178,13 @@ function renderTVMode() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   RENDER LIVE — the main live pane
+   RENDER LIVE — main pane
    ═══════════════════════════════════════════════════════════ */
 function renderLive() {
   if (!match.teamBatting) return;
+
+  /* ⚡ Self-heal missing fields BEFORE reading */
+  if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
   var ov = Math.floor(match.legalBalls / 6) + '.' + (match.legalBalls % 6);
   var crr = match.legalBalls > 0 ? (match.runs / (match.legalBalls / 6)).toFixed(2) : '0.00';
@@ -214,7 +212,7 @@ function renderLive() {
   var s = match.batters[match.striker] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
   var ns = match.batters[match.nonStriker] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
 
-  /* Striker card — CLICKABLE NAME */
+  /* Striker card */
   var sn = document.getElementById('strikerName');
   if (sn) sn.innerHTML = _playerLink(match.striker) + '*';
   if (document.getElementById('strikerRuns')) document.getElementById('strikerRuns').innerText = s.runs + ' (' + s.balls + ')';
@@ -222,7 +220,7 @@ function renderLive() {
   if (document.getElementById('striker4s')) document.getElementById('striker4s').innerText = s.fours;
   if (document.getElementById('striker6s')) document.getElementById('striker6s').innerText = s.sixes;
 
-  /* Non-striker card — CLICKABLE NAME */
+  /* Non-striker card */
   var nsn = document.getElementById('nonStrikerName');
   if (nsn) nsn.innerHTML = _playerLink(match.nonStriker);
   if (document.getElementById('nonStrikerRuns')) document.getElementById('nonStrikerRuns').innerText = ns.runs + ' (' + ns.balls + ')';
@@ -230,7 +228,7 @@ function renderLive() {
   if (document.getElementById('nonStriker4s')) document.getElementById('nonStriker4s').innerText = ns.fours;
   if (document.getElementById('nonStriker6s')) document.getElementById('nonStriker6s').innerText = ns.sixes;
 
-  /* Bowler card — CLICKABLE NAME */
+  /* Bowler card */
   var bw = match.bowlers[match.currentBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
   var bn = document.getElementById('bowlerName');
   if (bn) bn.innerHTML = _playerLink(match.currentBowler);
@@ -241,13 +239,14 @@ function renderLive() {
   var oc = document.getElementById('overCommentaryStrip');
   if (oc) {
     oc.innerHTML = '';
-    if (match.currentOverBalls.length > 0 || match._lastOverRuns !== undefined) {
+    var _overBallsSafe = Array.isArray(match.currentOverBalls) ? match.currentOverBalls : [];
+    if (_overBallsSafe.length > 0 || match._lastOverRuns !== undefined) {
       var b = document.createElement('div');
       b.className = 'over-block';
       var overRuns = match._currentOverRuns || 0;
       var lastOver = match.oversTimeline && match.oversTimeline.length
         ? match.oversTimeline[match.oversTimeline.length - 1] : null;
-      var pills = match.currentOverBalls.map(function (x) {
+      var pills = _overBallsSafe.map(function (x) {
         var cls = x === '4' ? 'c-4' : x === '6' ? 'c-6' : x === 'W' ? 'c-w' : '';
         return '<span class="ball-pill ' + cls + '" style="width:22px;height:22px;font-size:9px;">' + x + '</span>';
       }).join('');
@@ -262,12 +261,10 @@ function renderLive() {
   renderScorecard();
   renderSummary();
 
-  /* Refresh TV if open */
   if (tvModeActive) {
     try { renderTVMode(); } catch (e) {}
   }
 
-  /* Ensure Retire button is present */
   if (typeof injectRetireButton === 'function') {
     try { injectRetireButton(); } catch (e) {}
   }
@@ -279,12 +276,19 @@ function renderLive() {
 function renderCommentary() {
   var c = document.getElementById('commentaryContainer');
   if (!c) return;
-  if (!match.commentary || match.commentary.length === 0) {
+
+  /* ⚡ Self-heal */
+  if (typeof normalizeMatch === 'function') normalizeMatch(match);
+
+  var arr = Array.isArray(match.commentary) ? match.commentary : [];
+  if (arr.length === 0) {
     c.innerHTML = '<div class="empty-comm">No deliveries yet.</div>';
     return;
   }
+
   c.innerHTML = '';
-  match.commentary.slice(0, 40).forEach(function (comm, idx) {
+  arr.slice(0, 40).forEach(function (comm, idx) {
+    if (!comm) return;
     if (comm.type === 'summary') {
       var it = document.createElement('div');
       it.className = 'comm-item comm-summary' + (idx === 0 ? ' newest' : '');
@@ -306,6 +310,8 @@ function renderCommentary() {
    RENDER SUMMARY (partnership + FOW)
    ═══════════════════════════════════════════════════════════ */
 function renderSummary() {
+  if (typeof normalizeMatch === 'function') normalizeMatch(match);
+
   var cp = match.currentPartnership || { runs: 0, balls: 0, batters: [] };
   var st = match.batters[match.striker] || { runs: 0, balls: 0 };
   var nst = match.batters[match.nonStriker] || { runs: 0, balls: 0 };
@@ -318,8 +324,9 @@ function renderSummary() {
                          _playerLink(match.nonStriker) + ': ' + nst.runs + ' (' + nst.balls + ')';
 
   if (fw) {
-    if (match.fow && match.fow.length > 0) {
-      fw.innerHTML = match.fow.map(function (f) {
+    var _fowSafe = Array.isArray(match.fow) ? match.fow : [];
+    if (_fowSafe.length > 0) {
+      fw.innerHTML = _fowSafe.map(function (f) {
         var m = String(f).match(/^(.*?)\((.+?)\)\s*$/);
         if (m) return escapeHtml(m[1]) + '(' + _playerLink(m[2]) + ')';
         return escapeHtml(f);
@@ -331,10 +338,12 @@ function renderSummary() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   RENDER SCORECARD — batting + bowling tables with clickable names
+   RENDER SCORECARD — batting + bowling tables
    ═══════════════════════════════════════════════════════════ */
 function renderScorecard() {
   try {
+    if (typeof normalizeMatch === 'function') normalizeMatch(match);
+
     var bt = document.getElementById('battingTeamTitle');
     if (bt) bt.innerText = 'Batting — ' + (match.teamBatting || '');
     var bwt = document.getElementById('bowlingTeamTitle');
@@ -384,7 +393,7 @@ function renderScorecard() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SWAP STRIKERS — no render inside (caller decides)
+   SWAP STRIKERS
    ═══════════════════════════════════════════════════════════ */
 function swapStrikers() {
   var t = match.striker;
@@ -485,9 +494,15 @@ function triggerBanner(t, s, c) {
 /* Attach wagon wheel listener after DOM ready */
 function attachWagonWheelListener() {
   var cvWheel = document.getElementById('wagonCanvas');
-  if (!cvWheel) return;
+  if (!cvWheel) {
+    console.warn('[CricMax] #wagonCanvas not found');
+    return;
+  }
+  if (cvWheel._cmWired) return; /* already attached */
+
   cvWheel.addEventListener('pointerdown', function (e) {
     if (!match.isActive || isViewerMode) return;
+
     var rect = cvWheel.getBoundingClientRect();
     var scaleX = cvWheel.width / rect.width, scaleY = cvWheel.height / rect.height;
     var cx = cvWheel.width / 2, cy = cvWheel.height / 2;
@@ -495,15 +510,20 @@ function attachWagonWheelListener() {
     var dx = clickX - cx, dy = clickY - cy;
     var rawDist = Math.sqrt(dx * dx + dy * dy);
     if (rawDist < 5) return;
+
     var dirX = dx / rawDist, dirY = dy / rawDist;
     var deg = Math.atan2(dy, dx) * (180 / Math.PI);
     if (deg < 0) deg += 360;
+
     window._tempExactAngle = Math.atan2(dx, -dy);
+
     var sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
     var sectorNames = ['Third Man','Point','Cover','Mid-off','Mid-on','Mid-wicket','Square Leg','Fine Leg'];
     var region = sectorNames[sectorIdx];
+
     var ropeR = (cvWheel.width / 2) * 0.8;
     var lx = clickX, ly = clickY, dm = 0;
+
     if (pendingRuns >= 1 && pendingRuns <= 3) {
       var maxR = ropeR - 6;
       var tr = rawDist;
@@ -519,6 +539,8 @@ function attachWagonWheelListener() {
       lx = cx + dirX * fr; ly = cy + dirY * fr;
       dm = Math.round(75 + ((fr - ropeR) / (ropeR * 0.22)) * 45);
     }
+
+    /* Animate ball flight */
     var flightStart = performance.now();
     var flightDuration = 500;
     var animateFlyingBall = function () {
@@ -532,8 +554,10 @@ function attachWagonWheelListener() {
       else drawScoringWagonShot(cx, cy, lx, ly, lx, ly);
     };
     animateFlyingBall();
+
     document.getElementById('wagonFeedback').innerText = region + (dm > 0 ? ' • ' + dm + 'm' : '');
     match.sectorRuns[sectorIdx] += pendingRuns;
+
     if (pendingRuns === 4) {
       triggerFlashOverlay('CRACKING FOUR', 'Boundary Scored ⚡');
       triggerBanner('CRACKING FOUR! ⚡', 'Through ' + region, 'fx-four');
@@ -541,6 +565,7 @@ function attachWagonWheelListener() {
       triggerFlashOverlay('MASSIVE SIX', 'Maximum ' + dm + 'm 🔥');
       triggerBanner('MASSIVE SIX! 🔥', dm + 'm over ' + region, 'fx-six');
     }
+
     clearTimeout(window._wagonTimer);
     var _runsToRecord = pendingRuns;
     var delay = (pendingRuns === 4 || pendingRuns === 6) ? 2100 : 900;
@@ -550,4 +575,7 @@ function attachWagonWheelListener() {
       recordBall(_runsToRecord, null, false, region, dm);
     }, delay);
   });
+
+  cvWheel._cmWired = true;
+  console.log('[CricMax] 🕸️ Wagon wheel listener attached');
 }
