@@ -2128,18 +2128,21 @@
     const fireDB = firebase.database();
     const urlParams = new URLSearchParams(window.location.search);
     const matchCode = urlParams.get('code');
-    const refPath = matchCode ? ('cricmax/matches/' + matchCode) : 'cricmax/match_current';
-    const startFirebase = function(){
-      cmlog('Subscribing to Firebase:', refPath);
-      fireDB.ref(refPath).on('value', snap => {
-        const d = snap.val();
-        if (d) {
-          cmlog('Firebase snapshot received, keys:', Object.keys(d).slice(0, 15));
-          cmlog('  shotLog type:', typeof d.shotLog, '| isArray:', Array.isArray(d.shotLog), '| length:', Array.isArray(d.shotLog) ? d.shotLog.length : 'n/a');
-          handleNewMatchData(d);
-        }
-      });
-    };
+          /* Subscribe to BOTH paths — handles every backend variant */
+      const paths = ['cricmax/match_current'];
+      if (matchCode) paths.push('cricmax/matches/' + matchCode);
+         const startFirebase = function(){
+        paths.forEach(function(p){
+          console.log('[CricMax] 📡 Subscribing to:', p);
+          fireDB.ref(p).on('value', snap => {
+            const d = snap.val();
+            if (d){
+              console.log('[CricMax] 📥 Data from', p, '→ shots:', (d.shotLog && d.shotLog.length) || 0);
+              handleNewMatchData(d);
+            }
+          });
+        });
+      };
     if (window.requestIdleCallback) requestIdleCallback(startFirebase, { timeout: 3000 });
     else setTimeout(startFirebase, 1200);
   } catch(e){ console.warn('Firebase init error:', e); }
