@@ -1354,65 +1354,36 @@
   function checkOverRollover(m){
     if (!m) return;
     const balls = m.legalBalls || 0;
-    const overNum = Math.floor(balls / 6);
-    if (overNum > lastOverNum){
-      const shots = toArray(m.shotLog);
-      const newOverShots = shots.filter(function(s){
-        return (s.over || 1) === (overNum + 1);
-      });
-      if (newOverShots.length > 0){
-        lastOverNum = overNum;
-        replayCurrentOver(shots);
-      } else if (overShots.length > 0 && overNum > lastOverNum + 1){
-        clearOverShots();
-        lastOverNum = overNum;
-      } else {
-        lastOverNum = overNum;
-      }
-    } else {
-      lastOverNum = overNum;
+    const overOfLastBall = balls > 0 ? Math.floor((balls - 1) / 6) : 0;
+    if (lastOverNum < 0){ lastOverNum = overOfLastBall; return; }
+    if (overOfLastBall !== lastOverNum){
+      overShots.length = 0;
+      __cmWagonDirty = true;
+      __cmWagonForceUntil = performance.now() + 2000;
+      lastOverNum = overOfLastBall;
+      if (!stadiumViewActive) try { drawWagonWheel(); } catch(e){}
+      console.log('[CricMax] Over changed - wagon reset (over ' + (overOfLastBall + 1) + ')');
     }
   }
 
-  function replayCurrentOver(rawShots){
+  function replayCurrentOver(rawShots, ballsThisOver){
     const shots = toArray(rawShots);
-    if (shots.length === 0) {
-      cmlog('replayCurrentOver: no shots');
-      return;
-    }
-
     overShots.length = 0;
-
-    const last    = shots[shots.length - 1];
-    const lastOver = last.over || 1;
-    const lastInns = last.inns || 1;
-
-    const currentOverShots = [];
-    for (let i = shots.length - 1; i >= 0; i--){
-      const s = shots[i];
-      if ((s.inns || 1) !== lastInns) break;
-      if ((s.over || 1) !== lastOver) break;
-      currentOverShots.unshift(s);
-    }
-
+    if (shots.length === 0) return;
+    const count = Math.max(1, Math.min(6, ballsThisOver || 6));
+    const recent = shots.slice(-count);
     const now = performance.now();
-    currentOverShots.forEach(function(s, i){
-      const stagger = (currentOverShots.length - 1 - i) * 90;
+    recent.forEach(function(s){
       overShots.push({
-        angle:     resolveShotAngle(s),
-        runs:      s.runs || 0,
-        isWicket:  !!(s.isWicket || s.isOut),
-        startTime: now - stagger
+        angle:    resolveShotAngle(s),
+        runs:     s.runs || 0,
+        isWicket: !!(s.isWicket || s.isOut || s.wicket || s.wicketType),
+        startTime: now
       });
     });
-
-    while (overShots.length > MAX_SHOTS_PER_OVER) overShots.shift();
-
     __cmWagonDirty = true;
-    __cmWagonForceUntil = now + 5000;
-    if (!stadiumViewActive) try { drawWagonWheel(); } catch(e){}
-
-    cmlog('replayCurrentOver → rebuilt:', overShots.length, 'from', currentOverShots.length, 'shots');
+    __cmWagonForceUntil = now + 3000;
+    try { drawWagonWheel(); } catch(e){ console.warn(e); }
   }
 
   let __cmFieldCache = null;
@@ -2070,16 +2041,11 @@
 
     cmlog('handleNewMatchData → shots:', total, '| lastSeen:', lastSeenBalls, '| overShots:', overShots.length);
 
-    if (lastSeenBalls < 0){
+       if (lastSeenBalls < 0){
       lastSeenBalls = total;
-      replayCurrentOver(shots);
-      if (total > 0){
-        const last = shots[total - 1];
-        if (last){
-          window.__cricmaxInningsOver = false;
-          playBall(last, true);
-        }
-      }
+      const ballsNow = m.legalBalls || 0;
+      const ballsThisOver = ballsNow > 0 ? ((ballsNow - 1) % 6) + 1 : 0;
+      replayCurrentOver(shots, ballsThisOver);
       return;
     }
 
@@ -2093,9 +2059,10 @@
       return;
     }
 
-    if (overShots.length === 0 && total > 0){
-      cmlog('Self-heal: rebuilding wagon from', total, 'shots');
-      replayCurrentOver(shots);
+      if (overShots.length === 0 && total > 0){
+      const ballsNow = m.legalBalls || 0;
+      const ballsThisOver = ballsNow > 0 ? ((ballsNow - 1) % 6) + 1 : 0;
+      replayCurrentOver(shots, ballsThisOver);
     }
   }
 
