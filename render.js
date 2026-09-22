@@ -1,6 +1,13 @@
 /* ============================================================
-   render.js — Live pane, commentary, summary, scorecard, TV, wagon wheel
+   render.js — Live pane, commentary, summary, scorecard, TV, wagon
    ============================================================ */
+
+/* ─── helpers ───────────────────────────────────────────── */
+function _playerLink(name) {
+  if (!name) return '';
+  const safe = escapeHtml(name).replace(/'/g, "\\'");
+  return `<span class="player-link" onclick="openPlayerCareerModal('${safe}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;">${escapeHtml(name)}</span>`;
+}
 
 function updateLiveShareBadge() {
   const badge = document.getElementById('liveShareBadge');
@@ -20,12 +27,19 @@ function showLiveViewerPulse() {
   window._viewerPulseTimer = setTimeout(() => { el.style.opacity = '.35'; }, 400);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   RENDER LIVE — main live pane
+   ═══════════════════════════════════════════════════════════ */
 function renderLive() {
   if (!match.teamBatting) return;
   const ov = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
   const crr = match.legalBalls > 0 ? (match.runs / (match.legalBalls / 6)).toFixed(2) : "0.00";
+
+  /* Score */
   const st = document.getElementById('liveScoreText');
-  if (st) st.innerHTML = `<span class="team-name">${escapeHtml(match.teamBatting)}</span><span class="score-num">${match.runs}/${match.wickets}</span> <span style="font-size:15px;color:var(--muted);">(${ov})</span>`;
+  if (st) {
+    st.innerHTML = `<span class="team-name">${escapeHtml(match.teamBatting)}</span><span class="score-num">${match.runs}/${match.wickets}</span> <span style="font-size:15px;color:var(--muted);">(${ov})</span>`;
+  }
   const crrVal = document.getElementById('crrVal');
   if (crrVal) crrVal.innerText = crr;
 
@@ -42,27 +56,30 @@ function renderLive() {
   const s = match.batters[match.striker] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
   const ns = match.batters[match.nonStriker] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
 
+  /* ── Striker card — CLICKABLE NAME ── */
   const sn = document.getElementById('strikerName');
-  if (sn) sn.innerHTML = `<span class="player-link" onclick="openPlayerCareerModal('${escapeHtml(match.striker).replace(/'/g, "\\'")}')">${escapeHtml(match.striker)}*</span>`;
+  if (sn) sn.innerHTML = `${_playerLink(match.striker)}*`;
   if (document.getElementById('strikerRuns')) document.getElementById('strikerRuns').innerText = `${s.runs} (${s.balls})`;
   if (document.getElementById('strikerSR')) document.getElementById('strikerSR').innerText = s.balls > 0 ? ((s.runs / s.balls) * 100).toFixed(1) : "0.0";
   if (document.getElementById('striker4s')) document.getElementById('striker4s').innerText = s.fours;
   if (document.getElementById('striker6s')) document.getElementById('striker6s').innerText = s.sixes;
 
+  /* ── Non-striker card — CLICKABLE NAME ── */
   const nsn = document.getElementById('nonStrikerName');
-  if (nsn) nsn.innerHTML = `<span class="player-link" onclick="openPlayerCareerModal('${escapeHtml(match.nonStriker).replace(/'/g, "\\'")}')">${escapeHtml(match.nonStriker)}</span>`;
+  if (nsn) nsn.innerHTML = _playerLink(match.nonStriker);
   if (document.getElementById('nonStrikerRuns')) document.getElementById('nonStrikerRuns').innerText = `${ns.runs} (${ns.balls})`;
   if (document.getElementById('nonStrikerSR')) document.getElementById('nonStrikerSR').innerText = ns.balls > 0 ? ((ns.runs / ns.balls) * 100).toFixed(1) : "0.0";
   if (document.getElementById('nonStriker4s')) document.getElementById('nonStriker4s').innerText = ns.fours;
   if (document.getElementById('nonStriker6s')) document.getElementById('nonStriker6s').innerText = ns.sixes;
 
+  /* ── Bowler card — CLICKABLE NAME ── */
   const bw = match.bowlers[match.currentBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
   const bn = document.getElementById('bowlerName');
-  if (bn) bn.innerHTML = `<span class="player-link" onclick="openPlayerCareerModal('${escapeHtml(match.currentBowler).replace(/'/g, "\\'")}')">${escapeHtml(match.currentBowler)}</span>`;
+  if (bn) bn.innerHTML = _playerLink(match.currentBowler);
   if (document.getElementById('bowlerFigures')) document.getElementById('bowlerFigures').innerText = `${Math.floor(bw.balls / 6)}.${bw.balls % 6}-${bw.maidens}-${bw.runs}-${bw.wickets}`;
   if (document.getElementById('bowlerEco')) document.getElementById('bowlerEco').innerText = bw.balls > 0 ? (bw.runs / (bw.balls / 6)).toFixed(2) : "0.00";
 
-  // #12 This-over summary
+  /* ── This-over summary ── */
   const oc = document.getElementById('overCommentaryStrip');
   if (oc) {
     oc.innerHTML = '';
@@ -70,7 +87,8 @@ function renderLive() {
       const b = document.createElement('div');
       b.className = 'over-block';
       const overRuns = match._currentOverRuns || 0;
-      const lastOver = match.oversTimeline && match.oversTimeline.length ? match.oversTimeline[match.oversTimeline.length - 1] : null;
+      const lastOver = match.oversTimeline && match.oversTimeline.length
+        ? match.oversTimeline[match.oversTimeline.length - 1] : null;
       const pills = match.currentOverBalls.map(x =>
         `<span class="ball-pill ${x==='4'?'c-4':x==='6'?'c-6':x==='W'?'c-w':''}" style="width:22px;height:22px;font-size:9px;">${x}</span>`
       ).join('');
@@ -87,8 +105,14 @@ function renderLive() {
   renderSummary();
   const tv = document.getElementById('tvMode');
   if (tv && tv.classList.contains('active')) renderTVMode();
+
+  /* Ensure Retire + Bowler buttons stay wired */
+  if (typeof injectRetireButton === 'function') injectRetireButton();
 }
 
+/* ═══════════════════════════════════════════════════════════
+   RENDER COMMENTARY
+   ═══════════════════════════════════════════════════════════ */
 function renderCommentary() {
   const c = document.getElementById('commentaryContainer');
   if (!c) return;
@@ -113,6 +137,9 @@ function renderCommentary() {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════
+   RENDER SUMMARY (partnership + FOW)
+   ═══════════════════════════════════════════════════════════ */
 function renderSummary() {
   const cp = match.currentPartnership || { runs: 0, balls: 0, batters: [] };
   const st = match.batters[match.striker] || { runs: 0, balls: 0 };
@@ -121,16 +148,30 @@ function renderSummary() {
   const pd = document.getElementById('partDetails');
   const fw = document.getElementById('fowContainer');
   if (pr) pr.innerText = `${cp.runs || 0} runs (${cp.balls || 0} balls)`;
-  if (pd) pd.innerText = `${match.striker || '-'}: ${st.runs} (${st.balls}) | ${match.nonStriker || '-'}: ${nst.runs} (${nst.balls})`;
-  if (fw) fw.innerHTML = (match.fow && match.fow.length > 0) ? match.fow.map(escapeHtml).join('<br>') : 'No wickets yet.';
+  if (pd) pd.innerHTML = `${_playerLink(match.striker)}: ${st.runs} (${st.balls}) | ${_playerLink(match.nonStriker)}: ${nst.runs} (${nst.balls})`;
+  if (fw) {
+    fw.innerHTML = (match.fow && match.fow.length > 0)
+      ? match.fow.map(f => {
+          /* fow entries look like "45/2 (Rohit)" — make the name clickable */
+          const m = String(f).match(/^(.*?)\((.+?)\)\s*$/);
+          if (m) return `${escapeHtml(m[1])}(${_playerLink(m[2])})`;
+          return escapeHtml(f);
+        }).join('<br>')
+      : 'No wickets yet.';
+  }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   RENDER SCORECARD — batting + bowling table with clickable names
+   ═══════════════════════════════════════════════════════════ */
 function renderScorecard() {
   try {
     const bt = document.getElementById('battingTeamTitle');
     if (bt) bt.innerText = 'Batting — ' + (match.teamBatting || '');
     const bwt = document.getElementById('bowlingTeamTitle');
     if (bwt) bwt.innerText = 'Bowling — ' + (match.teamBowling || '');
+
+    /* Batting table */
     const bb = document.getElementById('battingTableBody');
     if (bb) {
       bb.innerHTML = '';
@@ -139,7 +180,7 @@ function renderScorecard() {
         if (b.status && b.status !== 'dnb') {
           const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
           bb.innerHTML += `<tr>
-            <td><b>${escapeHtml(n)}${n === match.striker ? ' *' : ''}</b><br><small style="color:var(--muted);">${escapeHtml(b.status)}</small></td>
+            <td><b>${_playerLink(n)}${n === match.striker ? ' *' : ''}</b><br><small style="color:var(--muted);">${escapeHtml(b.status)}</small></td>
             <td class="text-right"><b>${b.runs}</b></td>
             <td class="text-right">${b.balls}</td>
             <td class="text-right">${b.fours}</td>
@@ -149,6 +190,8 @@ function renderScorecard() {
         }
       }
     }
+
+    /* Bowling table */
     const bl = document.getElementById('bowlingTableBody');
     if (bl) {
       bl.innerHTML = '';
@@ -158,7 +201,7 @@ function renderScorecard() {
           const ov = Math.floor(b.balls / 6) + '.' + (b.balls % 6);
           const eco = b.balls > 0 ? (b.runs / (b.balls / 6)).toFixed(2) : '0.0';
           bl.innerHTML += `<tr>
-            <td><b>${escapeHtml(n)}${n === match.currentBowler ? ' *' : ''}</b></td>
+            <td><b>${_playerLink(n)}${n === match.currentBowler ? ' *' : ''}</b></td>
             <td class="text-right">${ov}</td>
             <td class="text-right">${b.maidens}</td>
             <td class="text-right">${b.runs}</td>
@@ -168,22 +211,24 @@ function renderScorecard() {
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { console.warn('renderScorecard error:', e); }
 }
 
+/* ─── Strikers swap (does NOT auto-render; caller decides) ── */
 function swapStrikers() {
   const t = match.striker;
   match.striker = match.nonStriker;
   match.nonStriker = t;
-  renderLive();
 }
 
+/* ─── Theme ─────────────────────────────────────────────── */
 function toggleTheme() {
   document.body.classList.toggle('light-mode');
   const l = document.body.classList.contains('light-mode');
   try { localStorage.setItem('CricMax_Theme', l ? 'light' : 'dark'); } catch (e) {}
 }
 
+/* ─── TV mode ───────────────────────────────────────────── */
 function toggleTVMode() {
   const tv = document.getElementById('tvMode');
   if (!tv) return;
@@ -214,16 +259,16 @@ function renderTVMode() {
     match.recentBalls.slice(-8).forEach(b => {
       const d = document.createElement('div');
       d.className = 'ball-pill ' + (b === '4' ? 'c-4' : b === '6' ? 'c-6' : b === 'W' ? 'c-w' : '');
-      d.style.width = '60px';
-      d.style.height = '60px';
-      d.style.fontSize = '22px';
+      d.style.cssText = 'width:60px;height:60px;font-size:22px;';
       d.textContent = b;
       r.appendChild(d);
     });
   }
 }
 
-/* Wagon wheel */
+/* ═══════════════════════════════════════════════════════════
+   WAGON WHEEL (host-side canvas)
+   ═══════════════════════════════════════════════════════════ */
 function triggerFlashOverlay(titleText, subText) {
   const overlay = document.getElementById('wagonFlashOverlay');
   if (!overlay) return;
@@ -241,153 +286,4 @@ function promptWagonWheel(runs) {
   pendingRuns = runs;
   document.getElementById('wagonTitle').innerText = `MARK SHOT (${runs} RUNS)`;
   document.getElementById('wagonFeedback').innerText = "Tap field to place shot";
-  const banner = document.getElementById('wagonBoundaryBanner');
-  if (banner) { banner.className = 'wagon-boundary-banner'; banner.style.display = 'none'; }
-  const overlay = document.getElementById('wagonFlashOverlay');
-  if (overlay) overlay.className = 'wagon-flash-overlay';
-  document.getElementById('wagonModal').style.display = 'flex';
-  drawFieldBase();
-}
-
-function drawFieldBase() {
-  const cv = document.getElementById('wagonCanvas');
-  if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const cx = cv.width / 2, cy = cv.height / 2;
-  const rope = (cv.width / 2) * 0.8;
-  ctx.clearRect(0, 0, cv.width, cv.height);
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(cx, cy, rope * 0.45, 0, Math.PI * 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx, cy, rope * 0.75, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = 'rgba(0,230,118,0.8)';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(cx, cy, rope, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = '#d2b48c';
-  ctx.fillRect(cx - 4, cy - 12, 8, 24);
-}
-
-function drawScoringWagonShot(cx, cy, lx, ly, ballX, ballY) {
-  drawFieldBase();
-  const cv = document.getElementById('wagonCanvas');
-  if (!cv) return;
-  const ctx = cv.getContext('2d');
-  ctx.save();
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-  ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 10;
-  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(lx, ly); ctx.stroke();
-  ctx.restore();
-  if (typeof ballX === 'number' && typeof ballY === 'number') {
-    ctx.save();
-    ctx.fillStyle = '#ff0000'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 15;
-    ctx.beginPath(); ctx.arc(ballX, ballY, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.restore();
-  }
-}
-
-/* Attach wagon wheel listener after DOM ready */
-function attachWagonWheelListener() {
-  const cvWheel = document.getElementById('wagonCanvas');
-  if (!cvWheel) return;
-  cvWheel.addEventListener('pointerdown', (e) => {
-    if (!match.isActive || isViewerMode) return;
-    const rect = cvWheel.getBoundingClientRect();
-    const scaleX = cvWheel.width / rect.width, scaleY = cvWheel.height / rect.height;
-    const cx = cvWheel.width / 2, cy = cvWheel.height / 2;
-    const clickX = (e.clientX - rect.left) * scaleX, clickY = (e.clientY - rect.top) * scaleY;
-    const dx = clickX - cx, dy = clickY - cy;
-    const rawDist = Math.sqrt(dx * dx + dy * dy);
-    if (rawDist < 5) return;
-    const dirX = dx / rawDist, dirY = dy / rawDist;
-
-    let deg = Math.atan2(dy, dx) * (180 / Math.PI);
-    if (deg < 0) deg += 360;
-
-    // store for 3D; cleared by recordBall (#4)
-    window._tempExactAngle = Math.atan2(dx, -dy);
-
-    const sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
-    const sectorNames = ["Third Man", "Point", "Cover", "Mid-off", "Mid-on", "Mid-wicket", "Square Leg", "Fine Leg"];
-    const region = sectorNames[sectorIdx];
-    const ropeR = (cvWheel.width / 2) * 0.8;
-
-    let lx = clickX, ly = clickY, dm = 0;
-    if (pendingRuns >= 1 && pendingRuns <= 3) {
-      const maxR = ropeR - 6;
-      let tr = rawDist;
-      if (pendingRuns === 1) tr = Math.min(maxR * 0.65, Math.max(ropeR * 0.35, rawDist));
-      else if (pendingRuns === 2) tr = Math.min(maxR * 0.85, Math.max(ropeR * 0.5, rawDist));
-      else tr = Math.min(maxR, Math.max(ropeR * 0.7, rawDist));
-      lx = cx + dirX * tr; ly = cy + dirY * tr;
-    } else if (pendingRuns === 4) {
-      lx = cx + dirX * ropeR; ly = cy + dirY * ropeR;
-    } else if (pendingRuns === 6) {
-      const minR = ropeR * 1.08, maxR = ropeR * 1.22;
-      const fr = Math.max(minR, Math.min(maxR, rawDist));
-      lx = cx + dirX * fr; ly = cy + dirY * fr;
-      dm = Math.round(75 + ((fr - ropeR) / (ropeR * 0.22)) * 45);
-    }
-
-    const flightStart = performance.now();
-    const flightDuration = 500;
-    const animateFlyingBall = () => {
-      const elapsed = performance.now() - flightStart;
-      const progress = Math.min(1, elapsed / flightDuration);
-      const eased = 1 - Math.pow(1 - progress, 2);
-      const bx = cx + (lx - cx) * eased;
-      const by = cy + (ly - cy) * eased;
-      drawScoringWagonShot(cx, cy, lx, ly, bx, by);
-      if (progress < 1) requestAnimationFrame(animateFlyingBall);
-      else drawScoringWagonShot(cx, cy, lx, ly, lx, ly);
-    };
-    animateFlyingBall();
-
-    document.getElementById('wagonFeedback').innerText = `${region}${dm > 0 ? ' • ' + dm + 'm' : ''}`;
-    match.sectorRuns[sectorIdx] += pendingRuns;
-
-    if (pendingRuns === 4) {
-      triggerFlashOverlay("CRACKING FOUR", "Boundary Scored ⚡");
-      triggerBanner('CRACKING FOUR! ⚡', `Through ${region}`, 'fx-four');
-    } else if (pendingRuns === 6) {
-      triggerFlashOverlay("MASSIVE SIX", `Maximum ${dm}m 🔥`);
-      triggerBanner('MASSIVE SIX! 🔥', `${dm}m over ${region}`, 'fx-six');
-    }
-
-    const banner = document.getElementById('wagonBoundaryBanner');
-    const bannerMain = document.getElementById('wagonBannerMainText');
-    const bannerSub = document.getElementById('wagonBannerSubText');
-    if (pendingRuns === 4 && banner) {
-      banner.className = 'wagon-boundary-banner is-four active';
-      bannerMain.innerText = 'CRACKING FOUR! ⚡';
-      bannerSub.innerText = `Races to the boundary rope towards ${region}!`;
-    } else if (pendingRuns === 6 && banner) {
-      banner.className = 'wagon-boundary-banner is-six active';
-      bannerMain.innerText = 'MASSIVE SIX! 🔥';
-      bannerSub.innerText = `Dispatched into the stands [${dm}m] over ${region}!`;
-    }
-
-    clearTimeout(window._wagonTimer);
-    const _runsToRecord = pendingRuns;
-    const delay = (pendingRuns === 4 || pendingRuns === 6) ? 2100 : 900;
-    window._wagonTimer = setTimeout(() => {
-      const _wm = document.getElementById('wagonModal');
-      if (_wm) _wm.style.display = 'none';
-      recordBall(_runsToRecord, null, false, region, dm);
-    }, delay);
-  });
-}
-
-function triggerBanner(t, s, c) {
-  const b = document.getElementById('topCinematicBanner');
-  if (!b) return;
-  const bt = document.getElementById('topBannerTitle');
-  const bs = document.getElementById('topBannerSub');
-  if (bt) bt.innerText = t;
-  if (bs) bs.innerText = s;
-  b.className = 'top-cinematic-banner';
-  void b.offsetWidth;
-  b.classList.add(c, 'active');
-  clearTimeout(window._bannerTimer);
-  window._bannerTimer = setTimeout(() => { b.className = 'top-cinematic-banner'; }, 2400);
-}
+  const banner =
