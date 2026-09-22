@@ -1,18 +1,8 @@
 /* ============================================================
-   utils.js — Toast, render scheduler, helpers, HTML injector
-   ============================================================
-   Contents:
-     • showToast()
-     • scheduleRender()
-     • autoCapitalize() / escapeHtml()
-     • autoAddPlayerToTeam()
-     • detectBowlerType()
-     • injectHelpElements()  ← injects Retire button + modals
-     • injectRetireButton()
-     • toggleFullScreen() / triggerReplay()
+   utils.js — Toast, render scheduler, helpers, HTML injectors
    ============================================================ */
 
-/* ============ RESPONSIVE TOAST ============ */
+/* ─── Toast ─────────────────────────────────────────────── */
 function showToast(msg, duration = 2600) {
   let toast = document.getElementById('globalToast');
   if (!toast) {
@@ -33,9 +23,7 @@ function showToast(msg, duration = 2600) {
   }, duration);
 }
 
-/* ============ BATCHED RENDER ============ */
-/* Coalesces multiple render calls into one per animation frame
-   to avoid redundant DOM churn when scoring rapidly. */
+/* ─── Batched Render ────────────────────────────────────── */
 function scheduleRender() {
   if (_renderScheduled) return;
   _renderScheduled = true;
@@ -48,7 +36,7 @@ function scheduleRender() {
   });
 }
 
-/* ============ TEXT HELPERS ============ */
+/* ─── Text helpers ──────────────────────────────────────── */
 function autoCapitalize(s) {
   if (!s) return '';
   return String(s).replace(/(^|\s|[\-'])\S/g, m => m.toUpperCase());
@@ -60,7 +48,7 @@ function escapeHtml(s) {
   ));
 }
 
-/* ============ PLAYER / TEAM HELPERS ============ */
+/* ─── Team / player helpers ─────────────────────────────── */
 function autoAddPlayerToTeam(playerName, teamName) {
   if (!playerName || !teamName) return;
   playerName = autoCapitalize(playerName.trim());
@@ -79,28 +67,21 @@ function detectBowlerType(name) {
   if (bowlerTypeMap[name]) return bowlerTypeMap[name];
   const lower = name.toLowerCase();
   const spinKeywords = [
-    'spin', 'ashwin', 'jadeja', 'chahal', 'kuldeep', 'rashid', 'tahir', 'zampa',
-    'shakib', 'moeen', 'lyon', 'herath', 'sodhi', 'santner', 'swepson', 'parkinson',
-    'bishnoi', 'chakaravarthy', 'axar', 'sundar', 'hooda', 'markram', 'maxwell',
-    'root', 'shah', 'mujeeb', 'noor', 'hasaranga', 'theekshana', 'wellalage'
+    'spin','ashwin','jadeja','chahal','kuldeep','rashid','tahir','zampa','shakib',
+    'moeen','lyon','herath','sodhi','santner','swepson','parkinson','bishnoi',
+    'chakaravarthy','axar','sundar','hooda','markram','maxwell','root','shah',
+    'mujeeb','noor','hasaranga','theekshana','wellalage'
   ];
   for (const k of spinKeywords) if (lower.includes(k)) return 'spin';
   return 'pace';
 }
 
 /* ============================================================
-   HELP ELEMENT INJECTOR
-   Adds optional UI elements so no HTML edits are needed:
-     • Wicket modal "Who is OUT?" dropdown + extra dismissal types
-     • Man-of-the-Match box inside result modal
-     • Commentary density selector inside settings
-     • Stats scope toggle (live / tournament)
-     • Viewer-mode landing overlay
-     • Live viewer count badge
-     • Extras menu buttons (Edit Last Ball / Change Bowler Mid-Over / Retire Batsman)
+   injectHelpElements — inject all optional UI elements
    ============================================================ */
 function injectHelpElements() {
-  /* ── 1. Wicket modal — "Who is OUT?" + Retired Hurt / Obstructing Field ── */
+
+  /* ── 1. Wicket modal — Who is OUT? + extra dismissal options ── */
   const wkModal = document.getElementById('wicketTypeModal');
   const mSel = document.getElementById('wktMethodSelect');
   if (wkModal && mSel) {
@@ -126,7 +107,7 @@ function injectHelpElements() {
     }
   }
 
-  /* ── 2. Man-of-the-Match box inside result modal ── */
+  /* ── 2. Man of the Match box ── */
   const resultModal = document.getElementById('resultModal');
   const resultScores = document.getElementById('resultScores');
   if (resultModal && resultScores && !document.getElementById('motmBox')) {
@@ -138,6 +119,168 @@ function injectHelpElements() {
       </div>`);
   }
 
+  /* ── 3. Commentary density selector ── */
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal && !document.getElementById('cfgVoiceDensity')) {
+    const anchor = settingsModal.querySelector('.settings-scroll') || settingsModal;
+    anchor.insertAdjacentHTML('beforeend', `
+      <div class="setting-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);margin-top:8px;">
+        <span style="font-size:12px;font-weight:700;">🎙️ Commentary Density</span>
+        <select id="cfgVoiceDensity" class="form-control" onchange="setVoiceDensity(this.value)" style="width:180px;">
+          <option value="all">Every Ball</option>
+          <option value="boundaries" selected>Boundaries + Wickets</option>
+          <option value="wickets">Wickets Only</option>
+          <option value="milestones">Milestones Only</option>
+        </select>
+      </div>`);
+  }
+
+  /* ── 4. Stats scope toggle ── */
+  const lbPane = document.getElementById('pane-leaderboards');
+  const statsHead = document.getElementById('statsTableHead');
+  if (lbPane && statsHead && !document.getElementById('statsScopeAll')) {
+    const tbl = statsHead.closest('table');
+    if (tbl) {
+      tbl.insertAdjacentHTML('beforebegin', `
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button class="stat-pill active" id="statsScopeAll" onclick="setStatsScope('live')">This Match</button>
+          <button class="stat-pill" id="statsScopeTourn" onclick="setStatsScope('tournament')">This Tournament</button>
+        </div>`);
+    }
+  }
+
+  /* ── 5. Viewer landing overlay ── */
+  if (!document.getElementById('viewerLanding')) {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div id="viewerLanding" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0a0e1a,#0f172a);z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;">
+        <div style="font-size:60px;">📡</div>
+        <div style="font-size:22px;font-weight:900;color:#00e676;margin-top:16px;">Connecting to Live Match</div>
+        <div id="viewerLandingCode" style="font-size:14px;color:#94a3b8;margin-top:8px;"></div>
+        <div style="margin-top:30px;font-size:12px;color:#64748b;">Waiting for host to start…</div>
+      </div>`);
+  }
+
+  /* ── 6. Viewer count badge ── */
+  const shareBadge = document.getElementById('liveShareBadge');
+  if (shareBadge && !document.getElementById('liveViewerCount')) {
+    shareBadge.insertAdjacentHTML('afterend', `
+      <span id="liveViewerCount" style="display:none;font-size:10px;color:#22d3ee;font-weight:800;padding:4px 8px;background:rgba(34,211,238,.12);border-radius:8px;margin-left:6px;">👁 <span id="liveViewerCountNum">0</span></span>`);
+  }
+
+  /* ── 7. Extras menu — new buttons ── */
+  const moreModal = document.getElementById('moreOptionsModal');
+  if (moreModal && !document.getElementById('btnRetireBatsman')) {
+    const anchor = moreModal.querySelector('.modal-body, .modal-content, div');
+    if (anchor) {
+      anchor.insertAdjacentHTML('beforeend', `
+        <button class="btn-ui" id="btnEditLastBall" onclick="editLastBall(); closeModal('moreOptionsModal');">✏️ Edit Last Ball</button>
+        <button class="btn-ui" id="btnChangeBowlerMid" onclick="changeBowlerMidOver(); closeModal('moreOptionsModal');">🎳 Change Bowler Mid-Over</button>
+        <button class="btn-ui" id="btnRetireBatsman" onclick="openRetireModal(); closeModal('moreOptionsModal');" style="background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.45);color:#fbbf24;">🔄 Retire Batsman</button>
+      `);
+    }
+  }
+
+  /* ── 8. Inline Retire button in the scoring pane ── */
+  injectRetireButton();
+  /* ── 9. Auto re-inject on tab switches so it's never missing ── */
+  setInterval(function () {
+    injectRetireButton();
+    injectBowlerSwapShortcut();
+  }, 1500);
+}
+
+/* ============================================================
+   injectRetireButton — puts a 🔄 Retire button next to the
+   Swap / Bowler / End Innings row in the live scoring pane.
+   ============================================================ */
+function injectRetireButton() {
+  if (document.getElementById('btnRetireBatsmanInline')) return;
+  if (!match || !match.isActive) return;
+
+  /* Find the Swap / Bowler / End Innings row */
+  const buttons = Array.from(document.querySelectorAll('button, .btn-ui, .score-btn'));
+  let swapBtn = null;
+  let bowlerBtn = null;
+  let endBtn = null;
+
+  buttons.forEach(b => {
+    const t = (b.textContent || '').trim().toLowerCase();
+    const oc = (b.getAttribute('onclick') || '').toLowerCase();
+    if (!swapBtn && (t.includes('swap') || oc.includes('swapstrikers'))) swapBtn = b;
+    if (!bowlerBtn && (t === 'bowler' || oc.includes('promptnextbowler') || oc.includes('openbowlermodal'))) bowlerBtn = b;
+    if (!endBtn && (t.includes('end innings') || oc.includes('endinnings'))) endBtn = b;
+  });
+
+  const anchor = bowlerBtn || swapBtn || endBtn;
+  if (!anchor || !anchor.parentElement) return;
+
+  const row = anchor.parentElement;
+  const btn = document.createElement('button');
+  btn.id = 'btnRetireBatsmanInline';
+  btn.className = anchor.className || 'btn-ui';
+  btn.style.cssText = 'background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.5);color:#fbbf24;font-weight:800;';
+  btn.innerHTML = '🔄 Retire';
+  btn.onclick = function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof openRetireModal === 'function') openRetireModal();
+    else showToast('Retire function not loaded');
+  };
+
+  /* Insert AFTER bowler (or swap if no bowler) */
+  if (anchor.nextSibling) row.insertBefore(btn, anchor.nextSibling);
+  else row.appendChild(btn);
+}
+
+/* ============================================================
+   injectBowlerSwapShortcut — ensures Bowler button opens the modal
+   even if the original onclick is missing.
+   ============================================================ */
+function injectBowlerSwapShortcut() {
+  if (!match || !match.isActive) return;
+  const buttons = Array.from(document.querySelectorAll('button, .btn-ui, .score-btn'));
+  buttons.forEach(b => {
+    const t = (b.textContent || '').trim().toLowerCase();
+    const oc = (b.getAttribute('onclick') || '').toLowerCase();
+    const isBowler = (t === 'bowler' || oc.includes('promptnextbowler'));
+    if (isBowler && !b._cricmaxWired) {
+      b._cricmaxWired = true;
+      if (!oc.includes('promptnextbowler') && !oc.includes('openbowlermodal')) {
+        b.onclick = function (e) {
+          e.preventDefault();
+          if (typeof promptNextBowlerModal === 'function') promptNextBowlerModal();
+        };
+      }
+    }
+  });
+}
+
+/* ─── Fullscreen / Replay ───────────────────────────────── */
+function toggleFullScreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => console.warn(err));
+  } else if (document.exitFullscreen) {
+    document.exitFullscreen();
+  }
+}
+
+function triggerReplay() {
+  if (!match.shotLog || match.shotLog.length === 0) {
+    showToast('No balls to replay yet');
+    return;
+  }
+  const lastShot = match.shotLog[match.shotLog.length - 1];
+  const f = document.getElementById('vppIframe') || document.getElementById('stadiumIframe') || document.querySelector('iframe');
+  if (f && f.contentWindow) {
+    f.contentWindow.postMessage({
+      type: 'TRIGGER_DELIVERY',
+      shot: Object.assign({}, lastShot, { isReplay: true })
+    }, '*');
+  }
+  if (typeof window.vppPlayDelivery === 'function') window.vppPlayDelivery(lastShot);
+  else if (typeof window.playBallAnimation === 'function') window.playBallAnimation(lastShot);
+  else showToast(`Replaying Ball ${lastShot.over}.${lastShot.ball}: ${lastShot.runs} runs`);
+}
   /* ── 3. Commentary density selector inside settings ── */
   const settingsModal = document.getElementById('settingsModal');
   if (settingsModal && !document.getElementById('cfgVoiceDensity')) {
