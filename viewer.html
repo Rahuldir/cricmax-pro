@@ -484,7 +484,8 @@
         view is on top. Both stay in sync — animations play through
         regardless of which view is showing.
      ═══════════════════════════════════════════════════════════════ */
-  let stadiumViewActive = false;
+
+   let stadiumViewActive = false;
 
   function setStadiumView(active){
     stadiumViewActive = !!active;
@@ -494,19 +495,17 @@
     const btn = document.getElementById('btn-stadium');
     const wagonBtn = document.getElementById('util-wagon');
 
-    /* Always keep the 3D canvas visible so animations render */
-    canvas.style.display = 'block';
-
     if (stadiumViewActive){
-      /* Stadium on top — hide wagon overlay */
-      canvas.style.zIndex = '5';
+      /* STADIUM MODE — show 3D canvas, hide wagon completely */
+      canvas.style.display = 'block';
+      canvas.style.zIndex = '0';
       if (wrap) wrap.classList.remove('show');
       if (info) info.classList.remove('show');
       if (btn){ btn.classList.add('on'); btn.innerText = '🏟️'; }
       if (wagonBtn) wagonBtn.classList.remove('on');
     } else {
-      /* Wagon on top — 3D canvas rendered behind */
-      canvas.style.zIndex = '0';
+      /* WAGON MODE — hide 3D canvas completely, show only wagon */
+      canvas.style.display = 'none';
       if (wrap) wrap.classList.add('show');
       if (info) info.classList.add('show');
       if (btn){ btn.classList.remove('on'); btn.innerText = '🕸️'; }
@@ -514,9 +513,13 @@
       __cmWagonDirty = true;
       setTimeout(function(){ try { drawWagonWheel(); } catch(e){ console.warn(e); } }, 30);
     }
+    /* Do NOT toggle menu here — setter is called programmatically */
+  }
+
+  function toggleStadiumView(){
+    setStadiumView(!stadiumViewActive);
     toggleMenu();
   }
-  function toggleStadiumView(){ setStadiumView(!stadiumViewActive); }
 
   /* ═══════════════════════════════════════════════════════════════
      TV MODE
@@ -2271,7 +2274,7 @@
       camera.lookAt(camTarget);
 
       /* ⚡ Always render 3D when an animation is playing */
-      if (stadiumViewActive || anim !== null) {
+      if (stadiumViewActive ) {
         renderer.render(scene, camera);
       }
 
