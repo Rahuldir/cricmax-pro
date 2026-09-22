@@ -1,15 +1,17 @@
 /* ============================================================
    state.js — Application state, config, empty match
+   ⚠️ NEVER deletes user data automatically.
    ============================================================ */
 
+/* ─── Global state ──────────────────────────────────────── */
 let savedTeams = [];
 let currentTourn = null;
 let currentTournId = null;
 let tournamentsHistory = [];
-let pastMatchesLedger = [];
+let pastMatchesLedger = [];      /* ← NEVER auto-trimmed */
 let selectedTeam1 = { name: "", squad: [] };
 let selectedTeam2 = { name: "", squad: [] };
-let historyStack = [];
+let historyStack = [];           /* ← undo stack; grows up to MAX_UNDO */
 let pendingRuns = 0;
 
 let isCommentaryVoiceActive = false;
@@ -40,6 +42,12 @@ let _renderScheduled = false;
 let viewerCountUnsub = null;
 let viewerPresenceDocRef = null;
 
+/* Undo cap — user can undo 100 balls. Adjust freely. */
+const MAX_UNDO = 100;
+
+/* ═══════════════════════════════════════════════════════════
+   DEFAULT CONFIG
+   ═══════════════════════════════════════════════════════════ */
 const DEFAULT_CONFIG = {
   wideRuns: 1,
   wideCountsAsBall: false,
@@ -57,6 +65,9 @@ let nzcRunChartMode = 'manhattan';
 let nzcWagonMode = 'wagon';
 let nzcWagonInnings = 1;
 
+/* ═══════════════════════════════════════════════════════════
+   EMPTY MATCH BLUEPRINT
+   ═══════════════════════════════════════════════════════════ */
 function emptyMatch() {
   return {
     isActive: false,
@@ -109,3 +120,45 @@ function emptyMatch() {
 
 let match = emptyMatch();
 window.match = match;
+
+/* ═══════════════════════════════════════════════════════════
+   RETIRE HELPERS (used by scoring.js)
+   These mark the retiring batter's status. No auto-deletion.
+   ═══════════════════════════════════════════════════════════ */
+function markBatterRetired(role, reason) {
+  /* role: 'striker' | 'nonStriker'; reason: 'Retired Hurt' | 'Retired Out' */
+  if (!match.isActive) return null;
+  const name = match[role];
+  if (!name || !match.batters[name]) return null;
+
+  const statusKey = reason === 'Retired Out' ? 'retired out' : 'retired hurt';
+  match.batters[name].status = statusKey;
+
+  if (reason === 'Retired Out') {
+    /* Retired Out = counts as a wicket (bowler gets no credit) */
+    match.wickets += 1;
+    match.fow.push(`${match.runs}/${match.wickets} (${name} retired out)`);
+  }
+  return name;
+}
+
+function setReplacementBatter(role, newBatterName) {
+  if (!match.isActive || !newBatterName) return false;
+  const n = autoCapitalize(newBatterName.trim());
+  if (!n) return false;
+  if (n === match.striker || n === match.nonStriker) return false;
+
+  if (!match.batters[n]) {
+    match.batters[n] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: 'batting' };
+    match.playerTeamMap[n] = match.teamBattingAbbr;
+    autoAddPlayerToTeam(n, match.teamBatting);
+  } else {
+    match.batters[n].status = 'batting';
+  }
+
+  if (role === 'striker') match.striker = n;
+  else match.nonStriker = n;
+
+  match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
+  return true;
+}
