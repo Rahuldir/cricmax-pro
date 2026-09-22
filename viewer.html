@@ -339,6 +339,8 @@
 
   /* ═══════════════════════════════════════════════════════════════
      FIREBASE ARRAY GUARD
+     Firebase RTDB returns arrays as objects with numeric-string
+     keys if any index is missing. This converts back to real array.
      ═══════════════════════════════════════════════════════════════ */
   function toArray(objOrArr){
     if (Array.isArray(objOrArr)) return objOrArr;
@@ -477,9 +479,10 @@
 
   /* ═══════════════════════════════════════════════════════════════
      STADIUM / WAGON TOGGLE
-     ⚡ Original toggle behavior: only one view visible at a time.
-        Wagon anim runs behind the scenes via drawWagonWheel() so
-        it's ready the instant the user switches.
+     ⚡ EXACTLY AS REQUESTED — kept identical to the file you pasted.
+        3D canvas is always visible; z-index swaps so the active
+        view is on top. Both stay in sync — animations play through
+        regardless of which view is showing.
      ═══════════════════════════════════════════════════════════════ */
   let stadiumViewActive = false;
 
@@ -491,16 +494,19 @@
     const btn = document.getElementById('btn-stadium');
     const wagonBtn = document.getElementById('util-wagon');
 
+    /* Always keep the 3D canvas visible so animations render */
+    canvas.style.display = 'block';
+
     if (stadiumViewActive){
-      /* STADIUM MODE — 3D canvas visible, wagon hidden */
-      canvas.style.display = 'block';
+      /* Stadium on top — hide wagon overlay */
+      canvas.style.zIndex = '5';
       if (wrap) wrap.classList.remove('show');
       if (info) info.classList.remove('show');
       if (btn){ btn.classList.add('on'); btn.innerText = '🏟️'; }
       if (wagonBtn) wagonBtn.classList.remove('on');
     } else {
-      /* WAGON MODE — wagon visible, 3D canvas hidden */
-      canvas.style.display = 'none';
+      /* Wagon on top — 3D canvas rendered behind */
+      canvas.style.zIndex = '0';
       if (wrap) wrap.classList.add('show');
       if (info) info.classList.add('show');
       if (btn){ btn.classList.remove('on'); btn.innerText = '🕸️'; }
@@ -2219,8 +2225,9 @@
 
   /* ═══════════════════════════════════════════════════════════════
      RENDER LOOP
-     ⚡ Only renders 3D when stadium view is active.
-     ⚡ Wagon wheel drawn separately so it stays in sync.
+     ⚡ 3D renders whenever stadium is active OR an animation is
+        playing — this keeps the stadium and wagon wheel in sync
+        even when the user is viewing the wagon.
      ═══════════════════════════════════════════════════════════════ */
   const CM_TARGET_FPS = CM_DEVICE.tier === 0 ? 30 : (CM_DEVICE.tier === 1 ? 45 : 60);
   const CM_FRAME_INTERVAL = 1000 / CM_TARGET_FPS;
@@ -2263,12 +2270,11 @@
       camera.position.copy(camPos);
       camera.lookAt(camTarget);
 
-      /* ⚡ Only render 3D when stadium view is active */
-      if (stadiumViewActive) {
+      /* ⚡ Always render 3D when an animation is playing */
+      if (stadiumViewActive || anim !== null) {
         renderer.render(scene, camera);
       }
 
-      /* Wagon wheel updates regardless of view mode */
       if (!stadiumViewActive){
         const now = performance.now();
         const hasActiveAnim = overShots.some(s => (now - s.startTime) < (ANIM_DURATION + TRAIL_HOLD + 1200));
