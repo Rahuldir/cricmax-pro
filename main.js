@@ -1,20 +1,10 @@
 /* ============================================================
-   main.js — DOMContentLoaded init, keyboard shortcuts,
-             canvas polyfill, cross-frame message bus,
-             loading screen controller
-   ============================================================
-   Loaded LAST. Contains:
-     1. Loading screen controller (cmSetProgress, cmHideLoader)
-     2. Canvas roundRect polyfill
-     3. DOMContentLoaded boot
-     4. Keyboard shortcuts
-     5. Auto-capitalize inputs
-     6. Cross-frame message bus (viewer → app nav)
-     7. Visibility resume handler
+   main.js — Boot, loading screen, keyboard, wagon attach,
+             cross-frame message bus, visibility handler
    ============================================================ */
 
 /* ═══════════════════════════════════════════════════════════
-   LOADING SCREEN CONTROLLER
+   LOADING SCREEN
    ═══════════════════════════════════════════════════════════ */
 var _cmLoaderBarEl = null;
 var _cmLoaderSubEl = null;
@@ -36,9 +26,7 @@ function cmHideLoader() {
   cmSetProgress(100, 'Ready');
   setTimeout(function () {
     _cmLoaderEl.classList.add('cm-hide');
-    setTimeout(function () {
-      try { _cmLoaderEl.remove(); } catch (e) {}
-    }, 700);
+    setTimeout(function () { try { _cmLoaderEl.remove(); } catch (e) {} }, 700);
   }, 250);
 }
 
@@ -58,7 +46,6 @@ function cmAdvanceStage() {
   cmSetProgress(stage[0], stage[1]);
 }
 
-/* Failsafe — force-hide after 4.5s even if boot crashes */
 setTimeout(function () { if (!_cmLoaderDone) cmHideLoader(); }, 4500);
 
 /* ═══════════════════════════════════════════════════════════
@@ -84,28 +71,25 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
    ═══════════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
 
-  /* ── 0. Loading screen — start ── */
   cmSetProgress(5, 'Initializing…');
-  setTimeout(cmAdvanceStage, 120);   /* → 10%  Booting        */
-  setTimeout(cmAdvanceStage, 280);   /* → 25%  Loading hub    */
+  setTimeout(cmAdvanceStage, 120);
+  setTimeout(cmAdvanceStage, 280);
 
-  /* ── 1. Inject optional UI elements (Retire btn, MOTM box, etc.) ── */
+  /* 1. Inject optional UI */
   try { injectHelpElements(); } catch (e) { console.warn('[CricMax] injectHelpElements:', e); }
 
-  /* ── 2. Speech synthesis voice loading ── */
+  /* 2. Speech voices */
   if (typeof speechSynth !== 'undefined' && speechSynth) {
     try { loadSpeechVoices(); } catch (e) {}
     speechSynth.onvoiceschanged = loadSpeechVoices;
   }
 
-  /* ── 3. Restore voice-density preference ── */
-  try {
-    commentaryDensity = localStorage.getItem('CricMax_VoiceDensity') || 'boundaries';
-  } catch (e) {}
+  /* 3. Voice density */
+  try { commentaryDensity = localStorage.getItem('CricMax_VoiceDensity') || 'boundaries'; } catch (e) {}
   const densSel = document.getElementById('cfgVoiceDensity');
   if (densSel) densSel.value = commentaryDensity;
 
-  /* ── 4. Firebase anonymous auth (with retry until SDK ready) ── */
+  /* 4. Firebase auth */
   function startFirebaseAuth() {
     if (!window.fbOnAuthStateChanged || !window.fbAuth) {
       setTimeout(startFirebaseAuth, 300);
@@ -117,14 +101,13 @@ window.addEventListener('DOMContentLoaded', () => {
         firebaseAuthReady = true;
         cmSetProgress(90, 'Connected…');
       } else {
-        window.fbSignInAnonymously(window.fbAuth)
-          .catch(err => console.error("Firebase auth failed:", err));
+        window.fbSignInAnonymously(window.fbAuth).catch(err => console.error("Firebase auth failed:", err));
       }
     });
   }
   startFirebaseAuth();
 
-  /* ── 5. Viewer-mode detection ── */
+  /* 5. Viewer-mode detection */
   const params = new URLSearchParams(location.search);
   if (params.get('viewer') === '1') {
     isViewerMode = true;
@@ -132,7 +115,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const subTitle = document.getElementById('headerSubTitle');
     if (subTitle) subTitle.innerText = '📺 Viewer Mode';
 
-    /* Show landing overlay until first state arrives */
     const landing = document.getElementById('viewerLanding');
     const landingCode = document.getElementById('viewerLandingCode');
     if (landing) {
@@ -140,14 +122,10 @@ window.addEventListener('DOMContentLoaded', () => {
       const cp = params.get('code');
       if (landingCode) landingCode.innerText = cp ? `Match Code: ${cp}` : '';
     }
-
-    /* Kick off the 3D viewer if available */
-    setTimeout(() => {
-      if (typeof vppStart === 'function') vppStart();
-    }, 400);
+    setTimeout(() => { if (typeof vppStart === 'function') vppStart(); }, 400);
   }
 
-  /* ── 6. Restore saved state from localStorage ── */
+  /* 6. Restore saved state from localStorage */
   const s = localStorage.getItem('CricMax_Data');
   if (s) {
     try {
@@ -165,15 +143,8 @@ window.addEventListener('DOMContentLoaded', () => {
       window.match = match;
       matchCode = p.matchCode || (p.match && p.match.shareCode) || '';
 
-      /* Ensure new-format fields exist */
-      if (!match.shotLog) match.shotLog = [];
-      if (!match.innings1PartnerRuns) match.innings1PartnerRuns = [];
-      if (!match.innings1Fow) match.innings1Fow = [];
-      if (!match.innings1SectorRuns) match.innings1SectorRuns = [0,0,0,0,0,0,0,0];
-      if (!match.innings2SectorRuns) match.innings2SectorRuns = [0,0,0,0,0,0,0,0];
-      if (typeof match._currentOverRuns !== 'number') match._currentOverRuns = 0;
-      if (typeof match._lastOverRuns !== 'number') match._lastOverRuns = 0;
-      if (!Array.isArray(match.oversTimeline)) match.oversTimeline = [];
+      /* ⚡ Normalize — self-heal missing fields */
+      if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
       updateTournamentProfileCard();
       renderPastMatchesList();
@@ -189,39 +160,47 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /* ── 7. Theme restore ── */
-  try {
-    if (localStorage.getItem('CricMax_Theme') === 'light') {
-      document.body.classList.add('light-mode');
-    }
-  } catch (e) {}
+  /* 7. Theme restore */
+  try { if (localStorage.getItem('CricMax_Theme') === 'light') document.body.classList.add('light-mode'); } catch (e) {}
 
-  /* ── 8. Broadcast channel + Firebase subscription ── */
+  /* 8. Broadcast + Firebase subscription */
   try { setupBroadcast(); } catch (e) { console.warn('[CricMax] setupBroadcast:', e); }
 
-  /* ── 9. UI summary + initial pane state ── */
+  /* 9. UI summary */
   try { syncSettingsUI(); } catch (e) {}
   try { updateSettingsSummary(); } catch (e) {}
   try { updateBottomNavActive('home'); } catch (e) {}
   try { updateLiveShareBadge(); } catch (e) {}
   try { injectClearDataPanel(); } catch (e) {}
 
-  /* ── 10. Settings dropdown upgrade (segmented → select) ── */
+  /* 10. Settings dropdown upgrade */
   setTimeout(upgradeSettingsDropdowns, 300);
 
-  /* ── 11. Dev-mode seeder (?dev=1) ── */
+  /* 11. Attach wagon wheel listener (CRITICAL — was missing) */
+  setTimeout(function () {
+    try {
+      if (typeof attachWagonWheelListener === 'function') {
+        attachWagonWheelListener();
+        console.log('[CricMax] 🕸️ Wagon wheel listener attached');
+      } else {
+        console.warn('[CricMax] attachWagonWheelListener not defined');
+      }
+    } catch (e) {
+      console.error('[CricMax] Wagon wheel attach failed:', e);
+    }
+  }, 500);
+
+  /* 12. Dev-mode seeder */
   if (params.get('dev') === '1' && !isViewerMode) {
     setTimeout(() => {
-      if (!match.isActive && confirm('🌱 Load demo match data? (5 overs of random play)')) {
-        seedDemoMatch();
-      }
+      if (!match.isActive && confirm('🌱 Load demo match data? (5 overs of random play)')) seedDemoMatch();
     }, 900);
   }
 
-  /* ── 12. Loading screen — finish ── */
-  setTimeout(cmAdvanceStage, 200);   /* → 45%  Warming up    */
-  setTimeout(cmAdvanceStage, 400);   /* → 65%  Syncing       */
-  setTimeout(cmAdvanceStage, 600);   /* → 85%  Restoring     */
+  /* 13. Loading screen — finish */
+  setTimeout(cmAdvanceStage, 200);
+  setTimeout(cmAdvanceStage, 400);
+  setTimeout(cmAdvanceStage, 600);
   setTimeout(function () { cmSetProgress(95, 'Almost there…'); }, 750);
   setTimeout(cmHideLoader, 900);
 
@@ -231,12 +210,8 @@ window.addEventListener('DOMContentLoaded', () => {
    CLEANUP ON UNLOAD
    ═══════════════════════════════════════════════════════════ */
 window.addEventListener('beforeunload', () => {
-  if (viewerUnsubscribe) {
-    try { viewerUnsubscribe(); } catch (e) {}
-  }
-  if (viewerCountUnsub) {
-    try { viewerCountUnsub(); } catch (e) {}
-  }
+  if (viewerUnsubscribe) { try { viewerUnsubscribe(); } catch (e) {} }
+  if (viewerCountUnsub)  { try { viewerCountUnsub();  } catch (e) {} }
   if (viewerPresenceDocRef && window.fbDeleteDoc) {
     try { window.fbDeleteDoc(viewerPresenceDocRef); } catch (e) {}
   }
@@ -244,23 +219,14 @@ window.addEventListener('beforeunload', () => {
 
 /* ═══════════════════════════════════════════════════════════
    KEYBOARD SHORTCUTS
-   ═══════════════════════════════════════════════════════════
-   Numeric keys: 0,1,2,3,4,6 → score that many runs
-   W            → open wicket modal
-   U            → undo last ball
-   S            → open settings modal
-   R            → open Retire Batsman modal
-   Esc          → close topmost modal
    ═══════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
-  /* Ignore if typing in an input/textarea/select */
   const tag = (e.target && e.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
   if (e.target && e.target.isContentEditable) return;
 
   const k = e.key;
 
-  /* Escape closes any open modal */
   if (k === 'Escape') {
     ['wicketTypeModal','nextBatterModal','bowlerModal','retireModal',
      'settingsModal','extrasModal','moreOptionsModal','tournConfigModal',
@@ -274,19 +240,16 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  if (!match.isActive || isViewerMode) return;
+  if (!match || !match.isActive || isViewerMode) return;
 
   if (['0','1','2','3','4','6'].includes(k)) {
     const r = parseInt(k, 10);
     if (r === 0) recordBall(0);
     else promptWagonWheel(r);
-  } else if (k === 'w' || k === 'W') {
-    promptWicketTypeModal();
-  } else if (k === 'u' || k === 'U') {
-    undoDelivery();
-  } else if (k === 's' || k === 'S') {
-    openSettingsModal();
-  } else if (k === 'r' || k === 'R') {
+  } else if (k === 'w' || k === 'W') promptWicketTypeModal();
+  else if (k === 'u' || k === 'U') undoDelivery();
+  else if (k === 's' || k === 'S') openSettingsModal();
+  else if (k === 'r' || k === 'R') {
     if (typeof openRetireModal === 'function') openRetireModal();
   }
 });
@@ -297,32 +260,22 @@ document.addEventListener('keydown', e => {
 document.addEventListener('input', function (e) {
   const el = e.target;
   if (!el) return;
-
-  /* Accept INPUT and TEXTAREA elements */
   const tag = (el.tagName || '').toUpperCase();
   if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
 
-  /* Skip inputs that must not be capitalized */
   const type = String(el.type || 'text').toLowerCase();
-  const SKIP_TYPES = [
-    'password','email','number','checkbox','radio','file','color','range',
-    'date','time','datetime-local','month','week','hidden',
-    'submit','reset','button','image'
-  ];
+  const SKIP_TYPES = ['password','email','number','checkbox','radio','file','color','range',
+    'date','time','datetime-local','month','week','hidden','submit','reset','button','image'];
   if (SKIP_TYPES.indexOf(type) >= 0) return;
 
   const val = el.value;
   if (!val) return;
 
   const newVal = autoCapitalize(val);
-  if (newVal === val) return;   /* nothing to change → do not touch selection */
+  if (newVal === val) return;
 
-  /* Preserve caret position */
   let start = null, end = null;
-  try {
-    start = el.selectionStart;
-    end   = el.selectionEnd;
-  } catch (err) { /* some input types block selection access */ }
+  try { start = el.selectionStart; end = el.selectionEnd; } catch (err) {}
 
   el.value = newVal;
 
@@ -332,7 +285,7 @@ document.addEventListener('input', function (e) {
 }, true);
 
 /* ═══════════════════════════════════════════════════════════
-   3D VIEWER → MAIN APP  NAVIGATION BUS
+   3D VIEWER → MAIN APP NAVIGATION BUS
    ═══════════════════════════════════════════════════════════ */
 window.addEventListener('message', function (ev) {
   if (!ev.data || ev.data.type !== 'CM_NAV_TO') return;
@@ -350,14 +303,17 @@ window.addEventListener('message', function (ev) {
 });
 
 /* ═══════════════════════════════════════════════════════════
-   VISIBILITY RESUME HANDLER
+   VISIBILITY RESUME HANDLER — SAFE VERSION
    ═══════════════════════════════════════════════════════════ */
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
-  if (!match.isActive || isViewerMode) return;
+  if (!match || !match.isActive || isViewerMode) return;
 
-  /* If the last over ended but no modal is open, prompt for bowler */
-  const lastBall = match.currentOverBalls.length === 0
+  /* ⚡ Normalize first — self-heal */
+  if (typeof normalizeMatch === 'function') normalizeMatch(match);
+
+  const overBalls = Array.isArray(match.currentOverBalls) ? match.currentOverBalls : [];
+  const lastBall = overBalls.length === 0
                 && match.legalBalls > 0
                 && match.legalBalls % 6 === 0;
 
@@ -373,3 +329,40 @@ document.addEventListener('visibilitychange', () => {
     }
   }
 });
+
+/* ═══════════════════════════════════════════════════════════
+   BACKUP COMMENTARY RENDERER (safety net)
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  var lastLen = -1, lastFirst = '';
+  function safeRender() {
+    if (typeof match === 'undefined' || !match) return;
+    var c = document.getElementById('commentaryContainer');
+    if (!c) return;
+    var arr = Array.isArray(match.commentary) ? match.commentary : [];
+    var len = arr.length;
+    var first = (arr[0] && arr[0].desc) ? String(arr[0].desc) : '';
+    if (len === lastLen && first === lastFirst) return;
+    lastLen = len; lastFirst = first;
+    if (len === 0) { c.innerHTML = '<div class="empty-comm">No deliveries yet.</div>'; return; }
+    var html = '';
+    for (var i = 0; i < Math.min(40, arr.length); i++) {
+      var comm = arr[i];
+      if (!comm) continue;
+      if (comm.type === 'summary') {
+        html += '<div class="comm-item comm-summary' + (i === 0 ? ' newest' : '') + '">' +
+                  '<span class="comm-summary-icon">📊</span>' +
+                  '<div class="comm-summary-text">' + comm.desc + '</div></div>';
+        continue;
+      }
+      var tc = comm.type === 'w' ? 'w' : comm.type === 'four' ? 'four' : comm.type === 'six' ? 'six' : '';
+      html += '<div class="comm-item' + (i === 0 ? ' newest' : '') + '">' +
+                '<div class="comm-ball ' + tc + '">' + comm.ball + '</div>' +
+                '<div class="comm-body"><div class="comm-over">Over ' + comm.ball + '</div>' +
+                '<div class="comm-text">' + comm.desc + '</div></div></div>';
+    }
+    c.innerHTML = html;
+  }
+  setInterval(safeRender, 500);
+  console.log('[CricMax] 📝 Backup commentary renderer armed');
+})();
