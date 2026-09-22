@@ -232,20 +232,37 @@ document.addEventListener('keydown', e => {
    ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('input', function (e) {
   const el = e.target;
-  if (!el || !el.matches) return;
-  if (!el.matches('input[type="text"], input:not([type])')) return;
-  /* Skip password and email fields */
-  const type = (el.type || 'text').toLowerCase();
-  if (type === 'password' || type === 'email' || type === 'number') return;
+  if (!el) return;
+
+  /* Accept INPUT and TEXTAREA elements */
+  const tag = (el.tagName || '').toUpperCase();
+  if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
+
+  /* Skip inputs that must not be capitalized */
+  const type = String(el.type || 'text').toLowerCase();
+  const SKIP_TYPES = [
+    'password','email','number','checkbox','radio','file','color','range',
+    'date','time','datetime-local','month','week','hidden',
+    'submit','reset','button','image'
+  ];
+  if (SKIP_TYPES.indexOf(type) >= 0) return;
 
   const val = el.value;
   if (!val) return;
 
   const newVal = autoCapitalize(val);
-  if (newVal !== val) {
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    el.value = newVal;
+  if (newVal === val) return;   // nothing to change → do not touch selection
+
+  /* Preserve caret position */
+  let start = null, end = null;
+  try {
+    start = el.selectionStart;
+    end   = el.selectionEnd;
+  } catch (err) { /* some input types block selection access */ }
+
+  el.value = newVal;
+
+  if (start !== null && end !== null && typeof el.setSelectionRange === 'function') {
     try { el.setSelectionRange(start, end); } catch (err) {}
   }
 }, true);
