@@ -1,15 +1,13 @@
 /* ============================================================
    scoring.js — Scoring engine, wickets, bowler change, retire
-   ✅ Self-contained: no external helpers required
-   ✅ No duplicate functions
+   ✅ Self-contained
+   ✅ normalizeMatch() runs at top of recordBall
    ✅ No auto-deletion of pastMatchesLedger
-   ✅ Retire Batsman fully integrated (Retired Hurt + Retired Out)
    ============================================================ */
 
-/* Local undo cap — independent of state.js */
 var _SCORING_MAX_UNDO = 100;
 
-/* ─── Extras / Penalties ─────────────────────────────────── */
+/* ─── Extras / Penalties ─────────────────────────────── */
 function promptWideWithRuns() {
   if (!match.isActive || isViewerMode) return;
   document.getElementById('wideRunsModal').style.display = 'flex';
@@ -34,7 +32,7 @@ function addPenaltyRuns(teamName, runs) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   RETIRE BATSMAN — Modal UI + flow (self-contained)
+   RETIRE BATSMAN
    ═══════════════════════════════════════════════════════════ */
 function openRetireModal() {
   if (!match.isActive || isViewerMode) {
@@ -42,7 +40,6 @@ function openRetireModal() {
     return;
   }
 
-  /* Build the modal on first use */
   let modal = document.getElementById('retireModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -73,13 +70,11 @@ function openRetireModal() {
     document.body.appendChild(modal);
   }
 
-  /* Populate who-dropdown */
   const who = document.getElementById('retireWho');
   who.innerHTML = '';
   if (match.striker)    who.innerHTML += `<option value="striker">Striker: ${escapeHtml(match.striker)}</option>`;
   if (match.nonStriker) who.innerHTML += `<option value="nonStriker">Non-Striker: ${escapeHtml(match.nonStriker)}</option>`;
 
-  /* Populate replacement dropdown */
   const dd = document.getElementById('retireReplacementDD');
   dd.innerHTML = '<option value="">-- From squad --</option>';
   const squad = (savedTeams.find(t => t.name === match.teamBatting) || {}).squad || [];
@@ -106,31 +101,19 @@ function confirmRetire() {
 
   const newBatter = autoCapitalize(((txt.value || '').trim() || (dd.value || '').trim()));
 
-  if (!newBatter) {
-    showToast('Please pick or type a replacement batter');
-    return;
-  }
-  if (newBatter === match.striker || newBatter === match.nonStriker) {
-    showToast('Replacement must be different');
-    return;
-  }
+  if (!newBatter) { showToast('Please pick or type a replacement batter'); return; }
+  if (newBatter === match.striker || newBatter === match.nonStriker) { showToast('Replacement must be different'); return; }
 
   const retiringPlayer = (who === 'striker') ? match.striker : match.nonStriker;
-  if (!retiringPlayer) {
-    showToast('No batter to retire');
-    return;
-  }
+  if (!retiringPlayer) { showToast('No batter to retire'); return; }
 
-  /* Snapshot for undo */
   historyStack.push(JSON.parse(JSON.stringify(match)));
   if (historyStack.length > _SCORING_MAX_UNDO) historyStack.shift();
 
-  /* ── 1. Mark the retiring batter ── */
   if (match.batters[retiringPlayer]) {
     match.batters[retiringPlayer].status = (reason === 'Retired Out') ? 'retired out' : 'retired hurt';
   }
 
-  /* ── 2. If Retired Out, it counts as a wicket (no bowler credit) ── */
   if (reason === 'Retired Out') {
     match.wickets += 1;
     match.fow.push(`${match.runs}/${match.wickets} (${retiringPlayer} retired out)`);
@@ -139,29 +122,19 @@ function confirmRetire() {
     triggerBanner('RETIRED HURT 🤕', `${retiringPlayer}`, 'fx-milestone');
   }
 
-  /* ── 3. Register the replacement batter ── */
   if (!match.batters[newBatter]) {
-    match.batters[newBatter] = {
-      runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0,
-      fifties: 0, hundreds: 0, status: 'batting'
-    };
+    match.batters[newBatter] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: 'batting' };
     match.playerTeamMap[newBatter] = match.teamBattingAbbr;
     autoAddPlayerToTeam(newBatter, match.teamBatting);
   } else {
     match.batters[newBatter].status = 'batting';
   }
 
-  /* ── 4. Swap the retiring batter out ── */
   if (who === 'striker') match.striker = newBatter;
   else                   match.nonStriker = newBatter;
 
-  /* ── 5. Reset partnership ── */
-  match.currentPartnership = {
-    runs: 0, balls: 0,
-    batters: [match.striker, match.nonStriker]
-  };
+  match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
 
-  /* ── 6. Close + commentary ── */
   closeModal('retireModal');
 
   const ov = `${Math.floor(match.legalBalls / 6)}.${match.legalBalls % 6}`;
@@ -172,7 +145,6 @@ function confirmRetire() {
     type: 'normal'
   });
 
-  /* ── 7. Persist + render ── */
   autoPersist();
   scheduleRender();
   broadcastMatchState();
@@ -419,9 +391,6 @@ function changeBowlerMidOver() {
   promptNextBowlerModal();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   RELIABLE BOWLER-CHANGE PROMPT (watchdog for over end)
-   ═══════════════════════════════════════════════════════════ */
 let _bowlerPromptToken = 0;
 function forceBowlerChangePrompt(attempt) {
   attempt = attempt || 0;
@@ -519,9 +488,13 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
 
 /* ═══════════════════════════════════════════════════════════
    RECORD BALL — the scoring engine
+   ⚡ normalizeMatch() runs first
    ═══════════════════════════════════════════════════════════ */
 function recordBall(runs = 0, extra = null, isWicket = false, region = "", distance = 0, dd = null) {
   if (!match.isActive || isViewerMode) return;
+
+  /* ⚡ Self-heal missing arrays before scoring */
+  if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
   /* Safety defaults */
   if (!match.striker)       match.striker       = 'Striker';
@@ -703,16 +676,13 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
 
   if (isRegularLegalOver || isWideCountLegalOver) {
     try {
-      /* 1. Swap striker */
       const __tmp = match.striker;
       match.striker    = match.nonStriker;
       match.nonStriker = __tmp;
 
-      /* 2. Record over */
       const overBalls = [...match.currentOverBalls];
       match.oversTimeline.push({ overNum: match.legalBalls / 6, balls: overBalls });
 
-      /* 3. Over runs */
       const overRunsThisOver = overBalls.reduce((sum, b) => {
         const m = String(b).match(/\d+/);
         return sum + (m ? parseInt(m[0], 10) : 0);
@@ -721,24 +691,17 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
       const hasWicket = overBalls.some(b => b === 'W');
       const bowlerWas = match.bowlers[match.currentBowler];
 
-      /* 4. Maiden detection */
       if (overRunsThisOver === 0 && !hasExtra && !hasWicket && bowlerWas) {
         bowlerWas.maidens = (bowlerWas.maidens || 0) + 1;
       }
 
-      /* 5. Save summary */
       match._lastOverRuns = overRunsThisOver;
-
-      /* 6. Clear counters */
       match.currentOverBalls  = [];
       match._currentOverRuns  = 0;
-
-      /* 7. Lock previous bowler */
       match.previousBowler = match.currentBowler;
 
       overEnded = true;
 
-      /* 8. Push end-of-over commentary */
       const overNumber = match.legalBalls / 6;
       const stStats = match.batters[match.striker]    || { runs: 0, balls: 0 };
       const nsStats = match.batters[match.nonStriker] || { runs: 0, balls: 0 };
@@ -770,10 +733,7 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     if (shouldSpeak) speak(desc);
   }
 
-  /* ---- Trigger bowler prompt ---- */
   if (overEnded) forceBowlerChangePrompt();
-
-  /* ---- Match / innings end ---- */
   checkMatchEnd();
 }
 
@@ -1080,7 +1040,6 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
     catches: motm.catches, sr: motm.sr, eco: motm.eco
   } : null;
 
-  /* ⚠️ NO trimming — user data must persist forever */
   pastMatchesLedger.unshift(entry);
   match.isActive = false;
 
