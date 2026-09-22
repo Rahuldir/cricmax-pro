@@ -331,6 +331,30 @@
 <script>
 (function(){
   /* ═══════════════════════════════════════════════════════════════
+     DEBUG MODE — enable with ?debug=1
+     ═══════════════════════════════════════════════════════════════ */
+  const CM_DEBUG = (new URLSearchParams(location.search).get('debug') === '1');
+  function cmlog(){ if (CM_DEBUG){ try { console.log.apply(console, ['[CricMax]'].concat([].slice.call(arguments))); } catch(e){} } }
+  window.__cmDebug = CM_DEBUG;
+
+  /* ═══════════════════════════════════════════════════════════════
+     FIREBASE ARRAY GUARD
+     Firebase RTDB returns arrays as objects with numeric-string
+     keys if any index is missing. This converts back to real array.
+     ═══════════════════════════════════════════════════════════════ */
+  function toArray(objOrArr){
+    if (Array.isArray(objOrArr)) return objOrArr;
+    if (objOrArr && typeof objOrArr === 'object'){
+      return Object.keys(objOrArr)
+        .sort(function(a,b){ return parseInt(a,10) - parseInt(b,10); })
+        .map(function(k){ return objOrArr[k]; })
+        .filter(function(v){ return v != null; });
+    }
+    return [];
+  }
+  window.__cmToArray = toArray;
+
+  /* ═══════════════════════════════════════════════════════════════
      DEVICE TIER
      ═══════════════════════════════════════════════════════════════ */
   const CM_DEVICE = (function(){
@@ -345,7 +369,7 @@
     return { isMobile, isIOS, isAndroid, mem, cores, tier: isLowEnd ? 0 : (isMidEnd ? 1 : 2) };
   })();
   window.__cmDevice = CM_DEVICE;
-  console.log('[CricMax] Device tier:', CM_DEVICE);
+  cmlog('Device tier:', CM_DEVICE);
 
   const __cmLoaderBar = document.getElementById('cm-loader-bar');
   window.__cmProgress = function(pct){
@@ -517,7 +541,7 @@
     }
     const rW = document.getElementById('tvRecent');
     if (rW){
-      const tags = Array.isArray(m.currentOverBalls) ? m.currentOverBalls : (Array.isArray(m.recentBalls) ? m.recentBalls.slice(-6) : []);
+      const tags = toArray(m.currentOverBalls).length ? toArray(m.currentOverBalls) : toArray(m.recentBalls).slice(-6);
       rW.innerHTML = tags.map(t => {
         const s = String(t);
         let c = 'tv-ball';
@@ -731,9 +755,8 @@
   function applyBowlerIdentity(name){
     if (name === currentBowlerName) return false;
     currentBowlerName = name;
-    /* Vary jersey brightness + skin tint per bowler so the model visibly changes */
     const h = bowlerHash(name);
-    const brightness = 0.78 + ((h % 44) / 100);       /* 0.78–1.22 */
+    const brightness = 0.78 + ((h % 44) / 100);
     const baseColor = new THREE.Color(0xdc2626);
     baseColor.multiplyScalar(brightness);
     bowler.jerseyMat.color.copy(baseColor);
@@ -741,7 +764,6 @@
     const skinIdx = h % SKIN.length;
     bowler.skinMat.color.setHex(SKIN[skinIdx]);
 
-    /* Flash the bowler name in the score overlay */
     const el = document.getElementById('bbBowler');
     if (el){
       el.classList.add('bowler-flash');
@@ -1254,13 +1276,18 @@
   let prevLegalBalls = 0;
 
   /* ═══════════════════════════════════════════════════════════════
-     ANGLE RESOLUTION (shared by playBall + wagon replay)
+     ANGLE RESOLUTION
      ═══════════════════════════════════════════════════════════════ */
   function resolveShotAngle(shot){
+    if (!shot) return Math.random() * Math.PI * 2;
+
+    /* 1. Explicit angle from host */
     const numAngle = (typeof shot.angle === 'number') ? shot.angle : parseFloat(shot.angle);
     if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined){
       return numAngle;
     }
+
+    /* 2. Derive from zoneIndex */
     const zoneNames = ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"];
     let zoneIdx = -1;
     if (typeof shot.zoneIndex === 'number' && shot.zoneIndex >= 0 && shot.zoneIndex < 8){
@@ -1269,7 +1296,11 @@
       zoneIdx = zoneNames.findIndex(z => z.toLowerCase() === shot.zone.toLowerCase());
     }
     if (zoneIdx >= 0) return (zoneIdx * Math.PI / 4) + (Math.PI / 8);
+
+    /* 3. Deterministic from ballRandom */
     if (typeof shot.ballRandom === 'number') return shot.ballRandom * Math.PI * 2;
+
+    /* 4. Fallback */
     return Math.random() * Math.PI * 2;
   }
 
@@ -1290,7 +1321,7 @@
 
   const overShots = [];
   const MAX_SHOTS_PER_OVER = 6;
-  let lastOverNum = 0;
+  let lastOverNum = -1;
   const ANIM_DURATION = 900;
   const TRAIL_HOLD    = 1400;
 
@@ -1313,6 +1344,7 @@
     __cmWagonDirty = true;
     __cmWagonForceUntil = now + 3000;
     if (!stadiumViewActive) drawWagonWheel();
+    cmlog('recordShotForWagon → overShots:', overShots.length);
   }
 
   function clearOverShots(){
@@ -1325,20 +1357,40 @@
     if (!m) return;
     const balls = m.legalBalls || 0;
     const overNum = Math.floor(balls / 6);
-    if (overNum > lastOverNum && overShots.length > 0){ clearOverShots(); }
-    lastOverNum = overNum;
+    if (overNum > lastOverNum){
+      const shots = toArray(m.shotLog);
+      const newOverShots = shots.filter(function(s){
+        return (s.over || 1) === (overNum + 1);
+      });
+      if (newOverShots.length > 0){
+        lastOverNum = overNum;
+        replayCurrentOver(shots);
+      } else if (overShots.length > 0){
+        clearOverShots();
+        lastOverNum = overNum;
+      } else {
+        lastOverNum = overNum;
+      }
+    } else {
+      lastOverNum = overNum;
+    }
   }
 
   /* Rebuild the wagon from the shotLog's current over */
-  function replayCurrentOver(shots){
-    if (!Array.isArray(shots) || shots.length === 0) return;
+  function replayCurrentOver(rawShots){
+    const shots = toArray(rawShots);
+    if (shots.length === 0) {
+      cmlog('replayCurrentOver: no shots');
+      return;
+    }
+
     overShots.length = 0;
 
-    const last = shots[shots.length - 1];
+    const last    = shots[shots.length - 1];
     const lastOver = last.over || 1;
     const lastInns = last.inns || 1;
 
-    /* Collect shots belonging to the same innings + same over */
+    /* Collect shots from the same innings + same over */
     const currentOverShots = [];
     for (let i = shots.length - 1; i >= 0; i--){
       const s = shots[i];
@@ -1348,13 +1400,12 @@
     }
 
     const now = performance.now();
-    currentOverShots.forEach((s, i) => {
-      /* Stagger older shots so they animate in sequentially, newest at t=now */
+    currentOverShots.forEach(function(s, i){
       const stagger = (currentOverShots.length - 1 - i) * 90;
       overShots.push({
-        angle: resolveShotAngle(s),
-        runs: s.runs || 0,
-        isWicket: !!(s.isWicket || s.isOut),
+        angle:     resolveShotAngle(s),
+        runs:      s.runs || 0,
+        isWicket:  !!(s.isWicket || s.isOut),
         startTime: now - stagger
       });
     });
@@ -1364,9 +1415,11 @@
     __cmWagonDirty = true;
     __cmWagonForceUntil = now + 5000;
     if (!stadiumViewActive) drawWagonWheel();
+
+    cmlog('replayCurrentOver → overShots rebuilt:', overShots.length, 'from', currentOverShots.length, 'current-over shots');
   }
 
-  /* Static field cache (blit every frame) */
+  /* Static field cache */
   let __cmFieldCache = null;
   function buildFieldCache(){
     if (!wagonCanvas) return null;
@@ -1505,9 +1558,9 @@
     const cache = getFieldCache();
     if (cache) wagonCtx.drawImage(cache, 0, 0);
 
-    /* ── Draw directional shots first (non-wicket) ── */
+    /* ── Directional shots (runs > 0) ── */
     overShots.forEach((shot) => {
-      if (shot.isWicket) return;   /* wickets handled separately below */
+      if (shot.isWicket) return;
 
       const age = now - shot.startTime;
       const rawProgress = Math.min(1, age / ANIM_DURATION);
@@ -1534,7 +1587,7 @@
                  : shot.runs > 0  ? 'rgba(0,230,118,0.85)'
                  : 'rgba(148,163,184,0.5)';
 
-      /* For dot balls, draw just a tiny center dot (no line) */
+      /* Dot ball → small centre dot */
       if (shot.runs === 0){
         const dotAlpha = age < TRAIL_HOLD ? 1 : Math.max(0, 1 - (age - TRAIL_HOLD) / 1200);
         if (dotAlpha > 0.05){
@@ -1551,13 +1604,15 @@
         return;
       }
 
-      /* Directional line for runs 1-6 */
+      /* Directional line */
       const grad = wagonCtx.createLinearGradient(cx, cy, sx, sy);
       grad.addColorStop(0.00, col + '05');
       grad.addColorStop(0.25, col + 'cc');
       grad.addColorStop(0.70, col + 'ff');
       grad.addColorStop(1.00, col + 'ff');
 
+      /* ⚡ Lines stay at full alpha once drawn — only the dot fades */
+      wagonCtx.globalAlpha = 0.92;
       wagonCtx.strokeStyle = grad;
       wagonCtx.lineWidth = shot.runs >= 6 ? 6
                          : shot.runs >= 4 ? 5
@@ -1569,6 +1624,7 @@
       wagonCtx.moveTo(cx, cy);
       wagonCtx.lineTo(sx, sy);
       wagonCtx.stroke();
+      wagonCtx.globalAlpha = 1;
 
       const ballAlpha = age < TRAIL_HOLD ? 1 : Math.max(0, 1 - (age - TRAIL_HOLD) / 1200);
       if (ballAlpha > 0.05){
@@ -1585,13 +1641,13 @@
         wagonCtx.globalAlpha = 1;
       }
 
-      if (progress > 0.6 && ballAlpha > 0.1){
+      if (progress > 0.6){
         const labelRadius = R * len + 26;
         const lx = cx + Math.sin(shot.angle) * labelRadius;
         const ly = cy - Math.cos(shot.angle) * labelRadius;
         const label = String(shot.runs);
 
-        wagonCtx.globalAlpha = ballAlpha;
+        wagonCtx.globalAlpha = 0.95;
         wagonCtx.font = 'bold 20px sans-serif';
         wagonCtx.textAlign = 'center';
         wagonCtx.textBaseline = 'middle';
@@ -1605,39 +1661,27 @@
       wagonCtx.shadowBlur = 0;
     });
 
-    /* ── Draw wickets as compact red badges (NO directional line) ──
-       Wickets don't have a direction, so they're shown as small
-       "W" markers arranged in an arc around the top of the pitch
-       so multiple wickets in an over are all visible. */
+    /* ── Wicket badges (no direction) ── */
     const wicketShots = overShots.filter(s => s.isWicket);
     const wicketCount = wicketShots.length;
     wicketShots.forEach((shot, idx) => {
-      const age = now - shot.startTime;
-      const ballAlpha = age < TRAIL_HOLD ? 1 : Math.max(0, 1 - (age - TRAIL_HOLD) / 1200);
-      if (ballAlpha <= 0.05) return;
-
-      /* Arrange wickets in a small semicircle near the batsman's end
-         (offset up from center) so they never overlap each other */
       const spread = 26;
       const offsetBase = (wicketCount > 1) ? -((wicketCount - 1) * spread) / 2 : 0;
       const wx = cx + offsetBase + idx * spread;
       const wy = cy - R * 0.18;
 
-      wagonCtx.globalAlpha = ballAlpha;
+      wagonCtx.globalAlpha = 0.95;
       wagonCtx.shadowColor = '#ef4444';
       wagonCtx.shadowBlur = 18;
 
-      /* Red circle */
       wagonCtx.fillStyle = '#ef4444';
       wagonCtx.beginPath(); wagonCtx.arc(wx, wy, 11, 0, Math.PI * 2); wagonCtx.fill();
 
-      /* White ring */
       wagonCtx.shadowBlur = 0;
       wagonCtx.strokeStyle = '#ffffff';
       wagonCtx.lineWidth = 2;
       wagonCtx.beginPath(); wagonCtx.arc(wx, wy, 11, 0, Math.PI * 2); wagonCtx.stroke();
 
-      /* W label */
       wagonCtx.fillStyle = '#ffffff';
       wagonCtx.font = 'bold 14px sans-serif';
       wagonCtx.textAlign = 'center';
@@ -1695,6 +1739,13 @@
       wagonCtx.beginPath(); wagonCtx.arc(dotX, dotY, 3, 0, Math.PI * 2); wagonCtx.fill();
     }
 
+    /* Debug overlay */
+    if (CM_DEBUG){
+      wagonCtx.fillStyle = '#ff6d00';
+      wagonCtx.font = 'bold 12px monospace';
+      wagonCtx.fillText('shots:' + overShots.length, 20, 60);
+    }
+
     __cmWagonDirty = false;
   }
 
@@ -1720,7 +1771,7 @@
   let anim = null;
   let lastShot = null;
 
-  function playBall(shot){
+  function playBall(shot, skipWagonRecord){
     if (shot && shot.__isReplay) delete shot.__isReplay;
     if (anim) cancelAnimationFrame(anim);
     initAudio();
@@ -1731,7 +1782,6 @@
     ball.visible = true;
     if (window.fxTrailStop) window.fxTrailStop();
 
-    /* Ensure bowler is reset to run-up for each ball */
     resetBowlerToRunUp();
 
     strikerBat.position.set(0.35, 0, 8.8);
@@ -1764,7 +1814,9 @@
     const hitX = 0.35 + Math.sin(wwAngle) * phys.finalDist;
     const hitZ = 8.8 - Math.cos(wwAngle) * phys.finalDist;
 
-    recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
+    if (!skipWagonRecord){
+      recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
+    }
 
     let runningPending = (runs > 0 && runs < 4 && !isWkt);
     let runningStarted = false;
@@ -1883,7 +1935,6 @@
           anim = null; ball.visible = false;
           if (window.fxTrailStop) window.fxTrailStop();
           if (sTag) sTag.classList.remove('on');
-          /* Reset bowler to run-up between balls */
           resetBowlerToRunUp();
           return;
         }
@@ -1922,7 +1973,7 @@
     if (!container) return;
     container.innerHTML = '';
     let overRuns = 0;
-    const tags = Array.isArray(ballTags) ? ballTags : [];
+    const tags = toArray(ballTags);
     for (let i = 0; i < 6; i++){
       const tag = tags[i] !== undefined && tags[i] !== null ? String(tags[i]) : null;
       const dot = document.createElement('div');
@@ -1951,6 +2002,11 @@
     currentMatchState = raw;
     window.__cricmaxLastMatch = raw;
 
+    /* ⚡ Convert Firebase object-arrays → real arrays BEFORE flattening */
+    const _shotLog         = toArray(raw.shotLog);
+    const _currentOverBalls = toArray(raw.currentOverBalls);
+    const _recentBalls     = toArray(raw.recentBalls);
+
     let m = raw;
     if (raw.innings1 || raw.innings2){
       const innNum = raw.currentInnings || 1;
@@ -1962,11 +2018,15 @@
           teamBatting: bt,
           teamBattingAbbr: (raw.teamBattingAbbr || bt.substring(0,3).toUpperCase()),
           batters: inn.batters || raw.batters || {},
-          bowlers: inn.bowlers || raw.bowlers || {},
-          currentOverBalls: raw.currentOverBalls || inn.currentOverBalls || null
+          bowlers: inn.bowlers || raw.bowlers || {}
         });
       }
     }
+
+    /* Attach sanitized arrays back */
+    m.shotLog          = _shotLog;
+    m.currentOverBalls = _currentOverBalls;
+    m.recentBalls      = _recentBalls;
 
     checkOverRollover(m);
 
@@ -1994,15 +2054,14 @@
     setTxt('bbNonStriker', nst);
     setTxt('bbNonStrikerRuns', (nB.runs || 0) + '(' + (nB.balls || 0) + ')');
 
-    /* Bowler UI update + 3D identity */
     const bwName = m.currentBowler || 'Bowler';
     const bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
     setTxt('bbBowler', bwName);
     setTxt('bbBowlerFigs', Math.floor((bw.balls || 0)/6) + '.' + ((bw.balls || 0)%6) + '-' + (bw.maidens || 0) + '-' + (bw.runs || 0) + '-' + (bw.wickets || 0));
     applyBowlerIdentity(bwName);
 
-    if (Array.isArray(m.currentOverBalls)) renderOverDots(m.currentOverBalls);
-    else if (Array.isArray(m.recentBalls)) renderOverDots(m.recentBalls.slice(-6));
+    if (_currentOverBalls.length > 0) renderOverDots(_currentOverBalls);
+    else if (_recentBalls.length > 0)  renderOverDots(_recentBalls.slice(-6));
 
     if (tvModeActive) refreshTVMode();
   }
@@ -2015,26 +2074,38 @@
     if (!m || !m.teamBatting) return;
     applyMatch(m);
 
-    const shots = m.shotLog || [];
+    /* ⚡ Convert Firebase object-arrays → real arrays */
+    const shots = toArray(m.shotLog);
     const total = shots.length;
 
-    /* ── FIRST CONNECT: rebuild full-over wagon wheel then play latest ball ── */
+    cmlog('handleNewMatchData → shots:', total, '| lastSeen:', lastSeenBalls, '| overShots:', overShots.length);
+
+    /* ── FIRST CONNECT ── */
     if (lastSeenBalls < 0){
       lastSeenBalls = total;
-      /* Populate the wagon with the current over's shots */
       replayCurrentOver(shots);
-      /* Then animate only the latest shot in the 3D scene */
       if (total > 0){
         const last = shots[total - 1];
-        if (last){ window.__cricmaxInningsOver = false; playBall(last); }
+        if (last){
+          window.__cricmaxInningsOver = false;
+          playBall(last, /* skipWagonRecord */ true);
+        }
       }
       return;
     }
 
+    /* ── NEW BALLS ARRIVED ── */
     if (total > lastSeenBalls){
       lastSeenBalls = total;
       const last = shots[total - 1];
-      if (last){ window.__cricmaxInningsOver = false; playBall(last); }
+      if (last){
+        window.__cricmaxInningsOver = false;
+        playBall(last);
+      }
+    } else if (overShots.length === 0 && total > 0){
+      /* ⚡ Self-heal: wagon empty but shots exist → rebuild */
+      cmlog('Wagon empty but shots exist — rebuilding');
+      replayCurrentOver(shots);
     }
   }
 
@@ -2069,11 +2140,18 @@
     const matchCode = urlParams.get('code');
     const refPath = matchCode ? ('cricmax/matches/' + matchCode) : 'cricmax/match_current';
     const startFirebase = function(){
-      fireDB.ref(refPath).on('value', snap => { const d = snap.val(); if (d) handleNewMatchData(d); });
+      cmlog('Subscribing to Firebase:', refPath);
+      fireDB.ref(refPath).on('value', snap => {
+        const d = snap.val();
+        if (d) {
+          cmlog('Firebase snapshot received');
+          handleNewMatchData(d);
+        }
+      });
     };
     if (window.requestIdleCallback) requestIdleCallback(startFirebase, { timeout: 3000 });
     else setTimeout(startFirebase, 1200);
-  } catch(e){}
+  } catch(e){ console.warn('Firebase init error:', e); }
 
   window.addEventListener('message', function(ev){
     try {
@@ -2105,10 +2183,10 @@
       const parsed = JSON.parse(raw);
       if (parsed && parsed.match){
         applyMatch(parsed.match);
-        if (parsed.match.shotLog && parsed.match.shotLog.length){
-          lastSeenBalls = parsed.match.shotLog.length;
-          /* Populate wagon for the initial state too */
-          replayCurrentOver(parsed.match.shotLog);
+        const shots = toArray(parsed.match.shotLog);
+        if (shots.length){
+          lastSeenBalls = shots.length;
+          replayCurrentOver(shots);
         }
       }
     }
@@ -2185,7 +2263,6 @@
       RunningState.update(dt);
       if (!anim && !RunningState.active){
         if (strikerBat.batPivot) strikerBat.batPivot.rotation.x = -Math.PI / 4 + Math.max(0, Math.sin(elapsed * 4)) * 0.15;
-        /* Idle bowler sway only when not bowling */
         if (bowler && bowler.position.z < -20){
           bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
         }
