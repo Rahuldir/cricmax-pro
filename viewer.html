@@ -101,13 +101,56 @@
   .brand-divider{width:1px;height:12px;background:rgba(255,255,255,.2);margin:0 4px;}
   .brand-name{font-size:11px;font-weight:900;letter-spacing:2px;color:#f1f5f9;text-shadow:0 0 16px rgba(0,230,118,.35);}
   .brand-name b{background:linear-gradient(135deg,#009270,#00e676);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900;}
-  .top-right{display:flex;gap:6px;align-items:center;pointer-events:auto;}
+  .top-right{display:flex;gap:6px;align-items:center;pointer-events:auto;position:relative;}
 
   /* Icon buttons (30px visual, 44px effective tap target via padding) */
   .ic{width:30px;height:30px;border-radius:9px;background:rgba(8,14,28,.88);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;flex-shrink:0;touch-action:manipulation;position:relative;}
   .ic:active{transform:scale(.92);}
   .ic.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
   .ic::after{content:'';position:absolute;inset:-7px;}
+
+  /* Replay cluster — fans out below the ↻ button */
+  .replay-cluster{
+    position:absolute;top:38px;right:0;
+    display:flex;flex-direction:column;gap:5px;
+    padding:8px;
+    background:linear-gradient(160deg,rgba(15,23,42,.97),rgba(3,8,16,.98));
+    border:1px solid rgba(0,230,118,.4);
+    border-radius:12px;
+    box-shadow:0 8px 30px rgba(0,0,0,.7);
+    opacity:0;transform:translateY(-6px) scale(.95);
+    transform-origin:top right;
+    transition:opacity .2s ease, transform .2s cubic-bezier(.34,1.56,.64,1);
+    visibility:hidden;pointer-events:none;
+    z-index:100020;
+  }
+  .replay-cluster.open{
+    opacity:1;transform:translateY(0) scale(1);
+    visibility:visible;pointer-events:auto;
+  }
+  .rc-btn{
+    display:flex;align-items:center;gap:8px;
+    min-width:130px;padding:8px 11px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:8px;
+    color:#e2e8f0;font-family:inherit;
+    font-size:11px;font-weight:800;
+    cursor:pointer;text-align:left;
+    transition:background .15s, transform .1s;
+  }
+  .rc-btn:active{transform:scale(.96);}
+  .rc-btn:hover,.rc-btn:focus{background:rgba(0,230,118,.12);border-color:rgba(0,230,118,.45);}
+  .rc-i{font-size:14px;line-height:1;width:16px;text-align:center;}
+  .rc-t{flex:1;letter-spacing:.3px;}
+  .rc-close{
+    justify-content:center;
+    background:rgba(239,68,68,.15);
+    border-color:rgba(239,68,68,.4);
+    color:#fca5a5;
+    min-width:0;
+  }
+  .rc-close:hover{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.7);}
 
   /* ═══════════════════════════════════════════════════════════
      ZONE 2 — FLOATING PILLS (overlay on 3D)
@@ -137,7 +180,6 @@
   .sp-crr{font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:.5px;}
   .sp-crr b{color:#22d3ee;font-weight:900;font-family:ui-monospace,monospace;margin-left:2px;}
 
-  /* Secondary pill (conditional) */
   .pill-secondary{
     display:none;align-items:center;gap:8px;
     padding:7px 12px;
@@ -156,7 +198,6 @@
   .ps-val{font-family:ui-monospace,monospace;font-weight:900;color:#fff;}
   .ps-val b{color:#22d3ee;}
 
-  /* Tertiary pill — milestone watch */
   .pill-milestone{
     display:none;align-items:center;gap:8px;
     padding:7px 12px;
@@ -179,8 +220,6 @@
   /* ═══════════════════════════════════════════════════════════
      ZONE 3 — 3D VIEWPORT OVERLAYS
      ═══════════════════════════════════════════════════════════ */
-
-  /* Ball speed indicator — right side */
   .speed-pill{
     position:absolute;right:12px;top:100px;
     padding:6px 11px;
@@ -196,7 +235,6 @@
   }
   .speed-pill.on{opacity:1;transform:translateX(0);}
 
-  /* Milestone banner — center top */
   .milestone-banner{
     position:absolute;top:18%;left:50%;
     transform:translate(-50%,-20px) scale(.9);
@@ -216,7 +254,6 @@
   .mb-line1{font-size:clamp(18px,4vw,26px);font-weight:900;letter-spacing:1.5px;line-height:1.1;}
   .mb-line2{font-size:10px;font-weight:800;letter-spacing:1.4px;color:rgba(254,243,199,.75);text-transform:uppercase;margin-top:3px;}
 
-  /* Wicket flash — full screen red pulse */
   .wicket-flash{
     position:fixed;inset:0;
     background:radial-gradient(circle at center,rgba(239,68,68,.35) 0%,rgba(127,29,29,.65) 100%);
@@ -227,7 +264,7 @@
 
   /* ═══════════════════════════════════════════════════════════
      ZONE 4 — FLOATING OVER STRIP (pill, bottom-right)
-     Over dots only. No replay cluster (replay lives in Zone 1).
+     Over dots only. Replay cluster lives in Zone 1 (top bar).
      ═══════════════════════════════════════════════════════════ */
   .over-strip-float{
     position:absolute;
@@ -252,7 +289,6 @@
   .over-strip-float .dots{display:flex;gap:4px;}
   .over-strip-float .b{width:20px;height:20px;font-size:8.5px;}
 
-  /* Over dot circles (shared classes) */
   .dots{display:flex;gap:3px;}
   .b{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);flex-shrink:0;}
   .b.dot{background:rgba(148,163,184,.2);}
@@ -275,7 +311,6 @@
     background:linear-gradient(0deg,rgba(2,7,19,.96) 0%,rgba(2,7,19,.85) 80%,rgba(2,7,19,0) 100%);
   }
 
-  /* Zone 5 — Score strip */
   .score-strip{
     display:flex;align-items:center;height:56px;
     margin:0 8px 4px;padding:0 14px;
@@ -297,7 +332,6 @@
   .ss-bowl{text-align:right;flex-shrink:0;font-size:11px;font-weight:700;color:#22d3ee;line-height:1.25;}
   .ss-bowl > div:first-child{color:#fff;font-weight:800;font-size:12px;}
 
-  /* Zone 6 — Ticker */
   .ticker{
     display:flex;align-items:center;gap:8px;height:32px;
     margin:0 8px;padding:0 12px;
@@ -348,11 +382,9 @@
   .menu-t .i{font-size:13px;line-height:1;}
   .menu-div{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:7px 0;}
 
-  /* Cam select */
   .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
   .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
 
-  /* Speed tag (legacy, kept for compatibility) */
   .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
   .speed.on{opacity:1;}
 
@@ -365,7 +397,6 @@
   #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
   #wagonInfo.show{display:block;}
 
-  /* Banner (FOUR! SIX! etc) */
   .banner{position:absolute;top:24%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(30px,8vw,60px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .3s;pointer-events:none;text-align:center;line-height:1;}
   .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
   .banner.four{color:#22d3ee;text-shadow:0 0 30px #0891b2,0 6px 16px #000;}
@@ -373,7 +404,6 @@
   .banner.wkt{color:#ef4444;text-shadow:0 0 30px #7f1d1d,0 6px 16px #000;}
   .banner.run{color:#00e676;text-shadow:0 0 30px #009270,0 6px 16px #000;}
 
-  /* TV mode */
   #tvMode{position:fixed;inset:0;z-index:100050;background:linear-gradient(135deg,#0a0e1a 0%,#0d1424 100%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;text-align:center;}
   #tvMode.show{display:flex;}
   .tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;}
@@ -392,13 +422,9 @@
   .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
   .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
 
-  /* Bowler flash */
   #bbBowler{transition:color .3s;}
   #bbBowler.bowler-flash{color:#ffffff;text-shadow:0 0 8px #22d3ee;}
 
-  /* ═══════════════════════════════════════════════════════════
-     RESPONSIVE
-     ═══════════════════════════════════════════════════════════ */
   @media (max-width:360px){
     .brand-name{font-size:10px;letter-spacing:1.5px;}
     .live-text{font-size:9px;}
@@ -415,6 +441,7 @@
     .ticker-text{font-size:10.5px;}
     .ic{width:28px;height:28px;font-size:12px;border-radius:8px;}
     .audio-fab > .ic{width:34px;height:34px;font-size:15px;}
+    .rc-btn{min-width:110px;font-size:10.5px;padding:7px 10px;}
   }
   @media (max-width:320px){ .live-text{display:none;} }
   @media (prefers-reduced-motion: reduce){
@@ -444,9 +471,7 @@
   </div>
 </div>
 
-<!-- Iris Transition -->
 <div id="irisTransition" aria-hidden="true"></div>
-
 <div class="vignette"></div>
 <div class="wicket-flash" id="wicketFlash"></div>
 
@@ -465,8 +490,24 @@
     <div class="top-right">
       <div class="ic on" id="btn-dir" onclick="toggleDirector()" title="Director">🎬</div>
       <div class="ic" id="btn-stadium" onclick="toggleStadiumView()" title="View">🕸️</div>
-      <div class="ic" onclick="triggerReplay()" title="Replay">↻</div>
+      <div class="ic" id="btn-replay" onclick="toggleReplayCluster(event)" title="Replay">↻</div>
       <div class="ic" id="btn-menu" onclick="toggleMenu(event)" title="Menu">⋯</div>
+
+      <!-- Replay cluster — fans out below the ↻ button -->
+      <div id="replayCluster" class="replay-cluster">
+        <button class="rc-btn" onclick="doReplay('last')" title="Last ball">
+          <span class="rc-i">⚾</span><span class="rc-t">Last Ball</span>
+        </button>
+        <button class="rc-btn" onclick="doReplay('over')" title="This over">
+          <span class="rc-i">📼</span><span class="rc-t">This Over</span>
+        </button>
+        <button class="rc-btn" onclick="doReplay('boundary')" title="Last boundary">
+          <span class="rc-i">🔥</span><span class="rc-t">Boundary</span>
+        </button>
+        <button class="rc-btn rc-close" onclick="closeReplayCluster()" title="Close">
+          <span class="rc-i">✕</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -474,7 +515,6 @@
        ZONE 2 — FLOATING PILLS
        ═══════════════════════════════════════════════════════════ -->
   <div class="pill-stack">
-    <!-- Primary pill: team / score / overs / CRR -->
     <div class="stat-pill" id="statPill">
       <span class="sp-team" id="spTeam">T1</span>
       <span class="sp-score" id="spScore">0/0</span>
@@ -483,13 +523,11 @@
       <span class="sp-crr">CRR <b id="spCRR">0.00</b></span>
     </div>
 
-    <!-- Secondary pill: partnership / chase -->
     <div class="pill-secondary" id="pillSecondary">
       <span class="ps-label" id="psLabel">PARTNERSHIP</span>
       <span class="ps-val" id="psVal">0(0)</span>
     </div>
 
-    <!-- Tertiary pill: milestone watch -->
     <div class="pill-milestone" id="pillMilestone">
       <span class="pm-name" id="pmName">Batter</span>
       <span class="pm-val" id="pmVal">42*</span>
@@ -500,20 +538,15 @@
   <!-- ═══════════════════════════════════════════════════════════
        ZONE 3 — 3D VIEWPORT OVERLAYS
        ═══════════════════════════════════════════════════════════ -->
-
-  <!-- Ball speed indicator -->
   <div class="speed-pill" id="speedPill">-- km/h</div>
 
-  <!-- Milestone banner -->
   <div class="milestone-banner" id="milestoneBanner">
     <div class="mb-line1" id="mbLine1">BATTER · 50!</div>
     <div class="mb-line2" id="mbLine2">Off 32 balls</div>
   </div>
 
-  <!-- Legacy speed tag (kept for playBall compatibility) -->
   <div class="speed" id="speedTag">SPEED: --</div>
 
-  <!-- Audio FAB -->
   <div class="audio-fab">
     <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)">
       <span id="snd-ico">🏟️</span>
@@ -533,7 +566,6 @@
     </div>
   </div>
 
-  <!-- Menu panel -->
   <div id="menuPanel">
     <div class="menu-sec">
       <div class="menu-ttl">Navigate</div>
@@ -595,17 +627,15 @@
     </div>
   </div>
 
-  <!-- Wagon wheel -->
   <div id="wagonWrap">
     <canvas id="wagonWheelCanvas" width="800" height="800" style="max-width:100%;height:auto;"></canvas>
   </div>
   <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
 
-  <!-- Banner -->
   <div class="banner" id="banner">FOUR!</div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       ZONE 4 — FLOATING OVER STRIP (pill, bottom-right)
+       ZONE 4 — FLOATING OVER STRIP
        ═══════════════════════════════════════════════════════════ -->
   <div class="over-strip-float" id="overStripFloat">
     <span class="os-label">THIS OVER</span>
@@ -936,7 +966,7 @@
     const btn = document.getElementById('btn-menu');
     if (panel) panel.classList.toggle('open', menuOpen);
     if (btn) btn.classList.toggle('on', menuOpen);
-    if (menuOpen) closeAudioMenu();
+    if (menuOpen){ closeAudioMenu(); closeReplayCluster(); }
   }
   document.addEventListener('click', function(e){
     if (!menuOpen) return;
@@ -1517,6 +1547,7 @@
       const mb = document.getElementById('btn-menu');
       if (mp) mp.classList.remove('open');
       if (mb) mb.classList.remove('on');
+      closeReplayCluster();
     }
   }
   function closeAudioMenu(){
@@ -2240,8 +2271,91 @@
     if (directorOn) activeCam = 'broadcast';
   }
   function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-  function triggerReplay(){ if (lastShot){ playBall(Object.assign({}, lastShot, { __isReplay: true })); } }
   function simFeedScoringTab(){ playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 }); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     REPLAY CLUSTER
+     ═══════════════════════════════════════════════════════════════ */
+  let replayClusterOpen = false;
+  let replayPlaylist = null;
+  let replayPlaylistIndex = 0;
+
+  function toggleReplayCluster(e){
+    if (e && e.stopPropagation) e.stopPropagation();
+    replayClusterOpen = !replayClusterOpen;
+    const c = document.getElementById('replayCluster');
+    const btn = document.getElementById('btn-replay');
+    if (c) c.classList.toggle('open', replayClusterOpen);
+    if (btn) btn.classList.toggle('on', replayClusterOpen);
+    if (replayClusterOpen){
+      closeAudioMenu();
+      if (menuOpen) toggleMenu();
+    }
+  }
+
+  function closeReplayCluster(){
+    replayClusterOpen = false;
+    const c = document.getElementById('replayCluster');
+    const btn = document.getElementById('btn-replay');
+    if (c) c.classList.remove('open');
+    if (btn) btn.classList.remove('on');
+  }
+
+  document.addEventListener('click', function(e){
+    if (!replayClusterOpen) return;
+    const cluster = document.getElementById('replayCluster');
+    const btn = document.getElementById('btn-replay');
+    if (cluster && cluster.contains(e.target)) return;
+    if (btn && btn.contains(e.target)) return;
+    closeReplayCluster();
+  }, true);
+
+  function doReplay(kind){
+    closeReplayCluster();
+    const shots = currentMatchState ? toArray(currentMatchState.shotLog) : [];
+
+    if (kind === 'last'){
+      if (!lastShot){
+        if (shots.length) playBall(Object.assign({}, shots[shots.length - 1], { __isReplay: true }));
+        return;
+      }
+      playBall(Object.assign({}, lastShot, { __isReplay: true }));
+      return;
+    }
+
+    if (kind === 'over'){
+      if (!shots.length) return;
+      const balls = (currentMatchState && currentMatchState.legalBalls) || 0;
+      const ballsThisOver = balls > 0 ? ((balls - 1) % 6) + 1 : 6;
+      const recent = shots.slice(-ballsThisOver);
+      if (!recent.length) return;
+      /* Cancel any prior playlist */
+      if (replayPlaylist) clearTimeout(replayPlaylist);
+      replayCurrentOver(recent, ballsThisOver);
+      let i = 0;
+      (function next(){
+        if (i >= recent.length){ replayPlaylist = null; return; }
+        playBall(Object.assign({}, recent[i], { __isReplay: true }), true);
+        i++;
+        replayPlaylist = setTimeout(next, 2600);
+      })();
+      return;
+    }
+
+    if (kind === 'boundary'){
+      if (!shots.length) return;
+      for (let i = shots.length - 1; i >= 0; i--){
+        const r = shots[i] && shots[i].runs;
+        if (r === 4 || r === 6){
+          playBall(Object.assign({}, shots[i], { __isReplay: true }));
+          return;
+        }
+      }
+    }
+  }
+
+  /* Legacy entry point — some callers may still call triggerReplay() */
+  function triggerReplay(){ doReplay('last'); }
 
   /* ═══════════════════════════════════════════════════════════════
      BOWLER IDENTITY
@@ -2286,6 +2400,7 @@
   function playBall(shot, skipWagonRecord){
     if (!shot) return;
     if (!ball) return;
+    const isReplay = !!shot.__isReplay;
     if (shot.__isReplay) delete shot.__isReplay;
     if (anim) cancelAnimationFrame(anim);
     initAudio();
@@ -2378,13 +2493,23 @@
     const sTag = document.getElementById('speedTag');
     if (sTag){ sTag.innerText = 'SPEED: ' + speedVal; sTag.classList.add('on'); }
 
-    /* Zone 3 — speed pill */
     const speedPill = document.getElementById('speedPill');
     if (speedPill){
       speedPill.textContent = speedVal + ' km/h';
       speedPill.classList.add('on');
       clearTimeout(speedPill._hideT);
       speedPill._hideT = setTimeout(function(){ speedPill.classList.remove('on'); }, 3000);
+    }
+
+    /* Replay banner */
+    if (isReplay){
+      const b = document.getElementById('banner');
+      if (b){
+        b.className = 'banner on';
+        b.innerText = 'REPLAY';
+        b.classList.add('run');
+        setTimeout(() => b.classList.remove('on'), 1400);
+      }
     }
 
     let lastDustPuff = 0;
@@ -2514,13 +2639,15 @@
             });
             if (closest) closest.chase(hitPoint);
           }
-          if (audioMode === 'commentary'){
-            setTimeout(function(){
-              speakCommentary(buildCommentaryLine(Object.assign({}, shot, { ballSpeed: speedVal })));
-            }, 220);
-          }
-          if (audioMode === 'stadium' && (isWkt || isCatch || runs >= 4)){
-            crowdRoar(runs >= 6 ? 1.25 : 1);
+          if (!isReplay){
+            if (audioMode === 'commentary'){
+              setTimeout(function(){
+                speakCommentary(buildCommentaryLine(Object.assign({}, shot, { ballSpeed: speedVal })));
+              }, 220);
+            }
+            if (audioMode === 'stadium' && (isWkt || isCatch || runs >= 4)){
+              crowdRoar(runs >= 6 ? 1.25 : 1);
+            }
           }
         }
         if (runningPending && !runningStarted && elapsed >= T_CONTACT + RUNNING_START_DELAY){
@@ -2572,20 +2699,23 @@
     }
     anim = requestAnimationFrame(loop);
 
-    setTimeout(() => {
-      const b = document.getElementById('banner');
-      if (!b) return;
-      b.className = 'banner on';
-      if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
-      else if (isWkt){ b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
-      else if (runs===6){ b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
-      else if (runs===4){ b.innerText = 'FOUR!'; b.classList.add('four'); }
-      else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run'); }
-      setTimeout(() => b.classList.remove('on'), 2400);
-    }, 1300);
+    /* Banner (skip for replay — replay banner already shown above) */
+    if (!isReplay){
+      setTimeout(() => {
+        const b = document.getElementById('banner');
+        if (!b) return;
+        b.className = 'banner on';
+        if (isCatch){ b.innerText = 'WHAT A CATCH!'; b.classList.add('wkt'); }
+        else if (isWkt){ b.innerText = 'BOWLED!'; b.classList.add('wkt'); }
+        else if (runs===6){ b.innerText = 'MAXIMUM!'; b.classList.add('six'); }
+        else if (runs===4){ b.innerText = 'FOUR!'; b.classList.add('four'); }
+        else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run'); }
+        setTimeout(() => b.classList.remove('on'), 2400);
+      }, 1300);
+    }
 
-    /* Zone 3 — wicket flash */
-    if (isWkt || isCatch){
+    /* Zone 3 — wicket flash (skip for replay) */
+    if (!isReplay && (isWkt || isCatch)){
       const flash = document.getElementById('wicketFlash');
       if (flash){
         flash.classList.add('on');
@@ -2624,7 +2754,6 @@
     }
   }
 
-  /* Zone 2 — secondary/tertiary pill logic */
   function updateConditionalPills(m){
     const sec = document.getElementById('pillSecondary');
     const ter = document.getElementById('pillMilestone');
@@ -2632,11 +2761,9 @@
 
     const balls = m.legalBalls || 0;
     const runs = m.runs || 0;
-    const wkts = m.wickets || 0;
     const target = m.target || 0;
     const oversLimit = m.oversLimit || 0;
 
-    /* Secondary: chase info > partnership > hidden */
     let secShown = false;
     if (target > runs && oversLimit > 0){
       const ballsLeft = (oversLimit * 6) - balls;
@@ -2665,13 +2792,11 @@
     }
     if (!secShown) sec.classList.remove('show');
 
-    /* Tertiary: milestone watch (striker within 10 of 50/100) */
     const st = m.striker;
     const sB = (st && m.batters && m.batters[st]) || null;
     let terShown = false;
     if (sB){
       const r = sB.runs || 0;
-      const ballsFaced = sB.balls || 0;
       const targets = [50, 100, 150, 200];
       for (let i = 0; i < targets.length; i++){
         const t = targets[i];
@@ -2752,7 +2877,6 @@
     setTxt('bbBowlerFigs', Math.floor((bw.balls || 0)/6) + '.' + ((bw.balls || 0)%6) + '-' + (bw.maidens || 0) + '-' + (bw.runs || 0) + '-' + (bw.wickets || 0));
     applyBowlerIdentity(bwName);
 
-    /* Zone 2 — primary stat pill sync */
     const spTeam = document.getElementById('spTeam');
     const spScore = document.getElementById('spScore');
     const spOvers = document.getElementById('spOvers');
@@ -2765,10 +2889,8 @@
       spCRR.innerText = crr;
     }
 
-    /* Zone 2 — secondary + tertiary pills */
     updateConditionalPills(m);
 
-    /* Team color bar sync */
     const teamBar = document.getElementById('ssTeamBar');
     const abbrBox = document.getElementById('bbAbbr');
     if (teamBar && abbrBox){
@@ -3077,13 +3199,16 @@
   window.setStadiumView = setStadiumView;
   window.toggleTVMode = toggleTVMode;
   window.simFeedScoringTab = simFeedScoringTab;
-  window.triggerReplay = triggerReplay;
   window.toggleAudio = toggleAudio;
   window.toggleFullscreen = toggleFullscreen;
   window.toggleAudioMenu = toggleAudioMenu;
   window.setAudioMode = setAudioMode;
   window.handleNewMatchData = handleNewMatchData;
   window.playBall = playBall;
+  window.toggleReplayCluster = toggleReplayCluster;
+  window.closeReplayCluster = closeReplayCluster;
+  window.doReplay = doReplay;
+  window.triggerReplay = triggerReplay;
 
   /* ═══════════════════════════════════════════════════════════════
      BOOT SEQUENCE
