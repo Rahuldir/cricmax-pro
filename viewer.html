@@ -1648,11 +1648,14 @@
     let length = lengths[Math.floor(Math.random() * lengths.length)];
     if (isSpin) length = { type: 'good', pZ: 4.8 };
     let shotType = 'defend', peakHeight = 0.5, finalDist = 10;
-    let deg = (wwAngle * 180) / Math.PI;
-    if (deg < 0) deg += 360;
-    const isOffside = (deg > 0 && deg < 180);
-    const isStraight = (deg > 140 && deg < 220);
-    const isBehind = (deg < 40 || deg > 320);
+  let deg = (wwAngle * 180) / Math.PI;
+if (deg < 0) deg += 360;
+/* New convention:
+     0°   = leg square      90°  = straight (toward bowler)
+     180° = off square      270° = behind batsman (toward keeper) */
+const isOffside  = (deg >  90 && deg < 270);   // left half of the wheel
+const isStraight = (deg >  55 && deg < 125);   // narrow fan at the bowler
+const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
     if (isWkt && !isCatch){ shotType = 'defend'; finalDist = 2; }
     else if (runs === 6){
       peakHeight = 15; finalDist = 75 + Math.random() * 10;
@@ -1950,8 +1953,8 @@
         else targetLen = 0.14;
 
         const len = targetLen * progress;
-        const sx = cx - Math.sin(shot.angle) * R * len;
-        const sy = cy - Math.cos(shot.angle) * R * len;
+      const sx = cx + Math.cos(shot.angle) * R * len;
+      const sy = cy + Math.sin(shot.angle) * R * len;
          
         const col = shot.runs >= 6 ? '#ff8800'
                   : shot.runs >= 4 ? '#00e5ff'
@@ -1963,7 +1966,7 @@
           wagonCtx.shadowColor = 'rgba(148,163,184,0.6)';
           wagonCtx.shadowBlur = 8;
           wagonCtx.beginPath();
-          wagonCtx.arc(cx + Math.sin(shot.angle) * 26, cy - Math.cos(shot.angle) * 26, 4, 0, Math.PI * 2);
+          wagonCtx.arc(cx + Math.cos(shot.angle) * 26, cy + Math.sin(shot.angle) * 26, 4, 0, Math.PI * 2);
           wagonCtx.fill();
           wagonCtx.shadowBlur = 0;
           return;
@@ -1990,8 +1993,8 @@
 
         if (progress > 0.6){
           const labelRadius = R * len + 26;
-          const lx = cx - Math.sin(shot.angle) * labelRadius;
-          const ly = cy - Math.cos(shot.angle) * labelRadius;
+         const lx = cx + Math.cos(shot.angle) * labelRadius;
+         const ly = cy + Math.sin(shot.angle) * labelRadius;
           wagonCtx.font = 'bold 20px sans-serif';
           wagonCtx.textAlign = 'center';
           wagonCtx.textBaseline = 'middle';
@@ -2363,8 +2366,10 @@
 
     const pitchZ = phys.length.pZ;
     const pitchX = (Math.random() - 0.5) * 0.4;
-    const hitX = STRIKER_BASE_X + Math.sin(wwAngle) * phys.finalDist;
-    const hitZ = STRIKER_BASE_Z + Math.cos(wwAngle) * phys.finalDist;
+/* New convention: cos → X axis (leg = −X, off = +X),
+                  sin → Z axis (front = −Z, behind = +Z). */
+const hitX = STRIKER_BASE_X - Math.cos(wwAngle) * phys.finalDist;
+const hitZ = STRIKER_BASE_Z - Math.sin(wwAngle) * phys.finalDist;
 
     if (!skipWagonRecord && !isReplay){
       recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
