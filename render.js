@@ -3,6 +3,10 @@
                theme/sky toggles, wagon wheel, clickable names
    ✅ Self-healing: normalizeMatch() runs at every render entry
    ✅ Safe array access for remote state
+   ✅ OFF (left) / LEG (right) labels on scoring wagon wheel
+   ✅ Canvas-standard angle convention: atan2(dy, dx)
+      0 = right (leg square)   π/2 = down (straight)
+      π = left (off square)    -π/2 = up (behind batsman)
    ============================================================ */
 
 /* ═══════════════════════════════════════════════════════════
@@ -475,7 +479,7 @@ function drawFieldBase() {
   ctx.shadowBlur = 8;
 
   // OFF — left side
-  ctx.fillStyle = '#22d3e6';
+  ctx.fillStyle = '#22d3ee';
   ctx.fillText('OFF', cx - rope * 0.88, cy);
 
   // LEG — right side
@@ -483,6 +487,7 @@ function drawFieldBase() {
   ctx.fillText('LEG', cx + rope * 0.88, cy);
   ctx.restore();
 }
+
 function drawScoringWagonShot(cx, cy, lx, ly, ballX, ballY) {
   drawFieldBase();
   var cv = document.getElementById('wagonCanvas');
@@ -551,9 +556,13 @@ function attachWagonWheelListener() {
     var deg = Math.atan2(dy, dx) * (180 / Math.PI);
     if (deg < 0) deg += 360;
 
-    window._tempExactAngle = Math.atan2(dx, -dy);
+    /* ── Canvas-standard angle ──
+       0   = right  (leg square)   π/2 = down (straight / toward bowler)
+       π   = left   (off square)  -π/2 = up  (behind batsman / keeper)
+       This matches what viewer.html wagon + 3D renderer expect. */
+    window._tempExactAngle = Math.atan2(dy, dx);
 
-        var sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
+    var sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
     /* ── Sector → field position ──
        Fixed scorer's view: striker at top, facing down.
          • OFF is always on the LEFT   →  sectors 3,4,5,6
