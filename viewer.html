@@ -11,7 +11,6 @@
 <meta name="format-detection" content="telephone=no">
 <title>CricMax Pro — Match Viewer</title>
 
-<!-- Preload critical assets -->
 <link rel="dns-prefetch" href="//cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app">
 <link rel="preconnect" href="https://www.gstatic.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -28,143 +27,169 @@
   .vignette{position:fixed;inset:0;pointer-events:none;z-index:9998;background:radial-gradient(circle at center,transparent 55%,rgba(0,0,0,.5) 100%);}
   .hud{position:fixed;inset:0;pointer-events:none;z-index:9999;touch-action:manipulation;}
 
-  #cm-loader{position:fixed;inset:0;background:radial-gradient(circle at 50% 60%, #0a0f1c 0%, #020713 70%);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s ease;overflow:hidden;}
-  #cm-loader.cm-hide{opacity:0;pointer-events:none;}
-   /* ═══════════════════════════════════════════════════════════
-     IRIS LOADER — progress ring with cricket icon
+  /* ═══════════════════════════════════════════════════════════
+     IRIS LOADER
      ═══════════════════════════════════════════════════════════ */
   #cm-loader{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, #0a1418 0%, #020713 75%);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s ease;overflow:hidden;}
   #cm-loader.cm-hide{opacity:0;pointer-events:none;}
-
-  .cm-loader-iris{
-    position:relative;
-    width:min(64vw,240px);
-    height:min(64vw,240px);
-    display:flex;align-items:center;justify-content:center;
-    margin-bottom:28px;
-  }
-
-  /* Pulsing glow behind the ring */
-  .cm-loader-iris::before{
-    content:'';position:absolute;inset:-32px;
-    border-radius:50%;
-    background:radial-gradient(circle, rgba(0,230,118,.18) 0%, transparent 65%);
-    animation:irisPulse 2.4s ease-in-out infinite;
-    pointer-events:none;
-  }
-  @keyframes irisPulse{
-    0%,100%{transform:scale(.85);opacity:.5;}
-    50%{transform:scale(1.05);opacity:1;}
-  }
-
-  .cm-iris-svg{
-    position:absolute;inset:0;
-    width:100%;height:100%;
-    transform:rotate(-90deg);
-    overflow:visible;
-  }
-  .cm-iris-track{
-    fill:none;
-    stroke:rgba(0,230,118,.12);
-    stroke-width:3;
-  }
-  .cm-iris-fill{
-    fill:none;
-    stroke:#00e676;
-    stroke-width:3;
-    stroke-linecap:round;
-    stroke-dasharray:540;
-    stroke-dashoffset:540;
-    transition:stroke-dashoffset .35s ease-out;
-    filter:drop-shadow(0 0 10px rgba(0,230,118,.8));
-  }
-
-  .cm-loader-core{
-    position:relative;
-    text-align:center;
-    display:flex;flex-direction:column;align-items:center;gap:6px;
-    z-index:1;
-  }
-  .cm-loader-icon{
-    font-size:clamp(34px,9vw,44px);line-height:1;
-    display:inline-block;
-    animation:batBob 1.6s ease-in-out infinite;
-    filter:drop-shadow(0 0 16px rgba(0,230,118,.55));
-  }
-  @keyframes batBob{
-    0%,100%{transform:translateY(0) rotate(-8deg);}
-    50%{transform:translateY(-6px) rotate(8deg);}
-  }
-  .cm-loader-title{
-    font-size:clamp(12px,3.4vw,14px);
-    font-weight:900;
-    letter-spacing:3px;
-    color:#f1f5f9;
-    text-shadow:0 0 20px rgba(0,230,118,.3);
-    white-space:nowrap;
-  }
-  .cm-loader-title span{
-    background:linear-gradient(135deg,#009270,#00e676);
-    -webkit-background-clip:text;background-clip:text;
-    -webkit-text-fill-color:transparent;
-  }
-
-  .cm-loader-status{
-    display:flex;flex-direction:column;align-items:center;gap:8px;
-    width:min(80vw,240px);
-  }
-  .cm-loader-sub{
-    font-size:11px;font-weight:800;letter-spacing:1.5px;
-    color:#64748b;text-transform:uppercase;text-align:center;
-    min-height:14px;
-  }
-
+  .cm-loader-iris{position:relative;width:min(64vw,240px);height:min(64vw,240px);display:flex;align-items:center;justify-content:center;margin-bottom:28px;}
+  .cm-loader-iris::before{content:'';position:absolute;inset:-32px;border-radius:50%;background:radial-gradient(circle, rgba(0,230,118,.18) 0%, transparent 65%);animation:irisPulse 2.4s ease-in-out infinite;pointer-events:none;}
+  @keyframes irisPulse{0%,100%{transform:scale(.85);opacity:.5;}50%{transform:scale(1.05);opacity:1;}}
+  .cm-iris-svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible;}
+  .cm-iris-track{fill:none;stroke:rgba(0,230,118,.12);stroke-width:3;}
+  .cm-iris-fill{fill:none;stroke:#00e676;stroke-width:3;stroke-linecap:round;stroke-dasharray:540;stroke-dashoffset:540;transition:stroke-dashoffset .35s ease-out;filter:drop-shadow(0 0 10px rgba(0,230,118,.8));}
+  .cm-loader-core{position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:1;}
+  .cm-loader-icon{font-size:clamp(34px,9vw,44px);line-height:1;display:inline-block;animation:batBob 1.6s ease-in-out infinite;filter:drop-shadow(0 0 16px rgba(0,230,118,.55));}
+  @keyframes batBob{0%,100%{transform:translateY(0) rotate(-8deg);}50%{transform:translateY(-6px) rotate(8deg);}}
+  .cm-loader-title{font-size:clamp(12px,3.4vw,14px);font-weight:900;letter-spacing:3px;color:#f1f5f9;text-shadow:0 0 20px rgba(0,230,118,.3);white-space:nowrap;}
+  .cm-loader-title span{background:linear-gradient(135deg,#009270,#00e676);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .cm-loader-status{display:flex;flex-direction:column;align-items:center;gap:8px;width:min(80vw,240px);}
+  .cm-loader-sub{font-size:11px;font-weight:800;letter-spacing:1.5px;color:#64748b;text-transform:uppercase;text-align:center;min-height:14px;}
   @media (prefers-reduced-motion: reduce){
     .cm-loader-iris::before{animation:none;opacity:.7;}
     .cm-loader-icon{animation:none;}
   }
 
   /* ═══════════════════════════════════════════════════════════
-     IRIS TRANSITION — stadium ↔ wagon view switch
+     IRIS TRANSITION
      ═══════════════════════════════════════════════════════════ */
-  #irisTransition{
-    position:fixed;inset:0;
-    z-index:100060;
-    background:radial-gradient(circle at 50% 50%, #00e676 0%, #009270 60%, #005f4a 100%);
-    clip-path:circle(0% at 50% 50%);
-    opacity:0;
-    pointer-events:none;
-    will-change:clip-path, opacity;
-  }
-  #irisTransition.opening{
-    opacity:1;
-    pointer-events:auto;
-    transition:clip-path 340ms cubic-bezier(.4, 0, .2, 1);
-    clip-path:circle(160% at 50% 50%);
-  }
-  #irisTransition.closing{
-    opacity:0;
-    transition:opacity 220ms ease-out;
-    clip-path:circle(160% at 50% 50%);
-  }
+  #irisTransition{position:fixed;inset:0;z-index:100060;background:radial-gradient(circle at 50% 50%, #00e676 0%, #009270 60%, #005f4a 100%);clip-path:circle(0% at 50% 50%);opacity:0;pointer-events:none;will-change:clip-path, opacity;}
+  #irisTransition.opening{opacity:1;pointer-events:auto;transition:clip-path 340ms cubic-bezier(.4, 0, .2, 1);clip-path:circle(160% at 50% 50%);}
+  #irisTransition.closing{opacity:0;transition:opacity 220ms ease-out;clip-path:circle(160% at 50% 50%);}
 
-  .top-bar{position:absolute;top:6px;left:6px;right:6px;display:flex;justify-content:space-between;align-items:center;gap:4px;pointer-events:none;}
-  .top-left{display:flex;gap:4px;align-items:center;pointer-events:auto;}
-  .top-center{display:flex;justify-content:center;align-items:center;pointer-events:auto;flex:1;min-width:0;}
-  .top-right{display:flex;gap:3px;align-items:center;pointer-events:auto;}
+  /* ═══════════════════════════════════════════════════════════
+     HUD REDESIGN — Top bar, stat pill, floating over-dots,
+     unified score strip, fixed ticker
+     ═══════════════════════════════════════════════════════════ */
 
-  .live{background:#ef4444;color:#fff;padding:4px 8px;border-radius:14px;font-size:9px;font-weight:900;letter-spacing:.8px;display:inline-flex;align-items:center;gap:4px;box-shadow:0 0 10px rgba(239,68,68,.7);white-space:nowrap;}
-  .live::before{content:'';width:5px;height:5px;background:#fff;border-radius:50%;animation:blink 1s infinite alternate;}
-  @keyframes blink{0%{opacity:.3;}100%{opacity:1;}}
+  /* Top bar (48px) — brand left, actions right */
+  .top-bar{
+    position:absolute;top:0;left:0;right:0;height:48px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 12px;gap:8px;
+    padding-top:env(safe-area-inset-top,0);
+    background:linear-gradient(180deg,rgba(2,7,19,.85) 0%,rgba(2,7,19,0) 100%);
+    pointer-events:none;z-index:100010;
+  }
+  .top-brand{
+    display:flex;align-items:center;gap:8px;pointer-events:auto;font-family:inherit;
+  }
+  .live-dot{
+    width:7px;height:7px;border-radius:50%;background:#ef4444;
+    box-shadow:0 0 10px rgba(239,68,68,.9);
+    animation:livePulse 1.2s ease-in-out infinite;flex-shrink:0;
+  }
+  @keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.55;transform:scale(.85);}}
+  .live-text{font-size:10px;font-weight:900;letter-spacing:1.6px;color:#ef4444;text-transform:uppercase;}
+  .brand-divider{width:1px;height:12px;background:rgba(255,255,255,.2);margin:0 4px;}
+  .brand-name{font-size:11px;font-weight:900;letter-spacing:2px;color:#f1f5f9;text-shadow:0 0 16px rgba(0,230,118,.35);}
+  .brand-name b{background:linear-gradient(135deg,#009270,#00e676);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900;}
+  .top-right{display:flex;gap:6px;align-items:center;pointer-events:auto;}
 
+  /* Icon buttons (48px tap target inside 30px visual) */
   .ic{width:30px;height:30px;border-radius:9px;background:rgba(8,14,28,.88);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;flex-shrink:0;touch-action:manipulation;}
   .ic:active{transform:scale(.92);}
   .ic.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
 
-  .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
-  .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
+  /* Floating stat pill */
+  .stat-pill{
+    position:absolute;top:56px;left:12px;
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 14px;
+    background:rgba(8,14,28,.88);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.12);
+    border-left:3px solid #00e676;border-radius:12px;
+    font-family:inherit;font-size:13px;font-weight:800;color:#f1f5f9;
+    pointer-events:none;z-index:100005;
+    box-shadow:0 4px 20px rgba(0,0,0,.45);
+    max-width:calc(100vw - 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .sp-team{font-size:11px;font-weight:900;letter-spacing:1px;color:#00e676;}
+  .sp-score{font-family:ui-monospace,monospace;font-size:16px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;}
+  .sp-ov{font-size:11px;font-weight:700;color:#94a3b8;}
+  .sp-divider{font-size:11px;color:rgba(148,163,184,.5);}
+  .sp-crr{font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:.5px;}
+  .sp-crr b{color:#22d3ee;font-weight:900;font-family:ui-monospace,monospace;margin-left:2px;}
 
-  .audio-fab{position:absolute;top:44px;left:6px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;touch-action:manipulation;}
+  /* Floating over dots */
+  .over-dots-float{
+    position:absolute;right:12px;bottom:110px;
+    padding:8px 12px;
+    background:rgba(8,14,28,.88);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.12);border-radius:14px;
+    z-index:100005;pointer-events:none;
+    box-shadow:0 4px 20px rgba(0,0,0,.45);
+    transition:opacity .2s;
+  }
+  .over-dots-float .dots{display:flex;gap:5px;}
+  .over-dots-float .b{width:22px;height:22px;font-size:9px;}
+
+  /* Bottom section */
+  .bottom{
+    position:absolute;bottom:0;left:0;right:0;
+    display:flex;flex-direction:column;
+    pointer-events:auto;z-index:100010;
+    padding-bottom:env(safe-area-inset-bottom,0);
+    padding-top:12px;
+    background:linear-gradient(0deg,rgba(2,7,19,.96) 0%,rgba(2,7,19,.85) 80%,rgba(2,7,19,0) 100%);
+  }
+
+  /* Score strip (56px) */
+  .score-strip{
+    display:flex;align-items:center;height:56px;
+    margin:0 8px 4px;padding:0 14px;
+    background:rgba(8,14,28,.94);
+    border:1px solid rgba(255,255,255,.1);border-radius:12px;
+    gap:12px;font-family:inherit;position:relative;overflow:hidden;
+  }
+  .ss-team-bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:#00e676;transition:background .3s;}
+  .ss-team{display:flex;align-items:baseline;gap:8px;flex-shrink:0;}
+  .ss-abbr{background:#00e676;color:#0a0e1a;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:900;letter-spacing:.5px;transition:background .3s;}
+  .ss-score{font-size:22px;font-weight:900;font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.5px;color:#fff;}
+  .ss-ov{font-size:10px;font-weight:700;color:#94a3b8;}
+  .ss-sep{width:1px;height:24px;background:rgba(255,255,255,.12);flex-shrink:0;}
+  .ss-bats{display:flex;align-items:baseline;gap:6px;flex:1;min-width:0;font-size:12px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ss-striker{color:#00e676;font-weight:900;}
+  .ss-bats b{font-family:ui-monospace,monospace;font-size:11px;color:#94a3b8;font-weight:800;margin-left:-2px;}
+  .ss-striker + b{color:#00e676;}
+  .ss-bullet{color:rgba(148,163,184,.4);font-size:14px;}
+  .ss-bowl{text-align:right;flex-shrink:0;font-size:11px;font-weight:700;color:#22d3ee;line-height:1.25;}
+  .ss-bowl > div:first-child{color:#fff;font-weight:800;font-size:12px;}
+
+  /* Ticker (32px, always visible) */
+  .ticker{
+    display:flex;align-items:center;gap:8px;height:32px;
+    margin:0 8px;padding:0 12px;
+    background:rgba(8,14,28,.94);
+    border:1px solid rgba(255,255,255,.08);border-radius:8px;
+    font-family:inherit;overflow:hidden;
+  }
+  .ticker-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:22px;height:22px;padding:0 6px;border-radius:50%;
+    background:rgba(148,163,184,.2);color:#94a3b8;
+    font-size:10px;font-weight:900;flex-shrink:0;transition:all .25s;
+  }
+  .ticker-badge.four{background:rgba(0,229,255,.25);color:#00e5ff;box-shadow:0 0 8px rgba(0,229,255,.5);}
+  .ticker-badge.six{background:rgba(255,136,0,.28);color:#ff8800;box-shadow:0 0 8px rgba(255,136,0,.5);}
+  .ticker-badge.wkt{background:rgba(239,68,68,.35);color:#fff;box-shadow:0 0 8px rgba(239,68,68,.6);}
+  .ticker-text{font-size:11.5px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+
+  /* Over dot circles */
+  .dots{display:flex;gap:3px;flex:1;justify-content:center;}
+  .b{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);flex-shrink:0;}
+  .b.dot{background:rgba(148,163,184,.2);}
+  .b.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
+  .b.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
+  .b.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
+  .b.wkt{background:rgba(239,68,68,.55);color:#fff;border-color:#ef4444;}
+  .b.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
+  .b.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
+
+  /* Audio FAB */
+  .audio-fab{position:absolute;top:110px;left:12px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;touch-action:manipulation;}
   .audio-fab > .ic{width:36px;height:36px;font-size:16px;border-radius:10px;position:relative;}
   .audio-fab > .ic .snd-caret{position:absolute;bottom:2px;right:3px;font-size:8px;opacity:.9;line-height:1;}
 
@@ -178,6 +203,7 @@
   .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
   .audio-opt.on .as{color:#00e676;}
 
+  /* Menu panel */
   #menuPanel{position:absolute;top:48px;right:6px;width:min(88vw,290px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:9px;z-index:100001;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 60px);overflow-y:auto;touch-action:manipulation;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-sec{margin-bottom:8px;}
@@ -190,15 +216,22 @@
   .menu-t .i{font-size:13px;line-height:1;}
   .menu-div{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:7px 0;}
 
-  .speed{position:absolute;top:44px;right:6px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;}
+  /* Speed tag */
+  .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
   .speed.on{opacity:1;}
 
+  /* Camera select */
+  .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
+  .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
+
+  /* Wagon wheel */
   #wagonWrap{position:fixed;top:44px;left:0;right:0;bottom:88px;display:none;align-items:center;justify-content:center;padding:4px;z-index:10001;pointer-events:none;}
   #wagonWrap.show{display:flex;}
   #wagonWheelCanvas{max-width:100%;max-height:100%;width:auto;height:auto;aspect-ratio:1/1;background:#050b0a;border:1px solid rgba(0,230,118,.4);border-radius:50%;box-shadow:0 0 40px rgba(0,230,118,.35), inset 0 0 30px rgba(0,0,0,.6);pointer-events:auto;display:block;}
   #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
   #wagonInfo.show{display:block;}
 
+  /* Banner (FOUR! SIX! etc) */
   .banner{position:absolute;top:24%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(30px,8vw,60px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .3s;pointer-events:none;text-align:center;line-height:1;}
   .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
   .banner.four{color:#22d3ee;text-shadow:0 0 30px #0891b2,0 6px 16px #000;}
@@ -206,33 +239,7 @@
   .banner.wkt{color:#ef4444;text-shadow:0 0 30px #7f1d1d,0 6px 16px #000;}
   .banner.run{color:#00e676;text-shadow:0 0 30px #009270,0 6px 16px #000;}
 
-  .bottom{position:absolute;bottom:6px;left:6px;right:6px;display:flex;flex-direction:column;gap:4px;pointer-events:auto;z-index:10000;padding-bottom:env(safe-area-inset-bottom,0);touch-action:manipulation;}
-  .over-row{display:flex;align-items:center;gap:6px;background:rgba(8,18,32,.92);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:3px 8px;font-size:9px;font-weight:800;color:#cbd5e1;}
-  .over-row > .label{color:#94a3b8;font-size:8.5px;letter-spacing:.5px;flex-shrink:0;}
-  .dots{display:flex;gap:3px;flex:1;justify-content:center;}
-  .b{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);flex-shrink:0;}
-  .b.dot{background:rgba(148,163,184,.2);}
-  .b.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
-  .b.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
-  .b.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
-  .b.wkt{background:rgba(239,68,68,.55);color:#fff;border-color:#ef4444;}
-  .b.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
-  .b.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
-  .over-row > .runs{color:#00e676;font-size:10px;font-weight:900;flex-shrink:0;}
-
-  .score-row{background:linear-gradient(90deg,rgba(8,18,32,.96),rgba(3,8,16,.98));border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:5px 8px;display:flex;align-items:center;gap:7px;color:#fff;font-size:10px;font-weight:800;overflow:hidden;}
-  .sc-team{display:flex;align-items:center;gap:4px;border-right:1px solid rgba(255,255,255,.12);padding-right:7px;flex-shrink:0;}
-  .sc-abbr{background:#00e676;color:#0a0e1a;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:900;}
-  .sc-score{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.3px;}
-  .sc-ov{font-size:9px;color:#94a3b8;font-weight:700;}
-  .sc-bats{display:flex;flex-direction:column;gap:0;flex:1;min-width:0;overflow:hidden;}
-  .sc-row{display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .sc-row.striker{color:#00e676;}
-  .sc-bowl{text-align:right;color:#22d3ee;border-left:1px solid rgba(255,255,255,.12);padding-left:7px;font-weight:700;font-size:9.5px;flex-shrink:0;}
-  .sc-bowl > div{white-space:nowrap;}
-  #bbBowler{transition:color .3s;}
-  #bbBowler.bowler-flash{color:#ffffff;text-shadow:0 0 8px #22d3ee;}
-
+  /* TV mode */
   #tvMode{position:fixed;inset:0;z-index:100050;background:linear-gradient(135deg,#0a0e1a 0%,#0d1424 100%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;text-align:center;}
   #tvMode.show{display:flex;}
   .tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;}
@@ -251,30 +258,36 @@
   .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
   .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
 
-  #commTicker{position:absolute;left:6px;right:6px;bottom:84px;background:rgba(8,15,30,.94);border:1px solid rgba(0,230,118,.35);border-left:3px solid #00e676;border-radius:8px;padding:6px 9px;color:#e2e8f0;font-size:10.5px;font-weight:700;line-height:1.3;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none;z-index:10000;}
-  #commTicker.show{opacity:1;transform:translateY(0);}
+  /* Bowler flash */
+  #bbBowler{transition:color .3s;}
+  #bbBowler.bowler-flash{color:#ffffff;text-shadow:0 0 8px #22d3ee;}
 
+  /* Small screens */
   @media (max-width:360px){
+    .brand-name{font-size:10px;letter-spacing:1.5px;}
+    .live-text{font-size:9px;}
+    .stat-pill{padding:6px 10px;font-size:12px;top:52px;}
+    .sp-score{font-size:14px;}
+    .over-dots-float .b{width:18px;height:18px;font-size:8px;}
+    .score-strip{height:50px;padding:0 10px;gap:8px;}
+    .ss-score{font-size:18px;}
+    .ss-bats{font-size:11px;}
+    .ss-bowl{font-size:10px;}
+    .ticker{height:28px;}
+    .ticker-text{font-size:10.5px;}
     .ic{width:28px;height:28px;font-size:12px;border-radius:8px;}
-    .live{padding:3px 6px;font-size:8.5px;}
-    .cam-sel{font-size:9px;padding:4px 6px;max-width:95px;}
-    .sc-score{font-size:13px;}
-    .sc-row{font-size:8.5px;}
-    .sc-bowl{font-size:8.5px;padding-left:5px;}
-    .b{width:16px;height:16px;font-size:7.5px;}
-    .over-row{font-size:8px;padding:2px 6px;}
     .audio-fab > .ic{width:34px;height:34px;font-size:15px;}
   }
-  @media (max-width:320px){ .live{display:none;} }
+  @media (max-width:320px){ .live-text{display:none;} }
   @media (prefers-reduced-motion: reduce){
-    .live::before{animation:none;}
-    .cm-tower.on::before{animation:none;background:#ffd98f;box-shadow:0 0 16px 4px rgba(255,200,120,.5);}
+    .live-dot{animation:none;}
   }
-</style>
-</head> 
-     <body>
+</style> 
+ <body>
 
-<!-- Iris Loader -->
+<!-- ═══════════════════════════════════════════════════════════
+     IRIS LOADER
+     ═══════════════════════════════════════════════════════════ -->
 <div id="cm-loader">
   <div class="cm-loader-iris">
     <svg class="cm-iris-svg" viewBox="0 0 200 200" aria-hidden="true">
@@ -291,38 +304,52 @@
   </div>
 </div>
 
-<!-- Iris Transition (used on stadium ↔ wagon switch) -->
+<!-- Iris Transition -->
 <div id="irisTransition" aria-hidden="true"></div>
 
 <div class="vignette"></div>
 
 <div class="hud">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       TOP BAR — brand left, actions right
+       ═══════════════════════════════════════════════════════════ -->
   <div class="top-bar">
-    <div class="top-left">
-      <div class="live">VR LIVE</div>
-      <div class="ic" onclick="triggerReplay()">↻</div>
-      <div class="ic" onclick="toggleFullscreen()">⛶</div>
-    </div>
-    <div class="top-center">
-      <select class="cam-sel" id="camSel" onchange="setCamera(this.value)">
-        <option value="broadcast">📺 TV</option>
-        <option value="bowler">🎯 Bowl</option>
-        <option value="keeper">🧤 Keep</option>
-        <option value="slip">👐 Slip</option>
-        <option value="side">🎬 Sq</option>
-        <option value="drone">🚁 Air</option>
-        <option value="helmet">⛑️ Helm</option>
-        <option value="follow">⚾ Ball</option>
-      </select>
+    <div class="top-brand">
+      <span class="live-dot"></span>
+      <span class="live-text">LIVE</span>
+      <span class="brand-divider"></span>
+      <span class="brand-name">CRICMAX <b>PRO</b></span>
     </div>
     <div class="top-right">
-      <div class="ic on" id="btn-dir" onclick="toggleDirector()">🎬</div>
-      <div class="ic" id="btn-stadium" onclick="toggleStadiumView()">🕸️</div>
-      <div class="ic" id="btn-tv" onclick="toggleTVMode()">📺</div>
-      <div class="ic" id="btn-menu" onclick="toggleMenu(event)" style="background:linear-gradient(135deg,rgba(0,146,112,.9),rgba(0,230,118,.9));border:none;color:#fff;">☰</div>
+      <div class="ic" onclick="triggerReplay()" title="Replay">↻</div>
+      <div class="ic on" id="btn-dir" onclick="toggleDirector()" title="Director">🎬</div>
+      <div class="ic" id="btn-stadium" onclick="toggleStadiumView()" title="View">🕸️</div>
+      <div class="ic" id="btn-menu" onclick="toggleMenu(event)" title="Menu">⋯</div>
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       FLOATING STAT PILL
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="stat-pill" id="statPill">
+    <span class="sp-team" id="spTeam">T1</span>
+    <span class="sp-score" id="spScore">0/0</span>
+    <span class="sp-ov" id="spOvers">0.0 ov</span>
+    <span class="sp-divider">·</span>
+    <span class="sp-crr">CRR <b id="spCRR">0.00</b></span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FLOATING OVER DOTS
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="over-dots-float" id="overDotsFloat">
+    <div class="dots" id="overDotsContainer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       AUDIO FAB
+       ═══════════════════════════════════════════════════════════ -->
   <div class="audio-fab">
     <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)">
       <span id="snd-ico">🏟️</span>
@@ -342,6 +369,9 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       MENU PANEL
+       ═══════════════════════════════════════════════════════════ -->
   <div id="menuPanel">
     <div class="menu-sec">
       <div class="menu-ttl">Navigate</div>
@@ -390,45 +420,67 @@
       <div class="menu-grid-3">
         <button class="menu-t on" id="util-wagon" onclick="toggleWagonWheel()"><span class="i">🕸️</span> Wagon</button>
         <button class="menu-t" onclick="simFeedScoringTab()"><span class="i">⚡</span> Feed</button>
+        <button class="menu-t" onclick="toggleTVMode()"><span class="i">📺</span> TV</button>
+      </div>
+    </div>
+    <div class="menu-div"></div>
+    <div class="menu-sec">
+      <div class="menu-ttl">Other</div>
+      <div class="menu-grid-3">
+        <button class="menu-t" onclick="toggleFullscreen()"><span class="i">⛶</span> Full</button>
         <button class="menu-t" onclick="toggleMenu(event)"><span class="i">✕</span> Close</button>
       </div>
     </div>
   </div>
 
+  <!-- Speed tag -->
   <div class="speed" id="speedTag">SPEED: --</div>
 
+  <!-- Wagon wheel -->
   <div id="wagonWrap">
     <canvas id="wagonWheelCanvas" width="800" height="800" style="max-width:100%;height:auto;"></canvas>
   </div>
   <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
 
+  <!-- Banner -->
   <div class="banner" id="banner">FOUR!</div>
-  <div id="commTicker"></div>
 
+  <!-- ═══════════════════════════════════════════════════════════
+       BOTTOM — score strip + ticker
+       ═══════════════════════════════════════════════════════════ -->
   <div class="bottom">
-    <div class="over-row">
-      <span class="label">OVER:</span>
-      <div class="dots" id="overDotsContainer"></div>
-      <span class="runs" id="overTotalRuns">0 R</span>
-    </div>
-    <div class="score-row">
-      <div class="sc-team">
-        <span class="sc-abbr" id="bbAbbr">T1</span>
-        <span class="sc-score" id="bbScore">0/0</span>
-        <span class="sc-ov" id="bbOvers">(0.0)</span>
+    <div class="score-strip">
+      <div class="ss-team-bar" id="ssTeamBar"></div>
+      <div class="ss-team">
+        <span class="ss-abbr" id="bbAbbr">T1</span>
+        <span class="ss-score" id="bbScore">0/0</span>
+        <span class="ss-ov" id="bbOvers">(0.0)</span>
       </div>
-      <div class="sc-bats">
-        <div class="sc-row striker"><span id="bbStriker">Striker*</span><b id="bbStrikerRuns">0(0)</b></div>
-        <div class="sc-row"><span id="bbNonStriker">Non-Striker</span><b id="bbNonStrikerRuns">0(0)</b></div>
+      <div class="ss-sep"></div>
+      <div class="ss-bats">
+        <span class="ss-striker" id="bbStriker">Striker*</span>
+        <b id="bbStrikerRuns">0(0)</b>
+        <span class="ss-bullet">•</span>
+        <span id="bbNonStriker">Non-Striker</span>
+        <b id="bbNonStrikerRuns">0(0)</b>
       </div>
-      <div class="sc-bowl">
+      <div class="ss-sep"></div>
+      <div class="ss-bowl">
         <div id="bbBowler">Bowler</div>
-        <div id="bbBowlerFigs" style="color:#fff">0-0-0-0</div>
+        <div id="bbBowlerFigs">0-0-0-0</div>
       </div>
+    </div>
+    <div class="ticker">
+      <span class="ticker-badge" id="tickerBadge">●</span>
+      <span class="ticker-text" id="tickerText">Waiting for action…</span>
     </div>
   </div>
+
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     TV MODE OVERLAY
+     ═══════════════════════════════════════════════════════════ -->
 <div id="tvMode">
   <button class="tv-close" onclick="toggleTVMode()">✕ Exit</button>
   <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
@@ -438,6 +490,9 @@
   <div class="tv-recent" id="tvRecent"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     IRIS LOADER JS — runs before anything else
+     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   var startTime = Date.now();
@@ -454,21 +509,18 @@
     if (fill) fill.style.strokeDashoffset = CIRCUMFERENCE * (1 - p / 100);
   }
 
-  /* Fake progression — never goes past 90% until real signal arrives */
   var fakeTimer = setInterval(function(){
     var elapsed = Date.now() - startTime;
     fakeProgress = Math.min(90, (elapsed / 6000) * 90);
     renderRing();
   }, 100);
 
-  /* Public API used by main script to push real progress */
   window.__cmProgress = function(pct, label){
     if (typeof pct === 'number') realProgress = Math.max(realProgress, pct);
     if (sub && label) sub.innerText = label;
     renderRing();
   };
 
-  /* Failsafe — force hide after 10s */
   var failsafe = setInterval(function(){
     var elapsed = Date.now() - startTime;
     var loader = document.getElementById('cm-loader');
@@ -496,7 +548,9 @@
 })();
 </script>
 
-<!-- Third-party CDN with fallback chain -->
+<!-- ═══════════════════════════════════════════════════════════
+     THIRD-PARTY CDN — with fallback chain
+     ═══════════════════════════════════════════════════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
   if (typeof THREE === 'undefined') {
@@ -522,7 +576,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
-     Optional modules — deferred, load parallel to main
+     OPTIONAL MODULES — deferred, load parallel to main
      ═══════════════════════════════════════════════════════════ -->
 <script src="shot-library.js" defer></script>
 <script src="shot-inference.js" defer></script>
@@ -540,10 +594,10 @@
   });
 })();
 </script> 
-          <script>
+  <script>
 (function(){
   /* ═══════════════════════════════════════════════════════════════
-     DEBUG MODE — enable with ?debug=1
+     DEBUG MODE
      ═══════════════════════════════════════════════════════════════ */
   const CM_DEBUG = (new URLSearchParams(location.search).get('debug') === '1');
   function cmlog(){ if (CM_DEBUG){ try { console.log.apply(console, ['[CricMax]'].concat([].slice.call(arguments))); } catch(e){} } }
@@ -564,39 +618,15 @@
   }
   window.__cmToArray = toArray;
 
-  /* ═══════════════════════════════════════════════════════════════
-     SHOT LIBRARY BRIDGE — maps 25 library shots to internal types
-     Placed HERE at IIFE top-level so it cannot accidentally end up
-     inside another object literal or function. This was the source
-     of the earlier "Unexpected identifier 'LIBRARY_TO_INTERNAL'" error.
-     ═══════════════════════════════════════════════════════════════ */
+  /* ── Shot library bridge ── */
   var LIBRARY_TO_INTERNAL = {
-    'defend':                  'defend',
-    'block':                   'defend',
-    'leave':                   'leave',
-    'push':                    'on_drive',
-    'nudge':                   'glance',
-    'glance':                  'glance',
-    'flick':                   'glance',
-    'punch':                   'cover_drive',
-    'drive_grounded':          'straight_drive',
-    'cover_drive':             'cover_drive',
-    'straight_drive':          'straight_drive',
-    'cut':                     'cut',
-    'late_cut':                'cut',
-    'upper_cut':               'cut',
-    'pull':                    'pull',
-    'hook':                    'pull',
-    'pull_lofted':             'pull',
-    'sweep':                   'sweep',
-    'slog_sweep':              'sweep',
-    'reverse_sweep_lofted':    'sweep',
-    'reverse_sweep_grounded':  'sweep',
-    'straight_drive_lofted':   'lofted_straight',
-    'slog_over_cover':         'lofted_straight',
-    'inside_out_lofted':       'lofted_straight',
-    'edge':                    'defend',
-    'advance':                 'lofted_straight'
+    'defend':'defend','block':'defend','leave':'leave','push':'on_drive','nudge':'glance',
+    'glance':'glance','flick':'glance','punch':'cover_drive','drive_grounded':'straight_drive',
+    'cover_drive':'cover_drive','straight_drive':'straight_drive','cut':'cut','late_cut':'cut',
+    'upper_cut':'cut','pull':'pull','hook':'pull','pull_lofted':'pull','sweep':'sweep',
+    'slog_sweep':'sweep','reverse_sweep_lofted':'sweep','reverse_sweep_grounded':'sweep',
+    'straight_drive_lofted':'lofted_straight','slog_over_cover':'lofted_straight',
+    'inside_out_lofted':'lofted_straight','edge':'defend','advance':'lofted_straight'
   };
   window.__LIBRARY_TO_INTERNAL = LIBRARY_TO_INTERNAL;
 
@@ -614,8 +644,7 @@
   })();
   window.__cmDevice = CM_DEVICE;
   cmlog('Device tier:', CM_DEVICE);
-  /* __cmProgress is defined by the loader script above.
-     Reuse it if present so both ring + sub label stay in sync. */
+
   const __cmLoaderSub = document.getElementById('cm-loader-sub');
   if (typeof window.__cmProgress !== 'function'){
     window.__cmProgress = function(pct, label){
@@ -779,12 +808,11 @@
     toggleMenu();
   }
 
-  /* ── Stadium / Wagon view toggle ── */
+  /* ── Stadium / Wagon toggle with iris ── */
   let stadiumViewActive = false;
   let __cmWagonDirty = true;
   let __cmWagonForceUntil = 0;
-
-   let __cmViewSwitchLock = false;
+  let __cmViewSwitchLock = false;
 
   function __cmApplyStadiumView(active){
     stadiumViewActive = !!active;
@@ -828,7 +856,6 @@
       return;
     }
 
-    /* Respect reduced motion preference */
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced){
       __cmApplyStadiumView(target);
@@ -837,30 +864,15 @@
 
     __cmViewSwitchLock = true;
 
-    /* Reset state (snap, no transition) */
     iris.style.transition = 'none';
     iris.style.clipPath = 'circle(0% at 50% 50%)';
     iris.style.opacity = '1';
     iris.classList.remove('opening', 'closing');
-    void iris.offsetWidth; /* force reflow */
+    void iris.offsetWidth;
 
-    /* Open the iris */
-    requestAnimationFrame(function(){
-      iris.classList.add('opening');
-    });
-
-    /* Halfway through opening — swap views while covered */
-    setTimeout(function(){
-      __cmApplyStadiumView(target);
-    }, 260);
-
-    /* When fully open — start fade out */
-    setTimeout(function(){
-      iris.classList.remove('opening');
-      iris.classList.add('closing');
-    }, 340);
-
-    /* Cleanup */
+    requestAnimationFrame(function(){ iris.classList.add('opening'); });
+    setTimeout(function(){ __cmApplyStadiumView(target); }, 260);
+    setTimeout(function(){ iris.classList.remove('opening'); iris.classList.add('closing'); }, 340);
     setTimeout(function(){
       iris.classList.remove('closing');
       iris.style.transition = 'none';
@@ -870,9 +882,7 @@
     }, 580);
   }
 
-  function toggleStadiumView(){
-    setStadiumView(!stadiumViewActive);
-  }
+  function toggleStadiumView(){ setStadiumView(!stadiumViewActive); }
 
   /* ── TV Mode ── */
   let tvModeActive = false;
@@ -1061,7 +1071,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     FIELDER
+     FIELDER CLASS
      ═══════════════════════════════════════════════════════════════ */
   class Fielder {
     constructor(name, x, z, skinIdx){
@@ -1156,7 +1166,7 @@
 
     fielders = fielderData.map(f => new Fielder(f[0], f[1], f[2], f[3]));
 
-       strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, name: 'striker' });
+    strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, name: 'striker' });
     strikerBat.position.set(0.35, 0, 8.8);
     strikerBat.rotation.set(0, -Math.PI/2, 0);
     if (strikerBat.batPivot) strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
@@ -1465,12 +1475,25 @@
     } catch(e){}
   }
   function showCommentary(text){
-    const el = document.getElementById('commTicker');
-    if (!el) return;
-    el.innerText = text;
-    el.classList.add('show');
-    if (commTickerTimer) clearTimeout(commTickerTimer);
-    commTickerTimer = setTimeout(function(){ el.classList.remove('show'); }, 4200);
+    const badge = document.getElementById('tickerBadge');
+    const txt = document.getElementById('tickerText');
+    if (!txt) return;
+
+    /* Determine badge based on text */
+    let badgeChar = '●';
+    let badgeClass = '';
+    if (/^SIX|Maximum!|into the stands|That is huge/i.test(text)){ badgeChar = '6'; badgeClass = 'six'; }
+    else if (/^FOUR|Races away|Cracking stroke|Beautiful shot/i.test(text)){ badgeChar = '4'; badgeClass = 'four'; }
+    else if (/Bowled|Caught|WICKET|gone|timber|Knocks him over/i.test(text)){ badgeChar = 'W'; badgeClass = 'wkt'; }
+    else if (/Single|one run|Single taken/i.test(text)){ badgeChar = '1'; }
+    else if (/Two runs|second/i.test(text)){ badgeChar = '2'; }
+    else if (/Three runs/i.test(text)){ badgeChar = '3'; }
+
+    if (badge){
+      badge.innerText = badgeChar;
+      badge.className = 'ticker-badge ' + badgeClass;
+    }
+    txt.innerText = text;
   }
   function speakCommentary(text){
     if (audioMode !== 'commentary' || !text) return;
@@ -1561,7 +1584,7 @@
   });
 
   /* ═══════════════════════════════════════════════════════════════
-     RUNNING STATE + SHOT KINEMATICS
+     RUNNING STATE
      ═══════════════════════════════════════════════════════════════ */
   const RunningState = {
     active: false, totalRuns: 0, progress: 0, durationPerRun: 1.35,
@@ -1764,7 +1787,6 @@
       __cmWagonForceUntil = performance.now() + 2000;
       lastOverNum = overOfLastBall;
       if (!stadiumViewActive) try { drawWagonWheel(); } catch(e){}
-      console.log('[CricMax] Over changed — wagon reset');
     }
   }
 
@@ -2102,7 +2124,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     DELIVERY ENGINE — with shot inference integration
+     DELIVERY ENGINE
      ═══════════════════════════════════════════════════════════════ */
   let anim = null;
   let lastShot = null;
@@ -2167,7 +2189,6 @@
     }
 
     const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
-    /* Override phys with inference data */
     if (inference){
       const intType = LIBRARY_TO_INTERNAL[inference.shot] || 'defend';
       phys.shotType = intType;
@@ -2220,7 +2241,7 @@
     function loop(now){
       const elapsed = now - start;
 
-      /* ═══ Batsman animation — library 3-keyframe ═══ */
+      /* ═══ Batsman animation ═══ */
       if (strikerBat.batPivot && !isWkt){
         const lib = shot._libShot;
         const inf = shot._inference;
@@ -2256,7 +2277,6 @@
             if (footwork === 'down_track') strikerBat.position.z = THREE.MathUtils.lerp(0.5, 0, p);
           }
         } else {
-          /* Fallback: legacy 2-keyframe */
           const pose = animPose.pose;
           if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
             const p = (elapsed - T_SHOT_START) / animPose.prepTime;
@@ -2311,7 +2331,6 @@
           contacted = true;
           if (isWkt && !isCatch){ playStumps(); if (strikerWicket) strikerWicket.shatter(); }
           else if (phys.shotType !== 'leave'){
-            /* Play library-driven sound if we have it */
             if (shot._libShot && shot._libShot.sound && shot._libShot.sound !== 'whoosh'){
               playBatSound(shot._libShot.sound);
             } else {
@@ -2319,7 +2338,6 @@
             }
           }
           const sparkColor = isWkt ? 0xff4444 : runs >= 6 ? 0xff6d00 : runs >= 4 ? 0x22d3ee : 0xffcc44;
-          /* Weight-aware spark intensity */
           const wgt = (shot._libShot && shot._libShot.weight) || 'medium';
           const sparkIntensity = wgt === 'hard' ? 1.0 : wgt === 'medium' ? 0.65 : 0.35;
           if (window.fxSparkBurst) window.fxSparkBurst(ball.position.x, ball.position.y, ball.position.z, sparkColor, sparkIntensity);
@@ -2409,10 +2427,8 @@
      ═══════════════════════════════════════════════════════════════ */
   function renderOverDots(ballTags){
     const container = document.getElementById('overDotsContainer');
-    const totalEl = document.getElementById('overTotalRuns');
     if (!container) return;
     container.innerHTML = '';
-    let overRuns = 0;
     const tags = toArray(ballTags);
     for (let i = 0; i < 6; i++){
       const tag = tags[i] !== undefined && tags[i] !== null ? String(tags[i]) : null;
@@ -2425,16 +2441,15 @@
         const isBye = /B$/.test(tag) && !isNb;
         const isLb = /Lb$/i.test(tag);
         if (isWkt){ dot.className = 'b wkt'; dot.innerText = 'W'; }
-        else if (isWd){ const n = parseInt(tag) || 1; dot.className = 'b nb'; dot.innerText = n > 1 ? String(n) : 'wd'; overRuns += n; }
-        else if (isNb){ const n = parseInt(tag) || 1; dot.className = 'b nb'; dot.innerText = n > 1 ? String(n) : 'nb'; overRuns += n; }
-        else if (isBye || isLb){ const n = parseInt(tag) || 0; dot.className = 'b bye'; dot.innerText = n > 0 ? String(n) : 'b'; overRuns += n; }
-        else if (tag === '4'){ dot.className = 'b four'; dot.innerText = '4'; overRuns += 4; }
-        else if (tag === '6'){ dot.className = 'b six'; dot.innerText = '6'; overRuns += 6; }
-        else { const n = parseInt(tag) || 0; if (n === 0){ dot.className = 'b dot'; dot.innerText = '0'; } else { dot.className = 'b run'; dot.innerText = String(n); overRuns += n; } }
+        else if (isWd){ const n = parseInt(tag) || 1; dot.className = 'b nb'; dot.innerText = n > 1 ? String(n) : 'wd'; }
+        else if (isNb){ const n = parseInt(tag) || 1; dot.className = 'b nb'; dot.innerText = n > 1 ? String(n) : 'nb'; }
+        else if (isBye || isLb){ const n = parseInt(tag) || 0; dot.className = 'b bye'; dot.innerText = n > 0 ? String(n) : 'b'; }
+        else if (tag === '4'){ dot.className = 'b four'; dot.innerText = '4'; }
+        else if (tag === '6'){ dot.className = 'b six'; dot.innerText = '6'; }
+        else { const n = parseInt(tag) || 0; if (n === 0){ dot.className = 'b dot'; dot.innerText = '0'; } else { dot.className = 'b run'; dot.innerText = String(n); } }
       } else { dot.innerText = '·'; }
       container.appendChild(dot);
     }
-    if (totalEl) totalEl.innerText = overRuns + ' R';
   }
 
   function applyMatch(raw){
@@ -2498,6 +2513,27 @@
     setTxt('bbBowlerFigs', Math.floor((bw.balls || 0)/6) + '.' + ((bw.balls || 0)%6) + '-' + (bw.maidens || 0) + '-' + (bw.runs || 0) + '-' + (bw.wickets || 0));
     applyBowlerIdentity(bwName);
 
+    /* ═══ Stat pill sync ═══ */
+    const spTeam = document.getElementById('spTeam');
+    const spScore = document.getElementById('spScore');
+    const spOvers = document.getElementById('spOvers');
+    const spCRR = document.getElementById('spCRR');
+    if (spTeam) spTeam.innerText = abbr;
+    if (spScore) spScore.innerText = (m.runs || 0) + '/' + (m.wickets || 0);
+    if (spOvers) spOvers.innerText = Math.floor(balls/6) + '.' + (balls%6) + ' ov';
+    if (spCRR){
+      const crr = balls > 0 ? ((m.runs || 0) / (balls / 6)).toFixed(2) : '0.00';
+      spCRR.innerText = crr;
+    }
+
+    /* ═══ Team color bar sync ═══ */
+    const teamBar = document.getElementById('ssTeamBar');
+    const abbrBox = document.getElementById('bbAbbr');
+    if (teamBar && abbrBox){
+      const col = getComputedStyle(abbrBox).backgroundColor;
+      teamBar.style.background = col;
+    }
+
     if (_currentOverBalls.length > 0) renderOverDots(_currentOverBalls);
     else if (_recentBalls.length > 0)  renderOverDots(_recentBalls.slice(-6));
 
@@ -2557,7 +2593,7 @@
   } catch(e){}
 
   /* ═══════════════════════════════════════════════════════════════
-     FIREBASE — single-path subscription
+     FIREBASE
      ═══════════════════════════════════════════════════════════════ */
   const firebaseConfig = {
     apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
@@ -2574,7 +2610,6 @@
     const fireDB = firebase.database();
     const urlParams = new URLSearchParams(window.location.search);
     const matchCode = urlParams.get('code');
-    /* Single path: use code-specific if present, else fall back to global pointer */
     const paths = [];
     if (matchCode) paths.push('cricmax/matches/' + matchCode);
     else paths.push('cricmax/match_current');
@@ -2816,7 +2851,7 @@
   requestAnimationFrame(animate);
 
   bootStadiumModule().then(function(){
-      setStadiumView(false, true); /* skip iris on initial load */
+    setStadiumView(false, true);
 
     setTimeout(function(){
       if (!__cmFirstFrame){
@@ -2848,3 +2883,4 @@
 
 </body>
 </html>
+</head>
