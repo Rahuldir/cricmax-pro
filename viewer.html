@@ -2068,7 +2068,7 @@
         ball.position.y = THREE.MathUtils.lerp(2.0, 0.04, t * t);
       } else if (elapsed < T_CONTACT){
         const t = (elapsed - T_PITCH) / (T_CONTACT - T_PITCH);
-        if (!bounced){ playThud(1.0); bounced = true; if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z); }
+        if (!bounced){           playThud(1.0);           bounced = true;           if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z, isSpin ? 'spin' : 'pitch');           if (window.fxBounceMark) window.fxBounceMark(ball.position.x, ball.position.z);         }
         ball.position.x = THREE.MathUtils.lerp(pitchX, strikerBat.position.x - 0.1, t);
         ball.position.z = THREE.MathUtils.lerp(pitchZ, 8.8, t);
         ball.position.y = 0.04 + Math.sin(t * Math.PI * 0.5) * 0.9;
@@ -2079,7 +2079,7 @@
           if (isWkt && !isCatch){ playStumps(); if (strikerWicket) strikerWicket.shatter(); }
           else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
           const sparkColor = isWkt ? 0xff4444 : runs >= 6 ? 0xff6d00 : runs >= 4 ? 0x22d3ee : 0xffcc44;
-          if (window.fxSparkBurst) window.fxSparkBurst(ball.position.x, ball.position.y, ball.position.z, sparkColor);
+        if (!bounced){           playThud(1.0);           bounced = true;           if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z, isSpin ? 'spin' : 'pitch');           if (window.fxBounceMark) window.fxBounceMark(ball.position.x, ball.position.z);         }
           if (runs > 0 && window.fxTrailStart) window.fxTrailStart();
           if (runs > 0 && runs < 4 && !isWkt && !fielderDispatched){
             fielderDispatched = true;
