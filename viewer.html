@@ -1657,12 +1657,12 @@
     const isBehind   = (deg > 235 && deg < 305);   // fan around 270° (toward keeper)
     if (isWkt && !isCatch){ shotType = 'defend'; finalDist = 2; }
     else if (runs === 6){
-      peakHeight = 15; finalDist = 75 + Math.random() * 10;
+      peakHeight = 15; finalDist = 82 + Math.random() * 10;
       if (isSpin && !isOffside) shotType = 'sweep';
       else if (length.type === 'short' && !isOffside) shotType = 'pull';
       else shotType = 'lofted_straight';
     } else if (runs === 4){
-      peakHeight = 1.2; finalDist = 65;
+      peakHeight = 1.2; finalDist = 72;
       if (isSpin && !isOffside) shotType = 'sweep';
       else if (isOffside && length.type === 'short') shotType = 'cut';
       else if (isOffside && !isBehind) shotType = 'cover_drive';
@@ -2376,8 +2376,12 @@
        Mapping from canvas-standard angle:
          cos(θ) picks X (0 → leg, π → off)
          sin(θ) picks Z (π/2 → front, 3π/2 → behind) */
-    const hitX = STRIKER_BASE_X - Math.cos(wwAngle) * phys.finalDist;
-    const hitZ = STRIKER_BASE_Z - Math.sin(wwAngle) * phys.finalDist;
+    /* Hit position measured from PITCH CENTRE (0,0,0) — not from striker's
+       base — so leg- and off-side shots of the same run value both land at
+       exactly `phys.finalDist` from the middle of the ground. Removes the
+       ~0.7-unit asymmetry caused by STRIKER_BASE_X = 0.35. */
+    const hitX = -Math.cos(wwAngle) * phys.finalDist;
+    const hitZ = -Math.sin(wwAngle) * phys.finalDist;
 
     if (!skipWagonRecord && !isReplay){
       recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
