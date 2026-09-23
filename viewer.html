@@ -20,7 +20,8 @@
 <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js">
 <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js">
-
+<link rel="preload" as="script" href="shot-library.js">
+<link rel="preload" as="script" href="shot-inference.js">
 
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -507,7 +508,7 @@
      OPT #1 — stadium.js loaded dynamically (only when needed)
      OPT #3 — all optional modules deferred
      ═══════════════════════════════════════════════════════════ -->
-<script src="render-boost.js" defer></script>
+<script src="shot-library.js" defer></script> <script src="shot-inference.js" defer></script> <script src="render-boost.js" defer></script>
 <script src="player-upgrades.js" defer></script>
 <script src="shot-fx.js" defer></script>
 
@@ -1485,6 +1486,40 @@
     }
   };
 
+  const SHOT_KINEMATICS = { 
+         /* ═══════════════════════════════════════════════════════════════
+     SHOT LIBRARY BRIDGE — maps 25 library shots to internal types
+     ═══════════════════════════════════════════════════════════════ */
+  const LIBRARY_TO_INTERNAL = {
+    'defend':                  'defend',
+    'block':                   'defend',
+    'leave':                   'leave',
+    'push':                    'on_drive',
+    'nudge':                   'glance',
+    'glance':                  'glance',
+    'flick':                   'glance',
+    'punch':                   'cover_drive',
+    'drive_grounded':          'straight_drive',
+    'cover_drive':             'cover_drive',
+    'straight_drive':          'straight_drive',
+    'cut':                     'cut',
+    'late_cut':                'cut',
+    'upper_cut':               'cut',
+    'pull':                    'pull',
+    'hook':                    'pull',
+    'pull_lofted':             'pull',
+    'sweep':                   'sweep',
+    'slog_sweep':              'sweep',
+    'reverse_sweep_lofted':    'sweep',
+    'reverse_sweep_grounded':  'sweep',
+    'straight_drive_lofted':   'lofted_straight',
+    'slog_over_cover':         'lofted_straight',
+    'inside_out_lofted':       'lofted_straight',
+    'edge':                    'defend',
+    'advance':                 'lofted_straight'
+  };
+  window.__LIBRARY_TO_INTERNAL = LIBRARY_TO_INTERNAL;
+
   const SHOT_KINEMATICS = {
     defend:{prepTime:200,contactTime:100,followTime:300,pose:{batX:-0.5,batZ:0,torsoY:0.1,lean:0,stride:0.2}},
     leave:{prepTime:300,contactTime:100,followTime:400,pose:{batX:-2.0,batZ:0,torsoY:0,lean:-0.1,stride:0.1}},
@@ -1984,7 +2019,42 @@
 
     const wwAngle = resolveShotAngle(shot);
 
+     /* ─── Run inference engine ─── */
+    let inference = null;
+    if (window.CricMaxInference){
+      const zIdx = Math.max(0, Math.min(7, Math.floor(((wwAngle * 180 / Math.PI) + 360 + 22.5) % 360 / 45)));
+      inference = window.CricMaxInference.infer({
+        runs: runs,
+        zoneIndex: zIdx,
+        isSpin: isSpin,
+        isWkt: isWkt,
+        isCatch: isCatch,
+        wktMethod: shot.wicketType || shot.method || '',
+        matchId: (window.__cricmaxLastMatch && window.__cricmaxLastMatch.matchId) || '',
+        ballNum: (window.__cricmaxLastMatch && window.__cricmaxLastMatch.legalBalls) || 0
+      });
+      shot._inference = inference;
+      shot._libShot = inference.libShot;
+      shot._shotName = inference.shot;
+    }
+
     const phys = determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle);
+    /* Override phys with inference data */
+    if (inference){
+      const intType = LIBRARY_TO_INTERNAL[inference.shot] || 'defend';
+      phys.shotType = intType;
+      /* Trajectory hint */
+      if (inference.trajectory === 'lofted_high')    phys.peakHeight = Math.max(phys.peakHeight, 12);
+      if (inference.trajectory === 'lofted_mid')     phys.peakHeight = Math.max(phys.peakHeight, 6);
+      if (inference.trajectory === 'grounded_fast')  phys.peakHeight = Math.min(phys.peakHeight, 1.0);
+      if (inference.trajectory === 'grounded_medium')phys.peakHeight = Math.min(phys.peakHeight, 2.0);
+      if (inference.trajectory === 'sweep_low')      phys.peakHeight = 0.6;
+      if (inference.trajectory === 'edge')           phys.finalDist = Math.min(phys.finalDist, 15);
+      /* Length → pitch position */
+      const lenMap = { 'yorker': 8.5, 'full': 7.5, 'half_volley': 8.0, 'good': 5.5,
+                       'back_of_length': 4.0, 'short': 2.5, 'bouncer': 1.5 };
+      phys.length.pZ = lenMap[inference.length] || 5.5;
+    }
     const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
 
     const pitchZ = phys.length.pZ;
@@ -2026,20 +2096,60 @@
     function loop(now){
       const elapsed = now - start;
 
+      /* ═══ Batsman animation — library 3-keyframe ═══ */
       if (strikerBat.batPivot && !isWkt){
-        const pose = animPose.pose;
-        if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
-          const p = (elapsed - T_SHOT_START) / animPose.prepTime;
-          strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(-Math.PI/4, pose.batX, p);
-          strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(0, pose.batZ, p);
-          strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoY, p);
-          strikerBat.torso.rotation.x = THREE.MathUtils.lerp(0, pose.lean, p);
-          strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -pose.stride, p);
-          if (pose.dropKnee) strikerBat.position.y = THREE.MathUtils.lerp(0, -0.3, p);
-        } else if (elapsed >= T_CONTACT && elapsed < T_FOLLOW_END){
-          const p = (elapsed - T_CONTACT) / animPose.followTime;
-          strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batX, pose.batX + 0.5, p);
-          if (pose.dropKnee) strikerBat.position.y = THREE.MathUtils.lerp(-0.3, 0, p);
+        const lib = shot._libShot;
+        const inf = shot._inference;
+        const smooth = (t) => t * t * (3 - 2 * t);
+
+        if (lib && lib.pose && lib.pose.batStart){
+          const bp = lib.pose;
+          const isSweepCat = (lib.category === 'sweep');
+          const isLoftedShot = (inf && (inf.trajectory === 'lofted_high' || inf.trajectory === 'lofted_mid'));
+          const footwork = inf ? inf.footwork : 'front';
+
+          if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
+            /* Prep: batStart → batContact */
+            const p = smooth((elapsed - T_SHOT_START) / animPose.prepTime);
+            strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(bp.batStart.rotX, bp.batContact.rotX, p);
+            strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(bp.batStart.rotZ, bp.batContact.rotZ, p);
+            strikerBat.torso.rotation.y    = THREE.MathUtils.lerp(0, bp.torsoRotY, p);
+            strikerBat.torso.rotation.x    = THREE.MathUtils.lerp(0, bp.torsoRotY * 0.3, p);
+            strikerBat.head.rotation.y     = THREE.MathUtils.lerp(0, bp.headRotY || 0, p);
+            strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -(bp.legStride || 0), p);
+            strikerBat.legR.userData.thigh.rotation.x = THREE.MathUtils.lerp(0,  (bp.legStride || 0) * 0.4, p);
+            /* Category extras */
+            if (isSweepCat)              strikerBat.position.y = THREE.MathUtils.lerp(0, -0.35, p);
+            if (isLoftedShot)            strikerBat.position.z = THREE.MathUtils.lerp(0,  0.20, p);
+            if (footwork === 'down_track') strikerBat.position.z = THREE.MathUtils.lerp(0, 0.5, p);
+            if (footwork === 'back')     strikerBat.position.z = THREE.MathUtils.lerp(0, -0.15, p);
+          } else if (elapsed >= T_CONTACT && elapsed < T_FOLLOW_END){
+            /* Follow-through: batContact → batEnd */
+            const p = smooth((elapsed - T_CONTACT) / animPose.followTime);
+            strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(bp.batContact.rotX, bp.batEnd.rotX, p);
+            strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(bp.batContact.rotZ, bp.batEnd.rotZ, p);
+            strikerBat.torso.rotation.y    = THREE.MathUtils.lerp(bp.torsoRotY, bp.torsoRotY * 0.7, p);
+            strikerBat.head.rotation.y     = THREE.MathUtils.lerp(bp.headRotY || 0, (bp.headRotY || 0) * 0.5, p);
+            if (isSweepCat)  strikerBat.position.y = THREE.MathUtils.lerp(-0.35, 0, p);
+            if (isLoftedShot) strikerBat.position.z = THREE.MathUtils.lerp(0.20, 0, p);
+            if (footwork === 'down_track') strikerBat.position.z = THREE.MathUtils.lerp(0.5, 0, p);
+          }
+        } else {
+          /* Fallback: legacy 2-keyframe */
+          const pose = animPose.pose;
+          if (elapsed >= T_SHOT_START && elapsed < T_CONTACT){
+            const p = (elapsed - T_SHOT_START) / animPose.prepTime;
+            strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(-Math.PI/4, pose.batX, p);
+            strikerBat.batPivot.rotation.z = THREE.MathUtils.lerp(0, pose.batZ, p);
+            strikerBat.torso.rotation.y = THREE.MathUtils.lerp(0, pose.torsoY, p);
+            strikerBat.torso.rotation.x = THREE.MathUtils.lerp(0, pose.lean, p);
+            strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -pose.stride, p);
+            if (pose.dropKnee) strikerBat.position.y = THREE.MathUtils.lerp(0, -0.3, p);
+          } else if (elapsed >= T_CONTACT && elapsed < T_FOLLOW_END){
+            const p = (elapsed - T_CONTACT) / animPose.followTime;
+            strikerBat.batPivot.rotation.x = THREE.MathUtils.lerp(pose.batX, pose.batX + 0.5, p);
+            if (pose.dropKnee) strikerBat.position.y = THREE.MathUtils.lerp(-0.3, 0, p);
+          }
         }
       }
 
@@ -2077,7 +2187,7 @@
         if (!contacted){
           contacted = true;
           if (isWkt && !isCatch){ playStumps(); if (strikerWicket) strikerWicket.shatter(); }
-          else if (phys.shotType !== 'leave') playBatCrack((runs===6)? 1 : (runs===4)? 0.85 : 0.5);
+          else if (phys.shotType !== 'leave'){             const weight = shot._inference ? shot._inference.swingSpeed : 'medium';             const powerMap = { 'soft': 0.35, 'medium': 0.65, 'hard': 0.9, 'slog': 1.0 };             playBatCrack(powerMap[weight] || 0.5);           }
           const sparkColor = isWkt ? 0xff4444 : runs >= 6 ? 0xff6d00 : runs >= 4 ? 0x22d3ee : 0xffcc44;
         if (!bounced){           playThud(1.0);           bounced = true;           if (window.fxDustPuff) window.fxDustPuff(ball.position.x, 0.05, ball.position.z, isSpin ? 'spin' : 'pitch');           if (window.fxBounceMark) window.fxBounceMark(ball.position.x, ball.position.z);         }
           if (runs > 0 && window.fxTrailStart) window.fxTrailStart();
