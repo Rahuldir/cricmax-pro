@@ -784,15 +784,7 @@
   let __cmWagonDirty = true;
   let __cmWagonForceUntil = 0;
 
-  function setStadiumView(active){
-    stadiumViewActive = !!active;
-    const canvas = renderer.domElement;
-    const wrap = document.getElementById('wagonWrap');
-    const info = document.getElementById('wagonInfo');
-    const btn = document.getElementById('btn-stadium');
-    const wagonBtn = document.getElementById('util-wagon');
-
-  let __cmViewSwitchLock = false;
+   let __cmViewSwitchLock = false;
 
   function __cmApplyStadiumView(active){
     stadiumViewActive = !!active;
@@ -881,7 +873,6 @@
   function toggleStadiumView(){
     setStadiumView(!stadiumViewActive);
   }
-  function toggleStadiumView(){ setStadiumView(!stadiumViewActive); toggleMenu(); }
 
   /* ── TV Mode ── */
   let tvModeActive = false;
