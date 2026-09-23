@@ -1,5 +1,9 @@
 /* ============================================================
    analytics.js — NZC run chart, partnerships, wagon wheel analytics
+   ✅ Wagon wheel uses canvas-standard angle convention:
+        0 = right (leg square)   π/2 = down (straight)
+        π = left (off square)    3π/2 = up (behind batsman)
+   ✅ Reads shot.zone (string) first; falls back to legacy zoneIndex
    ============================================================ */
 
 function renderNzcAnalytics() {
@@ -185,6 +189,9 @@ function switchWagonMode(mode) {
   renderNzcWagon();
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NZC WAGON — canvas-standard angle convention
+   ═══════════════════════════════════════════════════════════ */
 function renderNzcWagon() {
   const canvas = document.getElementById('nzcWagonCanvas');
   if (!canvas) return;
@@ -222,18 +229,69 @@ function renderNzcWagon() {
   ctx.fillRect(cx - 3, cy - 38, 6, 4);
   ctx.fillRect(cx - 3, cy + 34, 6, 4);
 
+  /* ── OFF/LEG labels (canvas-standard: OFF left, LEG right) ── */
+  ctx.save();
+  ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = '#22d3ee';
+  ctx.fillText('OFF', cx - R * 0.78, cy);
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillText('LEG', cx + R * 0.78, cy);
+  ctx.restore();
+
+  /* ═══ Canonical zone → canvas-standard angle ═══
+     0 = right / leg square       π/2 = straight (toward bowler)
+     π = left / off square        3π/2 = behind (toward keeper) */
+  const ZONE_ANGLE = {
+    'Square Leg': 0,
+    'Mid-wicket': Math.PI / 4,
+    'Mid-on':     Math.PI / 2,
+    'Mid-off':    3 * Math.PI / 4,
+    'Point':      Math.PI,
+    'Cover':      5 * Math.PI / 4,
+    'Third Man':  3 * Math.PI / 2,
+    'Fine Leg':   7 * Math.PI / 4
+  };
+  /* Legacy fallback (old zoneIndex order was:
+     ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"]) */
+  const LEGACY_IDX_TO_ANGLE = [
+    3 * Math.PI / 2,   // 0 Third Man
+    Math.PI,           // 1 Point
+    5 * Math.PI / 4,   // 2 Cover
+    3 * Math.PI / 4,   // 3 Mid-off
+    Math.PI / 2,       // 4 Mid-on
+    Math.PI / 4,       // 5 Mid-wicket
+    0,                 // 6 Square Leg
+    7 * Math.PI / 4    // 7 Fine Leg
+  ];
+
+  function shotAngle(s) {
+    if (!s) return -1;
+    if (s.zone && ZONE_ANGLE[s.zone] !== undefined) return ZONE_ANGLE[s.zone];
+    if (typeof s.zoneIndex === 'number' && s.zoneIndex >= 0 && s.zoneIndex < 8) return LEGACY_IDX_TO_ANGLE[s.zoneIndex];
+    return -1;
+  }
+  function sectorOf(angle) {
+    let i = Math.round(angle / (Math.PI / 4)) % 8;
+    if (i < 0) i += 8;
+    return i;
+  }
+
   const filteredShots = (match.shotLog || []).filter(s => s.inns === nzcWagonInnings);
-  const sectorAngles = [-Math.PI / 8, Math.PI / 8, 3 * Math.PI / 8, 5 * Math.PI / 8, 7 * Math.PI / 8, 9 * Math.PI / 8, 11 * Math.PI / 8, 13 * Math.PI / 8];
 
   if (nzcWagonMode === 'wagon') {
     const sectorRuns = new Array(8).fill(0);
     filteredShots.forEach(s => {
-      if (!s.zone || s.zoneIndex < 0) return;
-      sectorRuns[s.zoneIndex] += s.runs;
+      const a = shotAngle(s);
+      if (a < 0) return;
+      sectorRuns[sectorOf(a)] += s.runs || 0;
     });
     const maxRuns = Math.max(...sectorRuns, 1);
     for (let i = 0; i < 8; i++) {
-      const a0 = sectorAngles[i];
+      const a0 = i * Math.PI / 4 - Math.PI / 8;
       const a1 = a0 + Math.PI / 4;
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R * 0.75, a0, a1); ctx.closePath();
       const intensity = sectorRuns[i] / maxRuns;
@@ -246,7 +304,7 @@ function renderNzcWagon() {
       ctx.stroke();
     }
     for (let i = 0; i < 8; i++) {
-      const midAngle = sectorAngles[i] + Math.PI / 8;
+      const midAngle = i * Math.PI / 4;
       const bx = cx + Math.cos(midAngle) * R * 0.55;
       const by = cy + Math.sin(midAngle) * R * 0.55;
       ctx.fillStyle = isDark ? 'rgba(255,255,255,.95)' : '#fff';
@@ -259,13 +317,13 @@ function renderNzcWagon() {
       ctx.textAlign = 'left';
     }
     const sum = document.getElementById('nzcWagonSummary');
-    if (sum) sum.innerText = `${filteredShots.length} shots • ${filteredShots.reduce((a, b) => a + b.runs, 0)} runs • ${filteredShots.filter(s => s.isBoundary).length} boundaries`;
+    if (sum) sum.innerText = `${filteredShots.length} shots • ${filteredShots.reduce((a, b) => a + (b.runs || 0), 0)} runs • ${filteredShots.filter(s => s.isBoundary).length} boundaries`;
   } else if (nzcWagonMode === 'spider') {
     filteredShots.forEach(s => {
-      if (!s.zone || s.zoneIndex < 0) return;
-      const baseAngle = sectorAngles[s.zoneIndex] + Math.PI / 8;
+      const a = shotAngle(s);
+      if (a < 0) return;
       const jitter = (Math.random() - 0.5) * 0.35;
-      const angle = baseAngle + jitter;
+      const angle = a + jitter;
       let len;
       let isSixFlight = false;
       if (s.isSix) {
@@ -304,8 +362,8 @@ function renderNzcWagon() {
   } else if (nzcWagonMode === 'catch') {
     const wickets = filteredShots.filter(s => s.isWicket);
     wickets.forEach(w => {
-      let baseAngle = -Math.PI / 2;
-      if (w.zoneIndex >= 0) baseAngle = sectorAngles[w.zoneIndex] + Math.PI / 8;
+      const a = shotAngle(w);
+      let baseAngle = a >= 0 ? a : -Math.PI / 2;
       const jitter = (Math.random() - 0.5) * 0.4;
       const angle = baseAngle + jitter;
       const radius = R * (0.5 + Math.random() * 0.4);
