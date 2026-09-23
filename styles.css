@@ -3439,7 +3439,7 @@ body.light-mode .nzc-wagon-tab.active {
   .cm-light.go{ animation:none; }
 }
 /* ============================================================
-   SVG ICON SUPPORT — Top Bar
+   SVG ICON SUPPORT — Top Bar & Bottom Nav
    ============================================================ */
 .top-icon-btn svg {
   display: block;
@@ -3455,4 +3455,12 @@ body.light-mode .nzc-wagon-tab.active {
 }
 .top-icon-btn:hover svg {
   stroke: #fff;
+}
+.bottom-nav-btn .nav-icon svg {
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
