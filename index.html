@@ -906,9 +906,12 @@
 </div>
 <div class="modal-overlay" id="wagonModal">
   <div class="modal-card" style="text-align:center;position:relative;">
-    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:6px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-bottom:6px;">
       <span id="wagonTitle">MARK SHOT</span>
-      <span style="font-size:11px;opacity:.6;">Tap field</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;opacity:.6;">Tap field</span>
+        <button onclick="closeWagonWheel()" aria-label="Close" title="Close (Esc)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff;width:30px;height:30px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+      </div>
     </div>
     <div style="position:relative;display:inline-block;">
       <canvas id="wagonCanvas" width="280" height="280"></canvas>
