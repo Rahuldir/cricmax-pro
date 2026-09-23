@@ -460,8 +460,29 @@ function drawFieldBase() {
   ctx.beginPath(); ctx.arc(cx, cy, rope, 0, Math.PI * 2); ctx.stroke();
   ctx.fillStyle = '#d2b48c';
   ctx.fillRect(cx - 4, cy - 12, 8, 24);
-}
 
+  /* ── OFF / LEG side labels ──
+     Fixed orientation for the scorer's view:
+       • OFF is ALWAYS on the LEFT
+       • LEG is ALWAYS on the RIGHT
+     (Placed just inside the boundary rope, on the horizontal
+      axis through the pitch centre.) */
+  ctx.save();
+  ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 8;
+
+  // OFF — left side
+  ctx.fillStyle = '#22d3e6';
+  ctx.fillText('OFF', cx - rope * 0.88, cy);
+
+  // LEG — right side
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillText('LEG', cx + rope * 0.88, cy);
+  ctx.restore();
+}
 function drawScoringWagonShot(cx, cy, lx, ly, ballX, ballY) {
   drawFieldBase();
   var cv = document.getElementById('wagonCanvas');
