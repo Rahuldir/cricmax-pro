@@ -591,6 +591,30 @@ function attachWagonWheelListener() {
     }, delay);
   });
 
-  cvWheel._cmWired = true;
+   cvWheel._cmWired = true;
   console.log('[CricMax] 🕸️ Wagon wheel listener attached');
 }
+
+/* ═══════════════════════════════════════════════════════════
+   WAGON WHEEL — CLOSE / CANCEL
+   ═══════════════════════════════════════════════════════════ */
+function closeWagonWheel() {
+  var m = document.getElementById('wagonModal');
+  if (m) m.style.display = 'none';
+  clearTimeout(window._wagonTimer);
+  window._wagonTimer = null;
+  window._tempExactAngle = undefined;
+  pendingRuns = null;
+}
+
+/* ESC closes wagon modal */
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  var m = document.getElementById('wagonModal');
+  if (m && m.style.display === 'flex') closeWagonWheel();
+});
+
+/* Tap backdrop (outside modal card) closes wagon modal */
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'wagonModal') closeWagonWheel();
+}, true);
