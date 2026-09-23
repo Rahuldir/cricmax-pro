@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0a0e1a">
+  <meta name="theme-color" content="#0d1117">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>CricMax Pro</title>
@@ -46,9 +46,8 @@
   <link rel="stylesheet" href="styles.css">
 
   <style>
-    body { overscroll-behavior: contain; user-select: none; -webkit-user-select: none; }
+    body { overscroll-behavior: contain; }
     button, .pad-btn, .home-main-btn { touch-action: manipulation; }
-    .modal-overlay { z-index: 100050 !important; }
 
     #vppToolbar { display: none; position: fixed; top: 14px; left: 14px; z-index: 9999; flex-direction: column; gap: 8px; align-items: flex-start; pointer-events: auto; }
     #vppToolbar .vpp-row { display: flex; gap: 6px; }
@@ -61,115 +60,120 @@
     #vppLiveBadge .live-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
     @keyframes vppLivePulse { 0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); } 50% { transform: scale(1.05); box-shadow: 0 10px 34px rgba(220, 20, 60, .75), 0 0 34px rgba(255, 60, 90, .65); } }
     @keyframes vppDotBlink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
-
-    /* ═══════════════════════════════════════════════════════════
-       MAIN APP LOADING SCREEN
-       ═══════════════════════════════════════════════════════════ */
-    #cm-loader {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at 50% 40%, #0f2027 0%, #0a0e1a 45%, #020713 100%);
-      z-index: 999999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      overflow: hidden;
-      transition: opacity .55s cubic-bezier(.4, 0, .2, 1), visibility .55s cubic-bezier(.4, 0, .2, 1);
-    }
-    #cm-loader.cm-hide { opacity: 0; visibility: hidden; pointer-events: none; }
-    .cm-loader-glow {
-      position: absolute;
-      width: 420px; height: 420px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(0, 230, 118, .22) 0%, transparent 70%);
-      filter: blur(40px);
-      animation: cmPulse 2.4s ease-in-out infinite;
-      pointer-events: none;
-    }
-    @keyframes cmPulse {
-      0%, 100% { transform: scale(.85); opacity: .55; }
-      50%      { transform: scale(1.05); opacity: 1; }
-    }
-    .cm-loader-inner {
-      position: relative;
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 1; padding: 0 20px; text-align: center;
-    }
-    .cm-loader-icon {
-      font-size: 62px; line-height: 1;
-      display: inline-block;
-      animation: cmSpin 1.8s linear infinite;
-      filter: drop-shadow(0 0 18px rgba(0, 230, 118, .55));
-      margin-bottom: 18px;
-    }
-    @keyframes cmSpin {
-      0%   { transform: rotate(-12deg); }
-      50%  { transform: rotate(12deg); }
-      100% { transform: rotate(-12deg); }
-    }
-    .cm-loader-title {
-      font-size: 26px; font-weight: 900; letter-spacing: 3px;
-      color: #f1f5f9;
-      text-shadow: 0 0 24px rgba(0, 230, 118, .35);
-      margin-bottom: 6px;
-    }
-    .cm-loader-title span {
-      background: linear-gradient(135deg, #009270, #00e676);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 10px rgba(0, 230, 118, .55));
-    }
-    .cm-loader-sub {
-      font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px;
-      text-transform: uppercase; color: #64748b;
-      margin-bottom: 22px; min-height: 16px;
-    }
-    .cm-loader-bar-wrap {
-      width: 220px; height: 3px;
-      background: rgba(255, 255, 255, .08);
-      border-radius: 3px; overflow: hidden;
-    }
-    #cm-loader-bar {
-      width: 0%; height: 100%;
-      background: linear-gradient(90deg, #009270, #00e676, #a7f3d0);
-      border-radius: 3px;
-      transition: width .35s ease-out;
-      box-shadow: 0 0 12px rgba(0, 230, 118, .8);
-    }
-    .cm-loader-dots { display: flex; gap: 6px; margin-top: 20px; }
-    .cm-loader-dots span {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #00e676; opacity: .35;
-      animation: cmDot 1.4s ease-in-out infinite;
-    }
-    .cm-loader-dots span:nth-child(2) { animation-delay: .2s; }
-    .cm-loader-dots span:nth-child(3) { animation-delay: .4s; }
-    @keyframes cmDot {
-      0%, 80%, 100% { transform: scale(.8); opacity: .35; }
-      40%           { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px #00e676; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .cm-loader-icon { animation-duration: 4s; }
-      .cm-loader-glow { animation: none; }
-    }
   </style>
 </head>
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════
-     CRICMAX PRO — Main App Loading Screen
+     CRICMAX PRO — F1-STYLE LOADING SCREEN
      ═══════════════════════════════════════════════════════════ -->
 <div id="cm-loader">
-  <div class="cm-loader-glow"></div>
-  <div class="cm-loader-inner">
-    <div class="cm-loader-icon">🏏</div>
-    <div class="cm-loader-title">CRICMAX <span>PRO</span></div>
-    <div class="cm-loader-sub" id="cm-loader-sub">Loading tournament hub…</div>
-    <div class="cm-loader-bar-wrap"><div id="cm-loader-bar"></div></div>
-    <div class="cm-loader-dots"><span></span><span></span><span></span></div>
+  <div class="cm-speed-lines" id="cmSpeedLines"></div>
+
+  <div class="cm-start-lights" id="cmStartLights">
+    <div class="cm-light" data-i="0"></div>
+    <div class="cm-light" data-i="1"></div>
+    <div class="cm-light" data-i="2"></div>
+    <div class="cm-light" data-i="3"></div>
+    <div class="cm-light" data-i="4"></div>
   </div>
+
+  <div class="cm-loader-brand">
+    <span>C</span><span>R</span><span>I</span><span>C</span><span>M</span><span>A</span><span>X</span>
+    <span class="cm-grad">P</span><span class="cm-grad">R</span><span class="cm-grad">O</span>
+  </div>
+
+  <div class="cm-loader-status">
+    <span class="cm-loader-dot"></span>
+    <span class="cm-loader-sub" id="cm-loader-sub">INITIALIZING</span>
+  </div>
+
+  <div class="cm-progress-track">
+    <div class="cm-progress-fill" id="cmProgressFill"></div>
+  </div>
+  <div class="cm-progress-pct" id="cmProgressPct">0%</div>
+
+  <div class="cm-loader-foot">CRICMAX PRO · 2026</div>
 </div>
+
+<script>
+(function(){
+  var startTime = Date.now();
+  var sub       = document.getElementById('cm-loader-sub');
+  var lightsEl  = document.getElementById('cmStartLights');
+  var fillEl    = document.getElementById('cmProgressFill');
+  var pctEl     = document.getElementById('cmProgressPct');
+  var speedEl   = document.getElementById('cmSpeedLines');
+
+  var fakeProgress = 0, realProgress = 0, lastPct = 0, goFlashed = false;
+
+  if (speedEl){
+    for (var i = 0; i < 7; i++){
+      var line = document.createElement('div');
+      line.className = 'cm-speed-line';
+      line.style.top = (12 + i * 12 + (Math.random() * 6 - 3)) + '%';
+      line.style.animationDelay = (i * 0.34) + 's';
+      line.style.animationDuration = (2 + Math.random() * 1.2) + 's';
+      speedEl.appendChild(line);
+    }
+  }
+
+  function renderUI(p){
+    if (fillEl) fillEl.style.width = p + '%';
+    if (pctEl)  pctEl.textContent = Math.round(p) + '%';
+    if (lightsEl && !goFlashed){
+      var lights = lightsEl.children;
+      var litCount = Math.min(5, Math.floor((p / 80) * 5));
+      for (var i = 0; i < lights.length; i++){
+        if (i < litCount) lights[i].classList.add('on');
+        else lights[i].classList.remove('on');
+      }
+      if (p >= 100){
+        goFlashed = true;
+        for (var j = 0; j < lights.length; j++){
+          (function(el, delay){
+            setTimeout(function(){
+              el.classList.remove('on');
+              el.classList.add('go');
+            }, delay);
+          })(lights[j], j * 45);
+        }
+      }
+    }
+  }
+
+  var fakeTimer = setInterval(function(){
+    var e = Date.now() - startTime;
+    fakeProgress = Math.min(90, (e / 4000) * 90);
+    var p = Math.max(fakeProgress, realProgress);
+    if (p > lastPct){ lastPct = p; renderUI(p); }
+  }, 100);
+
+  window.__cmProgress = function(pct, label){
+    if (typeof pct === 'number') realProgress = Math.max(realProgress, pct);
+    if (sub && label) sub.innerText = label;
+    var p = Math.max(fakeProgress, realProgress);
+    if (p > lastPct){ lastPct = p; renderUI(p); }
+  };
+
+  window.__cmLoaderStart = startTime;
+
+  window.addEventListener('load', function(){
+    var waited = Date.now() - startTime;
+    var delay = Math.max(0, 2400 - waited);
+    setTimeout(function(){
+      window.__cmProgress(100, 'READY · LIGHTS OUT');
+      setTimeout(function(){
+        var el = document.getElementById('cm-loader');
+        if (el){
+          el.classList.add('cm-hide');
+          setTimeout(function(){ try { el.remove(); } catch(e){} }, 600);
+        }
+      }, 420);
+    }, delay);
+  });
+})();
+</script>
 
 <div id="topCinematicBanner" class="top-cinematic-banner fx-four">
   <div class="top-banner-title" id="topBannerTitle">FOUR!</div>
@@ -225,7 +229,15 @@
 </div>
 
 <header class="top-bar">
-  <button class="btn-share-viewer" onclick="shareViewerOnly()" title="Share Viewer Link">📤</button>
+  <button class="btn-share-viewer" onclick="shareViewerOnly()" title="Share Viewer Link" aria-label="Share">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"/>
+      <circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+  </button>
   <div class="title-box">
     <h1 id="headerMainTitle">Cric<span>Max</span> Pro</h1>
     <p id="headerSubTitle">Tournament & Match Hub</p>
@@ -234,9 +246,24 @@
     <span class="viewer-badge">📺 Viewer</span>
     <button class="top-icon-btn" id="btnSoundToggle" style="display:none;" onclick="toggleCommentaryVoice()" title="Toggle Live Commentary"><span id="soundIcon">🔇</span></button>
     <button class="top-icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
-    <button class="top-icon-btn" onclick="toggleTVMode()" title="TV Mode">📺</button>
-    <button class="top-icon-btn" id="btnBackHome" style="display:none;" onclick="goToHomeScreen()" title="Home">🏠</button>
-    <button class="top-icon-btn" id="undoBtn" style="display:none;" onclick="undoDelivery()" title="Undo" disabled>↺</button>
+    <button class="top-icon-btn" onclick="toggleTVMode()" title="TV Mode" aria-label="TV Mode">
+      <svg viewBox="0 0 24 24" width="18" height="18">
+        <rect x="2" y="7" width="20" height="13" rx="2"/>
+        <polyline points="17 2 12 7 7 2"/>
+      </svg>
+    </button>
+    <button class="top-icon-btn" id="btnBackHome" style="display:none;" onclick="goToHomeScreen()" title="Home" aria-label="Home">
+      <svg viewBox="0 0 24 24" width="18" height="18">
+        <path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 21 9 14 15 14 15 21"/>
+      </svg>
+    </button>
+    <button class="top-icon-btn" id="undoBtn" style="display:none;" onclick="undoDelivery()" title="Undo" disabled aria-label="Undo">
+      <svg viewBox="0 0 24 24" width="18" height="18">
+        <path d="M9 14L4 9l5-5"/>
+        <path d="M4 9h11a6 6 0 0 1 0 12h-4"/>
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -1029,7 +1056,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
-<!-- ⚠️ REMOVED: app.js — was causing "savedTeams already declared" error -->
 <script src="viewer-bridge.js?v=5" defer></script>
 
 <!-- Firebase Bridge -->
