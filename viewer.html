@@ -1709,14 +1709,14 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
     if (!shot) return Math.random() * Math.PI * 2;
     const numAngle = (typeof shot.angle === 'number') ? shot.angle : parseFloat(shot.angle);
     if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined) return numAngle;
-    const zoneNames = ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"];
+    const zoneNames = ["Square Leg","Mid-wicket","Mid-on","Mid-off","Point","Cover","Third Man","Fine Leg"];
     let zoneIdx = -1;
     if (typeof shot.zoneIndex === 'number' && shot.zoneIndex >= 0 && shot.zoneIndex < 8){
       zoneIdx = shot.zoneIndex;
     } else if (typeof shot.zone === 'string' && shot.zone){
       zoneIdx = zoneNames.findIndex(z => z.toLowerCase() === shot.zone.toLowerCase());
     }
-    if (zoneIdx >= 0) return (zoneIdx * Math.PI / 4) + (Math.PI / 8);
+      if (zoneIdx >= 0) return zoneIdx * Math.PI / 4;
     if (typeof shot.ballRandom === 'number') return shot.ballRandom * Math.PI * 2;
     return Math.random() * Math.PI * 2;
   }
