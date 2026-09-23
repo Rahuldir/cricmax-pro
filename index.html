@@ -10,102 +10,52 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   MATCH CODE LOCK — bulletproof
-   Strategy:
-   1. Capture URL code on boot
-   2. Force localStorage to match (blocks ui.js from diverging)
-   3. Watch the URL — restore code if it gets stripped
-   4. RELEASE the lock after first user interaction, so starting
-      a new match is allowed to generate a new code
-   5. Also patch the Share button to always use the URL code
+   MATCH CODE SYNC
+   1. On boot: adopt URL code into localStorage (viewers can join)
+   2. Watch the real match code — update URL whenever it changes
+   3. Share button always uses the current real code
    ═══════════════════════════════════════════════════════════ */
 (function(){
   'use strict';
   var CODE_KEY = 'currentMatchCode';
-  var urlParams = new URLSearchParams(location.search);
-  var urlCode = urlParams.get('code');
 
-  /* No code in URL — nothing to lock */
-  if (!urlCode) return;
+  /* Adopt URL code on boot */
+  var initialUrlCode = null;
+  try { initialUrlCode = new URLSearchParams(location.search).get('code'); } catch(e){}
+  if (initialUrlCode){
+    try { localStorage.setItem(CODE_KEY, initialUrlCode); } catch(e){}
+    console.info('[CodeSync] 📥 Adopted URL code:', initialUrlCode);
+  }
 
-  /* Save immediately */
-  try { localStorage.setItem(CODE_KEY, urlCode); } catch(e){}
-
-  var lockReleased = false;
-  var releaseLock = function(){ lockReleased = true; };
-
-  /* Release lock on any user action — allows starting a new match */
-  ['pointerdown','click','keydown','touchstart','change'].forEach(function(evt){
-    document.addEventListener(evt, releaseLock, { once: true, capture: true });
-  });
-
-  /* Re-add code to URL if something strips it (only while locked) */
-  function ensureCodeInUrl(){
-    if (lockReleased) return;
+  /* Watch for code changes — mirror into URL */
+  var __lastCode = null;
+  function syncUrlToCode(){
+    var code = null;
+    try { code = localStorage.getItem(CODE_KEY); } catch(e){}
+    if (!code || code === __lastCode) return;
+    __lastCode = code;
     try {
       var url = new URL(location.href);
-      if (url.searchParams.get('code') !== urlCode){
-        url.searchParams.set('code', urlCode);
+      if (url.searchParams.get('code') !== code){
+        url.searchParams.set('code', code);
         history.replaceState(history.state, '', url.toString());
+        console.info('[CodeSync] 🔄 URL updated →', code);
       }
     } catch(e){}
   }
+  setInterval(syncUrlToCode, 300);
+  syncUrlToCode();
 
-  /* Wrap History API so nothing can strip the code while locked */
-  var _replaceState = history.replaceState.bind(history);
-  var _pushState = history.pushState.bind(history);
-  history.replaceState = function(state, title, url){
-    _replaceState(state, title, url);
-    ensureCodeInUrl();
-  };
-  history.pushState = function(state, title, url){
-    _pushState(state, title, url);
-    ensureCodeInUrl();
-  };
-
-  /* Watch URL — safety net */
-  setInterval(ensureCodeInUrl, 800);
-  ensureCodeInUrl();
-
-  /* Block localStorage overwrite of currentMatchCode while locked */
-  var _origSetItem = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = function(key, value){
-    if (key === CODE_KEY && value && value !== urlCode && !lockReleased){
-      console.warn('[CodeLock] blocked overwrite:', value, '→ keeping', urlCode);
-      return _origSetItem(key, urlCode);
-    }
-    return _origSetItem(key, value);
-  };
-
-  /* Force "LIVE • Code:" badge to show URL code */
+  /* Keep LIVE badge in sync */
   setInterval(function(){
     var badge = document.getElementById('liveShareCodeText');
-    if (badge && badge.textContent !== urlCode) badge.textContent = urlCode;
+    if (!badge) return;
+    var code = null;
+    try { code = localStorage.getItem(CODE_KEY); } catch(e){}
+    if (code && badge.textContent !== code) badge.textContent = code;
   }, 400);
 
-  /* Patch shareViewerOnly once it exists */
-  var attempts = 0;
-  var patchShare = setInterval(function(){
-    if (++attempts > 300){ clearInterval(patchShare); return; }
-    if (typeof window.shareViewerOnly === 'function' && !window.__shareLocked){
-      window.__shareLocked = true;
-      clearInterval(patchShare);
-      var _origShare = window.shareViewerOnly;
-      window.shareViewerOnly = function(){
-        var saved = localStorage.getItem(CODE_KEY);
-        try { localStorage.setItem(CODE_KEY, urlCode); } catch(e){}
-        try { return _origShare.apply(this, arguments); }
-        finally {
-          if (saved && saved !== urlCode){
-            try { localStorage.setItem(CODE_KEY, saved); } catch(e){}
-          }
-        }
-      };
-      console.info('[CodeLock] 🔒 Share button patched to use:', urlCode);
-    }
-  }, 200);
-
-  console.info('[CodeLock] 🔒 Locked to URL code:', urlCode);
+  console.info('[CodeSync] ✅ URL will follow the active match code');
 })();
 </script>
 
@@ -588,7 +538,7 @@
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════
-     MODALS — unchanged (all IDs preserved)
+     MODALS
      ═══════════════════════════════════════════════════════════ -->
 
 <div class="modal-overlay" id="tournamentPickerModal">
@@ -1122,7 +1072,7 @@
 <script src="viewer-bridge.js?v=5" defer></script>
 
 <!-- ═══════════════════════════════════════════════════════════
-     FIREBASE BRIDGE — with re-subscribe on code change
+     FIREBASE BRIDGE — re-subscribes on code change
      ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
@@ -1199,7 +1149,7 @@
         var parsed = JSON.parse(value);
         if (parsed && parsed.match){
           __currentWriteRef.set(parsed.match)
-            .then(function(){ /* silent success */ })
+            .then(function(){ /* silent */ })
             .catch(function(err){ console.warn('[Sync] Write failed:', err && err.message); });
         }
       } catch(e){}
@@ -1234,17 +1184,6 @@
     __currentReadHandler = null;
   }
 
-  function applyRemoteToLocal(flat){
-    window.__cricmaxFromRemote = true;
-    try {
-      var existing = localStorage.getItem('CricMax_Data');
-      var wrapper = existing ? JSON.parse(existing) : {};
-      wrapper.match = flat;
-      localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
-    } catch(e){}
-    window.__cricmaxFromRemote = false;
-  }
-
   function rerenderAll(){
     ['renderScorecardTab','renderStatsTab','renderAnalysisTab','renderCardTab','renderSummaryTab',
      'renderAll','updateScoreboard','refreshUI','renderUI','rerenderUI','updateAllUI',
@@ -1274,7 +1213,14 @@
           });
         }
       }
-      applyRemoteToLocal(flat);
+      window.__cricmaxFromRemote = true;
+      try {
+        var existing = localStorage.getItem('CricMax_Data');
+        var wrapper = existing ? JSON.parse(existing) : {};
+        wrapper.match = flat;
+        localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
+      } catch(e){}
+      window.__cricmaxFromRemote = false;
       rerenderAll();
     };
     __currentReadRef = ref;
@@ -1283,7 +1229,7 @@
     console.info('[Sync] 📡 Read bridge → cricmax/matches/' + matchCode);
   }
 
-  /* ── Watch for code changes — re-subscribe when it changes ── */
+  /* ── Watch for code changes ── */
   var __lastCode = null;
   function watchCodeChange(){
     var code = resolveMatchCode();
@@ -1299,7 +1245,6 @@
     if (!ensureFirebaseApp()){ setTimeout(boot, 300); return; }
     ensureAuth().then(function(){
       watchCodeChange();
-      /* Poll for code changes every 500ms */
       setInterval(watchCodeChange, 500);
     });
   }
@@ -1307,7 +1252,7 @@
 })();
 </script>
 
-<!-- Stats Scope Module — unchanged -->
+<!-- Stats Scope Module -->
 <script>
 (function(){
   'use strict';
@@ -1584,6 +1529,16 @@
   }
   setTimeout(installWrappers, 2000);
 
+  setTimeout(function(){
+    var lp = document.getElementById('pane-leaderboards');
+    if (lp && lp.classList.contains('active') && currentScope === 'match'){
+      var tbody = document.getElementById('statsTableBody');
+      if (tbody && tbody.children.length === 0){
+        setStatsScope('career');
+      }
+    }
+  }, 1500);
+
   function injectUI(){
     var pane = document.getElementById('pane-leaderboards');
     if (!pane) return;
@@ -1609,6 +1564,8 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectUI);
   else injectUI();
+
+  console.info('[CricMax] 🏅 Stats Scope Module ready (Match / Tournament / Career)');
 })();
 </script>
 
