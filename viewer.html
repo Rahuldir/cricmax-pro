@@ -256,7 +256,7 @@
   #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
   #wagonInfo.show{display:block;}
 
-  .banner{position:absolute;top:24%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(30px,8vw,60px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .3s;pointer-events:none;text-align:center;line-height:1;}
+  .banner{position:absolute;top:20%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(30px,8vw,60px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .3s;pointer-events:none;text-align:center;line-height:1;z-index:10050;}
   .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
   .banner.four{color:#22d3ee;text-shadow:0 0 30px #0891b2,0 6px 16px #000;}
   .banner.six{color:#ff6d00;text-shadow:0 0 30px #fbbf24,0 6px 16px #000;}
@@ -1833,8 +1833,8 @@
     x.moveTo(cx - 22, cy + R * 0.62); x.lineTo(cx + 22, cy + R * 0.62);
     x.stroke();
 
-     FIELDER_MARKERS.forEach(f => {
-      const fx = cx + Math.sin(f.angle) * R * f.dist;
+        FIELDER_MARKERS.forEach(f => {
+      const fx = cx - Math.sin(f.angle) * R * f.dist;
       const fy = cy + Math.cos(f.angle) * R * f.dist;
       x.fillStyle = 'rgba(122,133,144,0.45)';
       x.beginPath(); x.arc(fx, fy, 4, 0, Math.PI * 2); x.fill();
@@ -1855,16 +1855,15 @@
     x.beginPath(); x.arc(cx, cy, R - 6, 0, Math.PI * 2); x.stroke();
     x.setLineDash([]);
 
-    x.fillStyle = 'rgba(255,255,255,0.85)';
-    x.font = 'bold 14px sans-serif';
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-       x.font = 'bold 10px sans-serif';
-    x.fillStyle = 'rgba(148,163,184,0.85)';
+       x.fillStyle = 'rgba(148,163,184,0.85)';
+    x.font = 'bold 10px sans-serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
     x.fillText('KEEPER END', cx, cy - R - 12);
     x.fillText('BOWLER END', cx, cy + R + 12);
     x.fillStyle = 'rgba(0,230,118,0.85)';
-    x.fillText('OFF', cx + R + 16, cy);
-    x.fillText('LEG', cx - R - 16, cy);
+    x.fillText('OFF', cx - R - 16, cy);
+    x.fillText('LEG', cx + R + 16, cy);
 
     return c;
   }
@@ -1951,9 +1950,9 @@
         else targetLen = 0.14;
 
         const len = targetLen * progress;
-        const sx = cx + Math.sin(shot.angle) * R * len;
+        const sx = cx - Math.sin(shot.angle) * R * len;
         const sy = cy - Math.cos(shot.angle) * R * len;
-
+         
         const col = shot.runs >= 6 ? '#ff8800'
                   : shot.runs >= 4 ? '#00e5ff'
                   : shot.runs > 0  ? '#00e676'
@@ -1991,7 +1990,7 @@
 
         if (progress > 0.6){
           const labelRadius = R * len + 26;
-          const lx = cx + Math.sin(shot.angle) * labelRadius;
+          const lx = cx - Math.sin(shot.angle) * labelRadius;
           const ly = cy - Math.cos(shot.angle) * labelRadius;
           wagonCtx.font = 'bold 20px sans-serif';
           wagonCtx.textAlign = 'center';
