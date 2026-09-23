@@ -21,6 +21,26 @@
 <link rel="preload" as="script" href="shot-inference.js">
 
 <style>
+  /* ═══════════════════════════════════════════════════════════
+     DESIGN TOKENS
+     ═══════════════════════════════════════════════════════════ */
+  :root{
+    --bg-deep:#020713;
+    --bg-panel:rgba(8,14,28,.92);
+    --bg-panel-solid:rgba(8,14,28,.94);
+    --border:rgba(255,255,255,.12);
+    --border-soft:rgba(255,255,255,.08);
+    --accent-primary:#00e676;
+    --accent-cyan:#22d3ee;
+    --accent-orange:#ff8800;
+    --accent-red:#ef4444;
+    --accent-gold:#fbbf24;
+    --text-primary:#f1f5f9;
+    --text-muted:#94a3b8;
+    --r-sm:8px; --r-md:12px; --r-lg:14px;
+    --sp-xs:4px; --sp-sm:8px; --sp-md:12px; --sp-lg:16px; --sp-xl:24px;
+  }
+
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;overscroll-behavior:none;}
   canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;touch-action:none;}
@@ -58,11 +78,8 @@
   #irisTransition.closing{opacity:0;transition:opacity 220ms ease-out;clip-path:circle(160% at 50% 50%);}
 
   /* ═══════════════════════════════════════════════════════════
-     HUD REDESIGN — Top bar, stat pill, floating over-dots,
-     unified score strip, fixed ticker
+     ZONE 1 — BRAND BAR (48px)
      ═══════════════════════════════════════════════════════════ */
-
-  /* Top bar (48px) — brand left, actions right */
   .top-bar{
     position:absolute;top:0;left:0;right:0;height:48px;
     display:flex;align-items:center;justify-content:space-between;
@@ -86,14 +103,22 @@
   .brand-name b{background:linear-gradient(135deg,#009270,#00e676);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900;}
   .top-right{display:flex;gap:6px;align-items:center;pointer-events:auto;}
 
-  /* Icon buttons (48px tap target inside 30px visual) */
-  .ic{width:30px;height:30px;border-radius:9px;background:rgba(8,14,28,.88);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;flex-shrink:0;touch-action:manipulation;}
+  /* Icon buttons (30px visual, 44px effective tap target via padding) */
+  .ic{width:30px;height:30px;border-radius:9px;background:rgba(8,14,28,.88);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;pointer-events:auto;flex-shrink:0;touch-action:manipulation;position:relative;}
   .ic:active{transform:scale(.92);}
   .ic.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
+  .ic::after{content:'';position:absolute;inset:-7px;}
 
-  /* Floating stat pill */
-  .stat-pill{
+  /* ═══════════════════════════════════════════════════════════
+     ZONE 2 — FLOATING PILLS (overlay on 3D)
+     ═══════════════════════════════════════════════════════════ */
+  .pill-stack{
     position:absolute;top:56px;left:12px;
+    display:flex;flex-direction:column;gap:6px;
+    pointer-events:none;z-index:100005;
+    max-width:calc(100vw - 24px);
+  }
+  .stat-pill{
     display:inline-flex;align-items:center;gap:8px;
     padding:8px 14px;
     background:rgba(8,14,28,.88);
@@ -101,9 +126,9 @@
     border:1px solid rgba(255,255,255,.12);
     border-left:3px solid #00e676;border-radius:12px;
     font-family:inherit;font-size:13px;font-weight:800;color:#f1f5f9;
-    pointer-events:none;z-index:100005;
     box-shadow:0 4px 20px rgba(0,0,0,.45);
-    max-width:calc(100vw - 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    align-self:flex-start;
   }
   .sp-team{font-size:11px;font-weight:900;letter-spacing:1px;color:#00e676;}
   .sp-score{font-family:ui-monospace,monospace;font-size:16px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;}
@@ -112,21 +137,135 @@
   .sp-crr{font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:.5px;}
   .sp-crr b{color:#22d3ee;font-weight:900;font-family:ui-monospace,monospace;margin-left:2px;}
 
-  /* Floating over dots */
-  .over-dots-float{
-    position:absolute;right:12px;bottom:110px;
+  /* Secondary pill (conditional) */
+  .pill-secondary{
+    display:none;align-items:center;gap:8px;
+    padding:7px 12px;
+    background:rgba(8,14,28,.85);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.1);
+    border-left:3px solid rgba(148,163,184,.6);
+    border-radius:12px;
+    font-size:11.5px;font-weight:800;color:#e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.4);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    align-self:flex-start;
+  }
+  .pill-secondary.show{display:inline-flex;}
+  .ps-label{font-size:9.5px;font-weight:900;letter-spacing:1px;color:#94a3b8;text-transform:uppercase;}
+  .ps-val{font-family:ui-monospace,monospace;font-weight:900;color:#fff;}
+  .ps-val b{color:#22d3ee;}
+
+  /* Tertiary pill — milestone watch */
+  .pill-milestone{
+    display:none;align-items:center;gap:8px;
+    padding:7px 12px;
+    background:rgba(8,14,28,.85);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(251,191,36,.4);
+    border-left:3px solid #fbbf24;
+    border-radius:12px;
+    font-size:11.5px;font-weight:800;color:#fef3c7;
+    box-shadow:0 4px 16px rgba(0,0,0,.4);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    align-self:flex-start;
+    animation:milestonePulse 3s ease-in-out infinite;
+  }
+  .pill-milestone.show{display:inline-flex;}
+  .pm-name{color:#fbbf24;font-weight:900;}
+  .pm-val{font-family:ui-monospace,monospace;font-weight:900;color:#fff;}
+  @keyframes milestonePulse{0%,100%{box-shadow:0 4px 16px rgba(0,0,0,.4);}50%{box-shadow:0 4px 20px rgba(251,191,36,.35);}}
+
+  /* ═══════════════════════════════════════════════════════════
+     ZONE 3 — 3D VIEWPORT OVERLAYS
+     ═══════════════════════════════════════════════════════════ */
+
+  /* Ball speed indicator — right side */
+  .speed-pill{
+    position:absolute;right:12px;top:100px;
+    padding:6px 11px;
+    background:rgba(8,14,28,.88);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(34,211,238,.45);
+    border-radius:9px;
+    font-family:ui-monospace,monospace;font-size:11px;font-weight:900;
+    color:#22d3ee;letter-spacing:.5px;
+    opacity:0;transform:translateX(20px);
+    transition:opacity .28s ease, transform .28s ease;
+    pointer-events:none;z-index:100006;
+  }
+  .speed-pill.on{opacity:1;transform:translateX(0);}
+
+  /* Milestone banner — center top */
+  .milestone-banner{
+    position:absolute;top:18%;left:50%;
+    transform:translate(-50%,-20px) scale(.9);
+    padding:12px 22px;
+    background:linear-gradient(160deg,rgba(120,90,10,.95),rgba(60,45,5,.97));
+    border:1px solid rgba(251,191,36,.6);
+    border-radius:14px;
+    text-align:center;
+    color:#fef3c7;
+    opacity:0;pointer-events:none;
+    transition:opacity .32s ease, transform .32s cubic-bezier(.34,1.56,.64,1);
+    box-shadow:0 8px 30px rgba(251,191,36,.35), 0 0 40px rgba(251,191,36,.25);
+    z-index:100008;
+    white-space:nowrap;
+  }
+  .milestone-banner.on{opacity:1;transform:translate(-50%,0) scale(1);}
+  .mb-line1{font-size:clamp(18px,4vw,26px);font-weight:900;letter-spacing:1.5px;line-height:1.1;}
+  .mb-line2{font-size:10px;font-weight:800;letter-spacing:1.4px;color:rgba(254,243,199,.75);text-transform:uppercase;margin-top:3px;}
+
+  /* Wicket flash — full screen red pulse */
+  .wicket-flash{
+    position:fixed;inset:0;
+    background:radial-gradient(circle at center,rgba(239,68,68,.35) 0%,rgba(127,29,29,.65) 100%);
+    opacity:0;pointer-events:none;z-index:100058;
+    transition:opacity .2s ease;
+  }
+  .wicket-flash.on{opacity:1;}
+
+  /* ═══════════════════════════════════════════════════════════
+     ZONE 4 — FLOATING OVER STRIP (pill, bottom-right)
+     Over dots only. No replay cluster (replay lives in Zone 1).
+     ═══════════════════════════════════════════════════════════ */
+  .over-strip-float{
+    position:absolute;
+    right:12px;
+    bottom:calc(118px + env(safe-area-inset-bottom,0));
+    display:flex;align-items:center;gap:10px;
     padding:8px 12px;
     background:rgba(8,14,28,.88);
     backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-    border:1px solid rgba(255,255,255,.12);border-radius:14px;
-    z-index:100005;pointer-events:none;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
     box-shadow:0 4px 20px rgba(0,0,0,.45);
+    pointer-events:none;z-index:100005;
     transition:opacity .2s;
   }
-  .over-dots-float .dots{display:flex;gap:5px;}
-  .over-dots-float .b{width:22px;height:22px;font-size:9px;}
+  .os-label{
+    font-size:9px;font-weight:900;letter-spacing:1.4px;
+    color:#94a3b8;text-transform:uppercase;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .os-divider{width:1px;height:18px;background:rgba(255,255,255,.14);flex-shrink:0;}
+  .over-strip-float .dots{display:flex;gap:4px;}
+  .over-strip-float .b{width:20px;height:20px;font-size:8.5px;}
 
-  /* Bottom section */
+  /* Over dot circles (shared classes) */
+  .dots{display:flex;gap:3px;}
+  .b{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);flex-shrink:0;}
+  .b.dot{background:rgba(148,163,184,.2);}
+  .b.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
+  .b.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
+  .b.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
+  .b.wkt{background:rgba(239,68,68,.55);color:#fff;border-color:#ef4444;}
+  .b.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
+  .b.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
+
+  /* ═══════════════════════════════════════════════════════════
+     ZONE 5 & 6 — SCORE STRIP + TICKER (unified bottom)
+     ═══════════════════════════════════════════════════════════ */
   .bottom{
     position:absolute;bottom:0;left:0;right:0;
     display:flex;flex-direction:column;
@@ -136,7 +275,7 @@
     background:linear-gradient(0deg,rgba(2,7,19,.96) 0%,rgba(2,7,19,.85) 80%,rgba(2,7,19,0) 100%);
   }
 
-  /* Score strip (56px) */
+  /* Zone 5 — Score strip */
   .score-strip{
     display:flex;align-items:center;height:56px;
     margin:0 8px 4px;padding:0 14px;
@@ -158,7 +297,7 @@
   .ss-bowl{text-align:right;flex-shrink:0;font-size:11px;font-weight:700;color:#22d3ee;line-height:1.25;}
   .ss-bowl > div:first-child{color:#fff;font-weight:800;font-size:12px;}
 
-  /* Ticker (32px, always visible) */
+  /* Zone 6 — Ticker */
   .ticker{
     display:flex;align-items:center;gap:8px;height:32px;
     margin:0 8px;padding:0 12px;
@@ -177,18 +316,9 @@
   .ticker-badge.wkt{background:rgba(239,68,68,.35);color:#fff;box-shadow:0 0 8px rgba(239,68,68,.6);}
   .ticker-text{font-size:11.5px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
 
-  /* Over dot circles */
-  .dots{display:flex;gap:3px;flex:1;justify-content:center;}
-  .b{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);flex-shrink:0;}
-  .b.dot{background:rgba(148,163,184,.2);}
-  .b.run{background:rgba(2,132,199,.3);color:#38bdf8;border-color:#38bdf8;}
-  .b.four{background:rgba(34,211,238,.35);color:#22d3ee;border-color:#22d3ee;}
-  .b.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
-  .b.wkt{background:rgba(239,68,68,.55);color:#fff;border-color:#ef4444;}
-  .b.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
-  .b.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
-
-  /* Audio FAB */
+  /* ═══════════════════════════════════════════════════════════
+     AUDIO FAB
+     ═══════════════════════════════════════════════════════════ */
   .audio-fab{position:absolute;top:110px;left:12px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;touch-action:manipulation;}
   .audio-fab > .ic{width:36px;height:36px;font-size:16px;border-radius:10px;position:relative;}
   .audio-fab > .ic .snd-caret{position:absolute;bottom:2px;right:3px;font-size:8px;opacity:.9;line-height:1;}
@@ -203,7 +333,9 @@
   .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
   .audio-opt.on .as{color:#00e676;}
 
-  /* Menu panel */
+  /* ═══════════════════════════════════════════════════════════
+     MENU PANEL
+     ═══════════════════════════════════════════════════════════ */
   #menuPanel{position:absolute;top:48px;right:6px;width:min(88vw,290px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:9px;z-index:100001;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 60px);overflow-y:auto;touch-action:manipulation;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-sec{margin-bottom:8px;}
@@ -216,15 +348,17 @@
   .menu-t .i{font-size:13px;line-height:1;}
   .menu-div{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:7px 0;}
 
-  /* Speed tag */
-  .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
-  .speed.on{opacity:1;}
-
-  /* Camera select */
+  /* Cam select */
   .cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;min-width:0;max-width:120px;width:100%;}
   .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
 
-  /* Wagon wheel */
+  /* Speed tag (legacy, kept for compatibility) */
+  .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
+  .speed.on{opacity:1;}
+
+  /* ═══════════════════════════════════════════════════════════
+     WAGON WHEEL
+     ═══════════════════════════════════════════════════════════ */
   #wagonWrap{position:fixed;top:44px;left:0;right:0;bottom:88px;display:none;align-items:center;justify-content:center;padding:4px;z-index:10001;pointer-events:none;}
   #wagonWrap.show{display:flex;}
   #wagonWheelCanvas{max-width:100%;max-height:100%;width:auto;height:auto;aspect-ratio:1/1;background:#050b0a;border:1px solid rgba(0,230,118,.4);border-radius:50%;box-shadow:0 0 40px rgba(0,230,118,.35), inset 0 0 30px rgba(0,0,0,.6);pointer-events:auto;display:block;}
@@ -262,13 +396,17 @@
   #bbBowler{transition:color .3s;}
   #bbBowler.bowler-flash{color:#ffffff;text-shadow:0 0 8px #22d3ee;}
 
-  /* Small screens */
+  /* ═══════════════════════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════════════════════ */
   @media (max-width:360px){
     .brand-name{font-size:10px;letter-spacing:1.5px;}
     .live-text{font-size:9px;}
-    .stat-pill{padding:6px 10px;font-size:12px;top:52px;}
+    .stat-pill{padding:6px 10px;font-size:12px;}
     .sp-score{font-size:14px;}
-    .over-dots-float .b{width:18px;height:18px;font-size:8px;}
+    .over-strip-float{padding:7px 10px;gap:8px;bottom:calc(112px + env(safe-area-inset-bottom,0));}
+    .over-strip-float .b{width:18px;height:18px;font-size:8px;}
+    .os-label{font-size:8px;}
     .score-strip{height:50px;padding:0 10px;gap:8px;}
     .ss-score{font-size:18px;}
     .ss-bats{font-size:11px;}
@@ -281,9 +419,11 @@
   @media (max-width:320px){ .live-text{display:none;} }
   @media (prefers-reduced-motion: reduce){
     .live-dot{animation:none;}
+    .pill-milestone{animation:none;}
   }
-</style> 
- <body>
+</style>
+</head>
+<body>
 
 <!-- ═══════════════════════════════════════════════════════════
      IRIS LOADER
@@ -308,11 +448,12 @@
 <div id="irisTransition" aria-hidden="true"></div>
 
 <div class="vignette"></div>
+<div class="wicket-flash" id="wicketFlash"></div>
 
 <div class="hud">
 
   <!-- ═══════════════════════════════════════════════════════════
-       TOP BAR — brand left, actions right
+       ZONE 1 — BRAND BAR
        ═══════════════════════════════════════════════════════════ -->
   <div class="top-bar">
     <div class="top-brand">
@@ -322,34 +463,57 @@
       <span class="brand-name">CRICMAX <b>PRO</b></span>
     </div>
     <div class="top-right">
-      <div class="ic" onclick="triggerReplay()" title="Replay">↻</div>
       <div class="ic on" id="btn-dir" onclick="toggleDirector()" title="Director">🎬</div>
       <div class="ic" id="btn-stadium" onclick="toggleStadiumView()" title="View">🕸️</div>
+      <div class="ic" onclick="triggerReplay()" title="Replay">↻</div>
       <div class="ic" id="btn-menu" onclick="toggleMenu(event)" title="Menu">⋯</div>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       FLOATING STAT PILL
+       ZONE 2 — FLOATING PILLS
        ═══════════════════════════════════════════════════════════ -->
-  <div class="stat-pill" id="statPill">
-    <span class="sp-team" id="spTeam">T1</span>
-    <span class="sp-score" id="spScore">0/0</span>
-    <span class="sp-ov" id="spOvers">0.0 ov</span>
-    <span class="sp-divider">·</span>
-    <span class="sp-crr">CRR <b id="spCRR">0.00</b></span>
+  <div class="pill-stack">
+    <!-- Primary pill: team / score / overs / CRR -->
+    <div class="stat-pill" id="statPill">
+      <span class="sp-team" id="spTeam">T1</span>
+      <span class="sp-score" id="spScore">0/0</span>
+      <span class="sp-ov" id="spOvers">0.0 ov</span>
+      <span class="sp-divider">·</span>
+      <span class="sp-crr">CRR <b id="spCRR">0.00</b></span>
+    </div>
+
+    <!-- Secondary pill: partnership / chase -->
+    <div class="pill-secondary" id="pillSecondary">
+      <span class="ps-label" id="psLabel">PARTNERSHIP</span>
+      <span class="ps-val" id="psVal">0(0)</span>
+    </div>
+
+    <!-- Tertiary pill: milestone watch -->
+    <div class="pill-milestone" id="pillMilestone">
+      <span class="pm-name" id="pmName">Batter</span>
+      <span class="pm-val" id="pmVal">42*</span>
+      <span class="ps-label" id="pmNote">8 TO FIFTY</span>
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       FLOATING OVER DOTS
+       ZONE 3 — 3D VIEWPORT OVERLAYS
        ═══════════════════════════════════════════════════════════ -->
-  <div class="over-dots-float" id="overDotsFloat">
-    <div class="dots" id="overDotsContainer"></div>
+
+  <!-- Ball speed indicator -->
+  <div class="speed-pill" id="speedPill">-- km/h</div>
+
+  <!-- Milestone banner -->
+  <div class="milestone-banner" id="milestoneBanner">
+    <div class="mb-line1" id="mbLine1">BATTER · 50!</div>
+    <div class="mb-line2" id="mbLine2">Off 32 balls</div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       AUDIO FAB
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- Legacy speed tag (kept for playBall compatibility) -->
+  <div class="speed" id="speedTag">SPEED: --</div>
+
+  <!-- Audio FAB -->
   <div class="audio-fab">
     <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)">
       <span id="snd-ico">🏟️</span>
@@ -369,9 +533,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       MENU PANEL
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- Menu panel -->
   <div id="menuPanel">
     <div class="menu-sec">
       <div class="menu-ttl">Navigate</div>
@@ -433,9 +595,6 @@
     </div>
   </div>
 
-  <!-- Speed tag -->
-  <div class="speed" id="speedTag">SPEED: --</div>
-
   <!-- Wagon wheel -->
   <div id="wagonWrap">
     <canvas id="wagonWheelCanvas" width="800" height="800" style="max-width:100%;height:auto;"></canvas>
@@ -446,7 +605,16 @@
   <div class="banner" id="banner">FOUR!</div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       BOTTOM — score strip + ticker
+       ZONE 4 — FLOATING OVER STRIP (pill, bottom-right)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="over-strip-float" id="overStripFloat">
+    <span class="os-label">THIS OVER</span>
+    <span class="os-divider"></span>
+    <div class="dots" id="overDotsContainer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ZONE 5 + 6 — SCORE STRIP + TICKER
        ═══════════════════════════════════════════════════════════ -->
   <div class="bottom">
     <div class="score-strip">
@@ -491,12 +659,12 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     IRIS LOADER JS — runs before anything else
+     IRIS LOADER JS
      ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   var startTime = Date.now();
-  var CIRCUMFERENCE = 540; /* 2 * π * 86 */
+  var CIRCUMFERENCE = 540;
   var fill = document.getElementById('cm-iris-fill');
   var sub = document.getElementById('cm-loader-sub');
 
@@ -575,16 +743,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     OPTIONAL MODULES — deferred, load parallel to main
-     ═══════════════════════════════════════════════════════════ -->
 <script src="shot-library.js" defer></script>
 <script src="shot-inference.js" defer></script>
 <script src="render-boost.js" defer></script>
 <script src="player-upgrades.js" defer></script>
 <script src="shot-fx.js" defer></script>
 
-<!-- Stub guards so later code never crashes on missing modules -->
 <script>
 (function(){
   var noop = function(){};
@@ -593,8 +757,9 @@
     if (typeof window[k] !== 'function') window[k] = noop;
   });
 })();
-</script> 
-  <script>
+</script>
+
+<script>
 (function(){
   /* ═══════════════════════════════════════════════════════════════
      DEBUG MODE
@@ -653,7 +818,7 @@
   }
   window.__cmProgress(8, 'Initializing engine…');
 
-  /* ── Lazy loader for stadium.js ── */
+  /* ── Lazy loader ── */
   function loadScript(src){
     return new Promise(function(resolve){
       const s = document.createElement('script');
@@ -707,7 +872,7 @@
   renderer.domElement.style.zIndex = '0';
   document.body.appendChild(renderer.domElement);
 
-  /* ── WebGL context recovery ── */
+  /* ── Context recovery ── */
   let __contextLost = false;
   renderer.domElement.addEventListener('webglcontextlost', function(e){
     e.preventDefault();
@@ -845,22 +1010,13 @@
     const target = !!active;
     if (target === stadiumViewActive && !skipIris) return;
     if (__cmViewSwitchLock) return;
-    if (skipIris){
-      __cmApplyStadiumView(target);
-      return;
-    }
+    if (skipIris){ __cmApplyStadiumView(target); return; }
 
     const iris = document.getElementById('irisTransition');
-    if (!iris){
-      __cmApplyStadiumView(target);
-      return;
-    }
+    if (!iris){ __cmApplyStadiumView(target); return; }
 
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced){
-      __cmApplyStadiumView(target);
-      return;
-    }
+    if (reduced){ __cmApplyStadiumView(target); return; }
 
     __cmViewSwitchLock = true;
 
@@ -1345,7 +1501,6 @@
   let audioMenuOpen = false;
   let ambienceNodes = null;
   let commentaryVoice = null;
-  let commTickerTimer = null;
   let lastSpeakTime = 0;
   let lastRoarTime = 0;
 
@@ -1479,7 +1634,6 @@
     const txt = document.getElementById('tickerText');
     if (!txt) return;
 
-    /* Determine badge based on text */
     let badgeChar = '●';
     let badgeClass = '';
     if (/^SIX|Maximum!|into the stands|That is huge/i.test(text)){ badgeChar = '6'; badgeClass = 'six'; }
@@ -2085,8 +2239,8 @@
     if (btn) btn.classList.toggle('on', directorOn);
     if (directorOn) activeCam = 'broadcast';
   }
-  function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } 
-   function triggerReplay(){ if (lastShot){ playBall(Object.assign({}, lastShot, { __isReplay: true })); } }
+  function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+  function triggerReplay(){ if (lastShot){ playBall(Object.assign({}, lastShot, { __isReplay: true })); } }
   function simFeedScoringTab(){ playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 }); }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -2223,6 +2377,15 @@
     const speedVal = shot.ballSpeed || (isSpin ? (85 + Math.random()*10).toFixed(1) : (135 + Math.random()*15).toFixed(1));
     const sTag = document.getElementById('speedTag');
     if (sTag){ sTag.innerText = 'SPEED: ' + speedVal; sTag.classList.add('on'); }
+
+    /* Zone 3 — speed pill */
+    const speedPill = document.getElementById('speedPill');
+    if (speedPill){
+      speedPill.textContent = speedVal + ' km/h';
+      speedPill.classList.add('on');
+      clearTimeout(speedPill._hideT);
+      speedPill._hideT = setTimeout(function(){ speedPill.classList.remove('on'); }, 3000);
+    }
 
     let lastDustPuff = 0;
     const seamSpinX = isSpin ? 0.15 : 0.35;
@@ -2420,6 +2583,15 @@
       else { b.innerText = runs > 0 ? runs + ' RUNS' : 'DOT BALL'; b.classList.add('run'); }
       setTimeout(() => b.classList.remove('on'), 2400);
     }, 1300);
+
+    /* Zone 3 — wicket flash */
+    if (isWkt || isCatch){
+      const flash = document.getElementById('wicketFlash');
+      if (flash){
+        flash.classList.add('on');
+        setTimeout(function(){ flash.classList.remove('on'); }, 400);
+      }
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -2450,6 +2622,73 @@
       } else { dot.innerText = '·'; }
       container.appendChild(dot);
     }
+  }
+
+  /* Zone 2 — secondary/tertiary pill logic */
+  function updateConditionalPills(m){
+    const sec = document.getElementById('pillSecondary');
+    const ter = document.getElementById('pillMilestone');
+    if (!sec || !ter) return;
+
+    const balls = m.legalBalls || 0;
+    const runs = m.runs || 0;
+    const wkts = m.wickets || 0;
+    const target = m.target || 0;
+    const oversLimit = m.oversLimit || 0;
+
+    /* Secondary: chase info > partnership > hidden */
+    let secShown = false;
+    if (target > runs && oversLimit > 0){
+      const ballsLeft = (oversLimit * 6) - balls;
+      const need = target - runs;
+      if (ballsLeft > 0 && need > 0){
+        const rrr = ((need / ballsLeft) * 6).toFixed(2);
+        const l = document.getElementById('psLabel');
+        const v = document.getElementById('psVal');
+        if (l) l.textContent = 'NEED';
+        if (v) v.innerHTML = need + ' OFF ' + ballsLeft + ' · RRR <b>' + rrr + '</b>';
+        sec.classList.add('show');
+        secShown = true;
+      }
+    }
+    if (!secShown){
+      const part = m.partnership || 0;
+      const partBalls = m.partnershipBalls || 0;
+      if (part > 0 && partBalls >= 12){
+        const l = document.getElementById('psLabel');
+        const v = document.getElementById('psVal');
+        if (l) l.textContent = 'PARTNERSHIP';
+        if (v) v.textContent = part + '(' + partBalls + ')';
+        sec.classList.add('show');
+        secShown = true;
+      }
+    }
+    if (!secShown) sec.classList.remove('show');
+
+    /* Tertiary: milestone watch (striker within 10 of 50/100) */
+    const st = m.striker;
+    const sB = (st && m.batters && m.batters[st]) || null;
+    let terShown = false;
+    if (sB){
+      const r = sB.runs || 0;
+      const ballsFaced = sB.balls || 0;
+      const targets = [50, 100, 150, 200];
+      for (let i = 0; i < targets.length; i++){
+        const t = targets[i];
+        if (r < t && r >= t - 10){
+          const nm = document.getElementById('pmName');
+          const vl = document.getElementById('pmVal');
+          const nt = document.getElementById('pmNote');
+          if (nm) nm.textContent = st;
+          if (vl) vl.textContent = r + '*';
+          if (nt) nt.textContent = (t - r) + ' TO ' + (t === 50 ? 'FIFTY' : t === 100 ? 'HUNDRED' : t === 150 ? '150' : '200');
+          ter.classList.add('show');
+          terShown = true;
+          break;
+        }
+      }
+    }
+    if (!terShown) ter.classList.remove('show');
   }
 
   function applyMatch(raw){
@@ -2513,7 +2752,7 @@
     setTxt('bbBowlerFigs', Math.floor((bw.balls || 0)/6) + '.' + ((bw.balls || 0)%6) + '-' + (bw.maidens || 0) + '-' + (bw.runs || 0) + '-' + (bw.wickets || 0));
     applyBowlerIdentity(bwName);
 
-    /* ═══ Stat pill sync ═══ */
+    /* Zone 2 — primary stat pill sync */
     const spTeam = document.getElementById('spTeam');
     const spScore = document.getElementById('spScore');
     const spOvers = document.getElementById('spOvers');
@@ -2526,7 +2765,10 @@
       spCRR.innerText = crr;
     }
 
-    /* ═══ Team color bar sync ═══ */
+    /* Zone 2 — secondary + tertiary pills */
+    updateConditionalPills(m);
+
+    /* Team color bar sync */
     const teamBar = document.getElementById('ssTeamBar');
     const abbrBox = document.getElementById('bbAbbr');
     if (teamBar && abbrBox){
@@ -2883,4 +3125,3 @@
 
 </body>
 </html>
-</head>
