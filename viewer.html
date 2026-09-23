@@ -30,20 +30,123 @@
 
   #cm-loader{position:fixed;inset:0;background:radial-gradient(circle at 50% 60%, #0a0f1c 0%, #020713 70%);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s ease;overflow:hidden;}
   #cm-loader.cm-hide{opacity:0;pointer-events:none;}
-  .cm-stadium{position:relative;width:min(78vw,340px);height:min(50vh,220px);margin-bottom:32px;}
-  .cm-tower{position:absolute;width:26px;height:70px;background:linear-gradient(180deg,#0d1420 0%,#060a12 100%);border-radius:4px 4px 2px 2px;opacity:.35;transition:opacity .3s ease;}
-  .cm-tower.back{top:8%;} .cm-tower.front{bottom:8%;} .cm-tower.left{left:0;} .cm-tower.right{right:0;}
-  .cm-tower::before{content:'';position:absolute;top:-6px;left:-4px;right:-4px;height:14px;background:#0a0f18;border-radius:3px;box-shadow:0 0 0 rgba(255,200,120,0);transition:all .4s ease;}
-  .cm-tower.on::before{animation:cmTowerOn .5s ease-out forwards;}
-  .cm-tower[data-delay="1"].on::before{animation-delay:.3s;}
-  .cm-tower.front.on{opacity:1;}
-  @keyframes cmTowerOn{0%{background:#0a0f18;box-shadow:0 0 0 rgba(255,220,140,0);}15%{background:#fff;box-shadow:0 0 28px 12px rgba(255,255,255,.9);}40%{background:#ffd98f;box-shadow:0 0 22px 8px rgba(255,215,140,.7);}100%{background:#ffd98f;box-shadow:0 0 16px 4px rgba(255,200,120,.5);}}
-  .cm-field-glow{position:absolute;inset:auto 0 0 0;height:60%;background:radial-gradient(ellipse at 15% 100%, rgba(255,200,120,.28) 0%, transparent 45%),radial-gradient(ellipse at 85% 100%, rgba(255,200,120,.28) 0%, transparent 45%),radial-gradient(ellipse at 50% 100%, rgba(255,220,150,.18) 0%, transparent 55%);opacity:0;transition:opacity .8s ease;pointer-events:none;}
-  .cm-field-glow.on{opacity:1;}
-  .cm-loader-status{display:flex;flex-direction:column;align-items:center;gap:10px;width:min(80vw,260px);}
-  .cm-loader-bar-wrap{width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
-  #cm-loader-bar{width:0%;height:100%;background:linear-gradient(90deg,#009270,#00e676,#a7f3d0);border-radius:3px;transition:width .35s ease-out;box-shadow:0 0 10px rgba(0,230,118,.6);}
-  .cm-loader-sub{font-size:11px;font-weight:800;letter-spacing:1.4px;color:#64748b;text-transform:uppercase;text-align:center;min-height:14px;}
+   /* ═══════════════════════════════════════════════════════════
+     IRIS LOADER — progress ring with cricket icon
+     ═══════════════════════════════════════════════════════════ */
+  #cm-loader{position:fixed;inset:0;background:radial-gradient(circle at 50% 50%, #0a1418 0%, #020713 75%);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s ease;overflow:hidden;}
+  #cm-loader.cm-hide{opacity:0;pointer-events:none;}
+
+  .cm-loader-iris{
+    position:relative;
+    width:min(64vw,240px);
+    height:min(64vw,240px);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:28px;
+  }
+
+  /* Pulsing glow behind the ring */
+  .cm-loader-iris::before{
+    content:'';position:absolute;inset:-32px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(0,230,118,.18) 0%, transparent 65%);
+    animation:irisPulse 2.4s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes irisPulse{
+    0%,100%{transform:scale(.85);opacity:.5;}
+    50%{transform:scale(1.05);opacity:1;}
+  }
+
+  .cm-iris-svg{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    transform:rotate(-90deg);
+    overflow:visible;
+  }
+  .cm-iris-track{
+    fill:none;
+    stroke:rgba(0,230,118,.12);
+    stroke-width:3;
+  }
+  .cm-iris-fill{
+    fill:none;
+    stroke:#00e676;
+    stroke-width:3;
+    stroke-linecap:round;
+    stroke-dasharray:540;
+    stroke-dashoffset:540;
+    transition:stroke-dashoffset .35s ease-out;
+    filter:drop-shadow(0 0 10px rgba(0,230,118,.8));
+  }
+
+  .cm-loader-core{
+    position:relative;
+    text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    z-index:1;
+  }
+  .cm-loader-icon{
+    font-size:clamp(34px,9vw,44px);line-height:1;
+    display:inline-block;
+    animation:batBob 1.6s ease-in-out infinite;
+    filter:drop-shadow(0 0 16px rgba(0,230,118,.55));
+  }
+  @keyframes batBob{
+    0%,100%{transform:translateY(0) rotate(-8deg);}
+    50%{transform:translateY(-6px) rotate(8deg);}
+  }
+  .cm-loader-title{
+    font-size:clamp(12px,3.4vw,14px);
+    font-weight:900;
+    letter-spacing:3px;
+    color:#f1f5f9;
+    text-shadow:0 0 20px rgba(0,230,118,.3);
+    white-space:nowrap;
+  }
+  .cm-loader-title span{
+    background:linear-gradient(135deg,#009270,#00e676);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+
+  .cm-loader-status{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    width:min(80vw,240px);
+  }
+  .cm-loader-sub{
+    font-size:11px;font-weight:800;letter-spacing:1.5px;
+    color:#64748b;text-transform:uppercase;text-align:center;
+    min-height:14px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .cm-loader-iris::before{animation:none;opacity:.7;}
+    .cm-loader-icon{animation:none;}
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     IRIS TRANSITION — stadium ↔ wagon view switch
+     ═══════════════════════════════════════════════════════════ */
+  #irisTransition{
+    position:fixed;inset:0;
+    z-index:100060;
+    background:radial-gradient(circle at 50% 50%, #00e676 0%, #009270 60%, #005f4a 100%);
+    clip-path:circle(0% at 50% 50%);
+    opacity:0;
+    pointer-events:none;
+    will-change:clip-path, opacity;
+  }
+  #irisTransition.opening{
+    opacity:1;
+    pointer-events:auto;
+    transition:clip-path 340ms cubic-bezier(.4, 0, .2, 1);
+    clip-path:circle(160% at 50% 50%);
+  }
+  #irisTransition.closing{
+    opacity:0;
+    transition:opacity 220ms ease-out;
+    clip-path:circle(160% at 50% 50%);
+  }
 
   .top-bar{position:absolute;top:6px;left:6px;right:6px;display:flex;justify-content:space-between;align-items:center;gap:4px;pointer-events:none;}
   .top-left{display:flex;gap:4px;align-items:center;pointer-events:auto;}
@@ -171,20 +274,25 @@
 </head> 
      <body>
 
-<!-- Floodlight Loader -->
+<!-- Iris Loader -->
 <div id="cm-loader">
-  <div class="cm-stadium">
-    <div class="cm-tower back left"  data-delay="0"></div>
-    <div class="cm-tower back right" data-delay="0"></div>
-    <div class="cm-tower front left"  data-delay="1"></div>
-    <div class="cm-tower front right" data-delay="1"></div>
-    <div class="cm-field-glow"></div>
+  <div class="cm-loader-iris">
+    <svg class="cm-iris-svg" viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="cm-iris-track" cx="100" cy="100" r="86"></circle>
+      <circle class="cm-iris-fill" id="cm-iris-fill" cx="100" cy="100" r="86"></circle>
+    </svg>
+    <div class="cm-loader-core">
+      <div class="cm-loader-icon">🏏</div>
+      <div class="cm-loader-title">CRICMAX <span>PRO</span></div>
+    </div>
   </div>
   <div class="cm-loader-status">
-    <div class="cm-loader-bar-wrap"><div id="cm-loader-bar"></div></div>
     <div class="cm-loader-sub" id="cm-loader-sub">Loading stadium…</div>
   </div>
 </div>
+
+<!-- Iris Transition (used on stadium ↔ wagon switch) -->
+<div id="irisTransition" aria-hidden="true"></div>
 
 <div class="vignette"></div>
 
@@ -330,45 +438,51 @@
   <div class="tv-recent" id="tvRecent"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     FLOODLIGHT LOADER JS — runs before anything else
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
-  var towers = document.querySelectorAll('.cm-tower');
-  towers.forEach(function(t){
-    var delay = parseInt(t.getAttribute('data-delay'),10) || 0;
-    setTimeout(function(){
-      t.classList.add('on');
-      if (t.classList.contains('back')){
-        var glow = document.querySelector('.cm-field-glow');
-        if (glow) glow.classList.add('on');
-      }
-    }, 100 + delay * 300);
-  });
-
   var startTime = Date.now();
-  var bar = document.getElementById('cm-loader-bar');
+  var CIRCUMFERENCE = 540; /* 2 * π * 86 */
+  var fill = document.getElementById('cm-iris-fill');
   var sub = document.getElementById('cm-loader-sub');
-  var check = setInterval(function(){
+
+  var fakeProgress = 0;
+  var realProgress = 0;
+
+  function renderRing(){
+    var p = Math.max(fakeProgress, realProgress);
+    if (p > 100) p = 100;
+    if (fill) fill.style.strokeDashoffset = CIRCUMFERENCE * (1 - p / 100);
+  }
+
+  /* Fake progression — never goes past 90% until real signal arrives */
+  var fakeTimer = setInterval(function(){
+    var elapsed = Date.now() - startTime;
+    fakeProgress = Math.min(90, (elapsed / 6000) * 90);
+    renderRing();
+  }, 100);
+
+  /* Public API used by main script to push real progress */
+  window.__cmProgress = function(pct, label){
+    if (typeof pct === 'number') realProgress = Math.max(realProgress, pct);
+    if (sub && label) sub.innerText = label;
+    renderRing();
+  };
+
+  /* Failsafe — force hide after 10s */
+  var failsafe = setInterval(function(){
     var elapsed = Date.now() - startTime;
     var loader = document.getElementById('cm-loader');
-    if (!loader){ clearInterval(check); return; }
-    if (bar && elapsed < 8000){
-      var fake = Math.min(90, (elapsed / 8000) * 90);
-      if (!bar.style.width || parseFloat(bar.style.width) < fake){
-        bar.style.width = fake + '%';
-      }
-    }
+    if (!loader){ clearInterval(failsafe); clearInterval(fakeTimer); return; }
     if (elapsed > 10000){
-      clearInterval(check);
+      clearInterval(failsafe);
+      clearInterval(fakeTimer);
       loader.classList.add('cm-hide');
       setTimeout(function(){ try { loader.remove(); } catch(e){} }, 600);
       console.warn('[CricMax] Failsafe loader hide triggered after 10s');
     }
-  }, 100);
+  }, 500);
 
-  window.__cmLoaderFailsafe = check;
+  window.__cmLoaderFailsafe = failsafe;
   window.__cmLoaderStart = startTime;
 
   window.addEventListener('error', function(ev){
@@ -500,13 +614,14 @@
   })();
   window.__cmDevice = CM_DEVICE;
   cmlog('Device tier:', CM_DEVICE);
-
-  const __cmLoaderBar = document.getElementById('cm-loader-bar');
+  /* __cmProgress is defined by the loader script above.
+     Reuse it if present so both ring + sub label stay in sync. */
   const __cmLoaderSub = document.getElementById('cm-loader-sub');
-  window.__cmProgress = function(pct, label){
-    if (__cmLoaderBar) __cmLoaderBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
-    if (__cmLoaderSub && label) __cmLoaderSub.innerText = label;
-  };
+  if (typeof window.__cmProgress !== 'function'){
+    window.__cmProgress = function(pct, label){
+      if (__cmLoaderSub && label) __cmLoaderSub.innerText = label;
+    };
+  }
   window.__cmProgress(8, 'Initializing engine…');
 
   /* ── Lazy loader for stadium.js ── */
@@ -677,6 +792,16 @@
     const btn = document.getElementById('btn-stadium');
     const wagonBtn = document.getElementById('util-wagon');
 
+  let __cmViewSwitchLock = false;
+
+  function __cmApplyStadiumView(active){
+    stadiumViewActive = !!active;
+    const canvas = renderer.domElement;
+    const wrap = document.getElementById('wagonWrap');
+    const info = document.getElementById('wagonInfo');
+    const btn = document.getElementById('btn-stadium');
+    const wagonBtn = document.getElementById('util-wagon');
+
     if (stadiumViewActive){
       canvas.style.display = 'block';
       canvas.style.zIndex = '0';
@@ -690,9 +815,71 @@
       if (info) info.classList.add('show');
       if (btn){ btn.classList.remove('on'); btn.innerText = '🕸️'; }
       if (wagonBtn) wagonBtn.classList.add('on');
+      if (window.fxTrailStop) window.fxTrailStop();
       __cmWagonDirty = true;
       setTimeout(function(){ try { drawWagonWheel(); } catch(e){ console.warn(e); } }, 30);
     }
+  }
+
+  function setStadiumView(active, skipIris){
+    const target = !!active;
+    if (target === stadiumViewActive && !skipIris) return;
+    if (__cmViewSwitchLock) return;
+    if (skipIris){
+      __cmApplyStadiumView(target);
+      return;
+    }
+
+    const iris = document.getElementById('irisTransition');
+    if (!iris){
+      __cmApplyStadiumView(target);
+      return;
+    }
+
+    /* Respect reduced motion preference */
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced){
+      __cmApplyStadiumView(target);
+      return;
+    }
+
+    __cmViewSwitchLock = true;
+
+    /* Reset state (snap, no transition) */
+    iris.style.transition = 'none';
+    iris.style.clipPath = 'circle(0% at 50% 50%)';
+    iris.style.opacity = '1';
+    iris.classList.remove('opening', 'closing');
+    void iris.offsetWidth; /* force reflow */
+
+    /* Open the iris */
+    requestAnimationFrame(function(){
+      iris.classList.add('opening');
+    });
+
+    /* Halfway through opening — swap views while covered */
+    setTimeout(function(){
+      __cmApplyStadiumView(target);
+    }, 260);
+
+    /* When fully open — start fade out */
+    setTimeout(function(){
+      iris.classList.remove('opening');
+      iris.classList.add('closing');
+    }, 340);
+
+    /* Cleanup */
+    setTimeout(function(){
+      iris.classList.remove('closing');
+      iris.style.transition = 'none';
+      iris.style.clipPath = 'circle(0% at 50% 50%)';
+      iris.style.opacity = '0';
+      __cmViewSwitchLock = false;
+    }, 580);
+  }
+
+  function toggleStadiumView(){
+    setStadiumView(!stadiumViewActive);
   }
   function toggleStadiumView(){ setStadiumView(!stadiumViewActive); toggleMenu(); }
 
@@ -2628,7 +2815,7 @@
   requestAnimationFrame(animate);
 
   bootStadiumModule().then(function(){
-    setStadiumView(false);
+      setStadiumView(false, true); /* skip iris on initial load */
 
     setTimeout(function(){
       if (!__cmFirstFrame){
