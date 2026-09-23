@@ -2369,8 +2369,12 @@
     const fireDB = firebase.database();
     const urlParams = new URLSearchParams(window.location.search);
     const matchCode = urlParams.get('code');
-    const paths = ['cricmax/match_current'];
+      /* Subscribe to ONLY ONE path:
+       - if ?code= present → use code-specific path (real-time accurate)
+       - else → fall back to global pointer (match_current) */
+    const paths = [];
     if (matchCode) paths.push('cricmax/matches/' + matchCode);
+    else paths.push('cricmax/match_current');
 
     const startFirebase = function(){
       paths.forEach(function(p){
