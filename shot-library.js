@@ -260,6 +260,56 @@
       sound: 'bat_crack_med', weight: 'medium'
     },
 
+      /* ---------------- ADDITIONAL PLACED SHOTS ---------------- */
+    punch: {
+      label: 'Punch', category: 'rotation',
+      prepTime: 220, contactTime: 500, followTime: 400,
+      trajectory: 'grounded_fast',
+      pose: {
+        batStart:   { rotX: -Math.PI / 3.5, rotZ: 0.1 },
+        batContact: { rotX: -Math.PI / 5,   rotZ: -0.1 },
+        batEnd:     { rotX: -Math.PI / 8,   rotZ: -0.35 },
+        torsoRotY: 0.35, legStride: 0.25, headRotY: 0.2
+      },
+      sound: 'bat_crack_med', weight: 'medium'
+    },
+    late_cut: {
+      label: 'Late Cut', category: 'cut',
+      prepTime: 200, contactTime: 460, followTime: 450,
+      trajectory: 'grounded_fast',
+      pose: {
+        batStart:   { rotX: -Math.PI / 4, rotZ: -0.3 },
+        batContact: { rotX: -Math.PI / 3, rotZ: 0.5 },
+        batEnd:     { rotX: -Math.PI / 3, rotZ: 0.7 },
+        torsoRotY: -0.4, legStride: 0.1, headRotY: -0.5
+      },
+      sound: 'bat_crack_soft', weight: 'medium'
+    },
+    upper_cut: {
+      label: 'Upper Cut', category: 'cut',
+      prepTime: 240, contactTime: 480, followTime: 550,
+      trajectory: 'lofted_mid',
+      pose: {
+        batStart:   { rotX: -Math.PI / 3, rotZ: -0.5 },
+        batContact: { rotX: -Math.PI / 4, rotZ: 0 },
+        batEnd:     { rotX: 0, rotZ: 0.4 },
+        torsoRotY: -0.3, legStride: -0.15, headRotY: -0.4
+      },
+      sound: 'bat_crack_med', weight: 'hard'
+    },
+    reverse_sweep_grounded: {
+      label: 'Reverse Sweep', category: 'sweep',
+      prepTime: 300, contactTime: 560, followTime: 480,
+      trajectory: 'sweep_low',
+      pose: {
+        batStart:   { rotX: -Math.PI / 4, rotZ: 0.3 },
+        batContact: { rotX: Math.PI / 6,  rotZ: -0.2 },
+        batEnd:     { rotX: Math.PI / 4,  rotZ: -0.4 },
+        torsoRotY: -1.2, legStride: -0.35, headRotY: -0.6
+      },
+      sound: 'bat_crack_soft', weight: 'medium'
+    },
+
     /* ---------------- EDGE ---------------- */
     edge: {
       label: 'Edge', category: 'accidental',
