@@ -2153,13 +2153,23 @@ body.light-mode .nzc-wagon-tab.active {
 .loading-screen {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #0d1117, #131922);
+  background: var(--stripes), linear-gradient(135deg, #0d1117, #131922);
   z-index: 999999;
   display: none;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   padding: 20px;
+}
+.loading-screen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--grad-primary);
+  z-index: 2;
 }
 
 .loading-screen.active {
@@ -2243,13 +2253,28 @@ body.light-mode .nzc-wagon-tab.active {
 .tv-mode {
   position: fixed;
   inset: 0;
-  background: #000;
+  background: var(--stripes), #000;
   z-index: 99999;
   padding: 40px;
   display: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+.tv-mode::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0, 230, 118, 0.7) 25%,
+    rgba(34, 211, 238, 0.7) 50%,
+    rgba(0, 230, 118, 0.7) 75%,
+    transparent 100%);
+  pointer-events: none;
 }
 
 .tv-mode.active {
@@ -2311,13 +2336,31 @@ body.light-mode .nzc-wagon-tab.active {
   inset: 0;
   z-index: 9999998;
   display: none;
-  background: radial-gradient(ellipse at center, #0d1a30 0%, #000 70%);
+  background:
+    var(--stripes),
+    radial-gradient(ellipse at center, #0d1a30 0%, #000 70%);
   overflow: hidden;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   opacity: 1;
   transition: opacity 1s ease-out;
+}
+.ipl-opening::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0, 230, 118, 0.6) 25%,
+    rgba(34, 211, 238, 0.6) 50%,
+    rgba(0, 230, 118, 0.6) 75%,
+    transparent 100%);
+  pointer-events: none;
+  z-index: 5;
 }
 
 .ipl-opening.active {
