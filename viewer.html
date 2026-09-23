@@ -1156,12 +1156,22 @@
 
     fielders = fielderData.map(f => new Fielder(f[0], f[1], f[2], f[3]));
 
-    strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, name: 'striker' });
+       strikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 0, name: 'striker' });
+    strikerBat.position.set(0.35, 0, 8.8);
+    strikerBat.rotation.set(0, -Math.PI/2, 0);
+    if (strikerBat.batPivot) strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
     scene.add(strikerBat);
+
     nonStrikerBat = makePlayer({ jersey: 0x0284c7, batsman: true, skinIndex: 2, name: 'nonstriker' });
+    nonStrikerBat.position.set(-1.2, 0, -8.8);
+    nonStrikerBat.rotation.set(0, Math.PI/2, 0);
+    if (nonStrikerBat.batPivot) nonStrikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
     scene.add(nonStrikerBat);
+
     bowler = makePlayer({ jersey: 0xdc2626, skinIndex: 3, name: 'bowler' });
+    bowler.position.set(1.5, 0, -22);
     scene.add(bowler);
+
     keeper = makePlayer({ jersey: 0xdc2626, keeper: true, skinIndex: 1, name: 'keeper' });
     keeper.position.set(0, 0, 14.5);
     keeper.rotation.y = Math.PI;
