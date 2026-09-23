@@ -1,42 +1,50 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   CricMax — Shot Inference Engine
+   CricMax — Shot Inference Engine v1.0
+   ─────────────────────────────────────────────────────────────────────
    Infers realistic shot metadata from just (runs + direction).
-   Deterministic — same ball always yields the same animation.
+   
+   Input:  { runs, zoneIndex, isSpin, isWkt, isCatch, wktMethod,
+             matchId, ballNum }
+   Output: { shot, length, trajectory, timing, footwork,
+             swingSpeed, contactHeight, advance, zone, libShot }
+   
+   Deterministic: same input always yields same output (seeded RNG).
+   No Firebase writes. No side effects. Pure function.
+   
    Exposes: window.CricMaxInference
    ═══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════
-   CONFIG — tune these without touching logic
+   CONFIG — tune weights here without touching logic
    ═══════════════════════════════════════════════════════════════ */
 const CONFIG = {
 
-  /* Speed / spin modifiers */
+  /* Spin bowler adjustments to length pool */
   spinShift: {
-    /* Multipliers applied to length weights for spinners */
-    bouncerToShort: true,      /* spinners never bounce */
+    bouncerToShort: true,
     goodBoost: 1.10,
     fullBoost: 1.05
   },
 
-  /* Chance of charging down the pitch on lofted shots */
+  /* Advance down pitch probabilities */
   advanceChanceLofted: 0.15,
   advanceChanceBase:   0.03,
 
-  /* Footwork randomness on rotation shots */
-  frontFootPref: 0.80,         /* 80% front, 20% back */
+  /* Rotation shots — front foot preference */
+  frontFootPref: 0.80,
 
-  /* Zones (index = zoneIndex from wagon wheel) */
+  /* Zone names (index 0-7 matching wagon wheel) */
   zones: [
-    'Third Man',   /* 0 — behind, off */
-    'Point',       /* 1 — square, off */
-    'Cover',       /* 2 — forward, off */
-    'Mid-off',     /* 3 — straight, off */
-    'Mid-on',      /* 4 — straight, leg */
-    'Mid-wicket',  /* 5 — forward, leg */
-    'Square Leg',  /* 6 — square, leg */
-    'Fine Leg'     /* 7 — behind, leg */
+    'Third Man',
+    'Point',
+    'Cover',
+    'Mid-off',
+    'Mid-on',
+    'Mid-wicket',
+    'Square Leg',
+    'Fine Leg'
   ],
 
   /* ═══════════════════════════════════════════════════════════════
@@ -103,7 +111,7 @@ const CONFIG = {
       'Square Leg': [['block',0.30],['defend',0.25],['push',0.15],['nudge',0.20],['pull',0.10]],
       'Fine Leg':   [['block',0.30],['defend',0.30],['push',0.20],['nudge',0.20]]
     },
-    /* Wicket-specific pools */
+    /* Wicket-specific pools — direction irrelevant for these */
     wicket_bowled:  [['block',0.5],['defend',0.5]],
     wicket_lbw:     [['block',0.5],['defend',0.5]],
     wicket_caught:  [['slog_over_cover',0.25],['pull_lofted',0.25],['straight_drive_lofted',0.20],['inside_out_lofted',0.15],['upper_cut',0.15]],
@@ -144,7 +152,7 @@ const CONFIG = {
   },
 
   /* ═══════════════════════════════════════════════════════════════
-     SHOT → TRAJECTORY (fixed — no randomness needed)
+     SHOT → TRAJECTORY (deterministic)
      ═══════════════════════════════════════════════════════════════ */
   trajectoryOf: {
     'defend':'grounded_medium','block':'grounded_medium','leave':'miss',
@@ -177,7 +185,7 @@ const CONFIG = {
   },
 
   /* ═══════════════════════════════════════════════════════════════
-     SHOT → FOOTWORK (deterministic except rotation)
+     SHOT → FOOTWORK
      ═══════════════════════════════════════════════════════════════ */
   footworkOf: {
     'defend':'front','block':'front','leave':'none',
@@ -195,7 +203,6 @@ const CONFIG = {
      SHOT + LENGTH → CONTACT HEIGHT
      ═══════════════════════════════════════════════════════════════ */
   contactHeightOf: {
-    /* Base height by shot category */
     base: {
       'defend':'mid','block':'mid','push':'mid','nudge':'mid',
       'glance':'low','flick':'mid',
@@ -207,14 +214,14 @@ const CONFIG = {
       'straight_drive_lofted':'mid','slog_over_cover':'mid','inside_out_lofted':'mid',
       'edge':'high','leave':'mid','advance':'mid'
     },
-    /* Length modifiers */
-    yorkerShift: -1,      /* mid → low, low → very_low */
-    bouncerShift: 1       /* mid → high, high → very_high */
+    yorkerShift: -1,
+    bouncerShift: 1
   }
 };
 
 /* ═══════════════════════════════════════════════════════════════
    SEEDED RNG — deterministic per ball
+   Same seed → same sequence of picks → same animation every reload.
    ═══════════════════════════════════════════════════════════════ */
 function makeSeed(str){
   let h = 5381;
@@ -222,8 +229,10 @@ function makeSeed(str){
   for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
   return h;
 }
+
 function makeRng(seed){
   let s = seed | 0;
+  if (s === 0) s = 1;
   return function(){
     s = (s * 1664525 + 1013904223) & 0x7fffffff;
     return (s >>> 8) / 16777216;
@@ -231,12 +240,14 @@ function makeRng(seed){
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   WEIGHTED PICKER
+   WEIGHTED RANDOM PICKER
+   pool = [['name', weight], ['name', weight], ...]
    ═══════════════════════════════════════════════════════════════ */
 function pickWeighted(pool, rng){
   if (!pool || !pool.length) return null;
   let total = 0;
   for (let i = 0; i < pool.length; i++) total += pool[i][1];
+  if (total <= 0) return pool[0][0];
   let r = rng() * total;
   for (let i = 0; i < pool.length; i++){
     r -= pool[i][1];
@@ -252,54 +263,67 @@ function getZoneName(idx){
   idx = Math.max(0, Math.min(7, parseInt(idx, 10) || 0));
   return CONFIG.zones[idx];
 }
+
 function applySpinShift(pool){
   if (!pool) return pool;
-  const shifted = [];
+  const merged = {};
   for (let i = 0; i < pool.length; i++){
-    let [len, w] = pool[i];
+    let len = pool[i][0];
+    let w = pool[i][1];
     if (CONFIG.spinShift.bouncerToShort && len === 'bouncer'){
       len = 'short';
-      w *= 1.0;
     }
     if (len === 'good') w *= CONFIG.spinShift.goodBoost;
     if (len === 'full') w *= CONFIG.spinShift.fullBoost;
-    shifted.push([len, w]);
+    merged[len] = (merged[len] || 0) + w;
   }
-  /* Merge duplicates */
-  const merged = {};
-  for (const [len, w] of shifted) merged[len] = (merged[len] || 0) + w;
-  return Object.keys(merged).map(k => [k, merged[k]]);
+  const out = [];
+  for (const k in merged) out.push([k, merged[k]]);
+  return out;
 }
+
 function shiftContactHeight(base, length){
   const order = ['very_low','low','mid','high','very_high'];
   let idx = order.indexOf(base);
   if (idx < 0) idx = 2;
-  if (length === 'yorker') idx = Math.max(0, idx + CONFIG.contactHeightOf.yorkerShift);
+  if (length === 'yorker')  idx = Math.max(0, idx + CONFIG.contactHeightOf.yorkerShift);
   if (length === 'bouncer') idx = Math.min(order.length - 1, idx + CONFIG.contactHeightOf.bouncerShift);
   return order[idx];
 }
 
+function computeSwingSpeed(timing, runs, shotName){
+  if (shotName === 'block' || shotName === 'defend' || shotName === 'leave') return 'soft';
+  if (timing === 'middled' && runs >= 6)    return 'slog';
+  if (timing === 'middled' && runs === 4)   return 'hard';
+  if (timing === 'middled')                 return 'medium';
+  if (timing === 'well_timed' && runs >= 4) return 'hard';
+  if (timing === 'well_timed')              return 'medium';
+  if (timing === 'mistimed' || timing === 'edged') return 'soft';
+  return 'soft';
+}
+
 /* ═══════════════════════════════════════════════════════════════
-   MAIN INFER
+   MAIN INFER FUNCTION
    ═══════════════════════════════════════════════════════════════ */
 function infer(opts){
   opts = opts || {};
-  const runs     = opts.runs || 0;
-  const zoneIdx  = opts.zoneIndex || 0;
-  const zone     = getZoneName(zoneIdx);
-  const isSpin   = !!opts.isSpin;
-  const isWkt    = !!opts.isWkt;
-  const wktMeth  = String(opts.wktMethod || '').toLowerCase();
-  const isCatch  = !!opts.isCatch;
+  const runs    = opts.runs || 0;
+  const zoneIdx = opts.zoneIndex || 0;
+  const zone    = getZoneName(zoneIdx);
+  const isSpin  = !!opts.isSpin;
+  const isWkt   = !!opts.isWkt;
+  const wktMeth = String(opts.wktMethod || '').toLowerCase();
+  const isCatch = !!opts.isCatch;
 
-  /* Seeded RNG — deterministic per ball */
-  const seedKey = (opts.matchId || '') + ':' + (opts.ballNum || 0) + ':' + runs + ':' + zoneIdx + (isWkt ? 'W' : '');
+  /* Deterministic seed per ball */
+  const seedKey = (opts.matchId || '') + ':' + (opts.ballNum || 0) + ':' +
+                  runs + ':' + zoneIdx + (isWkt ? 'W:' + wktMeth : '');
   const rng = makeRng(makeSeed(seedKey));
 
   /* ─── Step 1: Pick shot name ─── */
   let shotName;
   if (isWkt){
-    if (isCatch) shotName = pickWeighted(CONFIG.shotPool.wicket_caught, rng);
+    if (isCatch)                             shotName = pickWeighted(CONFIG.shotPool.wicket_caught, rng);
     else if (wktMeth.indexOf('bowl') >= 0)   shotName = pickWeighted(CONFIG.shotPool.wicket_bowled, rng);
     else if (wktMeth.indexOf('lbw') >= 0)    shotName = pickWeighted(CONFIG.shotPool.wicket_lbw, rng);
     else if (wktMeth.indexOf('run') >= 0)    shotName = pickWeighted(CONFIG.shotPool.wicket_runout, rng);
@@ -312,26 +336,28 @@ function infer(opts){
               : runs === 2 ? 'two'
               : runs === 1 ? 'one'
               : 'dot';
-    const pool = CONFIG.shotPool[key][zone] || CONFIG.shotPool.dot[zone];
+    const pool = (CONFIG.shotPool[key] && CONFIG.shotPool[key][zone])
+               || (CONFIG.shotPool.dot && CONFIG.shotPool.dot[zone])
+               || [['defend',1]];
     shotName = pickWeighted(pool, rng) || 'defend';
   }
 
-  /* ─── Step 2: Pick length (compatible with shot) ─── */
+  /* ─── Step 2: Pick length compatible with shot ─── */
   let lengthPool = CONFIG.lengthPool[shotName] || CONFIG.lengthPool['defend'];
   if (isSpin) lengthPool = applySpinShift(lengthPool);
   const length = pickWeighted(lengthPool, rng) || 'good';
 
-  /* ─── Step 3: Trajectory (deterministic from shot) ─── */
+  /* ─── Step 3: Trajectory from shot ─── */
   let trajectory = CONFIG.trajectoryOf[shotName] || 'grounded_medium';
   if (shotName === 'advance') trajectory = 'lofted_high';
 
   /* ─── Step 4: Timing ─── */
   let timingKey;
   if (isWkt){
-    timingKey = isCatch ? 'wicket_caught'
-              : wktMeth.indexOf('bowl') >= 0 ? 'wicket_bowled'
-              : wktMeth.indexOf('lbw') >= 0 ? 'wicket_lbw'
-              : wktMeth.indexOf('run') >= 0 ? 'wicket_runout'
+    timingKey = isCatch                              ? 'wicket_caught'
+              : wktMeth.indexOf('bowl') >= 0         ? 'wicket_bowled'
+              : wktMeth.indexOf('lbw') >= 0          ? 'wicket_lbw'
+              : wktMeth.indexOf('run') >= 0          ? 'wicket_runout'
               : 'wicket_stumped';
   } else {
     timingKey = Math.min(6, runs);
@@ -340,18 +366,12 @@ function infer(opts){
 
   /* ─── Step 5: Footwork ─── */
   let footwork = CONFIG.footworkOf[shotName] || 'front';
-  if (footwork === 'front_random') footwork = rng() < CONFIG.frontFootPref ? 'front' : 'back';
+  if (footwork === 'front_random'){
+    footwork = rng() < CONFIG.frontFootPref ? 'front' : 'back';
+  }
 
   /* ─── Step 6: Swing speed ─── */
-  let swingSpeed = 'medium';
-  if (timing === 'middled' && runs >= 6)    swingSpeed = 'slog';
-  else if (timing === 'middled' && runs === 4) swingSpeed = 'hard';
-  else if (timing === 'middled')            swingSpeed = 'medium';
-  else if (timing === 'well_timed' && runs >= 4) swingSpeed = 'hard';
-  else if (timing === 'well_timed')         swingSpeed = 'medium';
-  else if (timing === 'mistimed' || timing === 'edged') swingSpeed = 'soft';
-  else                                       swingSpeed = 'soft';
-  if (shotName === 'block' || shotName === 'defend' || shotName === 'leave') swingSpeed = 'soft';
+  const swingSpeed = computeSwingSpeed(timing, runs, shotName);
 
   /* ─── Step 7: Contact height ─── */
   let contactHeight = CONFIG.contactHeightOf.base[shotName] || 'mid';
@@ -364,10 +384,11 @@ function infer(opts){
 
   /* ─── Resolve library shot record ─── */
   let libShot = null;
-  if (window.CricMaxShots && window.CricMaxShots.SHOTS[shotName]){
+  if (window.CricMaxShots && window.CricMaxShots.SHOTS && window.CricMaxShots.SHOTS[shotName]){
     libShot = window.CricMaxShots.SHOTS[shotName];
   }
 
+  /* ─── Return full inferred record ─── */
   return {
     shot: shotName,
     length: length,
