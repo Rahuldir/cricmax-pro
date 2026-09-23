@@ -3213,3 +3213,185 @@ body.light-mode .nzc-wagon-tab.active {
     letter-spacing: 2px;
   }
 }
+
+/* ============================================================
+   F1-STYLE LOADER — STARTING LIGHTS + SPEED LINES
+   ============================================================ */
+
+#cm-loader{
+  position:fixed;inset:0;
+  background:#0d1117;
+  background-image:
+    repeating-linear-gradient(135deg,
+      rgba(255,255,255,.018) 0px,
+      rgba(255,255,255,.018) 1px,
+      transparent 1px,
+      transparent 10px),
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,230,118,.06), transparent 60%);
+  z-index:999999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;
+  transition:opacity .5s ease;
+}
+#cm-loader.cm-hide{opacity:0;pointer-events:none;}
+
+/* ── Background speed lines ── */
+.cm-speed-lines{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.cm-speed-line{
+  position:absolute;height:1px;left:-30%;width:30%;
+  background:linear-gradient(90deg,transparent 0%,rgba(0,230,118,.7) 50%,transparent 100%);
+  animation:cmSpeedRush 2.4s linear infinite;
+  opacity:0;
+}
+@keyframes cmSpeedRush{
+  0%   { left:-30%; opacity:0; }
+  10%  { opacity:1; }
+  85%  { opacity:1; }
+  100% { left:130%; opacity:0; }
+}
+
+/* ── F1 starting lights ── */
+.cm-start-lights{
+  display:flex;gap:10px;
+  padding:14px 18px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  margin-bottom:38px;
+  position:relative;
+}
+.cm-start-lights::before{
+  content:'START';
+  position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+  font-size:7px;font-weight:900;letter-spacing:2.4px;
+  color:rgba(255,255,255,.35);
+  background:#0d1117;padding:0 6px;
+}
+.cm-light{
+  width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #1a1f28, #0d1117 80%);
+  border:1px solid rgba(255,255,255,.1);
+  transition:all .18s ease;
+  position:relative;
+}
+.cm-light.on{
+  background:radial-gradient(circle at 35% 35%, #ff7070, #ef4444 45%, #7f1d1d 100%);
+  border-color:rgba(239,68,68,.6);
+  box-shadow:
+    0 0 14px rgba(239,68,68,.9),
+    0 0 28px rgba(239,68,68,.4),
+    inset 0 0 8px rgba(255,255,255,.35);
+}
+.cm-light.go{
+  background:radial-gradient(circle at 35% 35%, #a8ffcc, #00e676 45%, #009270 100%);
+  border-color:rgba(0,230,118,.7);
+  box-shadow:
+    0 0 16px rgba(0,230,118,1),
+    0 0 36px rgba(0,230,118,.6),
+    inset 0 0 8px rgba(255,255,255,.5);
+  animation:cmGoFlash .32s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cmGoFlash{
+  0%   { transform:scale(1); }
+  50%  { transform:scale(1.45); }
+  100% { transform:scale(1); }
+}
+
+/* ── Brand wordmark — letter-by-letter slide up ── */
+.cm-loader-brand{
+  font-size:clamp(26px,7vw,44px);
+  font-weight:900;letter-spacing:5px;
+  color:#fff;text-transform:uppercase;
+  display:flex;gap:1px;line-height:1;
+  margin-bottom:14px;overflow:hidden;padding:6px 4px;
+}
+.cm-loader-brand span{
+  display:inline-block;
+  transform:translateY(120%);
+  animation:cmLetterUp .7s cubic-bezier(.16,1,.3,1) forwards;
+}
+.cm-loader-brand span:nth-child(1){ animation-delay:.10s; }
+.cm-loader-brand span:nth-child(2){ animation-delay:.16s; }
+.cm-loader-brand span:nth-child(3){ animation-delay:.22s; }
+.cm-loader-brand span:nth-child(4){ animation-delay:.28s; }
+.cm-loader-brand span:nth-child(5){ animation-delay:.34s; }
+.cm-loader-brand span:nth-child(6){ animation-delay:.40s; }
+.cm-loader-brand span:nth-child(7){ animation-delay:.46s; }
+.cm-loader-brand span:nth-child(8){ animation-delay:.52s; }
+.cm-loader-brand span:nth-child(9){ animation-delay:.58s; }
+.cm-loader-brand span:nth-child(10){ animation-delay:.64s; }
+.cm-loader-brand .cm-grad{
+  background:linear-gradient(135deg,#00e676,#22d3ee);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+@keyframes cmLetterUp{ to{ transform:translateY(0); } }
+
+/* ── Status row ── */
+.cm-loader-status{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:38px;opacity:0;
+  animation:cmFadeIn .6s .7s ease forwards;
+}
+.cm-loader-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#00e676;
+  box-shadow:0 0 10px rgba(0,230,118,.9);
+  animation:cmPulse 1.2s ease-in-out infinite;
+}
+@keyframes cmPulse{
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:.35;transform:scale(.7);}
+}
+.cm-loader-sub{
+  font-size:10px;font-weight:900;letter-spacing:3.2px;
+  color:#7a8590;text-transform:uppercase;
+  min-height:14px;
+}
+@keyframes cmFadeIn{ to{ opacity:1; } }
+
+/* ── Progress bar with animated stripes ── */
+.cm-progress-track{
+  width:min(70vw,320px);height:5px;
+  background:rgba(255,255,255,.05);
+  border-radius:2px;overflow:hidden;position:relative;
+  border:1px solid rgba(255,255,255,.06);
+}
+.cm-progress-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#009270,#00e676 55%,#22d3ee);
+  transition:width .35s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+}
+.cm-progress-fill::after{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(45deg,
+    rgba(255,255,255,.28) 0px,
+    rgba(255,255,255,.28) 5px,
+    transparent 5px,
+    transparent 12px);
+  animation:cmStripeScroll .55s linear infinite;
+}
+@keyframes cmStripeScroll{
+  0%   { transform:translateX(0); }
+  100% { transform:translateX(12px); }
+}
+.cm-progress-pct{
+  font-size:10px;font-weight:900;letter-spacing:2.6px;
+  color:#00e676;margin-top:14px;
+  font-variant-numeric:tabular-nums;
+  opacity:0;animation:cmFadeIn .6s .9s ease forwards;
+}
+.cm-loader-foot{
+  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  font-size:8.5px;font-weight:900;letter-spacing:5px;
+  color:rgba(255,255,255,.18);text-transform:uppercase;
+  opacity:0;animation:cmFadeIn .6s 1.1s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .cm-speed-line{ animation:none; opacity:.15; left:0; width:100%; }
+  .cm-loader-dot{ animation:none; }
+  .cm-progress-fill::after{ animation:none; }
+  .cm-light.go{ animation:none; }
+}
