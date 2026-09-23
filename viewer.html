@@ -1648,14 +1648,13 @@
     let length = lengths[Math.floor(Math.random() * lengths.length)];
     if (isSpin) length = { type: 'good', pZ: 4.8 };
     let shotType = 'defend', peakHeight = 0.5, finalDist = 10;
-  let deg = (wwAngle * 180) / Math.PI;
-if (deg < 0) deg += 360;
-/* New convention:
-     0°   = leg square      90°  = straight (toward bowler)
-     180° = off square      270° = behind batsman (toward keeper) */
-const isOffside  = (deg >  90 && deg < 270);   // left half of the wheel
-const isStraight = (deg >  55 && deg < 125);   // narrow fan at the bowler
-const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
+    let deg = (wwAngle * 180) / Math.PI;
+    if (deg < 0) deg += 360;
+    /* Canvas-standard sectors (0 = right / leg square):
+         0°   leg square  •  90°  straight  •  180° off square  •  270° behind */
+    const isOffside  = (deg >  90 && deg < 270);   // left half of the wheel = off side
+    const isStraight = (deg >  55 && deg < 125);   // fan around 90° (toward bowler)
+    const isBehind   = (deg > 235 && deg < 305);   // fan around 270° (toward keeper)
     if (isWkt && !isCatch){ shotType = 'defend'; finalDist = 2; }
     else if (runs === 6){
       peakHeight = 15; finalDist = 75 + Math.random() * 10;
@@ -1709,6 +1708,9 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
     if (!shot) return Math.random() * Math.PI * 2;
     const numAngle = (typeof shot.angle === 'number') ? shot.angle : parseFloat(shot.angle);
     if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined) return numAngle;
+    /* Fallback (canvas-standard, matching render.js sectorNames):
+         0 = Square Leg (leg sq)   π/2 = Mid-on (straight)
+         π = Point (off sq)        3π/2 = Third Man (behind) */
     const zoneNames = ["Square Leg","Mid-wicket","Mid-on","Mid-off","Point","Cover","Third Man","Fine Leg"];
     let zoneIdx = -1;
     if (typeof shot.zoneIndex === 'number' && shot.zoneIndex >= 0 && shot.zoneIndex < 8){
@@ -1716,7 +1718,7 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
     } else if (typeof shot.zone === 'string' && shot.zone){
       zoneIdx = zoneNames.findIndex(z => z.toLowerCase() === shot.zone.toLowerCase());
     }
-      if (zoneIdx >= 0) return zoneIdx * Math.PI / 4;
+    if (zoneIdx >= 0) return zoneIdx * Math.PI / 4;
     if (typeof shot.ballRandom === 'number') return shot.ballRandom * Math.PI * 2;
     return Math.random() * Math.PI * 2;
   }
@@ -1836,7 +1838,7 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
     x.moveTo(cx - 22, cy + R * 0.62); x.lineTo(cx + 22, cy + R * 0.62);
     x.stroke();
 
-        FIELDER_MARKERS.forEach(f => {
+    FIELDER_MARKERS.forEach(f => {
       const fx = cx - Math.sin(f.angle) * R * f.dist;
       const fy = cy + Math.cos(f.angle) * R * f.dist;
       x.fillStyle = 'rgba(122,133,144,0.45)';
@@ -1858,7 +1860,7 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
     x.beginPath(); x.arc(cx, cy, R - 6, 0, Math.PI * 2); x.stroke();
     x.setLineDash([]);
 
-       x.fillStyle = 'rgba(148,163,184,0.85)';
+    x.fillStyle = 'rgba(148,163,184,0.85)';
     x.font = 'bold 10px sans-serif';
     x.textAlign = 'center';
     x.textBaseline = 'middle';
@@ -1953,9 +1955,11 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
         else targetLen = 0.14;
 
         const len = targetLen * progress;
-      const sx = cx + Math.cos(shot.angle) * R * len;
-      const sy = cy + Math.sin(shot.angle) * R * len;
-         
+        /* Canvas-standard angle mapping: 0 = right (leg sq), π/2 = down (straight),
+           π = left (off sq), 3π/2 = up (behind). */
+        const sx = cx + Math.cos(shot.angle) * R * len;
+        const sy = cy + Math.sin(shot.angle) * R * len;
+
         const col = shot.runs >= 6 ? '#ff8800'
                   : shot.runs >= 4 ? '#00e5ff'
                   : shot.runs > 0  ? '#00e676'
@@ -1993,8 +1997,8 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
 
         if (progress > 0.6){
           const labelRadius = R * len + 26;
-         const lx = cx + Math.cos(shot.angle) * labelRadius;
-         const ly = cy + Math.sin(shot.angle) * labelRadius;
+          const lx = cx + Math.cos(shot.angle) * labelRadius;
+          const ly = cy + Math.sin(shot.angle) * labelRadius;
           wagonCtx.font = 'bold 20px sans-serif';
           wagonCtx.textAlign = 'center';
           wagonCtx.textBaseline = 'middle';
@@ -2366,10 +2370,14 @@ const isBehind   = (deg > 235 && deg < 305);   // narrow fan at the keeper
 
     const pitchZ = phys.length.pZ;
     const pitchX = (Math.random() - 0.5) * 0.4;
-/* New convention: cos → X axis (leg = −X, off = +X),
-                  sin → Z axis (front = −Z, behind = +Z). */
-const hitX = STRIKER_BASE_X - Math.cos(wwAngle) * phys.finalDist;
-const hitZ = STRIKER_BASE_Z - Math.sin(wwAngle) * phys.finalDist;
+    /* 3D axes (right-handed batsman):
+         −X = leg side   +X = off side
+         −Z = in front   +Z = behind (toward keeper)
+       Mapping from canvas-standard angle:
+         cos(θ) picks X (0 → leg, π → off)
+         sin(θ) picks Z (π/2 → front, 3π/2 → behind) */
+    const hitX = STRIKER_BASE_X - Math.cos(wwAngle) * phys.finalDist;
+    const hitZ = STRIKER_BASE_Z - Math.sin(wwAngle) * phys.finalDist;
 
     if (!skipWagonRecord && !isReplay){
       recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
