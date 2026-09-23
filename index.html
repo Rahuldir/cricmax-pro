@@ -7,45 +7,53 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>CricMax Pro</title>
+
 <script>
 /* ═══════════════════════════════════════════════════════════
-   URL CODE LOCK — prevents ?code= from being stripped
-   Any replaceState/pushState call is intercepted and
-   the code param is re-appended if missing.
+   MATCH CODE LOCK — bulletproof
+   Strategy:
+   1. Capture URL code on boot
+   2. Force localStorage to match (blocks ui.js from diverging)
+   3. Watch the URL — restore code if it gets stripped
+   4. RELEASE the lock after first user interaction, so starting
+      a new match is allowed to generate a new code
+   5. Also patch the Share button to always use the URL code
    ═══════════════════════════════════════════════════════════ */
 (function(){
+  'use strict';
   var CODE_KEY = 'currentMatchCode';
-  var initial = new URLSearchParams(location.search);
-  var originalCode = initial.get('code');
+  var urlParams = new URLSearchParams(location.search);
+  var urlCode = urlParams.get('code');
 
-  // If URL has a code, save it immediately
-  if (originalCode){
-    try { localStorage.setItem(CODE_KEY, originalCode); } catch(e){}
-  } else {
-    // Fallback: pull from localStorage so shared links still work
-    try {
-      var stored = localStorage.getItem(CODE_KEY);
-      if (stored) originalCode = stored;
-    } catch(e){}
-  }
+  /* No code in URL — nothing to lock */
+  if (!urlCode) return;
 
-  if (!originalCode) return;
+  /* Save immediately */
+  try { localStorage.setItem(CODE_KEY, urlCode); } catch(e){}
 
+  var lockReleased = false;
+  var releaseLock = function(){ lockReleased = true; };
+
+  /* Release lock on any user action — allows starting a new match */
+  ['pointerdown','click','keydown','touchstart','change'].forEach(function(evt){
+    document.addEventListener(evt, releaseLock, { once: true, capture: true });
+  });
+
+  /* Re-add code to URL if something strips it (only while locked) */
   function ensureCodeInUrl(){
+    if (lockReleased) return;
     try {
       var url = new URL(location.href);
-      var codeInUrl = url.searchParams.get('code');
-      if (codeInUrl === originalCode) return; // already correct
-      url.searchParams.set('code', originalCode);
-      // Use the raw History API directly to bypass any later override
-      history.replaceState(history.state, '', url.toString());
+      if (url.searchParams.get('code') !== urlCode){
+        url.searchParams.set('code', urlCode);
+        history.replaceState(history.state, '', url.toString());
+      }
     } catch(e){}
   }
 
-  // Wrap both APIs so nothing can strip the code
+  /* Wrap History API so nothing can strip the code while locked */
   var _replaceState = history.replaceState.bind(history);
   var _pushState = history.pushState.bind(history);
-
   history.replaceState = function(state, title, url){
     _replaceState(state, title, url);
     ensureCodeInUrl();
@@ -55,77 +63,81 @@
     ensureCodeInUrl();
   };
 
-  // Safety net: if anything reassigns location.href, restore code
-  var _assign = Object.getOwnPropertyDescriptor(window.location, 'href');
-  // (Skipping direct location override — too risky. Watch instead:)
+  /* Watch URL — safety net */
   setInterval(ensureCodeInUrl, 800);
-
-  // Also handle the case where they typed it in and localStorage already had the code
   ensureCodeInUrl();
+
+  /* Block localStorage overwrite of currentMatchCode while locked */
+  var _origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value){
+    if (key === CODE_KEY && value && value !== urlCode && !lockReleased){
+      console.warn('[CodeLock] blocked overwrite:', value, '→ keeping', urlCode);
+      return _origSetItem(key, urlCode);
+    }
+    return _origSetItem(key, value);
+  };
+
+  /* Force "LIVE • Code:" badge to show URL code */
+  setInterval(function(){
+    var badge = document.getElementById('liveShareCodeText');
+    if (badge && badge.textContent !== urlCode) badge.textContent = urlCode;
+  }, 400);
+
+  /* Patch shareViewerOnly once it exists */
+  var attempts = 0;
+  var patchShare = setInterval(function(){
+    if (++attempts > 300){ clearInterval(patchShare); return; }
+    if (typeof window.shareViewerOnly === 'function' && !window.__shareLocked){
+      window.__shareLocked = true;
+      clearInterval(patchShare);
+      var _origShare = window.shareViewerOnly;
+      window.shareViewerOnly = function(){
+        var saved = localStorage.getItem(CODE_KEY);
+        try { localStorage.setItem(CODE_KEY, urlCode); } catch(e){}
+        try { return _origShare.apply(this, arguments); }
+        finally {
+          if (saved && saved !== urlCode){
+            try { localStorage.setItem(CODE_KEY, saved); } catch(e){}
+          }
+        }
+      };
+      console.info('[CodeLock] 🔒 Share button patched to use:', urlCode);
+    }
+  }, 200);
+
+  console.info('[CodeLock] 🔒 Locked to URL code:', urlCode);
 })();
 </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
-  <!-- Firebase Modular SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
-      authDomain: "cricket-8cb1b.firebaseapp.com",
-      projectId: "cricket-8cb1b",
-      storageBucket: "cricket-8cb1b.firebasestorage.app",
-      messagingSenderId: "489545634269",
-      appId: "1:489545634269:web:2eaadaa0cee4e88270e634"
-    };
+<!-- REMOVED: Firestore modular import (dead code — app uses Realtime DB) -->
 
-    try {
-      const app = initializeApp(firebaseConfig);
-      window.fbAuth = getAuth(app);
-      window.fbDb = getFirestore(app);
-      window.fbDoc = doc;
-      window.fbSetDoc = setDoc;
-      window.fbGetDoc = getDoc;
-      window.fbOnSnapshot = onSnapshot;
-      window.fbSignInAnonymously = signInAnonymously;
-      window.fbOnAuthStateChanged = onAuthStateChanged;
-      window.firebaseReady = false;
-      console.log("🔥 Firebase SDK initialized");
-    } catch (e) {
-      console.error("Firebase init failed:", e);
-    }
-  </script>
+<link rel="stylesheet" href="styles.css">
 
-  <link rel="stylesheet" href="styles.css">
+<style>
+  body { overscroll-behavior: contain; }
+  button, .pad-btn, .home-main-btn { touch-action: manipulation; }
 
-  <style>
-    body { overscroll-behavior: contain; }
-    button, .pad-btn, .home-main-btn { touch-action: manipulation; }
+  #vppToolbar { display: none; position: fixed; top: 14px; left: 14px; z-index: 9999; flex-direction: column; gap: 8px; align-items: flex-start; pointer-events: auto; }
+  #vppToolbar .vpp-row { display: flex; gap: 6px; }
+  #vppToolbar button { backdrop-filter: blur(12px); background: rgba(10, 14, 26, .75); border: 1px solid rgba(255, 255, 255, .18); color: #fff; padding: 9px 14px; border-radius: 10px; font-weight: 900; font-size: 12.5px; cursor: pointer; transition: all .2s; font-family: inherit; }
+  #vppToolbar button:hover { background: rgba(0, 230, 118, .25); border-color: #00e676; box-shadow: 0 0 14px rgba(0, 230, 118, .5); }
+  #vppToolbar button.btn-primary { background: linear-gradient(135deg, #009270, #00e676); border-color: transparent; }
 
-    #vppToolbar { display: none; position: fixed; top: 14px; left: 14px; z-index: 9999; flex-direction: column; gap: 8px; align-items: flex-start; pointer-events: auto; }
-    #vppToolbar .vpp-row { display: flex; gap: 6px; }
-    #vppToolbar button { backdrop-filter: blur(12px); background: rgba(10, 14, 26, .75); border: 1px solid rgba(255, 255, 255, .18); color: #fff; padding: 9px 14px; border-radius: 10px; font-weight: 900; font-size: 12.5px; cursor: pointer; transition: all .2s; font-family: inherit; }
-    #vppToolbar button:hover { background: rgba(0, 230, 118, .25); border-color: #00e676; box-shadow: 0 0 14px rgba(0, 230, 118, .5); }
-    #vppToolbar button.btn-primary { background: linear-gradient(135deg, #009270, #00e676); border-color: transparent; }
-
-    #vppLiveBadge { display: none; position: fixed; bottom: 22px; right: 22px; z-index: 9999; align-items: center; gap: 9px; padding: 9px 16px; background: linear-gradient(135deg, rgba(220, 20, 60, .95), rgba(180, 10, 50, .98)); border: 1px solid rgba(255, 255, 255, .35); border-radius: 24px; box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); backdrop-filter: blur(10px); pointer-events: none; animation: vppLivePulse 1.6s ease-in-out infinite; }
-    #vppLiveBadge .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .95); animation: vppDotBlink 1.1s ease-in-out infinite; }
-    #vppLiveBadge .live-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
-    @keyframes vppLivePulse { 0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); } 50% { transform: scale(1.05); box-shadow: 0 10px 34px rgba(220, 20, 60, .75), 0 0 34px rgba(255, 60, 90, .65); } }
-    @keyframes vppDotBlink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
-  </style>
+  #vppLiveBadge { display: none; position: fixed; bottom: 22px; right: 22px; z-index: 9999; align-items: center; gap: 9px; padding: 9px 16px; background: linear-gradient(135deg, rgba(220, 20, 60, .95), rgba(180, 10, 50, .98)); border: 1px solid rgba(255, 255, 255, .35); border-radius: 24px; box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); backdrop-filter: blur(10px); pointer-events: none; animation: vppLivePulse 1.6s ease-in-out infinite; }
+  #vppLiveBadge .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .95); animation: vppDotBlink 1.1s ease-in-out infinite; }
+  #vppLiveBadge .live-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
+  @keyframes vppLivePulse { 0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); } 50% { transform: scale(1.05); box-shadow: 0 10px 34px rgba(220, 20, 60, .75), 0 0 34px rgba(255, 60, 90, .65); } }
+  @keyframes vppDotBlink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
+</style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CRICMAX PRO — F1-STYLE LOADING SCREEN
-     ═══════════════════════════════════════════════════════════ -->
+<!-- F1 Loader -->
 <div id="cm-loader">
   <div class="cm-speed-lines" id="cmSpeedLines"></div>
-
   <div class="cm-start-lights" id="cmStartLights">
     <div class="cm-light" data-i="0"></div>
     <div class="cm-light" data-i="1"></div>
@@ -133,34 +145,27 @@
     <div class="cm-light" data-i="3"></div>
     <div class="cm-light" data-i="4"></div>
   </div>
-
   <div class="cm-loader-brand">
     <span>C</span><span>R</span><span>I</span><span>C</span><span>M</span><span>A</span><span>X</span>
     <span class="cm-grad">P</span><span class="cm-grad">R</span><span class="cm-grad">O</span>
   </div>
-
   <div class="cm-loader-status">
     <span class="cm-loader-dot"></span>
     <span class="cm-loader-sub" id="cm-loader-sub">INITIALIZING</span>
   </div>
-
-  <div class="cm-progress-track">
-    <div class="cm-progress-fill" id="cmProgressFill"></div>
-  </div>
+  <div class="cm-progress-track"><div class="cm-progress-fill" id="cmProgressFill"></div></div>
   <div class="cm-progress-pct" id="cmProgressPct">0%</div>
-
   <div class="cm-loader-foot">CRICMAX PRO · 2026</div>
 </div>
 
 <script>
 (function(){
   var startTime = Date.now();
-  var sub       = document.getElementById('cm-loader-sub');
-  var lightsEl  = document.getElementById('cmStartLights');
-  var fillEl    = document.getElementById('cmProgressFill');
-  var pctEl     = document.getElementById('cmProgressPct');
-  var speedEl   = document.getElementById('cmSpeedLines');
-
+  var sub = document.getElementById('cm-loader-sub');
+  var lightsEl = document.getElementById('cmStartLights');
+  var fillEl = document.getElementById('cmProgressFill');
+  var pctEl = document.getElementById('cmProgressPct');
+  var speedEl = document.getElementById('cmSpeedLines');
   var fakeProgress = 0, realProgress = 0, lastPct = 0, goFlashed = false;
 
   if (speedEl){
@@ -176,7 +181,7 @@
 
   function renderUI(p){
     if (fillEl) fillEl.style.width = p + '%';
-    if (pctEl)  pctEl.textContent = Math.round(p) + '%';
+    if (pctEl) pctEl.textContent = Math.round(p) + '%';
     if (lightsEl && !goFlashed){
       var lights = lightsEl.children;
       var litCount = Math.min(5, Math.floor((p / 80) * 5));
@@ -188,10 +193,7 @@
         goFlashed = true;
         for (var j = 0; j < lights.length; j++){
           (function(el, delay){
-            setTimeout(function(){
-              el.classList.remove('on');
-              el.classList.add('go');
-            }, delay);
+            setTimeout(function(){ el.classList.remove('on'); el.classList.add('go'); }, delay);
           })(lights[j], j * 45);
         }
       }
@@ -584,6 +586,10 @@
     <button class="bottom-nav-btn" id="bNav-leaderboards" onclick="bottomNavAction('leaderboards')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg></span>Stats</button>
   </div>
 </nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS — unchanged (all IDs preserved)
+     ═══════════════════════════════════════════════════════════ -->
 
 <div class="modal-overlay" id="tournamentPickerModal">
   <div class="modal-card">
@@ -987,6 +993,7 @@
     </div>
   </div>
 </div>
+
 <div class="modal-overlay" id="wagonModal">
   <div class="modal-card" style="text-align:center;position:relative;">
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-bottom:6px;">
@@ -1114,7 +1121,9 @@
 
 <script src="viewer-bridge.js?v=5" defer></script>
 
-<!-- Firebase Bridge -->
+<!-- ═══════════════════════════════════════════════════════════
+     FIREBASE BRIDGE — with re-subscribe on code change
+     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -1131,17 +1140,29 @@
   window.__cricmaxFromRemote = false;
 
   function resolveMatchCode(){
-    var c = localStorage.getItem('currentMatchCode');
-    if (!c) { try { c = new URLSearchParams(window.location.search).get('code'); } catch(e){} }
-    return c || 'match_current';
+    try {
+      var c = localStorage.getItem('currentMatchCode');
+      if (c) return c;
+    } catch(e){}
+    try {
+      var q = new URLSearchParams(window.location.search).get('code');
+      if (q) return q;
+    } catch(e){}
+    return 'match_current';
   }
 
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
     try { firebase.app(); return true; }
     catch (e) {
-      try { firebase.initializeApp(FIREBASE_CONFIG); console.info('[CricMax] 🔥 Firebase compat app initialized'); return true; }
-      catch (e2){ console.warn('[CricMax] Firebase compat init failed:', e2); return false; }
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        console.info('[Sync] 🔥 Firebase compat app initialized');
+        return true;
+      } catch (e2){
+        console.warn('[Sync] Firebase init failed:', e2);
+        return false;
+      }
     }
   }
 
@@ -1150,47 +1171,92 @@
       try {
         var unsub = firebase.auth().onAuthStateChanged(function(user){
           unsub();
-          if (user){ console.info('[CricMax] 🔐 Auth ready:', user.uid.substring(0,6) + '…'); resolve(user); }
+          if (user){ console.info('[Sync] 🔐 Auth ready:', user.uid.substring(0,6) + '…'); resolve(user); }
           else {
             firebase.auth().signInAnonymously()
-              .then(function(cred){ console.info('[CricMax] 🔐 Anonymous auth created'); resolve(cred.user); })
-              .catch(function(err){ console.warn('[CricMax] Auth failed:', err && err.message); resolve(null); });
+              .then(function(cred){ console.info('[Sync] 🔐 Anonymous auth created'); resolve(cred.user); })
+              .catch(function(err){ console.warn('[Sync] Auth failed:', err && err.message); resolve(null); });
           }
         });
       } catch(e){ resolve(null); }
     });
   }
 
-  function armWriteBridge(matchCode){
-    var ref = firebase.database().ref('cricmax/matches/' + matchCode);
+  /* ── Write bridge ── */
+  var __currentWriteRef = null;
+  var __writeOverrideInstalled = false;
+
+  function installWriteOverride(){
+    if (__writeOverrideInstalled) return;
+    __writeOverrideInstalled = true;
     var originalSetItem = localStorage.setItem.bind(localStorage);
     localStorage.setItem = function(key, value){
       originalSetItem(key, value);
       if (window.__cricmaxFromRemote) return;
       if (key !== 'CricMax_Data') return;
+      if (!__currentWriteRef) return;
       try {
         var parsed = JSON.parse(value);
         if (parsed && parsed.match){
-          ref.set(parsed.match)
-            .then(function(){ console.info('[CricMax] 🔥 Firebase synced'); })
-            .catch(function(err){ console.warn('[CricMax] Write failed:', err && err.message); });
+          __currentWriteRef.set(parsed.match)
+            .then(function(){ /* silent success */ })
+            .catch(function(err){ console.warn('[Sync] Write failed:', err && err.message); });
         }
       } catch(e){}
     };
+  }
+
+  function armWriteBridge(matchCode){
+    __currentWriteRef = firebase.database().ref('cricmax/matches/' + matchCode);
+    installWriteOverride();
     try {
       var raw = localStorage.getItem('CricMax_Data');
       if (raw){
         var p = JSON.parse(raw);
-        if (p && p.match){ ref.set(p.match); console.info('[CricMax] 🔥 Firebase initial sync pushed'); }
+        if (p && p.match){
+          __currentWriteRef.set(p.match);
+          console.info('[Sync] 🔥 Initial sync pushed to:', matchCode);
+        }
       }
     } catch(e){}
-    console.info('[CricMax] 🔥 Write bridge armed for:', matchCode);
+    console.info('[Sync] ✏️ Write bridge → cricmax/matches/' + matchCode);
+  }
+
+  /* ── Read bridge ── */
+  var __currentReadRef = null;
+  var __currentReadHandler = null;
+
+  function detachReadBridge(){
+    if (__currentReadRef && __currentReadHandler){
+      try { __currentReadRef.off('value', __currentReadHandler); } catch(e){}
+    }
+    __currentReadRef = null;
+    __currentReadHandler = null;
+  }
+
+  function applyRemoteToLocal(flat){
+    window.__cricmaxFromRemote = true;
+    try {
+      var existing = localStorage.getItem('CricMax_Data');
+      var wrapper = existing ? JSON.parse(existing) : {};
+      wrapper.match = flat;
+      localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
+    } catch(e){}
+    window.__cricmaxFromRemote = false;
+  }
+
+  function rerenderAll(){
+    ['renderScorecardTab','renderStatsTab','renderAnalysisTab','renderCardTab','renderSummaryTab',
+     'renderAll','updateScoreboard','refreshUI','renderUI','rerenderUI','updateAllUI',
+     'drawScorecard','updateLiveTab','updateMatchUI'].forEach(function(fn){
+      try { if (typeof window[fn] === 'function') window[fn](); } catch(e){}
+    });
   }
 
   function armReadBridge(matchCode){
+    detachReadBridge();
     var ref = firebase.database().ref('cricmax/matches/' + matchCode);
-    console.info('[CricMax] 📡 Subscribing to live match:', matchCode);
-    ref.on('value', function(snap){
+    var handler = function(snap){
       var data = snap.val();
       if (!data) return;
       var flat = data;
@@ -1208,36 +1274,40 @@
           });
         }
       }
-      window.__cricmaxFromRemote = true;
-      try {
-        var existing = localStorage.getItem('CricMax_Data');
-        var wrapper = existing ? JSON.parse(existing) : {};
-        wrapper.match = flat;
-        localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
-      } catch(e){}
-      window.__cricmaxFromRemote = false;
-      console.info('[CricMax] 📥 Remote state applied');
-      ['renderScorecardTab','renderStatsTab','renderAnalysisTab','renderCardTab','renderSummaryTab',
-       'renderAll','updateScoreboard','refreshUI','renderUI','rerenderUI','updateAllUI',
-       'drawScorecard','updateLiveTab','updateMatchUI'].forEach(function(fn){
-        try { if (typeof window[fn] === 'function') window[fn](); } catch(e){}
-      });
-    });
+      applyRemoteToLocal(flat);
+      rerenderAll();
+    };
+    __currentReadRef = ref;
+    __currentReadHandler = handler;
+    ref.on('value', handler);
+    console.info('[Sync] 📡 Read bridge → cricmax/matches/' + matchCode);
+  }
+
+  /* ── Watch for code changes — re-subscribe when it changes ── */
+  var __lastCode = null;
+  function watchCodeChange(){
+    var code = resolveMatchCode();
+    if (code !== __lastCode){
+      __lastCode = code;
+      console.info('[Sync] 🔄 Match code →', code);
+      try { armWriteBridge(code); } catch(e){ console.warn('[Sync] Write error:', e); }
+      try { armReadBridge(code);  } catch(e){ console.warn('[Sync] Read error:',  e); }
+    }
   }
 
   function boot(){
     if (!ensureFirebaseApp()){ setTimeout(boot, 300); return; }
     ensureAuth().then(function(){
-      var code = resolveMatchCode();
-      try { armWriteBridge(code); } catch(e){ console.warn('[CricMax] Write bridge error:', e); }
-      try { armReadBridge(code);  } catch(e){ console.warn('[CricMax] Read bridge error:',  e); }
+      watchCodeChange();
+      /* Poll for code changes every 500ms */
+      setInterval(watchCodeChange, 500);
     });
   }
   boot();
 })();
 </script>
 
-<!-- Stats Scope Module -->
+<!-- Stats Scope Module — unchanged -->
 <script>
 (function(){
   'use strict';
@@ -1444,7 +1514,6 @@
       try {
         if (typeof _origRenderStatsCategory === 'function') _origRenderStatsCategory(cat, btn);
       } catch(err){
-        console.warn('[CricMax] app.js stats crashed → using scope engine');
         if (currentScope === 'match') { setTimeout(function(){ setStatsScope('career'); }, 20); return; }
       }
       if (currentScope !== 'match') setTimeout(renderStatsScope, 30);
@@ -1455,7 +1524,6 @@
       try {
         if (typeof _origSelectSubPane === 'function') _origSelectSubPane(pane);
       } catch(err){
-        console.warn('[CricMax] selectSubPane crashed for', pane, '→', err && err.message);
         if (pane === 'leaderboards'){
           document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
           var lp = document.getElementById('pane-leaderboards');
@@ -1475,7 +1543,6 @@
       try {
         if (typeof _origLaunchDashboard === 'function') _origLaunchDashboard(which);
       } catch(err){
-        console.warn('[CricMax] launchDashboard crashed for', which, '→', err && err.message);
         if (which === 'leaderboards'){
           var vd = document.getElementById('view-dashboard');
           var vh = document.getElementById('view-home');
@@ -1498,9 +1565,7 @@
     window.bottomNavAction = function(which){
       try {
         if (typeof _origBottomNav === 'function') _origBottomNav(which);
-      } catch(err){
-        console.warn('[CricMax] bottomNavAction crashed for', which, '→', err && err.message);
-      }
+      } catch(err){}
       if (which === 'leaderboards'){
         setTimeout(function(){
           if (currentScope === 'match') setStatsScope('career');
@@ -1518,16 +1583,6 @@
     setTimeout(installWrappers, 100);
   }
   setTimeout(installWrappers, 2000);
-
-  setTimeout(function(){
-    var lp = document.getElementById('pane-leaderboards');
-    if (lp && lp.classList.contains('active') && currentScope === 'match'){
-      var tbody = document.getElementById('statsTableBody');
-      if (tbody && tbody.children.length === 0){
-        setStatsScope('career');
-      }
-    }
-  }, 1500);
 
   function injectUI(){
     var pane = document.getElementById('pane-leaderboards');
@@ -1554,13 +1609,11 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectUI);
   else injectUI();
-
-  console.info('[CricMax] 🏅 Stats Scope Module ready (Match / Tournament / Career)');
 })();
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════
-     CRICMAX PRO — MAIN APP MODULES (load order matters!)
+     MAIN APP MODULES — load order matters!
      ═══════════════════════════════════════════════════════════ -->
 <script src="state.js"></script>
 <script src="utils.js"></script>
