@@ -1520,18 +1520,7 @@
   };
   window.__LIBRARY_TO_INTERNAL = LIBRARY_TO_INTERNAL;
 
-  const SHOT_KINEMATICS = {
-    defend:{prepTime:200,contactTime:100,followTime:300,pose:{batX:-0.5,batZ:0,torsoY:0.1,lean:0,stride:0.2}},
-    leave:{prepTime:300,contactTime:100,followTime:400,pose:{batX:-2.0,batZ:0,torsoY:0,lean:-0.1,stride:0.1}},
-    cover_drive:{prepTime:250,contactTime:100,followTime:500,pose:{batX:0.8,batZ:-0.5,torsoY:0.4,lean:0.2,stride:0.6}},
-    straight_drive:{prepTime:250,contactTime:100,followTime:500,pose:{batX:0.8,batZ:0,torsoY:0.1,lean:0.2,stride:0.5}},
-    on_drive:{prepTime:250,contactTime:100,followTime:500,pose:{batX:0.8,batZ:0.3,torsoY:-0.2,lean:0.2,stride:0.4}},
-    cut:{prepTime:250,contactTime:100,followTime:400,pose:{batX:0,batZ:-1.2,torsoY:-0.6,lean:0,stride:-0.2}},
-    pull:{prepTime:300,contactTime:100,followTime:500,pose:{batX:1.0,batZ:1.0,torsoY:-0.8,lean:-0.1,stride:-0.3}},
-    sweep:{prepTime:300,contactTime:150,followTime:400,pose:{batX:0.5,batZ:1.5,torsoY:-0.5,lean:0.4,stride:0.8,dropKnee:true}},
-    lofted_straight:{prepTime:300,contactTime:100,followTime:600,pose:{batX:1.5,batZ:0,torsoY:0.2,lean:-0.2,stride:0.5}},
-    glance:{prepTime:200,contactTime:100,followTime:300,pose:{batX:0,batZ:0.8,torsoY:-0.3,lean:0.1,stride:0.2}}
-  };
+ 
 
   function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle){
     const lengths = [{type:'yorker',pZ:8.5},{type:'full',pZ:7.5},{type:'good',pZ:5.5},{type:'short',pZ:2.5}];
