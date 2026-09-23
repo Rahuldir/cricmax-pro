@@ -2365,7 +2365,7 @@
     const pitchZ = phys.length.pZ;
     const pitchX = (Math.random() - 0.5) * 0.4;
     const hitX = STRIKER_BASE_X + Math.sin(wwAngle) * phys.finalDist;
-    const hitZ = STRIKER_BASE_Z - Math.cos(wwAngle) * phys.finalDist;
+    const hitZ = STRIKER_BASE_Z + Math.cos(wwAngle) * phys.finalDist;
 
     if (!skipWagonRecord && !isReplay){
       recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
