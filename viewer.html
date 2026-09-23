@@ -23,11 +23,6 @@
 <script>
 /* ═══════════════════════════════════════════════════════════
    VIEWER CODE SYNC
-   On viewer page, the URL code is authoritative — the shared
-   link always wins. We adopt it into localStorage, and lock
-   the URL for a few seconds during boot to prevent anything
-   from stripping ?code= while the app initializes.
-   After boot (3s), the lock releases.
    ═══════════════════════════════════════════════════════════ */
 (function(){
   'use strict';
@@ -35,18 +30,15 @@
   var urlCode = null;
   try { urlCode = new URLSearchParams(location.search).get('code'); } catch(e){}
 
-  /* If URL has no code, fall back to whatever's already stored */
   if (!urlCode){
     try { urlCode = localStorage.getItem(CODE_KEY); } catch(e){}
   } else {
-    /* URL has code — adopt into localStorage immediately */
     try { localStorage.setItem(CODE_KEY, urlCode); } catch(e){}
     console.info('[CodeSync] 📥 Viewer adopted URL code:', urlCode);
   }
 
   if (!urlCode){ console.warn('[CodeSync] ⚠️ No code found'); return; }
 
-  /* Lock URL to URL code for the first 3s (boot window) */
   var bootDone = false;
   setTimeout(function(){ bootDone = true; }, 3000);
 
@@ -72,7 +64,6 @@
     enforceUrl();
   };
 
-  /* Polling fallback — restores code if stripped */
   var pollCount = 0;
   var pollTimer = setInterval(function(){
     if (bootDone || ++pollCount > 20){ clearInterval(pollTimer); return; }
@@ -80,7 +71,6 @@
   }, 200);
   enforceUrl();
 
-  /* Keep any "LIVE · Code:" badge in sync with real code */
   setInterval(function(){
     var badge = document.getElementById('liveShareCodeText');
     if (!badge) return;
@@ -110,7 +100,6 @@
   #irisTransition.opening{opacity:1;pointer-events:auto;transition:clip-path 340ms cubic-bezier(.4, 0, .2, 1);clip-path:circle(160% at 50% 50%);}
   #irisTransition.closing{opacity:0;transition:opacity 220ms ease-out;clip-path:circle(160% at 50% 50%);}
 
-  /* ZONE 1 — BRAND BAR (F1: stripes + accent underline) */
   .top-bar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;padding-top:env(safe-area-inset-top,0);pointer-events:none;z-index:100010;overflow:hidden;background:var(--stripes),linear-gradient(180deg,rgba(13,17,23,.98) 0%,rgba(13,17,23,.85) 60%,rgba(13,17,23,.5) 100%);border-bottom:1px solid var(--border-soft);}
   .top-bar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(0,230,118,.6) 25%,rgba(34,211,238,.6) 50%,rgba(0,230,118,.6) 75%,transparent 100%);pointer-events:none;}
   .top-brand{display:flex;align-items:center;gap:8px;pointer-events:auto;font-family:inherit;}
@@ -837,7 +826,6 @@
       t.classList.toggle('on', t.getAttribute('data-pane') === pane);
     });
     if (pane === 'pitch'){ toggleMenu(); return; }
-    /* Signal parent (index.html) that user wants to navigate; do NOT reload */
     try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
     toggleMenu();
   }
@@ -1652,17 +1640,18 @@
     if (deg < 0) deg += 360;
     /* Canvas-standard sectors (0 = right / leg square):
          0°   leg square  •  90°  straight  •  180° off square  •  270° behind */
-    const isOffside  = (deg >  90 && deg < 270);   // left half of the wheel = off side
-    const isStraight = (deg >  55 && deg < 125);   // fan around 90° (toward bowler)
-    const isBehind   = (deg > 235 && deg < 305);   // fan around 270° (toward keeper)
+    const isOffside  = (deg >  90 && deg < 270);
+    const isStraight = (deg >  55 && deg < 125);
+    const isBehind   = (deg > 235 && deg < 305);
     if (isWkt && !isCatch){ shotType = 'defend'; finalDist = 2; }
     else if (runs === 6){
-      peakHeight = 15; finalDist = 82 + Math.random() * 10;
+      /* Big six arc — 26 m peak, 94–100 m carry. */
+      peakHeight = 26; finalDist = 94 + Math.random() * 6;
       if (isSpin && !isOffside) shotType = 'sweep';
       else if (length.type === 'short' && !isOffside) shotType = 'pull';
       else shotType = 'lofted_straight';
     } else if (runs === 4){
-      peakHeight = 1.2; finalDist = 72;
+      peakHeight = 1.2; finalDist = 76;
       if (isSpin && !isOffside) shotType = 'sweep';
       else if (isOffside && length.type === 'short') shotType = 'cut';
       else if (isOffside && !isBehind) shotType = 'cover_drive';
@@ -1708,9 +1697,6 @@
     if (!shot) return Math.random() * Math.PI * 2;
     const numAngle = (typeof shot.angle === 'number') ? shot.angle : parseFloat(shot.angle);
     if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined) return numAngle;
-    /* Fallback (canvas-standard, matching render.js sectorNames):
-         0 = Square Leg (leg sq)   π/2 = Mid-on (straight)
-         π = Point (off sq)        3π/2 = Third Man (behind) */
     const zoneNames = ["Square Leg","Mid-wicket","Mid-on","Mid-off","Point","Cover","Third Man","Fine Leg"];
     let zoneIdx = -1;
     if (typeof shot.zoneIndex === 'number' && shot.zoneIndex >= 0 && shot.zoneIndex < 8){
@@ -1955,8 +1941,6 @@
         else targetLen = 0.14;
 
         const len = targetLen * progress;
-        /* Canvas-standard angle mapping: 0 = right (leg sq), π/2 = down (straight),
-           π = left (off sq), 3π/2 = up (behind). */
         const sx = cx + Math.cos(shot.angle) * R * len;
         const sy = cy + Math.sin(shot.angle) * R * len;
 
@@ -2365,6 +2349,21 @@
       const lenMap = { 'yorker': 8.5, 'full': 7.5, 'half_volley': 8.0, 'good': 5.5,
                        'back_of_length': 4.0, 'short': 2.5, 'bouncer': 1.5 };
       phys.length.pZ = lenMap[inference.length] || 5.5;
+
+      /* ⚡ Safety net — inference must never flatten a clean boundary.
+         The old zone table inside shot-inference.js can still classify
+         new-convention zones as "grounded_*", which would otherwise
+         clamp peakHeight to 1–2 m and make a six look like a 30-yard
+         skier. Force a minimum arc for boundaries regardless. */
+      if (!isWkt) {
+        if (runs === 6) {
+          phys.peakHeight = Math.max(phys.peakHeight, 22);
+          phys.finalDist  = Math.max(phys.finalDist,  94);
+        } else if (runs === 4) {
+          phys.peakHeight = Math.max(phys.peakHeight, 1.0);
+          phys.finalDist  = Math.max(phys.finalDist,  76);
+        }
+      }
     }
     const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
 
@@ -2376,12 +2375,8 @@
        Mapping from canvas-standard angle:
          cos(θ) picks X (0 → leg, π → off)
          sin(θ) picks Z (π/2 → front, 3π/2 → behind) */
-    /* Hit position measured from PITCH CENTRE (0,0,0) — not from striker's
-       base — so leg- and off-side shots of the same run value both land at
-       exactly `phys.finalDist` from the middle of the ground. Removes the
-       ~0.7-unit asymmetry caused by STRIKER_BASE_X = 0.35. */
-    const hitX = -Math.cos(wwAngle) * phys.finalDist;
-    const hitZ = -Math.sin(wwAngle) * phys.finalDist;
+    const hitX = STRIKER_BASE_X - Math.cos(wwAngle) * phys.finalDist;
+    const hitZ = STRIKER_BASE_Z - Math.sin(wwAngle) * phys.finalDist;
 
     if (!skipWagonRecord && !isReplay){
       recordShotForWagon(wwAngle, runs, !!(isWkt || isCatch));
@@ -2420,7 +2415,8 @@
     const seamSpinZ = isSpin ? 0.25 : 0.08;
 
     const T_RELEASE = 700, T_PITCH = 1000, T_CONTACT = 1250;
-    const flightTime = (runs === 6) ? 4000 : (runs === 4) ? 2500 : 3000;
+    /* Snappy six — 3.3 s flight lands the six within a natural rhythm. */
+    const flightTime = (runs === 6) ? 3300 : (runs === 4) ? 2500 : 3000;
     const T_END = T_CONTACT + Math.max(flightTime, animPose.followTime + 400);
     const T_SHOT_START = T_CONTACT - animPose.prepTime;
     const T_FOLLOW_END = T_CONTACT + animPose.followTime;
@@ -2968,7 +2964,6 @@
   function startViewerFirebase(){
     if (!ensureViewerFirebase()){ setTimeout(startViewerFirebase, 300); return; }
 
-    /* Try auth first, then subscribe */
     try {
       var unsub = firebase.auth().onAuthStateChanged(function(user){
         unsub();
@@ -2988,7 +2983,6 @@
       if (code2){ attachViewerRead(code2); __viewerLastCode = code2; }
     }
 
-    /* Watch for code changes */
     setInterval(function(){
       var c = resolveViewerCode();
       if (c && c !== __viewerLastCode){
@@ -3225,4 +3219,4 @@
 })();
 </script>
 </body>
-</html>
+   </html>
