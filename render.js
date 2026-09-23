@@ -553,8 +553,13 @@ function attachWagonWheelListener() {
 
     window._tempExactAngle = Math.atan2(dx, -dy);
 
-    var sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
-    var sectorNames = ['Third Man','Point','Cover','Mid-off','Mid-on','Mid-wicket','Square Leg','Fine Leg'];
+        var sectorIdx = Math.floor(((deg + 22.5) % 360) / 45);
+    /* ── Sector → field position ──
+       Fixed scorer's view: striker at top, facing down.
+         • OFF is always on the LEFT   →  sectors 3,4,5,6
+         • LEG is always on the RIGHT  →  sectors 7,0,1,2
+       Index 0 (0°) = directly right (LEG square). */
+    var sectorNames = ['Square Leg','Mid-wicket','Mid-on','Mid-off','Point','Cover','Third Man','Fine Leg'];
     var region = sectorNames[sectorIdx];
 
     var ropeR = (cvWheel.width / 2) * 0.8;
