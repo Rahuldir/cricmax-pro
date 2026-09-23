@@ -396,9 +396,24 @@ function renderScorecard() {
    SWAP STRIKERS
    ═══════════════════════════════════════════════════════════ */
 function swapStrikers() {
+  if (!match || !match.isActive || isViewerMode) return;
+  if (!match.striker || !match.nonStriker) return;
+
   var t = match.striker;
   match.striker = match.nonStriker;
   match.nonStriker = t;
+
+  var ov = Math.floor(match.legalBalls / 6) + '.' + (match.legalBalls % 6);
+  match.commentary.unshift({
+    ball: ov,
+    desc: 'Batters swapped — ' + match.striker + ' on strike.',
+    type: 'normal'
+  });
+
+  autoPersist();
+  scheduleRender();
+  broadcastMatchState();
+  if (typeof showToast === 'function') showToast('⇄ ' + match.striker + ' on strike');
 }
 
 /* ═══════════════════════════════════════════════════════════
