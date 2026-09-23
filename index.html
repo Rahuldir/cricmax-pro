@@ -7,7 +7,63 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>CricMax Pro</title>
-https://cdnjs.cloudflare.com/ajax/libs/jspdf/
+<script>
+/* ═══════════════════════════════════════════════════════════
+   URL CODE LOCK — prevents ?code= from being stripped
+   Any replaceState/pushState call is intercepted and
+   the code param is re-appended if missing.
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  var CODE_KEY = 'currentMatchCode';
+  var initial = new URLSearchParams(location.search);
+  var originalCode = initial.get('code');
+
+  // If URL has a code, save it immediately
+  if (originalCode){
+    try { localStorage.setItem(CODE_KEY, originalCode); } catch(e){}
+  } else {
+    // Fallback: pull from localStorage so shared links still work
+    try {
+      var stored = localStorage.getItem(CODE_KEY);
+      if (stored) originalCode = stored;
+    } catch(e){}
+  }
+
+  if (!originalCode) return;
+
+  function ensureCodeInUrl(){
+    try {
+      var url = new URL(location.href);
+      var codeInUrl = url.searchParams.get('code');
+      if (codeInUrl === originalCode) return; // already correct
+      url.searchParams.set('code', originalCode);
+      // Use the raw History API directly to bypass any later override
+      history.replaceState(history.state, '', url.toString());
+    } catch(e){}
+  }
+
+  // Wrap both APIs so nothing can strip the code
+  var _replaceState = history.replaceState.bind(history);
+  var _pushState = history.pushState.bind(history);
+
+  history.replaceState = function(state, title, url){
+    _replaceState(state, title, url);
+    ensureCodeInUrl();
+  };
+  history.pushState = function(state, title, url){
+    _pushState(state, title, url);
+    ensureCodeInUrl();
+  };
+
+  // Safety net: if anything reassigns location.href, restore code
+  var _assign = Object.getOwnPropertyDescriptor(window.location, 'href');
+  // (Skipping direct location override — too risky. Watch instead:)
+  setInterval(ensureCodeInUrl, 800);
+
+  // Also handle the case where they typed it in and localStorage already had the code
+  ensureCodeInUrl();
+})();
+</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
