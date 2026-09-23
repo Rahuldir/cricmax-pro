@@ -25,8 +25,6 @@
     --accent-primary:#00e676;--accent-cyan:#22d3ee;--accent-orange:#ff8800;
     --accent-red:#ef4444;--accent-gold:#fbbf24;
     --text-primary:#f1f5f9;--text-muted:#94a3b8;
-    --r-sm:8px;--r-md:12px;--r-lg:14px;
-    --sp-xs:4px;--sp-sm:8px;--sp-md:12px;--sp-lg:16px;--sp-xl:24px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;overscroll-behavior:none;}
@@ -54,6 +52,7 @@
   #irisTransition.opening{opacity:1;pointer-events:auto;transition:clip-path 340ms cubic-bezier(.4, 0, .2, 1);clip-path:circle(160% at 50% 50%);}
   #irisTransition.closing{opacity:0;transition:opacity 220ms ease-out;clip-path:circle(160% at 50% 50%);}
 
+  /* ZONE 1 — BRAND BAR */
   .top-bar{position:absolute;top:0;left:0;right:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;padding-top:env(safe-area-inset-top,0);background:linear-gradient(180deg,rgba(2,7,19,.85) 0%,rgba(2,7,19,0) 100%);pointer-events:none;z-index:100010;}
   .top-brand{display:flex;align-items:center;gap:8px;pointer-events:auto;font-family:inherit;}
   .live-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 10px rgba(239,68,68,.9);animation:livePulse 1.2s ease-in-out infinite;flex-shrink:0;}
@@ -68,17 +67,10 @@
   .ic:active{transform:scale(.92);}
   .ic.on{background:linear-gradient(135deg,#009270,#00e676);border-color:transparent;color:#0a0e1a;}
   .ic::after{content:'';position:absolute;inset:-7px;}
+  .ic.spin{animation:icSpin .6s ease;}
+  @keyframes icSpin{from{transform:rotate(0);}to{transform:rotate(360deg);}}
 
-  .replay-cluster{position:absolute;top:38px;right:0;display:flex;flex-direction:column;gap:5px;padding:8px;background:linear-gradient(160deg,rgba(15,23,42,.97),rgba(3,8,16,.98));border:1px solid rgba(0,230,118,.4);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.7);opacity:0;transform:translateY(-6px) scale(.95);transform-origin:top right;transition:opacity .2s ease, transform .2s cubic-bezier(.34,1.56,.64,1);visibility:hidden;pointer-events:none;z-index:100020;}
-  .replay-cluster.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;pointer-events:auto;}
-  .rc-btn{display:flex;align-items:center;gap:8px;min-width:130px;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;text-align:left;transition:background .15s, transform .1s;}
-  .rc-btn:active{transform:scale(.96);}
-  .rc-btn:hover,.rc-btn:focus{background:rgba(0,230,118,.12);border-color:rgba(0,230,118,.45);}
-  .rc-i{font-size:14px;line-height:1;width:16px;text-align:center;}
-  .rc-t{flex:1;letter-spacing:.3px;}
-  .rc-close{justify-content:center;background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#fca5a5;min-width:0;}
-  .rc-close:hover{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.7);}
-
+  /* ZONE 2 — FLOATING PILLS */
   .pill-stack{position:absolute;top:56px;left:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:100005;max-width:calc(100vw - 24px);}
   .stat-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(8,14,28,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-left:3px solid #00e676;border-radius:12px;font-family:inherit;font-size:13px;font-weight:800;color:#f1f5f9;box-shadow:0 4px 20px rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:flex-start;}
   .sp-team{font-size:11px;font-weight:900;letter-spacing:1px;color:#00e676;}
@@ -100,6 +92,7 @@
   .pm-val{font-family:ui-monospace,monospace;font-weight:900;color:#fff;}
   @keyframes milestonePulse{0%,100%{box-shadow:0 4px 16px rgba(0,0,0,.4);}50%{box-shadow:0 4px 20px rgba(251,191,36,.35);}}
 
+  /* ZONE 3 — VIEWPORT OVERLAYS */
   .speed-pill{position:absolute;right:12px;top:100px;padding:6px 11px;background:rgba(8,14,28,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(34,211,238,.45);border-radius:9px;font-family:ui-monospace,monospace;font-size:11px;font-weight:900;color:#22d3ee;letter-spacing:.5px;opacity:0;transform:translateX(20px);transition:opacity .28s ease, transform .28s ease;pointer-events:none;z-index:100006;}
   .speed-pill.on{opacity:1;transform:translateX(0);}
 
@@ -111,12 +104,27 @@
   .wicket-flash{position:fixed;inset:0;background:radial-gradient(circle at center,rgba(239,68,68,.35) 0%,rgba(127,29,29,.65) 100%);opacity:0;pointer-events:none;z-index:100058;transition:opacity .2s ease;}
   .wicket-flash.on{opacity:1;}
 
+  .replay-badge{position:absolute;top:56px;left:50%;transform:translateX(-50%) translateY(-10px);padding:5px 14px;background:rgba(239,68,68,.9);border:1px solid rgba(255,255,255,.4);border-radius:20px;color:#fff;font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity .3s, transform .3s;z-index:100009;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+  .replay-badge.on{opacity:1;transform:translateX(-50%) translateY(0);}
+  .replay-badge::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff;margin-right:6px;vertical-align:middle;animation:livePulse 1s ease-in-out infinite;}
+
+  .replay-cam-badge{position:absolute;top:88px;right:12px;display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(8,14,28,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);border-radius:7px;font-family:ui-monospace,monospace;font-size:9.5px;font-weight:900;color:#e2e8f0;letter-spacing:1px;opacity:0;transform:translateY(-6px);transition:opacity .25s ease, transform .25s ease;pointer-events:none;z-index:100009;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+  .replay-cam-badge.on{opacity:1;transform:translateY(0);}
+  .rcb-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.9);animation:livePulse 1.2s ease-in-out infinite;}
+  .rcb-label{color:#f1f5f9;}
+  .rcb-sep{color:rgba(148,163,184,.5);}
+  .rcb-speed{color:#22d3ee;font-weight:900;}
+
+  .cut-flash{position:fixed;inset:0;background:#ffffff;opacity:0;pointer-events:none;z-index:100057;}
+  .cut-flash.fire{animation:cutFlashAnim 140ms ease-out;}
+  @keyframes cutFlashAnim{0%{opacity:0;}15%{opacity:.55;}40%{opacity:.15;}100%{opacity:0;}}
+
+  /* ZONE 4 — FLOATING OVER STRIP */
   .over-strip-float{position:absolute;right:12px;bottom:calc(118px + env(safe-area-inset-bottom,0));display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(8,14,28,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.45);pointer-events:none;z-index:100005;transition:opacity .2s;}
   .os-label{font-size:9px;font-weight:900;letter-spacing:1.4px;color:#94a3b8;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
   .os-divider{width:1px;height:18px;background:rgba(255,255,255,.14);flex-shrink:0;}
   .over-strip-float .dots{display:flex;gap:4px;}
   .over-strip-float .b{width:20px;height:20px;font-size:8.5px;}
-
   .dots{display:flex;gap:3px;}
   .b{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:900;background:rgba(255,255,255,.08);color:#94a3b8;border:1px solid rgba(255,255,255,.15);flex-shrink:0;}
   .b.dot{background:rgba(148,163,184,.2);}
@@ -127,6 +135,7 @@
   .b.nb{background:rgba(232,121,249,.4);color:#e879f9;border-color:#e879f9;}
   .b.bye{background:rgba(16,185,129,.3);color:#34d399;border-color:#10b981;}
 
+  /* ZONE 5 + 6 — BOTTOM */
   .bottom{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;pointer-events:auto;z-index:100010;padding-bottom:env(safe-area-inset-bottom,0);padding-top:12px;background:linear-gradient(0deg,rgba(2,7,19,.96) 0%,rgba(2,7,19,.85) 80%,rgba(2,7,19,0) 100%);}
   .score-strip{display:flex;align-items:center;height:56px;margin:0 8px 4px;padding:0 14px;background:rgba(8,14,28,.94);border:1px solid rgba(255,255,255,.1);border-radius:12px;gap:12px;font-family:inherit;position:relative;overflow:hidden;}
   .ss-team-bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:#00e676;transition:background .3s;}
@@ -149,6 +158,7 @@
   .ticker-badge.wkt{background:rgba(239,68,68,.35);color:#fff;box-shadow:0 0 8px rgba(239,68,68,.6);}
   .ticker-text{font-size:11.5px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
 
+  /* Audio FAB */
   .audio-fab{position:absolute;top:110px;left:12px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;touch-action:manipulation;}
   .audio-fab > .ic{width:36px;height:36px;font-size:16px;border-radius:10px;position:relative;}
   .audio-fab > .ic .snd-caret{position:absolute;bottom:2px;right:3px;font-size:8px;opacity:.9;line-height:1;}
@@ -162,6 +172,7 @@
   .audio-opt.on{background:linear-gradient(135deg,rgba(0,146,112,.4),rgba(0,230,118,.28));border-color:#00e676;color:#fff;}
   .audio-opt.on .as{color:#00e676;}
 
+  /* Menu Panel */
   #menuPanel{position:absolute;top:48px;right:6px;width:min(88vw,290px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(0,230,118,.35);border-radius:12px;padding:9px;z-index:100001;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 60px);overflow-y:auto;}
   #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
   .menu-sec{margin-bottom:8px;}
@@ -213,11 +224,6 @@
   #bbBowler{transition:color .3s;}
   #bbBowler.bowler-flash{color:#ffffff;text-shadow:0 0 8px #22d3ee;}
 
-  /* Replay indicator */
-  .replay-badge{position:absolute;top:56px;left:50%;transform:translateX(-50%) translateY(-10px);padding:5px 14px;background:rgba(239,68,68,.9);border:1px solid rgba(255,255,255,.4);border-radius:20px;color:#fff;font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity .3s, transform .3s;z-index:100009;box-shadow:0 4px 16px rgba(0,0,0,.5);}
-  .replay-badge.on{opacity:1;transform:translateX(-50%) translateY(0);}
-  .replay-badge::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff;margin-right:6px;vertical-align:middle;animation:livePulse 1s ease-in-out infinite;}
-
   @media (max-width:360px){
     .brand-name{font-size:10px;letter-spacing:1.5px;}
     .live-text{font-size:9px;}
@@ -234,12 +240,12 @@
     .ticker-text{font-size:10.5px;}
     .ic{width:28px;height:28px;font-size:12px;border-radius:8px;}
     .audio-fab > .ic{width:34px;height:34px;font-size:15px;}
-    .rc-btn{min-width:110px;font-size:10.5px;padding:7px 10px;}
   }
   @media (max-width:320px){ .live-text{display:none;} }
   @media (prefers-reduced-motion: reduce){
     .live-dot{animation:none;}
     .pill-milestone{animation:none;}
+    .cut-flash.fire{animation:none;}
   }
 </style>
 </head>
@@ -264,6 +270,7 @@
 <div id="irisTransition" aria-hidden="true"></div>
 <div class="vignette"></div>
 <div class="wicket-flash" id="wicketFlash"></div>
+<div class="cut-flash" id="cutFlash"></div>
 
 <div class="hud">
 
@@ -277,23 +284,8 @@
     <div class="top-right">
       <div class="ic on" id="btn-dir" onclick="toggleDirector()" title="Director">🎬</div>
       <div class="ic" id="btn-stadium" onclick="toggleStadiumView()" title="View">🕸️</div>
-      <div class="ic" id="btn-replay" onclick="toggleReplayCluster(event)" title="Replay">↻</div>
+      <div class="ic" id="btn-replay" onclick="triggerReplay()" title="Replay Last Ball">↻</div>
       <div class="ic" id="btn-menu" onclick="toggleMenu(event)" title="Menu">⋯</div>
-
-      <div id="replayCluster" class="replay-cluster">
-        <button class="rc-btn" onclick="doReplay('last')" title="Last ball (slow motion)">
-          <span class="rc-i">⚾</span><span class="rc-t">Last Ball · Slow</span>
-        </button>
-        <button class="rc-btn" onclick="doReplay('over')" title="This over (fast)">
-          <span class="rc-i">📼</span><span class="rc-t">This Over · Fast</span>
-        </button>
-        <button class="rc-btn" onclick="doReplay('boundary')" title="Last boundary (fast)">
-          <span class="rc-i">🔥</span><span class="rc-t">Boundary · Fast</span>
-        </button>
-        <button class="rc-btn rc-close" onclick="closeReplayCluster()" title="Close">
-          <span class="rc-i">✕</span>
-        </button>
-      </div>
     </div>
   </div>
 
@@ -317,8 +309,14 @@
   </div>
 
   <div class="speed-pill" id="speedPill">-- km/h</div>
+  <div class="replay-badge" id="replayBadge">REPLAY · SLOW</div>
 
-  <div class="replay-badge" id="replayBadge">REPLAY</div>
+  <div class="replay-cam-badge" id="replayCamBadge">
+    <span class="rcb-dot"></span>
+    <span class="rcb-label" id="replayCamLabel">CAM 1</span>
+    <span class="rcb-sep">·</span>
+    <span class="rcb-speed" id="replayCamSpeed">0.4×</span>
+  </div>
 
   <div class="milestone-banner" id="milestoneBanner">
     <div class="mb-line1" id="mbLine1">BATTER · 50!</div>
@@ -393,7 +391,7 @@
       <div class="menu-ttl">Utilities</div>
       <div class="menu-grid-3">
         <button class="menu-t on" id="util-wagon" onclick="toggleWagonWheel()"><span class="i">🕸️</span> Wagon</button>
-        <button class="menu-t" onclick="simFeedScoringTab()"><span class="i">⚡</span> Feed</button>
+        <button class="menu-t" onclick="triggerReplay()"><span class="i">↻</span> Replay</button>
         <button class="menu-t" onclick="toggleTVMode()"><span class="i">📺</span> TV</button>
       </div>
     </div>
@@ -674,7 +672,7 @@
     const btn = document.getElementById('btn-menu');
     if (panel) panel.classList.toggle('open', menuOpen);
     if (btn) btn.classList.toggle('on', menuOpen);
-    if (menuOpen){ closeAudioMenu(); closeReplayCluster(); }
+    if (menuOpen) closeAudioMenu();
   }
   document.addEventListener('click', function(e){
     if (!menuOpen) return;
@@ -1037,9 +1035,6 @@
   let strikerWicket, bowlerWicket;
   let ball, ballTex;
 
-  // ═══════════════════════════════════════════════════════════════
-  // Batsman base positions (absolute world coords)
-  // ═══════════════════════════════════════════════════════════════
   const STRIKER_BASE_X = 0.35;
   const STRIKER_BASE_Z = 8.8;
   const NONSTRIKER_BASE_X = -1.2;
@@ -1147,6 +1142,9 @@
   }
   window.__cmBootOptional = bootOptionalModules;
 
+  /* ═══════════════════════════════════════════════════════════════
+     AUDIO
+     ═══════════════════════════════════════════════════════════════ */
   let actx = null, audioOn = true;
   function initAudio(){ if (actx){ if (actx.state === 'suspended') actx.resume(); return; } try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
 
@@ -1237,7 +1235,6 @@
       menuOpen = false;
       const mp = document.getElementById('menuPanel');
       if (mp) mp.classList.remove('open');
-      closeReplayCluster();
     }
   }
   function closeAudioMenu(){
@@ -1359,13 +1356,7 @@
     if (/^SIX|Maximum!|into the stands|That is huge/i.test(text)){ badgeChar = '6'; badgeClass = 'six'; }
     else if (/^FOUR|Races away|Cracking stroke|Beautiful shot/i.test(text)){ badgeChar = '4'; badgeClass = 'four'; }
     else if (/Bowled|Caught|WICKET|gone|timber|Knocks him over/i.test(text)){ badgeChar = 'W'; badgeClass = 'wkt'; }
-    else if (/Single|one run|Single taken/i.test(text)){ badgeChar = '1'; }
-    else if (/Two runs|second/i.test(text)){ badgeChar = '2'; }
-    else if (/Three runs/i.test(text)){ badgeChar = '3'; }
-    if (badge){
-      badge.innerText = badgeChar;
-      badge.className = 'ticker-badge ' + badgeClass;
-    }
+    if (badge){ badge.innerText = badgeChar; badge.className = 'ticker-badge ' + badgeClass; }
     txt.innerText = text;
   }
   function speakCommentary(text){
@@ -1454,7 +1445,7 @@
   });
 
   /* ═══════════════════════════════════════════════════════════════
-     RUNNING STATE — with timeScale support
+     RUNNING STATE
      ═══════════════════════════════════════════════════════════════ */
   const RunningState = {
     active: false, totalRuns: 0, progress: 0, durationPerRun: 1.35, timeScale: 1,
@@ -1477,7 +1468,6 @@
           b.legL.userData.thigh.rotation.x = 0; b.legR.userData.thigh.rotation.x = 0;
           b.armL.rotation.x = 0; b.armR.rotation.x = 0; b.position.y = 0; b.position.z = 0;
         });
-        // Reset positions to base (fixes any drift)
         strikerBat.position.set(STRIKER_BASE_X, 0, STRIKER_BASE_Z);
         nonStrikerBat.position.set(NONSTRIKER_BASE_X, 0, NONSTRIKER_BASE_Z);
         return;
@@ -1588,9 +1578,7 @@
   function resolveShotAngle(shot){
     if (!shot) return Math.random() * Math.PI * 2;
     const numAngle = (typeof shot.angle === 'number') ? shot.angle : parseFloat(shot.angle);
-    if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined){
-      return numAngle;
-    }
+    if (!isNaN(numAngle) && shot.angle !== null && shot.angle !== undefined) return numAngle;
     const zoneNames = ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"];
     let zoneIdx = -1;
     if (typeof shot.zoneIndex === 'number' && shot.zoneIndex >= 0 && shot.zoneIndex < 8){
@@ -1919,8 +1907,6 @@
   };
   let activeCam = 'broadcast', directorOn = true;
   const camPos = CAM_MODES.broadcast.pos.clone(), camTarget = CAM_MODES.broadcast.target.clone();
-
-  // Replay camera override — when set, main animate loop does NOT drive camPos/camTarget
   let __cmReplayActive = false;
 
   function syncCamSelectors(mode){
@@ -1945,101 +1931,153 @@
   function simFeedScoringTab(){ playBall({ runs: [0,1,2,3,4,6][Math.floor(Math.random()*6)], bowlerType: 'fast_pace', angle: Math.random()*Math.PI*2 }); }
 
   /* ═══════════════════════════════════════════════════════════════
-     REPLAY CLUSTER
+     CUT-BASED REPLAY CAMERA
+     8 POVs, cut between them at fixed times, flash on cut.
+     Tier 0 devices get a lite single-wide-shot fallback.
      ═══════════════════════════════════════════════════════════════ */
-  let replayClusterOpen = false;
-  let replayPlaylist = null;
+  const REPLAY_FANCY = CM_DEVICE.tier >= 1;
 
-  function toggleReplayCluster(e){
-    if (e && e.stopPropagation) e.stopPropagation();
-    replayClusterOpen = !replayClusterOpen;
-    const c = document.getElementById('replayCluster');
-    const btn = document.getElementById('btn-replay');
-    if (c) c.classList.toggle('open', replayClusterOpen);
-    if (btn) btn.classList.toggle('on', replayClusterOpen);
-    if (replayClusterOpen){
-      closeAudioMenu();
-      if (menuOpen) toggleMenu();
-    }
+  const REPLAY_SHOTS = {
+    behindBowler:  { pos: new THREE.Vector3(2.8, 3.5, -18), target: new THREE.Vector3(0.4, 1.4, 8.8),  fov: 42, label: 'CAM 1 · BOWLER END' },
+    bowlerPOV:     { pos: new THREE.Vector3(0.5, 1.9, -10.5),target: new THREE.Vector3(0.4, 1.4, 8.8),  fov: 55, label: 'CAM 2 · BOWLER POV' },
+    keeperPOV:     { pos: new THREE.Vector3(0, 1.7, 14.5),  target: new THREE.Vector3(0.4, 1.2, 8.8),  fov: 58, label: 'CAM 3 · KEEPER POV' },
+    sideOn:        { pos: new THREE.Vector3(16, 2.6, 4),    target: new THREE.Vector3(0.4, 1.2, 8.8),  fov: 38, label: 'CAM 4 · SQUARE' },
+    behindBatsman: { pos: new THREE.Vector3(-1.5, 3.2, 17), target: new THREE.Vector3(0.4, 1.4, 8.8),  fov: 48, label: 'CAM 5 · BATSMAN END' },
+    stumpCam:      { pos: new THREE.Vector3(0, 0.7, 11.2),  target: new THREE.Vector3(0.4, 1.2, 8.8),  fov: 72, label: 'CAM 6 · STUMP CAM' },
+    highWide:      { pos: new THREE.Vector3(22, 14, 22),    target: new THREE.Vector3(0, 1, 4),        fov: 52, label: 'CAM 7 · HIGH WIDE' },
+    drone:         { pos: new THREE.Vector3(0, 32, 6),      target: new THREE.Vector3(0, 0, 6),        fov: 60, label: 'CAM 8 · DRONE' }
+  };
+
+  const REPLAY_TIMELINES = {
+    wicket: [
+      { t: 0,    key: 'behindBowler'  },
+      { t: 650,  key: 'bowlerPOV'     },
+      { t: 1000, key: 'sideOn'        },
+      { t: 1250, key: 'stumpCam'      },
+      { t: 1600, key: 'behindBatsman' },
+      { t: 2400, key: 'highWide'      }
+    ],
+    six: [
+      { t: 0,    key: 'behindBowler'  },
+      { t: 700,  key: 'bowlerPOV'     },
+      { t: 1050, key: 'keeperPOV'     },
+      { t: 1300, key: 'behindBatsman' },
+      { t: 2100, key: 'highWide'      },
+      { t: 3200, key: 'drone'         }
+    ],
+    four: [
+      { t: 0,    key: 'behindBowler'  },
+      { t: 700,  key: 'bowlerPOV'     },
+      { t: 1050, key: 'sideOn'        },
+      { t: 1350, key: 'behindBatsman' },
+      { t: 2100, key: 'highWide'      }
+    ],
+    runs: [
+      { t: 0,    key: 'behindBowler'  },
+      { t: 800,  key: 'sideOn'        },
+      { t: 1300, key: 'highWide'      }
+    ],
+    dot: [
+      { t: 0,    key: 'behindBowler'  },
+      { t: 900,  key: 'keeperPOV'     },
+      { t: 1400, key: 'highWide'      }
+    ]
+  };
+
+  function getReplayTimeline(shot){
+    const runs = shot.runs || 0;
+    const isWkt = shot.isWicket || shot.isOut;
+    if (isWkt) return REPLAY_TIMELINES.wicket;
+    if (runs === 6) return REPLAY_TIMELINES.six;
+    if (runs === 4) return REPLAY_TIMELINES.four;
+    if (runs > 0) return REPLAY_TIMELINES.runs;
+    return REPLAY_TIMELINES.dot;
   }
-  function closeReplayCluster(){
-    replayClusterOpen = false;
-    const c = document.getElementById('replayCluster');
-    const btn = document.getElementById('btn-replay');
-    if (c) c.classList.remove('open');
-    if (btn) btn.classList.remove('on');
-  }
-  document.addEventListener('click', function(e){
-    if (!replayClusterOpen) return;
-    const cluster = document.getElementById('replayCluster');
-    const btn = document.getElementById('btn-replay');
-    if (cluster && cluster.contains(e.target)) return;
-    if (btn && btn.contains(e.target)) return;
-    closeReplayCluster();
-  }, true);
 
-  function showReplayBadge(text){
-    const b = document.getElementById('replayBadge');
-    if (!b) return;
-    b.textContent = text || 'REPLAY';
-    b.classList.add('on');
-  }
-  function hideReplayBadge(){
-    const b = document.getElementById('replayBadge');
-    if (b) b.classList.remove('on');
+  let __cmReplayTimeline = null;
+  let __cmReplayShotIndex = -1;
+  let __cmReplayTimeScale = 1;
+
+  function fireCutFlash(){
+    if (!REPLAY_FANCY) return;
+    const el = document.getElementById('cutFlash');
+    if (!el) return;
+    el.classList.remove('fire');
+    void el.offsetWidth;
+    el.classList.add('fire');
   }
 
-  function doReplay(kind){
-    closeReplayCluster();
+  function updateReplayCamBadge(shotKey){
+    if (!REPLAY_FANCY) return;
+    const badge = document.getElementById('replayCamBadge');
+    const label = document.getElementById('replayCamLabel');
+    const speed = document.getElementById('replayCamSpeed');
+    if (!badge) return;
+    badge.classList.add('on');
+    const def = REPLAY_SHOTS[shotKey];
+    if (label && def) label.textContent = def.label;
+    if (speed) speed.textContent = (__cmReplayTimeScale || 1).toFixed(1) + '×';
+  }
+  function hideReplayCamBadge(){
+    const badge = document.getElementById('replayCamBadge');
+    if (badge) badge.classList.remove('on');
+  }
 
-    // Force stadium view for replays
-    if (!stadiumViewActive) setStadiumView(true, true);
-
-    const shots = currentMatchState ? toArray(currentMatchState.shotLog) : [];
-
-    if (kind === 'last'){
-      let shot = lastShot;
-      if (!shot && shots.length) shot = shots[shots.length - 1];
-      if (!shot) return;
-      // Slow motion — 0.4x
-      playBall(Object.assign({}, shot), false, { isReplay: true, timeScale: 0.4 });
+  function updateReplayCamera(elapsed, ballRef, T_CONTACT){
+    // Lite fallback for tier-0 devices
+    if (!REPLAY_FANCY){
+      camPos.set(8, 5, 22);
+      camTarget.copy(ballRef && ballRef.visible ? ballRef.position : new THREE.Vector3(0, 1, STRIKER_BASE_Z));
       return;
     }
 
-    if (kind === 'over'){
-      if (!shots.length) return;
-      const balls = (currentMatchState && currentMatchState.legalBalls) || 0;
-      const ballsThisOver = balls > 0 ? ((balls - 1) % 6) + 1 : 6;
-      const recent = shots.slice(-ballsThisOver);
-      if (!recent.length) return;
-      if (replayPlaylist) clearTimeout(replayPlaylist);
-      replayCurrentOver(recent, ballsThisOver);
-      let i = 0;
-      (function next(){
-        if (i >= recent.length){ replayPlaylist = null; return; }
-        // Fast — 2.4x, and skip wagon record on subsequent
-        playBall(Object.assign({}, recent[i]), true, { isReplay: true, timeScale: 2.4 });
-        i++;
-        replayPlaylist = setTimeout(next, 1900);
-      })();
-      return;
+    if (!__cmReplayTimeline || __cmReplayShotIndex === -1){
+      __cmReplayTimeline = getReplayTimeline(lastShot || {});
+      __cmReplayShotIndex = -1;
     }
 
-    if (kind === 'boundary'){
-      if (!shots.length) return;
-      for (let i = shots.length - 1; i >= 0; i--){
-        const r = shots[i] && shots[i].runs;
-        if (r === 4 || r === 6){
-          // Fast — 2.0x
-          playBall(Object.assign({}, shots[i]), false, { isReplay: true, timeScale: 2.0 });
-          return;
+    let idx = 0;
+    for (let i = 0; i < __cmReplayTimeline.length; i++){
+      if (elapsed >= __cmReplayTimeline[i].t) idx = i;
+    }
+
+    // Cut: snap camera, flash, update badge
+    if (idx !== __cmReplayShotIndex){
+      __cmReplayShotIndex = idx;
+      const shotKey = __cmReplayTimeline[idx].key;
+      const def = REPLAY_SHOTS[shotKey];
+      if (def){
+        camPos.copy(def.pos);
+        camTarget.copy(def.target);
+        if (camera.fov !== def.fov){
+          camera.fov = def.fov;
+          camera.updateProjectionMatrix();
         }
+        fireCutFlash();
+        updateReplayCamBadge(shotKey);
       }
     }
-  }
 
-  /* Legacy */
-  function triggerReplay(){ doReplay('last'); }
+    const def = REPLAY_SHOTS[__cmReplayTimeline[idx].key];
+    if (!def) return;
+
+    // Handheld micro-jitter
+    const jt = elapsed * 0.0018;
+    const jx = (Math.sin(jt * 1.7) + Math.sin(jt * 3.1)) * 0.045;
+    const jy = (Math.sin(jt * 2.3) + Math.sin(jt * 4.7)) * 0.035;
+    const jz = (Math.sin(jt * 1.9) + Math.sin(jt * 3.7)) * 0.045;
+
+    let tx = def.target.x, ty = def.target.y, tz = def.target.z;
+    if (elapsed > T_CONTACT + 300 && ballRef && ballRef.visible){
+      const blend = Math.min(0.45, (elapsed - (T_CONTACT + 300)) / 1200);
+      tx = tx * (1 - blend) + ballRef.position.x * blend;
+      ty = ty * (1 - blend) + Math.max(1.0, ballRef.position.y) * blend;
+      tz = tz * (1 - blend) + ballRef.position.z * blend;
+    }
+
+    camPos.set(def.pos.x + jx, def.pos.y + jy, def.pos.z + jz);
+    camTarget.set(tx, ty, tz);
+  }
 
   /* ═══════════════════════════════════════════════════════════════
      BOWLER IDENTITY
@@ -2076,74 +2114,28 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     REPLAY CINEMATIC CAMERA
-     Multi-phase: run-up → release wide → contact zoom → pull back → follow ball
-     ═══════════════════════════════════════════════════════════════ */
-  function updateReplayCamera(elapsed, ballRef, T_RELEASE, T_PITCH, T_CONTACT, T_END){
-    // Keyframe table: [time, camX, camY, camZ, tgtX, tgtY, tgtZ]
-    const seq = [
-      [0,                   4,   5,   -18,   1,    1.5, -10],   // behind bowler wide
-      [T_RELEASE * 0.5,     6,   4,   -12,   0.5,  1.3, -2],    // behind bowler closer
-      [T_RELEASE,           9,   3.5, -2,    0.4,  1.2, 4],     // side view, release
-      [T_PITCH,             6,   2.5, 8,     0.4,  1.2, 8.8],   // pan toward batsman
-      [T_CONTACT - 150,     3,   2.2, 12,    0.4,  1.3, 8.8],   // zoom to contact
-      [T_CONTACT,           2,   2.0, 13,    0.4,  1.4, 8.8],   // tight contact
-      [T_CONTACT + 400,     5,   4,   16,    1.5,  1.8, 7],     // pull back
-      [T_CONTACT + 900,     10,  8,   22,    0,    1.5, 3],     // wide follow
-      [T_CONTACT + 1800,    16,  12,  30,    0,    1.5, -2],    // very wide
-      [T_END + 2000,        14,  10,  28,    0,    1.2, 2]      // settle
-    ];
-
-    // Find current segment
-    let from = seq[0], to = seq[1];
-    for (let i = 0; i < seq.length - 1; i++){
-      if (elapsed >= seq[i][0] && elapsed < seq[i+1][0]){
-        from = seq[i]; to = seq[i+1];
-        break;
-      }
-      if (elapsed >= seq[seq.length-1][0]){
-        from = seq[seq.length-2]; to = seq[seq.length-1];
-      }
-    }
-
-    const segDur = Math.max(1, to[0] - from[0]);
-    let t = (elapsed - from[0]) / segDur;
-    if (t < 0) t = 0; if (t > 1) t = 1;
-    const sm = t * t * (3 - 2 * t); // smoothstep
-
-    let targetCamX = from[1] + (to[1] - from[1]) * sm;
-    let targetCamY = from[2] + (to[2] - from[2]) * sm;
-    let targetCamZ = from[3] + (to[3] - from[3]) * sm;
-    let targetTgtX = from[4] + (to[4] - from[4]) * sm;
-    let targetTgtY = from[5] + (to[5] - from[5]) * sm;
-    let targetTgtZ = from[6] + (to[6] - from[6]) * sm;
-
-    // After contact + 1200ms, blend the target toward the ball so the camera tracks it
-    const trackStart = T_CONTACT + 1200;
-    if (elapsed > trackStart && ballRef && ballRef.visible){
-      const blend = Math.min(1, (elapsed - trackStart) / 800);
-      targetTgtX = targetTgtX * (1 - blend) + ballRef.position.x * blend;
-      targetTgtY = targetTgtY * (1 - blend) + Math.max(1.2, ballRef.position.y) * blend;
-      targetTgtZ = targetTgtZ * (1 - blend) + ballRef.position.z * blend;
-      targetCamX = targetCamX * (1 - blend * 0.5) + (ballRef.position.x * 0.6) * (blend * 0.5);
-      targetCamZ = targetCamZ * (1 - blend * 0.5) + (ballRef.position.z - 14) * (blend * 0.5);
-    }
-
-    // Smooth damped lerp toward targets
-    const k = 0.14;
-    camPos.x += (targetCamX - camPos.x) * k;
-    camPos.y += (targetCamY - camPos.y) * k;
-    camPos.z += (targetCamZ - camPos.z) * k;
-    camTarget.x += (targetTgtX - camTarget.x) * k;
-    camTarget.y += (targetTgtY - camTarget.y) * k;
-    camTarget.z += (targetTgtZ - camTarget.z) * k;
-  }
-
-  /* ═══════════════════════════════════════════════════════════════
      DELIVERY ENGINE
      ═══════════════════════════════════════════════════════════════ */
   let anim = null;
   let lastShot = null;
+  let __cmReplayHideTimer = null;
+
+  function showReplayBadge(text){
+    if (__cmReplayHideTimer){ clearTimeout(__cmReplayHideTimer); __cmReplayHideTimer = null; }
+    const b = document.getElementById('replayBadge');
+    if (b){ b.textContent = text || 'REPLAY · SLOW'; b.classList.add('on'); }
+  }
+  function hideReplayBadge(){
+    const b = document.getElementById('replayBadge');
+    if (b) b.classList.remove('on');
+  }
+  function scheduleHideReplayBadge(delay){
+    if (__cmReplayHideTimer) clearTimeout(__cmReplayHideTimer);
+    __cmReplayHideTimer = setTimeout(function(){
+      hideReplayBadge();
+      hideReplayCamBadge();
+    }, delay || 400);
+  }
 
   function playBall(shot, skipWagonRecord, opts){
     if (!shot) return;
@@ -2157,12 +2149,17 @@
     initAudio();
     lastShot = shot;
 
-    // Set RunningState timeScale
     RunningState.timeScale = timeScale;
-
-    // Replay active flag for the main render loop
     __cmReplayActive = isReplay;
-    if (isReplay) showReplayBadge('REPLAY');
+    __cmReplayTimeScale = timeScale;
+
+    if (isReplay){
+      __cmReplayTimeline = null;
+      __cmReplayShotIndex = -1;
+      showReplayBadge('REPLAY · ' + timeScale.toFixed(1) + '×');
+    } else {
+      hideReplayCamBadge();
+    }
 
     if (strikerWicket) strikerWicket.reset();
     if (bowlerWicket) bowlerWicket.reset();
@@ -2172,7 +2169,6 @@
 
     resetBowlerToRunUp();
 
-    // ═══ Striker reset — CRITICAL: keep z at crease, do NOT set to 0 ═══
     strikerBat.position.set(STRIKER_BASE_X, 0, STRIKER_BASE_Z);
     strikerBat.rotation.set(0, -Math.PI/2, 0);
     if (strikerBat.batPivot) strikerBat.batPivot.rotation.set(-Math.PI/4, 0, 0);
@@ -2182,7 +2178,6 @@
     strikerBat.legR.userData.thigh.rotation.x = 0;
     strikerBat.armL.rotation.x = 0;
     strikerBat.armR.rotation.x = 0;
-    // *** REMOVED: strikerBat.position.z = 0; ***
 
     nonStrikerBat.position.set(NONSTRIKER_BASE_X, 0, NONSTRIKER_BASE_Z);
     nonStrikerBat.rotation.set(0, Math.PI/2, 0);
@@ -2254,7 +2249,6 @@
       speedPill._hideT = setTimeout(function(){ speedPill.classList.remove('on'); }, 3000);
     }
 
-    // Replay banner
     if (isReplay){
       const b = document.getElementById('banner');
       if (b){
@@ -2279,7 +2273,6 @@
     let releaseThudPlayed = false;
 
     function loop(now){
-      // ═══ TIME SCALE APPLIED HERE ═══
       const elapsed = (now - start) * timeScale;
 
       /* Batsman animation */
@@ -2303,7 +2296,6 @@
             strikerBat.head.rotation.y = THREE.MathUtils.lerp(0, bp.headRotY || 0, p);
             strikerBat.legL.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, -(bp.legStride || 0), p);
             strikerBat.legR.userData.thigh.rotation.x = THREE.MathUtils.lerp(0, (bp.legStride || 0) * 0.4, p);
-            // Y and Z offsets are RELATIVE to base Z
             if (isSweepCat) strikerBat.position.y = THREE.MathUtils.lerp(0, -0.35, p);
             let zOff = 0;
             if (isLoftedShot) zOff = 0.20 * p;
@@ -2342,7 +2334,6 @@
         }
       }
 
-      /* Bowler run-up */
       if (elapsed < T_RELEASE){
         const t = elapsed / T_RELEASE;
         bowler.position.x = THREE.MathUtils.lerp(1.5, 0.55, t);
@@ -2379,8 +2370,8 @@
         if (!contacted){
           contacted = true;
           if (isWkt && !isCatch){
-            if (!isReplay){ playStumps(); if (strikerWicket) strikerWicket.shatter(); }
-            else if (strikerWicket) strikerWicket.shatter();
+            if (!isReplay) playStumps();
+            if (strikerWicket) strikerWicket.shatter();
           } else if (phys.shotType !== 'leave'){
             if (shot._libShot && shot._libShot.sound && shot._libShot.sound !== 'whoosh'){
               if (!isReplay) playBatSound(shot._libShot.sound);
@@ -2420,9 +2411,8 @@
           RunningState.progress = 0;
         }
 
-        // ═══ CAMERA: replay vs live ═══
         if (isReplay){
-          updateReplayCamera(elapsed, ball, T_RELEASE, T_PITCH, T_CONTACT, T_END);
+          updateReplayCamera(elapsed, ball, T_CONTACT);
         } else if (directorOn){
           if (runs >= 4){
             camPos.lerp(new THREE.Vector3(ball.position.x * 0.4, 14, ball.position.z - 20), 0.05);
@@ -2441,21 +2431,19 @@
         }
       } else {
         if (!RunningState.active){
-          // End of shot
-          if (isReplay) updateReplayCamera(elapsed, ball, T_RELEASE, T_PITCH, T_CONTACT, T_END);
+          if (isReplay) updateReplayCamera(elapsed, ball, T_CONTACT);
           anim = null; ball.visible = false;
           if (window.fxTrailStop) window.fxTrailStop();
           if (sTag) sTag.classList.remove('on');
           resetBowlerToRunUp();
           if (isReplay){
             __cmReplayActive = false;
-            setTimeout(hideReplayBadge, 400);
+            scheduleHideReplayBadge(400);
           }
           if (!stadiumViewActive) try { drawWagonWheel(); } catch(e){}
           return;
         }
-        // Still running — keep replay camera alive
-        if (isReplay) updateReplayCamera(elapsed, ball, T_RELEASE, T_PITCH, T_CONTACT, T_END);
+        if (isReplay) updateReplayCamera(elapsed, ball, T_CONTACT);
 
         if (elapsed >= T_END + 3000){
           anim = null; ball.visible = false;
@@ -2464,16 +2452,15 @@
           resetBowlerToRunUp();
           if (isReplay){
             __cmReplayActive = false;
-            setTimeout(hideReplayBadge, 400);
+            scheduleHideReplayBadge(400);
           }
           if (!stadiumViewActive) try { drawWagonWheel(); } catch(e){}
           return;
         }
       }
 
-      // ═══ During replay, keep driving camera even after T_END (running phase) ═══
       if (isReplay && elapsed >= T_END && RunningState.active){
-        updateReplayCamera(elapsed, ball, T_RELEASE, T_PITCH, T_CONTACT, T_END);
+        updateReplayCamera(elapsed, ball, T_CONTACT);
       }
 
       ball.rotation.x += seamSpinX;
@@ -2484,7 +2471,6 @@
     }
     anim = requestAnimationFrame(loop);
 
-    /* Banner (live only) */
     if (!isReplay){
       setTimeout(() => {
         const b = document.getElementById('banner');
@@ -2509,7 +2495,37 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     SCORECARD RENDERING
+     REPLAY ENTRY POINT — only LAST BALL
+     ═══════════════════════════════════════════════════════════════ */
+  let __cmReplayCooldown = false;
+
+  function triggerReplay(){
+    if (__cmReplayCooldown) return;
+    const shots = currentMatchState ? toArray(currentMatchState.shotLog) : [];
+    let shot = lastShot;
+    if (!shot && shots.length) shot = shots[shots.length - 1];
+    if (!shot) return;
+
+    // Force stadium view
+    if (!stadiumViewActive) setStadiumView(true, true);
+
+    // Spin the ↻ button briefly
+    const btn = document.getElementById('btn-replay');
+    if (btn){
+      btn.classList.add('spin');
+      setTimeout(() => btn.classList.remove('spin'), 600);
+    }
+
+    // Cooldown so double-taps don't stack
+    __cmReplayCooldown = true;
+    setTimeout(() => { __cmReplayCooldown = false; }, 2500);
+
+    // Slow motion — 0.4× — cut-based cinematic director
+    playBall(Object.assign({}, shot), false, { isReplay: true, timeScale: 0.4 });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SCORECARD
      ═══════════════════════════════════════════════════════════════ */
   function renderOverDots(ballTags){
     const container = document.getElementById('overDotsContainer');
@@ -2689,7 +2705,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     MULTI-CHANNEL SYNC
+     SYNC
      ═══════════════════════════════════════════════════════════════ */
   let lastSeenBalls = -1;
   function handleNewMatchData(m){
@@ -2858,13 +2874,11 @@
         if (bowler && bowler.position.z < -20){
           bowler.position.z = -22 + Math.sin(elapsed * 1.2) * 0.25;
         }
-        // Only drive camera if not in replay
         if (!__cmReplayActive){
           if (directorOn){ camPos.lerp(CAM_MODES.broadcast.pos, 0.03); camTarget.lerp(CAM_MODES.broadcast.target, 0.03); }
         }
       }
 
-      // ═══ Camera control: replay overrides everything ═══
       if (!__cmReplayActive){
         if (!directorOn && activeCam === 'follow'){
           const bp = (ball && ball.visible) ? ball.position : new THREE.Vector3(0, 0, STRIKER_BASE_Z);
@@ -2875,7 +2889,6 @@
           camTarget.lerp(CAM_MODES[activeCam].target, 0.05);
         }
       }
-      // In replay mode, camPos/camTarget are updated by updateReplayCamera()
 
       camera.position.copy(camPos);
       camera.lookAt(camTarget);
@@ -2946,7 +2959,7 @@
   });
 
   /* ═══════════════════════════════════════════════════════════════
-     WINDOW EXPORTS
+     EXPORTS
      ═══════════════════════════════════════════════════════════════ */
   window.toggleMenu = toggleMenu;
   window.setSky = setSky;
@@ -2964,14 +2977,8 @@
   window.setAudioMode = setAudioMode;
   window.handleNewMatchData = handleNewMatchData;
   window.playBall = playBall;
-  window.toggleReplayCluster = toggleReplayCluster;
-  window.closeReplayCluster = closeReplayCluster;
-  window.doReplay = doReplay;
   window.triggerReplay = triggerReplay;
 
-  /* ═══════════════════════════════════════════════════════════════
-     BOOT
-     ═══════════════════════════════════════════════════════════════ */
   window.__cmProgress(20, 'Loading stadium…');
   requestAnimationFrame(animate);
 
@@ -2991,7 +2998,7 @@
       }
     }, 9000);
   }).catch(function(err){
-    if (__cmLoaderSub) __cmLoaderSub.innerText = '⚠️ Failed to load: ' + String(err.message || err).slice(0, 60);
+    if (__cmLoaderSub) __cmLoaderSub.innerText = '⚠️ Failed to load: ' + String(err.message || err).slice(0, 80);
     setTimeout(function(){
       const loaderEl = document.getElementById('cm-loader');
       if (loaderEl){
