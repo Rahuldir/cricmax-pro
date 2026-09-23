@@ -3438,3 +3438,21 @@ body.light-mode .nzc-wagon-tab.active {
   .cm-progress-fill::after{ animation:none; }
   .cm-light.go{ animation:none; }
 }
+/* ============================================================
+   SVG ICON SUPPORT — Top Bar
+   ============================================================ */
+.top-icon-btn svg {
+  display: block;
+  pointer-events: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.top-icon-btn.active svg {
+  stroke: #0a0e1a;
+}
+.top-icon-btn:hover svg {
+  stroke: #fff;
+}
