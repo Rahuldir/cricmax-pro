@@ -1833,9 +1833,9 @@
     x.moveTo(cx - 22, cy + R * 0.62); x.lineTo(cx + 22, cy + R * 0.62);
     x.stroke();
 
-    FIELDER_MARKERS.forEach(f => {
+     FIELDER_MARKERS.forEach(f => {
       const fx = cx + Math.sin(f.angle) * R * f.dist;
-      const fy = cy - Math.cos(f.angle) * R * f.dist;
+      const fy = cy + Math.cos(f.angle) * R * f.dist;
       x.fillStyle = 'rgba(122,133,144,0.45)';
       x.beginPath(); x.arc(fx, fy, 4, 0, Math.PI * 2); x.fill();
       x.strokeStyle = 'rgba(255,255,255,0.3)';
@@ -1858,10 +1858,13 @@
     x.fillStyle = 'rgba(255,255,255,0.85)';
     x.font = 'bold 14px sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('N', cx, cy - R - 12);
-    x.fillText('S', cx, cy + R + 12);
-    x.fillText('E', cx + R + 14, cy);
-    x.fillText('W', cx - R - 14, cy);
+       x.font = 'bold 10px sans-serif';
+    x.fillStyle = 'rgba(148,163,184,0.85)';
+    x.fillText('KEEPER END', cx, cy - R - 12);
+    x.fillText('BOWLER END', cx, cy + R + 12);
+    x.fillStyle = 'rgba(0,230,118,0.85)';
+    x.fillText('OFF', cx + R + 16, cy);
+    x.fillText('LEG', cx - R - 16, cy);
 
     return c;
   }
@@ -2048,7 +2051,7 @@
   function toggleWagonWheel(){ setStadiumView(!stadiumViewActive); }
 
   const CAM_MODES = {
-    broadcast:{pos:new THREE.Vector3(0,16,32),target:new THREE.Vector3(0,1.2,2)},
+     broadcast:{pos:new THREE.Vector3(0,16,-32),target:new THREE.Vector3(0,1.2,-2)},
     bowler:{pos:new THREE.Vector3(0,4.2,-22),target:new THREE.Vector3(0,1.0,9)},
     keeper:{pos:new THREE.Vector3(0,2.2,15),target:new THREE.Vector3(0,1.2,-5)},
     slip:{pos:new THREE.Vector3(3.0,2.2,14.0),target:new THREE.Vector3(0.35,1.0,8.8)},
