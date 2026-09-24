@@ -1,6 +1,7 @@
 /* ============================================================
    firebase.js — Broadcast channel, Firestore sync, viewer presence
    ✅ Self-healing: normalizeMatch() runs before every state use
+   ✅ Clean viewer share URL: /viewer.html?code=XXXXXX
    ============================================================ */
 
 function broadcastMatchState(latestShot = null) {
@@ -104,13 +105,29 @@ async function registerViewerPresence(code) {
 }
 
 /* ─── Sharing ──────────────────────────────────────────── */
+/* Clean URL: /viewer.html?code=XXXXXX
+   Every shared link lands directly on the 3D wagon-wheel viewer. */
 function shareViewerOnly() {
   try {
-    let url = location.origin + location.pathname + '?viewer=1';
-    if (matchCode) url += '&code=' + matchCode;
+    const code = (typeof matchCode !== 'undefined' && matchCode)
+              || (match && match.shareCode)
+              || '';
+    const url = location.origin + '/viewer.html' + (code ? '?code=' + encodeURIComponent(code) : '');
+
+    /* Native share sheet (mobile) */
+    if (navigator.share) {
+      navigator.share({
+        title: 'CricMax Pro — Live Match',
+        text:  'Watch the match live',
+        url:   url
+      }).catch(function () {});
+      return;
+    }
+
+    /* Clipboard copy (desktop) */
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url)
-        .then(() => showToast('✅ Viewer link copied!' + (matchCode ? ' • Code: ' + matchCode : '')))
+        .then(() => showToast('✅ Viewer link copied!' + (code ? ' • Code: ' + code : '')))
         .catch(() => fallbackCopy(url));
     } else {
       fallbackCopy(url);
