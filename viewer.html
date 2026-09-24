@@ -529,90 +529,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 </head>
 <body>
 
-<div id="cm-loader">
-  <div class="cm-speed-lines" id="cmSpeedLines"></div>
-  <div class="cm-start-lights" id="cmStartLights">
-    <div class="cm-light" data-i="0"></div>
-    <div class="cm-light" data-i="1"></div>
-    <div class="cm-light" data-i="2"></div>
-    <div class="cm-light" data-i="3"></div>
-    <div class="cm-light" data-i="4"></div>
-  </div>
-  <div class="cm-loader-brand">
-    <span>C</span><span>R</span><span>I</span><span>C</span><span>M</span><span>A</span><span>X</span>
-    <span class="cm-grad">P</span><span class="cm-grad">R</span><span class="cm-grad">O</span>
-  </div>
-  <div class="cm-loader-status">
-    <span class="cm-loader-dot"></span>
-    <span class="cm-loader-sub" id="cm-loader-sub">INITIALIZING STADIUM</span>
-  </div>
-  <div class="cm-progress-track"><div class="cm-progress-fill" id="cmProgressFill"></div></div>
-  <div class="cm-progress-pct" id="cmProgressPct">0%</div>
-  <div class="cm-loader-foot">MATCH VIEWER · 2026</div>
-</div>
-
 <script>
-(function(){
-  var startTime = Date.now();
-  var sub = document.getElementById('cm-loader-sub');
-  var lightsEl = document.getElementById('cmStartLights');
-  var fillEl = document.getElementById('cmProgressFill');
-  var pctEl = document.getElementById('cmProgressPct');
-  var speedEl = document.getElementById('cmSpeedLines');
-  var fakeProgress = 0, realProgress = 0, lastPct = 0, goFlashed = false;
-  if (speedEl){
-    for (var i = 0; i < 7; i++){
-      var line = document.createElement('div');
-      line.className = 'cm-speed-line';
-      line.style.top = (12 + i * 12 + (Math.random() * 6 - 3)) + '%';
-      line.style.animationDelay = (i * 0.34) + 's';
-      line.style.animationDuration = (2 + Math.random() * 1.2) + 's';
-      speedEl.appendChild(line);
-    }
-  }
-  function renderUI(p){
-    if (fillEl) fillEl.style.width = p + '%';
-    if (pctEl) pctEl.textContent = Math.round(p) + '%';
-    if (lightsEl && !goFlashed){
-      var lights = lightsEl.children;
-      var litCount = Math.min(5, Math.floor((p / 80) * 5));
-      for (var i = 0; i < lights.length; i++){
-        if (i < litCount) lights[i].classList.add('on');
-        else lights[i].classList.remove('on');
-      }
-      if (p >= 100){
-        goFlashed = true;
-        for (var j = 0; j < lights.length; j++){
-          (function(el, d){ setTimeout(function(){ el.classList.remove('on'); el.classList.add('go'); }, d); })(lights[j], j * 45);
-        }
-      }
-    }
-  }
-  var fakeTimer = setInterval(function(){
-    var e = Date.now() - startTime;
-    fakeProgress = Math.min(90, (e / 5000) * 90);
-    var p = Math.max(fakeProgress, realProgress);
-    if (p > lastPct){ lastPct = p; renderUI(p); }
-  }, 100);
-  window.__cmProgress = function(pct, label){
-    if (typeof pct === 'number') realProgress = Math.max(realProgress, pct);
-    if (sub && label) sub.innerText = label;
-    var p = Math.max(fakeProgress, realProgress);
-    if (p > lastPct){ lastPct = p; renderUI(p); }
-  };
-  window.__cmLoaderStart = startTime;
-  var failsafe = setInterval(function(){
-    var elapsed = Date.now() - startTime;
-    var loader = document.getElementById('cm-loader');
-    if (!loader){ clearInterval(failsafe); clearInterval(fakeTimer); return; }
-    if (elapsed > 10000){
-      clearInterval(failsafe); clearInterval(fakeTimer);
-      if (!goFlashed){ goFlashed = true; window.__cmProgress(100, 'READY · LIGHTS OUT'); }
-      setTimeout(function(){ loader.classList.add('cm-hide'); setTimeout(function(){ try { loader.remove(); } catch(e){} }, 600); }, 420);
-    }
-  }, 500);
-  window.__cmLoaderFailsafe = failsafe;
-})();
+  window.__cmProgress = function(pct, label){};
 </script>
 
 <div id="irisTransition" aria-hidden="true"></div>
@@ -910,12 +828,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   })();
   window.__cmDevice = CM_DEVICE;
 
-  const __cmLoaderSub = document.getElementById('cm-loader-sub');
-  if (typeof window.__cmProgress !== 'function'){
-    window.__cmProgress = function(pct, label){ if (__cmLoaderSub && label) __cmLoaderSub.innerText = label; };
-  }
-  window.__cmProgress(8, 'INITIALIZING ENGINE');
-
   function loadScript(src){
     return new Promise(function(resolve){
       const s = document.createElement('script');
@@ -946,11 +858,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       alpha: false, stencil: false, depth: true
     });
   } catch (glErr) {
-    if (__cmLoaderSub) __cmLoaderSub.innerText = '⚠️ WEBGL NOT SUPPORTED';
-    setTimeout(function(){
-      var l = document.getElementById('cm-loader');
-      if (l){ l.style.opacity = '0'; setTimeout(function(){ try{l.remove();}catch(e){} }, 500); }
-    }, 2000);
     return;
   }
   renderer.setSize(innerWidth, innerHeight);
@@ -990,7 +897,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       } else woodTex = makeFallbackWoodTexture();
     } catch(e){ woodTex = makeFallbackWoodTexture(); }
     buildPlayers();
-    window.__cmProgress(45, 'LOADING PLAYERS');
   }
 
   /* ── MENU / PANELS ── */
@@ -2666,8 +2572,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
   } catch(e){}
 
-  window.__cmProgress(70, 'CONNECTING TO MATCH');
-
   const CM_TARGET_FPS = CM_DEVICE.tier === 0 ? 30 : (CM_DEVICE.tier === 1 ? 45 : 60);
   const CM_FRAME_INTERVAL = 1000 / CM_TARGET_FPS;
   const WAGON_FRAME_INTERVAL = 1000 / 30;
@@ -2738,19 +2642,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       }
       if (!__cmFirstFrame){
         __cmFirstFrame = true;
-        window.__cmProgress(100, 'READY · LIGHTS OUT');
-        if (window.__cmLoaderFailsafe) clearInterval(window.__cmLoaderFailsafe);
-        const loaderEl = document.getElementById('cm-loader');
-        if (loaderEl){
-          const elapsedSinceStart = performance.now() - (window.__cmLoaderStart || 0);
-          const minShow = Math.max(0, 2400 - elapsedSinceStart);
-          setTimeout(function(){
-            setTimeout(function(){
-              loaderEl.classList.add('cm-hide');
-              setTimeout(() => { try { loaderEl.remove(); } catch(e){} }, 600);
-            }, 420);
-          }, minShow);
-        }
         if (window.requestIdleCallback) {
           requestIdleCallback(function(){
             const list = CM_DEVICE.tier === 0 ? [] : CM_DEVICE.tier === 1 ? ['environment.js'] : ['environment.js','crowd-animation.js','particles.js','stadium-detail.js'];
@@ -2795,7 +2686,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   window.playBall = playBall;
   window.triggerReplay = triggerReplay;
 
-  window.__cmProgress(20, 'LOADING STADIUM');
   requestAnimationFrame(animate);
 
   bootStadiumModule().then(function(){
@@ -2803,19 +2693,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     setTimeout(function(){
       if (!__cmFirstFrame){
         __cmFirstFrame = true;
-        window.__cmProgress(100, 'READY · LIGHTS OUT');
-        if (window.__cmLoaderFailsafe) clearInterval(window.__cmLoaderFailsafe);
-        const loaderEl = document.getElementById('cm-loader');
-        if (loaderEl){ setTimeout(function(){ loaderEl.classList.add('cm-hide'); setTimeout(() => { try { loaderEl.remove(); } catch(e){} }, 600); }, 420); }
       }
     }, 9000);
   }).catch(function(err){
-    if (__cmLoaderSub) __cmLoaderSub.innerText = '⚠️ FAILED TO LOAD';
-    setTimeout(function(){
-      window.__cmProgress(100, 'READY · LIGHTS OUT');
-      const loaderEl = document.getElementById('cm-loader');
-      if (loaderEl){ setTimeout(function(){ loaderEl.classList.add('cm-hide'); setTimeout(() => { try { loaderEl.remove(); } catch(e){} }, 600); }, 420); }
-    }, 2500);
+    console.error("Failed to load stadium", err);
   });
 
 })();
