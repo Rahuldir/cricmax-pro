@@ -1351,7 +1351,10 @@ function showSheet(tab){
   sheet.querySelectorAll('.sheet-tab').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
   });
-  activeSheetTab = tab;
+   activeSheetTab = tab;
+  /* Hide the wagon wheel so it can't bleed through the sheet */
+  var ww = document.getElementById('wagonWrap');
+  if (ww) ww.style.visibility = 'hidden';
 }
   
 
