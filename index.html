@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">  
-if (window.self !== window.top) return;
-<meta name="<meta charset="UTF-8">
+<meta charset="UTF-8">
 <script>
-/* Redirect to viewer.html ONLY when we're the top-level page.
-   If we're inside an iframe (the data sheet tabs), do NOT redirect. */
+/* Only redirect to viewer.html when we're the TOP-LEVEL page.
+   If we're inside an iframe (the data sheet), don't redirect. */
 (function(){
   try {
-    if (window.self !== window.top) return;
+    if (window.self !== window.top) return; // inside iframe → skip redirect
     var p = new URLSearchParams(location.search);
     if (p.get('viewer') === '1'){
       var code = p.get('code') || '';
