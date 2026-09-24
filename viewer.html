@@ -922,7 +922,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     try { code = new URLSearchParams(location.search).get('code') || ''; } catch(e){}
     if (!code) { try { code = localStorage.getItem('currentMatchCode') || ''; } catch(e){} }
 
-    const src = location.origin + '/index.html?viewer=1' +
+   const src = location.origin + '/index.html?embed=1' +
                 (code ? '&code=' + encodeURIComponent(code) : '') +
                 '&pane=' + encodeURIComponent(tab);
 
@@ -2757,6 +2757,86 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     setStadiumView(false, true);
   });
 
+})();
+</script> <!-- ═══════════════════════════════════════════════════════════
+     SHARE BUTTON → COPY TO CLIPBOARD (override)
+     Overrides shareViewerOnly() from viewer.js/ui.js
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  function buildViewerUrl(){
+    var code = '';
+    try { code = localStorage.getItem('currentMatchCode') || ''; } catch(e){}
+    if (!code){
+      try { code = new URLSearchParams(location.search).get('code') || ''; } catch(e){}
+    }
+    return location.origin + '/viewer.html' + (code ? '?code=' + encodeURIComponent(code) : '');
+  }
+
+  function showToast(msg, ok){
+    var t = document.getElementById('cm-copy-toast');
+    if (!t){
+      t = document.createElement('div');
+      t.id = 'cm-copy-toast';
+      t.style.cssText =
+        'position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);' +
+        'padding:12px 22px;border-radius:10px;z-index:9999999;' +
+        'font-family:Titillium Web,system-ui,sans-serif;font-size:13px;font-weight:900;' +
+        'letter-spacing:1.4px;text-transform:uppercase;color:#fff;' +
+        'background:linear-gradient(135deg,#00c853,#00e676);' +
+        'box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 24px rgba(0,230,118,.5);' +
+        'opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = ok
+      ? 'linear-gradient(135deg,#00c853,#00e676)'
+      : 'linear-gradient(135deg,#b91c1c,#ef4444)';
+    requestAnimationFrame(function(){
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(t._hideT);
+    t._hideT = setTimeout(function(){
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 2000);
+  }
+
+  function copyText(text){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function(resolve, reject){
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand failed'));
+      } catch(e){ reject(e); }
+    });
+  }
+
+  window.shareViewerOnly = function(){
+    var url = buildViewerUrl();
+    copyText(url).then(function(){
+      showToast('🔗 Viewer link copied!', true);
+      console.log('[Share] Copied:', url);
+    }).catch(function(err){
+      console.warn('[Share] Clipboard failed:', err);
+      window.prompt('Copy this viewer link:', url);
+      showToast('📋 Copy manually', false);
+    });
+  };
+
+  console.log('[Share] ✅ Copy-to-clipboard handler installed');
 })();
 </script>
 </body>
