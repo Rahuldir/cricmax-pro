@@ -267,6 +267,182 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .banner.run{ color:var(--f1-red); text-shadow:0 0 30px #8b0300,0 6px 16px #000; }
 
 /* ═══════════════════════════════════════════════════════════════
+   FULL-SCREEN DATA SHEET — Card / Stats / Boards
+   ═══════════════════════════════════════════════════════════════ */
+.viewer-sheet{
+  position:fixed;inset:0;z-index:100040;
+  display:none;flex-direction:column;
+  pointer-events:auto;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(225,6,0,.16), transparent 55%),
+    linear-gradient(180deg,#0b0b0b 0%,#050505 100%);
+  font-family:'Titillium Web',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:#f1f5f9;
+  padding-top:env(safe-area-inset-top,0);
+  padding-bottom:env(safe-area-inset-bottom,0);
+  overscroll-behavior:contain;
+  animation:sheetIn .22s ease-out;
+}
+.viewer-sheet.open{ display:flex; }
+@keyframes sheetIn{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+
+.viewer-sheet__bar{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  padding:10px 12px;
+  background:var(--f1-carbon),rgba(10,10,10,.96);
+  border-bottom:2px solid transparent;
+  border-image:linear-gradient(90deg,transparent,var(--f1-red) 15%,var(--f1-green) 50%,var(--f1-red) 85%,transparent) 1;
+  position:relative;
+}
+.sheet-back,.sheet-close{
+  background:var(--f1-carbon),rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.14);
+  color:#e2e8f0;font-family:inherit;font-size:11px;font-weight:900;
+  letter-spacing:.6px;padding:8px 12px;border-radius:8px;cursor:pointer;
+  clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);
+  flex:0 0 auto;touch-action:manipulation;
+}
+.sheet-back:active,.sheet-close:active{ transform:scale(.95); }
+.sheet-close{ background:rgba(225,6,0,.18); border-color:rgba(225,6,0,.5); color:#ffb4b0; }
+
+.sheet-tabs{
+  flex:1 1 auto;display:flex;gap:6px;justify-content:center;min-width:0;
+}
+.sheet-tab{
+  flex:1 1 0;min-width:0;
+  background:var(--f1-carbon),rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);
+  color:#9aa3ae;font-family:inherit;font-size:11.5px;font-weight:900;
+  letter-spacing:1px;text-transform:uppercase;
+  padding:9px 6px;border-radius:8px;cursor:pointer;
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+  transition:background .15s,color .15s,border-color .15s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  touch-action:manipulation;
+}
+.sheet-tab.on{
+  background:linear-gradient(135deg,#8b0300,var(--f1-red));
+  border-color:transparent;color:#fff;
+  box-shadow:0 0 14px rgba(225,6,0,.5), inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+.viewer-sheet__body{
+  flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 12px calc(24px + env(safe-area-inset-bottom,0));
+}
+
+/* ── section title ── */
+.sheet-sec{ margin-bottom:16px; }
+.sheet-sec__ttl{
+  font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;
+  color:var(--f1-red);margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;
+}
+.sheet-sec__ttl::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(225,6,0,.6),transparent);
+}
+
+/* ── team summary strip ── */
+.sheet-summary{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  background:var(--f1-carbon),linear-gradient(90deg,#141414,#1e1e1e,#141414);
+  border-left:4px solid var(--f1-red);
+  border-radius:0 10px 10px 0;
+  padding:12px 16px;margin-bottom:14px;
+}
+.sheet-summary__team{ font-size:15px;font-weight:900;font-style:italic;letter-spacing:1px;color:#fff; }
+.sheet-summary__score{ font-size:26px;font-weight:900;color:var(--f1-red);font-variant-numeric:tabular-nums;line-height:1; }
+.sheet-summary__meta{ font-size:11px;font-weight:700;color:#8b949e;margin-left:auto;font-variant-numeric:tabular-nums; }
+
+/* ── tables ── */
+.sheet-table{
+  width:100%;border-collapse:collapse;font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+.sheet-table thead th{
+  font-size:9px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;
+  color:#7a8590;text-align:right;padding:6px 8px;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  white-space:nowrap;
+}
+.sheet-table thead th:first-child{ text-align:left; }
+.sheet-table tbody td{
+  padding:9px 8px;text-align:right;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  color:#c5cdd8;
+}
+.sheet-table tbody td:first-child{ text-align:left;color:#fff;font-weight:700; }
+.sheet-table tbody tr:last-child td{ border-bottom:none; }
+.sheet-table tbody tr.is-striker td:first-child::before{
+  content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--f1-red);box-shadow:0 0 8px var(--f1-red);
+  margin-right:7px;vertical-align:middle;
+}
+.sheet-table tbody tr.is-out td:first-child{ color:#8b949e; }
+.sheet-table .num-strong{ color:#fff;font-weight:900; }
+.sheet-table .num-green{ color:var(--f1-green);font-weight:900; }
+
+/* ── stat cards ── */
+.sheet-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;
+}
+.sheet-stat{
+  background:var(--f1-carbon),rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:10px 12px;
+}
+.sheet-stat__k{ font-size:9px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#7a8590;margin-bottom:4px; }
+.sheet-stat__v{ font-size:19px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1.1; }
+.sheet-stat__v small{ font-size:11px;color:#8b949e;font-weight:700;margin-left:3px; }
+.sheet-stat--red .sheet-stat__v{ color:var(--f1-red); }
+.sheet-stat--green .sheet-stat__v{ color:var(--f1-green); }
+
+/* ── recent balls strip ── */
+.sheet-balls{ display:flex;gap:6px;flex-wrap:wrap; }
+.sheet-ball{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;
+  border:2px solid #38383f;background:#101010;color:#a0a0a0;
+  font-variant-numeric:tabular-nums;
+}
+.sheet-ball.run{ border-color:#fff;color:#fff; }
+.sheet-ball.four{ border-color:var(--f1-purple);color:var(--f1-purple);box-shadow:0 0 10px rgba(179,27,255,.4); }
+.sheet-ball.six{ border-color:var(--f1-green);color:var(--f1-green);box-shadow:0 0 10px rgba(0,210,190,.4); }
+.sheet-ball.wicket{ background:var(--f1-red);border-color:var(--f1-red);color:#fff;box-shadow:0 0 10px rgba(225,6,0,.6); }
+.sheet-ball.extra{ border-color:#fbbf24;color:#fbbf24; }
+
+/* ── leaderboard rows ── */
+.lb-row{ display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06); }
+.lb-row:last-child{ border-bottom:none; }
+.lb-rank{
+  width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.06);
+  color:#7a8590;font-size:10px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.lb-row:nth-child(1) .lb-rank{ background:linear-gradient(135deg,#b8860b,#fbbf24);color:#1a1200; }
+.lb-row:nth-child(2) .lb-rank{ background:linear-gradient(135deg,#6b7280,#cbd5e1);color:#111; }
+.lb-row:nth-child(3) .lb-rank{ background:linear-gradient(135deg,#7c4a1e,#c68642);color:#1a1200; }
+.lb-name{ flex:1 1 auto;font-size:12.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0; }
+.lb-sub{ font-size:10px;color:#7a8590;font-weight:700;margin-left:6px; }
+.lb-val{ font-size:15px;font-weight:900;color:var(--f1-red);font-variant-numeric:tabular-nums;flex:0 0 auto; }
+.lb-wrap{ background:var(--f1-carbon),rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; }
+
+.sheet-empty{ text-align:center;padding:40px 16px;color:#7a8590;font-size:12px;font-weight:700;letter-spacing:.5px; }
+
+@media (max-width: 480px){
+  .viewer-sheet__bar{ padding:8px 8px; gap:6px; }
+  .sheet-back,.sheet-close{ font-size:10px; padding:7px 9px; }
+  .sheet-tab{ font-size:10px; padding:8px 4px; }
+  .viewer-sheet__body{ padding:12px 9px calc(20px + env(safe-area-inset-bottom,0)); }
+  .sheet-table{ font-size:11.5px; }
+  .sheet-table thead th, .sheet-table tbody td{ padding:7px 6px; }
+  .sheet-summary__score{ font-size:22px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    3. F1 REAR-WING SCORECARD (bottom)
    ═══════════════════════════════════════════════════════════════ */
 .wing-assembly{
@@ -804,7 +980,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <div class="banner" id="banner">FOUR!</div>
 
   <!-- Full-screen data sheet (Card / Stats / Boards) -->
-  <div id="viewerSheet" class="viewer-sheet">
+  <div id="viewerSheet" class="viewer-sheet" aria-hidden="true">
     <div class="viewer-sheet__bar">
       <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
       <div class="sheet-tabs">
@@ -838,7 +1014,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
         </div>
       </div>
 
-          <div class="wing-panel wing-panel--telemetry">
+      <div class="wing-panel wing-panel--telemetry">
         <div class="wing-telemetry">
           <span class="wing-player-name is-striker" id="bbStriker">Striker</span>
           <span class="wing-player-stats"><strong id="bbStrikerRuns">0</strong> (<span id="bbStrikerBalls">0</span>)</span>
@@ -1057,14 +1233,444 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
   }
 
+  /* ═══════════════════════════════════════════════════════════════
+     FULL-SCREEN DATA SHEET — Card / Stats / Boards
+     (Block 3 — replaces the original navTo())
+     ═══════════════════════════════════════════════════════════════ */
+  const SHEET_TABS = ['card', 'stats', 'boards'];
+  const PANE_TO_SHEET = {
+    scorecard: 'card', card: 'card',
+    analytics: 'stats', stats: 'stats',
+    leaderboards: 'boards', boards: 'boards'
+  };
+  let activeSheetTab = null;
+
+  function sheetEsc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+    });
+  }
+  function sheetNum(v, d){
+    const n = Number(v);
+    return isFinite(n) ? n : (d || 0);
+  }
+  function sheetOvers(balls){
+    balls = sheetNum(balls, 0);
+    return Math.floor(balls / 6) + '.' + (balls % 6);
+  }
+  function sheetMatch(){
+    return window.__cricmaxLastMatch || currentMatchState || null;
+  }
+  function sheetBallClass(tag){
+    const s = String(tag == null ? '' : tag);
+    if (/W/i.test(s)) return 'sheet-ball wicket';
+    if (s === '4') return 'sheet-ball four';
+    if (s === '6') return 'sheet-ball six';
+    if (/Wd|Nb|B|Lb/i.test(s)) return 'sheet-ball extra';
+    if (s === '0') return 'sheet-ball';
+    if (parseInt(s, 10) > 0) return 'sheet-ball run';
+    return 'sheet-ball';
+  }
+
   function navTo(pane){
     document.querySelectorAll('.menu-t[data-pane]').forEach(t => {
       t.classList.toggle('on', t.getAttribute('data-pane') === pane);
     });
-    if (pane === 'pitch'){ toggleMenu(); return; }
+    if (pane === 'pitch'){ closeSheet(); toggleMenu(); return; }
+    if (PANE_TO_SHEET[pane]){ toggleMenu(); showSheet(PANE_TO_SHEET[pane]); return; }
     try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
     toggleMenu();
   }
+
+  function showSheet(tab){
+    if (SHEET_TABS.indexOf(tab) < 0) tab = 'card';
+    const sheet = document.getElementById('viewerSheet');
+    if (!sheet) return;
+    activeSheetTab = tab;
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    sheet.querySelectorAll('.sheet-tab').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
+    });
+    renderSheet(tab);
+    // close other overlays
+    if (menuOpen){
+      menuOpen = false;
+      const mp = document.getElementById('menuPanel'); if (mp) mp.classList.remove('open');
+      const mb = document.getElementById('btn-menu'); if (mb) mb.classList.remove('on');
+    }
+  }
+
+  function closeSheet(){
+    const sheet = document.getElementById('viewerSheet');
+    if (!sheet) return;
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+    activeSheetTab = null;
+  }
+
+  function renderSheet(tab){
+    const body = document.getElementById('sheetBody');
+    if (!body) return;
+    const m = sheetMatch();
+    if (!m){
+      body.innerHTML = '<div class="sheet-empty">NO MATCH DATA YET<br><span style="opacity:.6">Waiting for the first ball…</span></div>';
+      return;
+    }
+    try {
+      if (tab === 'card') body.innerHTML = buildCardHTML(m);
+      else if (tab === 'stats') body.innerHTML = buildStatsHTML(m);
+      else body.innerHTML = buildBoardsHTML(m);
+    } catch(e){
+      body.innerHTML = '<div class="sheet-empty">Unable to render this sheet.</div>';
+    }
+    body.scrollTop = 0;
+  }
+
+  /* ── CARD ── */
+  function buildCardHTML(m){
+    const runs = sheetNum(m.runs), wkts = sheetNum(m.wickets), balls = sheetNum(m.legalBalls);
+    const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
+    const team = m.teamBatting || 'Batting';
+
+    let html = '';
+    html += '<div class="sheet-summary">' +
+              '<span class="sheet-summary__team">' + sheetEsc(team) + '</span>' +
+              '<span class="sheet-summary__score">' + runs + '/' + wkts + '</span>' +
+              '<span class="sheet-summary__meta">' + sheetOvers(balls) + ' OV · CRR ' + crr + '</span>' +
+            '</div>';
+
+    /* Batting */
+    const batters = m.batters || {};
+    const striker = m.striker, nonStriker = m.nonStriker;
+    const ordered = [];
+    if (striker && batters[striker]) ordered.push(striker);
+    if (nonStriker && batters[nonStriker] && nonStriker !== striker) ordered.push(nonStriker);
+    Object.keys(batters).forEach(function(n){ if (ordered.indexOf(n) < 0) ordered.push(n); });
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Batting</div>';
+    if (!ordered.length){
+      html += '<div class="sheet-empty">No batting data yet.</div>';
+    } else {
+      html += '<table class="sheet-table"><thead><tr>' +
+                '<th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th>' +
+              '</tr></thead><tbody>';
+      ordered.forEach(function(n){
+        const b = batters[n] || {};
+        const r = sheetNum(b.runs), bl = sheetNum(b.balls);
+        const f = sheetNum(b.fours, sheetNum(b['4s']));
+        const s = sheetNum(b.sixes, sheetNum(b['6s']));
+        const sr = bl > 0 ? ((r / bl) * 100).toFixed(1) : '0.0';
+        const isStriker = (n === striker);
+        const isOut = !!(b.out || b.isOut || b.dismissed);
+        const cls = (isStriker ? 'is-striker ' : '') + (isOut ? 'is-out' : '');
+        html += '<tr class="' + cls.trim() + '">' +
+                  '<td>' + sheetEsc(n) + '</td>' +
+                  '<td class="num-strong">' + r + (isStriker ? '*' : '') + '</td>' +
+                  '<td>' + bl + '</td>' +
+                  '<td>' + f + '</td>' +
+                  '<td>' + s + '</td>' +
+                  '<td>' + sr + '</td>' +
+                '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    /* Bowling */
+    const bowlers = m.bowlers || {};
+    const bwNames = Object.keys(bowlers);
+    const currentBowler = m.currentBowler;
+    const bwOrdered = [];
+    if (currentBowler && bowlers[currentBowler]) bwOrdered.push(currentBowler);
+    bwNames.forEach(function(n){ if (bwOrdered.indexOf(n) < 0) bwOrdered.push(n); });
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Bowling</div>';
+    if (!bwOrdered.length){
+      html += '<div class="sheet-empty">No bowling data yet.</div>';
+    } else {
+      html += '<table class="sheet-table"><thead><tr>' +
+                '<th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th>' +
+              '</tr></thead><tbody>';
+      bwOrdered.forEach(function(n){
+        const b = bowlers[n] || {};
+        const bl = sheetNum(b.balls), r = sheetNum(b.runs), w = sheetNum(b.wickets);
+        const econ = bl > 0 ? ((r / bl) * 6).toFixed(2) : '0.00';
+        const isCur = (n === currentBowler);
+        html += '<tr class="' + (isCur ? 'is-striker' : '') + '">' +
+                  '<td>' + sheetEsc(n) + '</td>' +
+                  '<td>' + sheetOvers(bl) + '</td>' +
+                  '<td>' + r + '</td>' +
+                  '<td class="num-green">' + w + '</td>' +
+                  '<td>' + econ + '</td>' +
+                '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    /* Extras / total line */
+    const extras = sheetNum(m.extras, sheetNum(m.extrasTotal, 0));
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Innings</div>' +
+              '<div class="sheet-grid">' +
+                '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Total</div><div class="sheet-stat__v">' + runs + '/' + wkts + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Overs</div><div class="sheet-stat__v">' + sheetOvers(balls) + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Run Rate</div><div class="sheet-stat__v">' + crr + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Extras</div><div class="sheet-stat__v">' + extras + '</div></div>' +
+              '</div>' +
+            '</div>';
+
+    return html;
+  }
+
+  /* ── STATS ── */
+  function buildStatsHTML(m){
+    const runs = sheetNum(m.runs), wkts = sheetNum(m.wickets), balls = sheetNum(m.legalBalls);
+    const crr = balls > 0 ? ((runs / balls) * 6) : 0;
+    const oversLimit = sheetNum(m.oversLimit || m.totalOvers, 0);
+    const totalBalls = oversLimit > 0 ? oversLimit * 6 : 0;
+    const ballsLeft = totalBalls > 0 ? Math.max(0, totalBalls - balls) : 0;
+    const target = sheetNum(m.target, 0);
+    const isChase = target > 0;
+    const need = isChase ? Math.max(0, target - runs) : 0;
+    const rrr = (isChase && ballsLeft > 0) ? ((need / ballsLeft) * 6) : 0;
+    const proj = (balls > 0 && oversLimit > 0) ? Math.round(crr * oversLimit) : 0;
+
+    const shots = toArray(m.shotLog);
+    let fours = 0, sixes = 0, dots = 0, wicketsInLog = 0;
+    shots.forEach(function(s){
+      const r = sheetNum(s.runs);
+      if (s && (s.isWicket || s.isOut || s.wicketType)) wicketsInLog++;
+      if (r === 4) fours++;
+      else if (r === 6) sixes++;
+      else if (r === 0) dots++;
+    });
+    const boundaryRuns = fours * 4 + sixes * 6;
+    const boundaryPct = runs > 0 ? ((boundaryRuns / runs) * 100).toFixed(1) : '0.0';
+    const dotPct = shots.length > 0 ? ((dots / shots.length) * 100).toFixed(1) : '0.0';
+
+    let html = '';
+    html += '<div class="sheet-summary">' +
+              '<span class="sheet-summary__team">' + sheetEsc(m.teamBatting || 'Batting') + '</span>' +
+              '<span class="sheet-summary__score">' + runs + '/' + wkts + '</span>' +
+              '<span class="sheet-summary__meta">' + sheetOvers(balls) + ' OV</span>' +
+            '</div>';
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Run Rate</div><div class="sheet-grid">' +
+              '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">CRR</div><div class="sheet-stat__v">' + crr.toFixed(2) + '</div></div>' +
+              (isChase
+                ? '<div class="sheet-stat sheet-stat--green"><div class="sheet-stat__k">RRR</div><div class="sheet-stat__v">' + rrr.toFixed(2) + '</div></div>'
+                : '<div class="sheet-stat sheet-stat--green"><div class="sheet-stat__k">Projected</div><div class="sheet-stat__v">' + proj + '</div></div>') +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Balls Left</div><div class="sheet-stat__v">' + ballsLeft + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Target</div><div class="sheet-stat__v">' + (isChase ? target : '—') + '</div></div>' +
+            '</div></div>';
+
+    if (isChase){
+      html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Chase</div><div class="sheet-grid">' +
+                '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Need</div><div class="sheet-stat__v">' + need + '<small>runs</small></div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Off</div><div class="sheet-stat__v">' + ballsLeft + '<small>balls</small></div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Wkts Left</div><div class="sheet-stat__v">' + Math.max(0, 10 - wkts) + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Req / Over</div><div class="sheet-stat__v">' + rrr.toFixed(2) + '</div></div>' +
+              '</div></div>';
+    }
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Scoring</div><div class="sheet-grid">' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Fours</div><div class="sheet-stat__v">' + fours + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Sixes</div><div class="sheet-stat__v">' + sixes + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Dots</div><div class="sheet-stat__v">' + dots + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Boundary %</div><div class="sheet-stat__v">' + boundaryPct + '<small>%</small></div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Dot %</div><div class="sheet-stat__v">' + dotPct + '<small>%</small></div></div>' +
+              '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Wickets</div><div class="sheet-stat__v">' + wkts + '</div></div>' +
+            '</div></div>';
+
+    /* Recent balls */
+    let tags = toArray(m.currentOverBalls);
+    if (!tags.length) tags = toArray(m.recentBalls).slice(-12);
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Recent Balls</div>';
+    if (!tags.length){
+      html += '<div class="sheet-empty">No deliveries logged yet.</div>';
+    } else {
+      html += '<div class="sheet-balls">';
+      tags.forEach(function(t){
+        const s = String(t == null ? '' : t);
+        html += '<div class="' + sheetBallClass(s) + '">' + sheetEsc(s || '·') + '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    return html;
+  }
+
+  /* ── BOARDS ── */
+  function collectLeaderboardPlayers(m){
+    const out = { bat: [], bowl: [] };
+    const seenBat = {}, seenBowl = {};
+    function addInnings(inn){
+      if (!inn) return;
+      const teamName = inn.team || '';
+      Object.keys(inn.batters || {}).forEach(function(n){
+        const b = inn.batters[n] || {};
+        const key = n + '@' + teamName;
+        if (seenBat[key]) return;
+        seenBat[key] = true;
+        out.bat.push({
+          name: n, team: teamName,
+          runs: sheetNum(b.runs), balls: sheetNum(b.balls),
+          fours: sheetNum(b.fours, sheetNum(b['4s'])), sixes: sheetNum(b.sixes, sheetNum(b['6s']))
+        });
+      });
+      Object.keys(inn.bowlers || {}).forEach(function(n){
+        const b = inn.bowlers[n] || {};
+        const key = n + '@' + teamName;
+        if (seenBowl[key]) return;
+        seenBowl[key] = true;
+        out.bowl.push({
+          name: n, team: teamName,
+          wickets: sheetNum(b.wickets), runs: sheetNum(b.runs), balls: sheetNum(b.balls)
+        });
+      });
+    }
+    addInnings(m.innings1);
+    addInnings(m.innings2);
+    if (!out.bat.length && !out.bowl.length){
+      Object.keys(m.batters || {}).forEach(function(n){
+        const b = m.batters[n] || {};
+        out.bat.push({
+          name: n, team: m.teamBatting || '',
+          runs: sheetNum(b.runs), balls: sheetNum(b.balls),
+          fours: sheetNum(b.fours, sheetNum(b['4s'])), sixes: sheetNum(b.sixes, sheetNum(b['6s']))
+        });
+      });
+      Object.keys(m.bowlers || {}).forEach(function(n){
+        const b = m.bowlers[n] || {};
+        out.bowl.push({
+          name: n, team: m.teamBowling || '',
+          wickets: sheetNum(b.wickets), runs: sheetNum(b.runs), balls: sheetNum(b.balls)
+        });
+      });
+    }
+    return out;
+  }
+
+  function buildBoardsHTML(m){
+    const players = collectLeaderboardPlayers(m);
+    let html = '';
+
+    const topBat = players.bat.slice().sort(function(a, b){
+      if (b.runs !== a.runs) return b.runs - a.runs;
+      return a.balls - b.balls;
+    }).slice(0, 8);
+
+    const topBowl = players.bowl.slice().sort(function(a, b){
+      if (b.wickets !== a.wickets) return b.wickets - a.wickets;
+      return a.runs - b.runs;
+    }).slice(0, 8);
+
+    const maxBat = topBat.length ? Math.max(1, topBat[0].runs) : 1;
+    const maxBowl = topBowl.length ? Math.max(1, topBowl[0].wickets) : 1;
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Top Run Scorers</div>';
+    if (!topBat.length){
+      html += '<div class="sheet-empty">No batting data yet.</div>';
+    } else {
+      html += '<div class="lb-wrap">';
+      topBat.forEach(function(p, i){
+        const sr = p.balls > 0 ? ((p.runs / p.balls) * 100).toFixed(1) : '0.0';
+        const pct = Math.round((p.runs / maxBat) * 100);
+        html += '<div class="lb-row">' +
+                  '<div class="lb-rank">' + (i + 1) + '</div>' +
+                  '<div class="lb-name">' + sheetEsc(p.name) +
+                    (p.team ? '<span class="lb-sub">' + sheetEsc(p.team) + '</span>' : '') +
+                    '<div class="lb-bar" style="width:' + pct + '%"></div>' +
+                  '</div>' +
+                  '<div class="lb-val">' + p.runs + '<span class="lb-sub">(' + p.balls + ')</span></div>' +
+                '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Top Wicket Takers</div>';
+    if (!topBowl.length){
+      html += '<div class="sheet-empty">No bowling data yet.</div>';
+    } else {
+      html += '<div class="lb-wrap">';
+      topBowl.forEach(function(p, i){
+        const econ = p.balls > 0 ? ((p.runs / p.balls) * 6).toFixed(2) : '0.00';
+        const pct = Math.round((p.wickets / maxBowl) * 100);
+        html += '<div class="lb-row">' +
+                  '<div class="lb-rank">' + (i + 1) + '</div>' +
+                  '<div class="lb-name">' + sheetEsc(p.name) +
+                    (p.team ? '<span class="lb-sub">' + sheetEsc(p.team) + '</span>' : '') +
+                    '<div class="lb-bar" style="width:' + pct + '%"></div>' +
+                  '</div>' +
+                  '<div class="lb-val">' + p.wickets + '<span class="lb-sub">/' + p.runs + ' · ' + econ + '</span></div>' +
+                '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    /* Team totals */
+    const inn1 = m.innings1, inn2 = m.innings2;
+    if (inn1 || inn2){
+      html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Innings Totals</div><div class="sheet-grid">';
+      [inn1, inn2].forEach(function(inn){
+        if (!inn) return;
+        html += '<div class="sheet-stat sheet-stat--red">' +
+                  '<div class="sheet-stat__k">' + sheetEsc(inn.team || 'Innings') + '</div>' +
+                  '<div class="sheet-stat__v">' + sheetNum(inn.runs) + '/' + sheetNum(inn.wickets) +
+                    '<small>' + sheetOvers(inn.balls) + ' ov</small></div>' +
+                '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    /* Boundary leaders */
+    const boundaryKings = players.bat.slice().sort(function(a, b){
+      return (b.sixes * 6 + b.fours * 4) - (a.sixes * 6 + a.fours * 4);
+    }).filter(function(p){ return (p.fours + p.sixes) > 0; }).slice(0, 5);
+
+    if (boundaryKings.length){
+      html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Boundary Kings</div>';
+      html += '<div class="lb-wrap">';
+      boundaryKings.forEach(function(p, i){
+        html += '<div class="lb-row">' +
+                  '<div class="lb-rank">' + (i + 1) + '</div>' +
+                  '<div class="lb-name">' + sheetEsc(p.name) + '</div>' +
+                  '<div class="lb-val">' + p.sixes + '<span class="lb-sub">6s</span> · ' + p.fours + '<span class="lb-sub">4s</span></div>' +
+                '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    if (!players.bat.length && !players.bowl.length){
+      html = '<div class="sheet-empty">NO MATCH DATA YET<br><span style="opacity:.6">Waiting for the first ball…</span></div>';
+    }
+
+    return html;
+  }
+
+  /* Wire sheet controls (buttons + Esc) */
+  (function wireSheetControls(){
+    const sheet = document.getElementById('viewerSheet');
+    if (!sheet) return;
+    const back = document.getElementById('sheetBack');
+    const close = document.getElementById('sheetClose');
+    if (back) back.addEventListener('click', function(e){ e.stopPropagation(); closeSheet(); });
+    if (close) close.addEventListener('click', function(e){ e.stopPropagation(); closeSheet(); });
+    sheet.querySelectorAll('.sheet-tab').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        showSheet(b.getAttribute('data-sheet'));
+      });
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && activeSheetTab) closeSheet();
+    });
+  })();
+  /* ═══════════════ end Block 3 ═══════════════ */
 
   let stadiumViewActive = false;
   let __cmWagonDirty = true;
@@ -2586,6 +3192,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
     updateF1Hud(m);
     if (tvModeActive) refreshTVMode();
+    if (activeSheetTab) { try { renderSheet(activeSheetTab); } catch(e){} }
   }
 
   let lastSeenBalls = -1;
@@ -2822,6 +3429,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   window.handleNewMatchData = handleNewMatchData;
   window.playBall = playBall;
   window.triggerReplay = triggerReplay;
+  window.showSheet = showSheet;
+  window.closeSheet = closeSheet;
 
   window.__cmProgress(20, 'LOADING STADIUM');
   requestAnimationFrame(animate);
