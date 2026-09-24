@@ -81,8 +81,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .top-bar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;padding-top:env(safe-area-inset-top,0);pointer-events:none;z-index:100010;overflow:hidden;background:var(--stripes),linear-gradient(180deg,rgba(13,17,23,.98) 0%,rgba(13,17,23,.85) 60%,rgba(13,17,23,.5) 100%);border-bottom:1px solid var(--border-soft);}
 .top-bar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(0,230,118,.6) 25%,rgba(34,211,238,.6) 50%,rgba(0,230,118,.6) 75%,transparent 100%);pointer-events:none;}
 .top-brand{display:flex;align-items:center;gap:8px;pointer-events:auto;font-family:inherit;}
-.live-dot{padding:2px 6px 2px 5px;border-radius:3px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;font-size:9px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;display:flex;align-items:center;gap:4px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);}
+.live-dot{padding:2px 6px 2px 5px;border-radius:3px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;font-size:9px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;display:flex;align-items:center;gap:4px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);transition:background .3s ease;}
 .live-dot::before{content:'';width:5px;height:5px;border-radius:50%;background:#fff;animation:livePulse 1.2s ease-in-out infinite;flex-shrink:0;}
+.live-dot.waiting{background:linear-gradient(135deg,#f59e0b,#b45309);}
+.live-dot.waiting::before{animation-duration:2s;}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
 .brand-divider{width:1px;height:14px;background:rgba(255,255,255,.18);margin:0 6px;}
 .brand-name{font-size:12px;font-weight:900;letter-spacing:2.4px;color:#f1f5f9;text-transform:uppercase;}
@@ -182,6 +184,37 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
 #wagonInfo.show{display:block;}
 
+/* ─── Waiting-for-match overlay (only visible until first ball arrives) ─── */
+.wagon-waiting{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:20px 30px;
+  background:rgba(8,15,30,.94);
+  border:1px solid rgba(0,230,118,.4);
+  border-radius:16px;
+  color:#00e676;
+  z-index:5;pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,230,118,.1);
+  transition:opacity .35s ease, transform .35s ease;
+  text-align:center;
+  font-family:'Titillium Web',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+.wagon-waiting__spinner{
+  width:28px;height:28px;border-radius:50%;
+  border:2.5px solid rgba(0,230,118,.2);
+  border-top-color:#00e676;
+  animation:wagonSpin 0.9s linear infinite;
+}
+.wagon-waiting__text{
+  font-size:12px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;
+}
+.wagon-waiting__hint{
+  font-size:9.5px;font-weight:700;letter-spacing:1.4px;
+  color:#7a8590;text-transform:uppercase;
+}
+.wagon-waiting.hide{ opacity:0; transform:translate(-50%,-50%) scale(.92); }
+@keyframes wagonSpin{ to{ transform:rotate(360deg); } }
+
 .banner{position:absolute;top:20%;left:50%;transform:translateX(-50%) scale(.6);font-size:clamp(30px,8vw,60px);font-weight:900;font-style:italic;text-transform:uppercase;color:#fff;opacity:0;transition:all .3s;pointer-events:none;text-align:center;line-height:1;z-index:10050;}
 .banner.on{transform:translateX(-50%) scale(1);opacity:1;}
 .banner.four{color:#22d3ee;text-shadow:0 0 30px #0891b2,0 6px 16px #000;}
@@ -216,6 +249,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   .live-dot{animation:none;}
   .cut-flash.fire{animation:none;}
   .ic.spin{animation:none;}
+  .wagon-waiting__spinner{animation:none;}
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -231,7 +265,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     repeating-linear-gradient(-45deg, transparent 0 2px, rgba(255,255,255,.03) 2px 4px);
 }
 
-/* Carbon-weave top bar + red/green underline */
 .top-bar{
   background:var(--f1-carbon),linear-gradient(180deg,rgba(10,10,10,.98),rgba(10,10,10,.85));
 }
@@ -240,7 +273,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   background:linear-gradient(90deg,transparent 0%,var(--f1-red) 15%,var(--f1-green) 50%,var(--f1-red) 85%,transparent 100%);
 }
 
-/* Slanted icon buttons */
 .ic{
   clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);
   background:var(--f1-carbon),rgba(20,26,42,.72);
@@ -250,12 +282,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   box-shadow:0 0 14px rgba(225,6,0,.6), inset 0 1px 0 rgba(255,255,255,.2);
 }
 
-/* Stat pill — red bar */
 .stat-pill{ border-left-color:var(--f1-red); }
 .sp-team{ color:var(--f1-red); }
 .sp-crr b{ color:var(--f1-green); }
 
-/* Menu panel + audio dropdown — red borders */
 #menuPanel{ border-color:rgba(225,6,0,.35); }
 .menu-ttl{ color:var(--f1-red); }
 .menu-t{ clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%); }
@@ -263,8 +293,182 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .audio-opt{ clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%); }
 .audio-opt.on{ background:linear-gradient(135deg,#8b0300,var(--f1-red)); border-color:transparent; }
 
-/* Banner — F1 red */
 .banner.run{ color:var(--f1-red); text-shadow:0 0 30px #8b0300,0 6px 16px #000; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA SHEET — Card / Stats / Boards (embedded overlay)
+   ═══════════════════════════════════════════════════════════════ */
+#viewerSheet{
+  position:fixed;inset:0;
+  z-index:100030;
+  display:flex;flex-direction:column;
+  visibility:hidden;
+  opacity:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(225,6,0,.16), transparent 55%),
+    linear-gradient(180deg,#0b0b0b 0%,#050505 100%);
+  font-family:'Titillium Web',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:#f1f5f9;
+  padding-top:env(safe-area-inset-top,0);
+  padding-bottom:env(safe-area-inset-bottom,0);
+  overscroll-behavior:contain;
+  transition:opacity .2s ease;
+}
+#viewerSheet.open{
+  visibility:visible;
+  opacity:1;
+  pointer-events:auto;
+}
+
+.viewer-sheet__bar{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  padding:10px 12px;
+  background:var(--f1-carbon),rgba(10,10,10,.96);
+  border-bottom:2px solid transparent;
+  border-image:linear-gradient(90deg,transparent,var(--f1-red) 15%,var(--f1-green) 50%,var(--f1-red) 85%,transparent) 1;
+  position:relative;
+}
+.sheet-back,.sheet-close{
+  background:var(--f1-carbon),rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.14);
+  color:#e2e8f0;font-family:inherit;font-size:11px;font-weight:900;
+  letter-spacing:.6px;padding:8px 12px;border-radius:8px;cursor:pointer;
+  clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);
+  flex:0 0 auto;touch-action:manipulation;
+}
+.sheet-back:active,.sheet-close:active{ transform:scale(.95); }
+.sheet-close{ background:rgba(225,6,0,.18); border-color:rgba(225,6,0,.5); color:#ffb4b0; }
+
+.sheet-tabs{ flex:1 1 auto;display:flex;gap:6px;justify-content:center;min-width:0; }
+.sheet-tab{
+  flex:1 1 0;min-width:0;
+  background:var(--f1-carbon),rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);
+  color:#9aa3ae;font-family:inherit;font-size:11.5px;font-weight:900;
+  letter-spacing:1px;text-transform:uppercase;
+  padding:9px 6px;border-radius:8px;cursor:pointer;
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+  transition:background .15s,color .15s,border-color .15s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  touch-action:manipulation;
+}
+.sheet-tab.on{
+  background:linear-gradient(135deg,#8b0300,var(--f1-red));
+  border-color:transparent;color:#fff;
+  box-shadow:0 0 14px rgba(225,6,0,.5), inset 0 1px 0 rgba(255,255,255,.2);
+}
+
+.viewer-sheet__body{
+  flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:14px 12px calc(24px + env(safe-area-inset-bottom,0));
+}
+
+.sheet-sec{ margin-bottom:16px; }
+.sheet-sec__ttl{
+  font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;
+  color:var(--f1-red);margin:0 0 8px;
+  display:flex;align-items:center;gap:8px;
+}
+.sheet-sec__ttl::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(225,6,0,.6),transparent);
+}
+
+.sheet-summary{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  background:var(--f1-carbon),linear-gradient(90deg,#141414,#1e1e1e,#141414);
+  border-left:4px solid var(--f1-red);
+  border-radius:0 10px 10px 0;
+  padding:12px 16px;margin-bottom:14px;
+}
+.sheet-summary__team{ font-size:15px;font-weight:900;font-style:italic;letter-spacing:1px;color:#fff; }
+.sheet-summary__score{ font-size:26px;font-weight:900;color:var(--f1-red);font-variant-numeric:tabular-nums;line-height:1; }
+.sheet-summary__meta{ font-size:11px;font-weight:700;color:#8b949e;margin-left:auto;font-variant-numeric:tabular-nums; }
+
+.sheet-table{
+  width:100%;border-collapse:collapse;font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+.sheet-table thead th{
+  font-size:9px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;
+  color:#7a8590;text-align:right;padding:6px 8px;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  white-space:nowrap;
+}
+.sheet-table thead th:first-child{ text-align:left; }
+.sheet-table tbody td{
+  padding:9px 8px;text-align:right;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  color:#c5cdd8;
+}
+.sheet-table tbody td:first-child{ text-align:left;color:#fff;font-weight:700; }
+.sheet-table tbody tr:last-child td{ border-bottom:none; }
+.sheet-table tbody tr.is-striker td:first-child::before{
+  content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--f1-red);box-shadow:0 0 8px var(--f1-red);
+  margin-right:7px;vertical-align:middle;
+}
+.sheet-table tbody tr.is-out td:first-child{ color:#8b949e; }
+.sheet-table .num-strong{ color:#fff;font-weight:900; }
+.sheet-table .num-green{ color:var(--f1-green);font-weight:900; }
+
+.sheet-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;
+}
+.sheet-stat{
+  background:var(--f1-carbon),rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:10px 12px;
+}
+.sheet-stat__k{ font-size:9px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#7a8590;margin-bottom:4px; }
+.sheet-stat__v{ font-size:19px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1.1; }
+.sheet-stat__v small{ font-size:11px;color:#8b949e;font-weight:700;margin-left:3px; }
+.sheet-stat--red .sheet-stat__v{ color:var(--f1-red); }
+.sheet-stat--green .sheet-stat__v{ color:var(--f1-green); }
+
+.sheet-balls{ display:flex;gap:6px;flex-wrap:wrap; }
+.sheet-ball{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;
+  border:2px solid #38383f;background:#101010;color:#a0a0a0;
+  font-variant-numeric:tabular-nums;
+}
+.sheet-ball.run{ border-color:#fff;color:#fff; }
+.sheet-ball.four{ border-color:var(--f1-purple);color:var(--f1-purple);box-shadow:0 0 10px rgba(179,27,255,.4); }
+.sheet-ball.six{ border-color:var(--f1-green);color:var(--f1-green);box-shadow:0 0 10px rgba(0,210,190,.4); }
+.sheet-ball.wicket{ background:var(--f1-red);border-color:var(--f1-red);color:#fff;box-shadow:0 0 10px rgba(225,6,0,.6); }
+.sheet-ball.extra{ border-color:#fbbf24;color:#fbbf24; }
+
+.lb-row{ display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.06); }
+.lb-row:last-child{ border-bottom:none; }
+.lb-rank{
+  width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.06);
+  color:#7a8590;font-size:10px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.lb-row:nth-child(1) .lb-rank{ background:linear-gradient(135deg,#b8860b,#fbbf24);color:#1a1200; }
+.lb-row:nth-child(2) .lb-rank{ background:linear-gradient(135deg,#6b7280,#cbd5e1);color:#111; }
+.lb-row:nth-child(3) .lb-rank{ background:linear-gradient(135deg,#7c4a1e,#c68642);color:#1a1200; }
+.lb-name{ flex:1 1 auto;font-size:12.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0; }
+.lb-sub{ font-size:10px;color:#7a8590;font-weight:700;margin-left:6px; }
+.lb-val{ font-size:15px;font-weight:900;color:var(--f1-red);font-variant-numeric:tabular-nums;flex:0 0 auto; }
+.lb-wrap{ background:var(--f1-carbon),rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; }
+.lb-bar{ display:block;height:2px;margin-top:4px;background:linear-gradient(90deg,var(--f1-red),var(--f1-purple));border-radius:1px; }
+
+.sheet-empty{ text-align:center;padding:40px 16px;color:#7a8590;font-size:12px;font-weight:700;letter-spacing:.5px; }
+
+@media (max-width: 480px){
+  .viewer-sheet__bar{ padding:8px 8px; gap:6px; }
+  .sheet-back,.sheet-close{ font-size:10px; padding:7px 9px; }
+  .sheet-tab{ font-size:10px; padding:8px 4px; }
+  .viewer-sheet__body{ padding:12px 9px calc(20px + env(safe-area-inset-bottom,0)); }
+  .sheet-table{ font-size:11.5px; }
+  .sheet-table thead th, .sheet-table tbody td{ padding:7px 6px; }
+  .sheet-summary__score{ font-size:22px; }
+}
 
 /* ═══════════════════════════════════════════════════════════════
    3. F1 REAR-WING SCORECARD (bottom)
@@ -414,75 +618,38 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;
 }
 
-/* Mobile — 2-row wing grid to stop overlap */
 @media (max-width: 620px) {
-  .wing-assembly {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0) + 6px);
-    padding-top: 14px;
-  }
+  .wing-assembly { padding-bottom: calc(env(safe-area-inset-bottom, 0) + 6px); padding-top: 14px; }
   .main-wing {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 3px;
-    width: calc(100vw - 10px);
-    max-width: 100%;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+    gap: 3px; width: calc(100vw - 10px); max-width: 100%;
     filter: drop-shadow(0 8px 16px rgba(0,0,0,.65));
   }
-  .wing-panel {
-    height: 42px;
-    padding: 0 12px;
-  }
+  .wing-panel { height: 42px; padding: 0 12px; }
   .wing-panel--score {
     grid-area: 1 / 1 / 2 / 2;
     clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
-    border-left-width: 3px;
-    padding-left: 18px;
-    padding-right: 12px;
-    gap: 10px;
+    border-left-width: 3px; padding-left: 18px; padding-right: 12px; gap: 10px;
   }
   .wing-panel--overs {
     grid-area: 1 / 2 / 2 / 3;
     clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-    padding: 0 14px 0 10px;
-    gap: 8px;
+    padding: 0 14px 0 10px; gap: 8px;
   }
   .wing-panel--telemetry {
     grid-area: 2 / 1 / 3 / 3;
     clip-path: polygon(8px 0, calc(100% - 6px) 0, 100% 100%, 0 100%);
-    min-width: 0;
-    height: 42px;
-    padding: 0 14px;
-    gap: 8px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    min-width: 0; height: 42px; padding: 0 14px; gap: 8px;
+    display: flex; flex-direction: row; align-items: center; justify-content: space-between;
   }
-  .wing-telemetry {
-    flex-direction: row;
-    align-items: center;
-    gap: 5px;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-  .wing-telemetry--right {
-    flex: 0 0 auto;
-    text-align: right;
-    align-items: center;
-  }
-  .wing-player-name {
-    font-size: 11px;
-    max-width: 62px;
-  }
+  .wing-telemetry { flex-direction: row; align-items: center; gap: 5px; min-width: 0; flex: 1 1 auto; }
+  .wing-telemetry--right { flex: 0 0 auto; text-align: right; align-items: center; }
+  .wing-player-name { font-size: 11px; max-width: 62px; }
   .wing-player-name--sub {
-    font-size: 10px !important;
-    padding-left: 5px;
+    font-size: 10px !important; padding-left: 5px;
     border-left: 1px solid rgba(255,255,255,.18);
-    margin-left: 3px;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    border-top: none !important;
+    margin-left: 3px; margin-top: 0 !important;
+    padding-top: 0 !important; border-top: none !important;
   }
   .wing-player-stats { font-size: 9.5px; }
   .wing-player-stats strong { font-size: 11px; }
@@ -495,18 +662,16 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   .wing-ball { width: 14px; height: 14px; font-size: 7px; border-width: 1.5px; }
   .wing-balls { gap: 2px; }
   .wing-rpm { left: 8px; right: 8px; height: 2px; }
-  .wing-ticker {
-    margin-top: 4px;
-    padding: 4px 10px;
-    width: calc(100vw - 12px);
-  }
+  .wing-ticker { margin-top: 4px; padding: 4px 10px; width: calc(100vw - 12px); }
   .wing-ticker__text { font-size: 11px; }
   .drs-flap { padding: 4px 14px 10px 14px; gap: 8px; }
   .drs-flap__label { font-size: 8px; letter-spacing: 1px; }
   .drs-flap__value { font-size: 12px; }
+  .wagon-waiting{ padding:16px 22px; }
+  .wagon-waiting__text{ font-size:11px; letter-spacing:1.2px; }
+  .wagon-waiting__hint{ font-size:9px; letter-spacing:1px; }
 }
 
-/* Very narrow screens (iPhone SE 1st gen, etc.) */
 @media (max-width: 380px) {
   .wing-panel { height: 38px; padding: 0 8px; }
   .wing-panel--score { padding-left: 14px; gap: 6px; }
@@ -529,8 +694,99 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 </head>
 <body>
 
+<div id="cm-loader">
+  <div class="cm-speed-lines" id="cmSpeedLines"></div>
+  <div class="cm-start-lights" id="cmStartLights">
+    <div class="cm-light" data-i="0"></div>
+    <div class="cm-light" data-i="1"></div>
+    <div class="cm-light" data-i="2"></div>
+    <div class="cm-light" data-i="3"></div>
+    <div class="cm-light" data-i="4"></div>
+  </div>
+  <div class="cm-loader-brand">
+    <span>C</span><span>R</span><span>I</span><span>C</span><span>M</span><span>A</span><span>X</span>
+    <span class="cm-grad">P</span><span class="cm-grad">R</span><span class="cm-grad">O</span>
+  </div>
+  <div class="cm-loader-status">
+    <span class="cm-loader-dot"></span>
+    <span class="cm-loader-sub" id="cm-loader-sub">INITIALIZING STADIUM</span>
+  </div>
+  <div class="cm-progress-track"><div class="cm-progress-fill" id="cmProgressFill"></div></div>
+  <div class="cm-progress-pct" id="cmProgressPct">0%</div>
+  <div class="cm-loader-foot">MATCH VIEWER · 2026</div>
+</div>
+
 <script>
-  window.__cmProgress = function(pct, label){};
+(function(){
+  var startTime = Date.now();
+  var sub = document.getElementById('cm-loader-sub');
+  var lightsEl = document.getElementById('cmStartLights');
+  var fillEl = document.getElementById('cmProgressFill');
+  var pctEl = document.getElementById('cmProgressPct');
+  var speedEl = document.getElementById('cmSpeedLines');
+  var fakeProgress = 0, realProgress = 0, lastPct = 0, goFlashed = false;
+  if (speedEl){
+    for (var i = 0; i < 7; i++){
+      var line = document.createElement('div');
+      line.className = 'cm-speed-line';
+      line.style.top = (12 + i * 12 + (Math.random() * 6 - 3)) + '%';
+      line.style.animationDelay = (i * 0.34) + 's';
+      line.style.animationDuration = (2 + Math.random() * 1.2) + 's';
+      speedEl.appendChild(line);
+    }
+  }
+  function renderUI(p){
+    if (fillEl) fillEl.style.width = p + '%';
+    if (pctEl) pctEl.textContent = Math.round(p) + '%';
+    if (lightsEl && !goFlashed){
+      var lights = lightsEl.children;
+      var litCount = Math.min(5, Math.floor((p / 80) * 5));
+      for (var i = 0; i < lights.length; i++){
+        if (i < litCount) lights[i].classList.add('on');
+        else lights[i].classList.remove('on');
+      }
+      if (p >= 100){
+        goFlashed = true;
+        for (var j = 0; j < lights.length; j++){
+          (function(el, d){ setTimeout(function(){ el.classList.remove('on'); el.classList.add('go'); }, d); })(lights[j], j * 45);
+        }
+      }
+    }
+  }
+  var fakeTimer = setInterval(function(){
+    var e = Date.now() - startTime;
+    fakeProgress = Math.min(90, (e / 5000) * 90);
+    var p = Math.max(fakeProgress, realProgress);
+    if (p > lastPct){ lastPct = p; renderUI(p); }
+  }, 100);
+  window.__cmProgress = function(pct, label){
+    if (typeof pct === 'number') realProgress = Math.max(realProgress, pct);
+    if (sub && label) sub.innerText = label;
+    var p = Math.max(fakeProgress, realProgress);
+    if (p > lastPct){ lastPct = p; renderUI(p); }
+  };
+  window.__cmLoaderStart = startTime;
+  var failsafe = setInterval(function(){
+    var elapsed = Date.now() - startTime;
+    var loader = document.getElementById('cm-loader');
+    if (!loader){ clearInterval(failsafe); clearInterval(fakeTimer); return; }
+    if (elapsed > 10000){
+      clearInterval(failsafe); clearInterval(fakeTimer);
+      if (!goFlashed){ goFlashed = true; window.__cmProgress(100, 'READY · LIGHTS OUT'); }
+      setTimeout(function(){ loader.classList.add('cm-hide'); setTimeout(function(){ try { loader.remove(); } catch(e){} }, 600); }, 420);
+    }
+  }, 500);
+  window.__cmLoaderFailsafe = failsafe;
+
+  /* If no match arrives within ~4s, flip loader text to a "waiting" message
+     (in case the loader is still visible on slower devices). */
+  setTimeout(function(){
+    if (!window.__cricmaxMatchStarted){
+      var s = document.getElementById('cm-loader-sub');
+      if (s && document.getElementById('cm-loader')) s.innerText = 'WAITING FOR MATCH TO START';
+    }
+  }, 4000);
+})();
 </script>
 
 <div id="irisTransition" aria-hidden="true"></div>
@@ -543,7 +799,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <!-- ═══════════════ TOP BAR ═══════════════ -->
   <div class="top-bar">
     <div class="top-brand">
-      <span class="live-dot">LIVE</span>
+      <span class="live-dot waiting" id="liveDot">WAITING</span>
       <span class="brand-divider"></span>
       <span class="brand-name">CRICMAX <b>PRO</b></span>
     </div>
@@ -702,10 +958,30 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   <div id="wagonWrap">
     <canvas id="wagonWheelCanvas" width="800" height="800" style="max-width:100%;height:auto;"></canvas>
+    <!-- Waiting indicator (hidden when first ball arrives) -->
+    <div class="wagon-waiting" id="wagonWaiting">
+      <div class="wagon-waiting__spinner"></div>
+      <div class="wagon-waiting__text">Waiting for match to start…</div>
+      <div class="wagon-waiting__hint">Share code to begin</div>
+    </div>
   </div>
   <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
 
   <div class="banner" id="banner">FOUR!</div>
+
+  <!-- ═══════════════ DATA SHEET OVERLAY ═══════════════ -->
+  <div id="viewerSheet" class="viewer-sheet" aria-hidden="true">
+    <div class="viewer-sheet__bar">
+      <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
+      <div class="sheet-tabs">
+        <button type="button" class="sheet-tab" data-sheet="card" onclick="showSheet('card')">Card</button>
+        <button type="button" class="sheet-tab" data-sheet="stats" onclick="showSheet('stats')">Stats</button>
+        <button type="button" class="sheet-tab" data-sheet="boards" onclick="showSheet('boards')">Boards</button>
+      </div>
+      <button type="button" class="sheet-close" id="sheetClose">✕</button>
+    </div>
+    <div class="viewer-sheet__body" id="sheetBody"></div>
+  </div>
 
   <!-- ═══════════════ F1 REAR-WING SCORECARD ═══════════════ -->
   <div class="wing-assembly" id="wingAssembly">
@@ -728,7 +1004,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
         </div>
       </div>
 
-          <div class="wing-panel wing-panel--telemetry">
+      <div class="wing-panel wing-panel--telemetry">
         <div class="wing-telemetry">
           <span class="wing-player-name is-striker" id="bbStriker">Striker</span>
           <span class="wing-player-stats"><strong id="bbStrikerRuns">0</strong> (<span id="bbStrikerBalls">0</span>)</span>
@@ -751,7 +1027,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
     <div class="wing-ticker">
       <span class="wing-ticker__badge" id="tickerBadge">●</span>
-      <span class="wing-ticker__text" id="tickerText">Waiting for action…</span>
+      <span class="wing-ticker__text" id="tickerText">Waiting for match to start…</span>
     </div>
   </div>
 
@@ -828,6 +1104,49 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   })();
   window.__cmDevice = CM_DEVICE;
 
+  const __cmLoaderSub = document.getElementById('cm-loader-sub');
+  if (typeof window.__cmProgress !== 'function'){
+    window.__cmProgress = function(pct, label){ if (__cmLoaderSub && label) __cmLoaderSub.innerText = label; };
+  }
+  window.__cmProgress(8, 'INITIALIZING ENGINE');
+
+  /* ═══════════════════════════════════════════════════════════════
+     MATCH-STARTED STATE + WAITING INDICATOR
+     ═══════════════════════════════════════════════════════════════ */
+  window.__cricmaxMatchStarted = false;
+
+  function __cmShowWaiting(show){
+    const w = document.getElementById('wagonWaiting');
+    if (!w) return;
+    if (show) w.classList.remove('hide');
+    else w.classList.add('hide');
+  }
+  function __cmSetLiveBadge(started){
+    const ld = document.getElementById('liveDot');
+    if (!ld) return;
+    if (started){
+      ld.textContent = 'LIVE';
+      ld.classList.remove('waiting');
+    } else {
+      ld.textContent = 'WAITING';
+      ld.classList.add('waiting');
+    }
+  }
+  function __cmMarkMatchStarted(){
+    if (window.__cricmaxMatchStarted) return;
+    window.__cricmaxMatchStarted = true;
+    __cmShowWaiting(false);
+    __cmSetLiveBadge(true);
+    const tk = document.getElementById('tickerText');
+    if (tk && /waiting for match/i.test(tk.innerText)) tk.innerText = 'Ready — first ball incoming…';
+  }
+  window.__cmMarkMatchStarted = __cmMarkMatchStarted;
+  window.__cmShowWaiting = __cmShowWaiting;
+
+  /* Show waiting overlay + amber badge immediately */
+  __cmShowWaiting(true);
+  __cmSetLiveBadge(false);
+
   function loadScript(src){
     return new Promise(function(resolve){
       const s = document.createElement('script');
@@ -858,6 +1177,11 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       alpha: false, stencil: false, depth: true
     });
   } catch (glErr) {
+    if (__cmLoaderSub) __cmLoaderSub.innerText = '⚠️ WEBGL NOT SUPPORTED';
+    setTimeout(function(){
+      var l = document.getElementById('cm-loader');
+      if (l){ l.style.opacity = '0'; setTimeout(function(){ try{l.remove();}catch(e){} }, 500); }
+    }, 2000);
     return;
   }
   renderer.setSize(innerWidth, innerHeight);
@@ -897,6 +1221,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       } else woodTex = makeFallbackWoodTexture();
     } catch(e){ woodTex = makeFallbackWoodTexture(); }
     buildPlayers();
+    window.__cmProgress(45, 'LOADING PLAYERS');
   }
 
   /* ── MENU / PANELS ── */
@@ -935,14 +1260,428 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
   }
 
+  /* ═══════════════ DATA SHEET (Card / Stats / Boards) ═══════════════ */
+  const SHEET_TABS = ['card', 'stats', 'boards'];
+  const PANE_TO_SHEET = {
+    scorecard: 'card', card: 'card',
+    analytics: 'stats', stats: 'stats',
+    leaderboards: 'boards', boards: 'boards'
+  };
+  let activeSheetTab = null;
+
+  function sheetEsc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+    });
+  }
+  function sheetNum(v, d){
+    const n = Number(v);
+    return isFinite(n) ? n : (d || 0);
+  }
+  function sheetOvers(balls){
+    balls = sheetNum(balls, 0);
+    return Math.floor(balls / 6) + '.' + (balls % 6);
+  }
+  function sheetMatch(){
+    return window.__cricmaxLastMatch || currentMatchState || null;
+  }
+  function sheetBallClass(tag){
+    const s = String(tag == null ? '' : tag);
+    if (/W/i.test(s)) return 'sheet-ball wicket';
+    if (s === '4') return 'sheet-ball four';
+    if (s === '6') return 'sheet-ball six';
+    if (/Wd|Nb|B|Lb/i.test(s)) return 'sheet-ball extra';
+    if (s === '0') return 'sheet-ball';
+    if (parseInt(s, 10) > 0) return 'sheet-ball run';
+    return 'sheet-ball';
+  }
+
   function navTo(pane){
     document.querySelectorAll('.menu-t[data-pane]').forEach(t => {
       t.classList.toggle('on', t.getAttribute('data-pane') === pane);
     });
-    if (pane === 'pitch'){ toggleMenu(); return; }
+    if (pane === 'pitch'){ closeSheet(); toggleMenu(); return; }
+    if (PANE_TO_SHEET[pane]){ toggleMenu(); showSheet(PANE_TO_SHEET[pane]); return; }
     try { window.parent.postMessage({ type: 'CM_NAV_TO', pane: pane }, '*'); } catch(e){}
     toggleMenu();
   }
+
+  function showSheet(tab){
+    if (SHEET_TABS.indexOf(tab) < 0) tab = 'card';
+    const sheet = document.getElementById('viewerSheet');
+    if (!sheet) return;
+    activeSheetTab = tab;
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    sheet.querySelectorAll('.sheet-tab').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
+    });
+    renderSheet(tab);
+    if (menuOpen){
+      menuOpen = false;
+      const mp = document.getElementById('menuPanel'); if (mp) mp.classList.remove('open');
+      const mb = document.getElementById('btn-menu'); if (mb) mb.classList.remove('on');
+    }
+  }
+
+  function closeSheet(){
+    const sheet = document.getElementById('viewerSheet');
+    if (!sheet) return;
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+    activeSheetTab = null;
+  }
+
+  function renderSheet(tab){
+    const body = document.getElementById('sheetBody');
+    if (!body) return;
+    const m = sheetMatch();
+    if (!m){
+      body.innerHTML = '<div class="sheet-empty">NO MATCH DATA YET<br><span style="opacity:.6">Waiting for the first ball…</span></div>';
+      return;
+    }
+    try {
+      if (tab === 'card') body.innerHTML = buildCardHTML(m);
+      else if (tab === 'stats') body.innerHTML = buildStatsHTML(m);
+      else body.innerHTML = buildBoardsHTML(m);
+    } catch(e){
+      body.innerHTML = '<div class="sheet-empty">Unable to render this sheet.</div>';
+    }
+    body.scrollTop = 0;
+  }
+
+  function buildCardHTML(m){
+    const runs = sheetNum(m.runs), wkts = sheetNum(m.wickets), balls = sheetNum(m.legalBalls);
+    const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
+    const team = m.teamBatting || 'Batting';
+
+    let html = '';
+    html += '<div class="sheet-summary">' +
+              '<span class="sheet-summary__team">' + sheetEsc(team) + '</span>' +
+              '<span class="sheet-summary__score">' + runs + '/' + wkts + '</span>' +
+              '<span class="sheet-summary__meta">' + sheetOvers(balls) + ' OV · CRR ' + crr + '</span>' +
+            '</div>';
+
+    const batters = m.batters || {};
+    const striker = m.striker, nonStriker = m.nonStriker;
+    const ordered = [];
+    if (striker && batters[striker]) ordered.push(striker);
+    if (nonStriker && batters[nonStriker] && nonStriker !== striker) ordered.push(nonStriker);
+    Object.keys(batters).forEach(function(n){ if (ordered.indexOf(n) < 0) ordered.push(n); });
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Batting</div>';
+    if (!ordered.length){
+      html += '<div class="sheet-empty">No batting data yet.</div>';
+    } else {
+      html += '<table class="sheet-table"><thead><tr>' +
+                '<th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th>' +
+              '</tr></thead><tbody>';
+      ordered.forEach(function(n){
+        const b = batters[n] || {};
+        const r = sheetNum(b.runs), bl = sheetNum(b.balls);
+        const f = sheetNum(b.fours, sheetNum(b['4s']));
+        const s = sheetNum(b.sixes, sheetNum(b['6s']));
+        const sr = bl > 0 ? ((r / bl) * 100).toFixed(1) : '0.0';
+        const isStriker = (n === striker);
+        const isOut = !!(b.out || b.isOut || b.dismissed);
+        const cls = (isStriker ? 'is-striker ' : '') + (isOut ? 'is-out' : '');
+        html += '<tr class="' + cls.trim() + '">' +
+                  '<td>' + sheetEsc(n) + '</td>' +
+                  '<td class="num-strong">' + r + (isStriker ? '*' : '') + '</td>' +
+                  '<td>' + bl + '</td>' +
+                  '<td>' + f + '</td>' +
+                  '<td>' + s + '</td>' +
+                  '<td>' + sr + '</td>' +
+                '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    const bowlers = m.bowlers || {};
+    const bwNames = Object.keys(bowlers);
+    const currentBowler = m.currentBowler;
+    const bwOrdered = [];
+    if (currentBowler && bowlers[currentBowler]) bwOrdered.push(currentBowler);
+    bwNames.forEach(function(n){ if (bwOrdered.indexOf(n) < 0) bwOrdered.push(n); });
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Bowling</div>';
+    if (!bwOrdered.length){
+      html += '<div class="sheet-empty">No bowling data yet.</div>';
+    } else {
+      html += '<table class="sheet-table"><thead><tr>' +
+                '<th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th>' +
+              '</tr></thead><tbody>';
+      bwOrdered.forEach(function(n){
+        const b = bowlers[n] || {};
+        const bl = sheetNum(b.balls), r = sheetNum(b.runs), w = sheetNum(b.wickets);
+        const econ = bl > 0 ? ((r / bl) * 6).toFixed(2) : '0.00';
+        const isCur = (n === currentBowler);
+        html += '<tr class="' + (isCur ? 'is-striker' : '') + '">' +
+                  '<td>' + sheetEsc(n) + '</td>' +
+                  '<td>' + sheetOvers(bl) + '</td>' +
+                  '<td>' + r + '</td>' +
+                  '<td class="num-green">' + w + '</td>' +
+                  '<td>' + econ + '</td>' +
+                '</tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    const extras = sheetNum(m.extras, sheetNum(m.extrasTotal, 0));
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Innings</div>' +
+              '<div class="sheet-grid">' +
+                '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Total</div><div class="sheet-stat__v">' + runs + '/' + wkts + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Overs</div><div class="sheet-stat__v">' + sheetOvers(balls) + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Run Rate</div><div class="sheet-stat__v">' + crr + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Extras</div><div class="sheet-stat__v">' + extras + '</div></div>' +
+              '</div>' +
+            '</div>';
+
+    return html;
+  }
+
+  function buildStatsHTML(m){
+    const runs = sheetNum(m.runs), wkts = sheetNum(m.wickets), balls = sheetNum(m.legalBalls);
+    const crr = balls > 0 ? ((runs / balls) * 6) : 0;
+    const oversLimit = sheetNum(m.oversLimit || m.totalOvers, 0);
+    const totalBalls = oversLimit > 0 ? oversLimit * 6 : 0;
+    const ballsLeft = totalBalls > 0 ? Math.max(0, totalBalls - balls) : 0;
+    const target = sheetNum(m.target, 0);
+    const isChase = target > 0;
+    const need = isChase ? Math.max(0, target - runs) : 0;
+    const rrr = (isChase && ballsLeft > 0) ? ((need / ballsLeft) * 6) : 0;
+    const proj = (balls > 0 && oversLimit > 0) ? Math.round(crr * oversLimit) : 0;
+
+    const shots = toArray(m.shotLog);
+    let fours = 0, sixes = 0, dots = 0;
+    shots.forEach(function(s){
+      const r = sheetNum(s.runs);
+      if (r === 4) fours++;
+      else if (r === 6) sixes++;
+      else if (r === 0) dots++;
+    });
+    const boundaryRuns = fours * 4 + sixes * 6;
+    const boundaryPct = runs > 0 ? ((boundaryRuns / runs) * 100).toFixed(1) : '0.0';
+    const dotPct = shots.length > 0 ? ((dots / shots.length) * 100).toFixed(1) : '0.0';
+
+    let html = '';
+    html += '<div class="sheet-summary">' +
+              '<span class="sheet-summary__team">' + sheetEsc(m.teamBatting || 'Batting') + '</span>' +
+              '<span class="sheet-summary__score">' + runs + '/' + wkts + '</span>' +
+              '<span class="sheet-summary__meta">' + sheetOvers(balls) + ' OV</span>' +
+            '</div>';
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Run Rate</div><div class="sheet-grid">' +
+              '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">CRR</div><div class="sheet-stat__v">' + crr.toFixed(2) + '</div></div>' +
+              (isChase
+                ? '<div class="sheet-stat sheet-stat--green"><div class="sheet-stat__k">RRR</div><div class="sheet-stat__v">' + rrr.toFixed(2) + '</div></div>'
+                : '<div class="sheet-stat sheet-stat--green"><div class="sheet-stat__k">Projected</div><div class="sheet-stat__v">' + proj + '</div></div>') +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Balls Left</div><div class="sheet-stat__v">' + ballsLeft + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Target</div><div class="sheet-stat__v">' + (isChase ? target : '—') + '</div></div>' +
+            '</div></div>';
+
+    if (isChase){
+      html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Chase</div><div class="sheet-grid">' +
+                '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Need</div><div class="sheet-stat__v">' + need + '<small>runs</small></div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Off</div><div class="sheet-stat__v">' + ballsLeft + '<small>balls</small></div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Wkts Left</div><div class="sheet-stat__v">' + Math.max(0, 10 - wkts) + '</div></div>' +
+                '<div class="sheet-stat"><div class="sheet-stat__k">Req / Over</div><div class="sheet-stat__v">' + rrr.toFixed(2) + '</div></div>' +
+              '</div></div>';
+    }
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Scoring</div><div class="sheet-grid">' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Fours</div><div class="sheet-stat__v">' + fours + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Sixes</div><div class="sheet-stat__v">' + sixes + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Dots</div><div class="sheet-stat__v">' + dots + '</div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Boundary %</div><div class="sheet-stat__v">' + boundaryPct + '<small>%</small></div></div>' +
+              '<div class="sheet-stat"><div class="sheet-stat__k">Dot %</div><div class="sheet-stat__v">' + dotPct + '<small>%</small></div></div>' +
+              '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Wickets</div><div class="sheet-stat__v">' + wkts + '</div></div>' +
+            '</div></div>';
+
+    let tags = toArray(m.currentOverBalls);
+    if (!tags.length) tags = toArray(m.recentBalls).slice(-12);
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Recent Balls</div>';
+    if (!tags.length){
+      html += '<div class="sheet-empty">No deliveries logged yet.</div>';
+    } else {
+      html += '<div class="sheet-balls">';
+      tags.forEach(function(t){
+        const s = String(t == null ? '' : t);
+        html += '<div class="' + sheetBallClass(s) + '">' + sheetEsc(s || '·') + '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    return html;
+  }
+
+  function collectLeaderboardPlayers(m){
+    const out = { bat: [], bowl: [] };
+    const seenBat = {}, seenBowl = {};
+    function addInnings(inn){
+      if (!inn) return;
+      const teamName = inn.team || '';
+      Object.keys(inn.batters || {}).forEach(function(n){
+        const b = inn.batters[n] || {};
+        const key = n + '@' + teamName;
+        if (seenBat[key]) return;
+        seenBat[key] = true;
+        out.bat.push({
+          name: n, team: teamName,
+          runs: sheetNum(b.runs), balls: sheetNum(b.balls),
+          fours: sheetNum(b.fours, sheetNum(b['4s'])), sixes: sheetNum(b.sixes, sheetNum(b['6s']))
+        });
+      });
+      Object.keys(inn.bowlers || {}).forEach(function(n){
+        const b = inn.bowlers[n] || {};
+        const key = n + '@' + teamName;
+        if (seenBowl[key]) return;
+        seenBowl[key] = true;
+        out.bowl.push({
+          name: n, team: teamName,
+          wickets: sheetNum(b.wickets), runs: sheetNum(b.runs), balls: sheetNum(b.balls)
+        });
+      });
+    }
+    addInnings(m.innings1);
+    addInnings(m.innings2);
+    if (!out.bat.length && !out.bowl.length){
+      Object.keys(m.batters || {}).forEach(function(n){
+        const b = m.batters[n] || {};
+        out.bat.push({
+          name: n, team: m.teamBatting || '',
+          runs: sheetNum(b.runs), balls: sheetNum(b.balls),
+          fours: sheetNum(b.fours, sheetNum(b['4s'])), sixes: sheetNum(b.sixes, sheetNum(b['6s']))
+        });
+      });
+      Object.keys(m.bowlers || {}).forEach(function(n){
+        const b = m.bowlers[n] || {};
+        out.bowl.push({
+          name: n, team: m.teamBowling || '',
+          wickets: sheetNum(b.wickets), runs: sheetNum(b.runs), balls: sheetNum(b.balls)
+        });
+      });
+    }
+    return out;
+  }
+
+  function buildBoardsHTML(m){
+    const players = collectLeaderboardPlayers(m);
+    let html = '';
+
+    const topBat = players.bat.slice().sort(function(a, b){
+      if (b.runs !== a.runs) return b.runs - a.runs;
+      return a.balls - b.balls;
+    }).slice(0, 8);
+
+    const topBowl = players.bowl.slice().sort(function(a, b){
+      if (b.wickets !== a.wickets) return b.wickets - a.wickets;
+      return a.runs - b.runs;
+    }).slice(0, 8);
+
+    const maxBat = topBat.length ? Math.max(1, topBat[0].runs) : 1;
+    const maxBowl = topBowl.length ? Math.max(1, topBowl[0].wickets) : 1;
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Top Run Scorers</div>';
+    if (!topBat.length){
+      html += '<div class="sheet-empty">No batting data yet.</div>';
+    } else {
+      html += '<div class="lb-wrap">';
+      topBat.forEach(function(p, i){
+        const pct = Math.round((p.runs / maxBat) * 100);
+        html += '<div class="lb-row">' +
+                  '<div class="lb-rank">' + (i + 1) + '</div>' +
+                  '<div class="lb-name">' + sheetEsc(p.name) +
+                    (p.team ? '<span class="lb-sub">' + sheetEsc(p.team) + '</span>' : '') +
+                    '<span class="lb-bar" style="width:' + pct + '%"></span>' +
+                  '</div>' +
+                  '<div class="lb-val">' + p.runs + '<span class="lb-sub">(' + p.balls + ')</span></div>' +
+                '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Top Wicket Takers</div>';
+    if (!topBowl.length){
+      html += '<div class="sheet-empty">No bowling data yet.</div>';
+    } else {
+      html += '<div class="lb-wrap">';
+      topBowl.forEach(function(p, i){
+        const econ = p.balls > 0 ? ((p.runs / p.balls) * 6).toFixed(2) : '0.00';
+        const pct = Math.round((p.wickets / maxBowl) * 100);
+        html += '<div class="lb-row">' +
+                  '<div class="lb-rank">' + (i + 1) + '</div>' +
+                  '<div class="lb-name">' + sheetEsc(p.name) +
+                    (p.team ? '<span class="lb-sub">' + sheetEsc(p.team) + '</span>' : '') +
+                    '<span class="lb-bar" style="width:' + pct + '%"></span>' +
+                  '</div>' +
+                  '<div class="lb-val">' + p.wickets + '<span class="lb-sub">/' + p.runs + ' · ' + econ + '</span></div>' +
+                '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    const inn1 = m.innings1, inn2 = m.innings2;
+    if (inn1 || inn2){
+      html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Innings Totals</div><div class="sheet-grid">';
+      [inn1, inn2].forEach(function(inn){
+        if (!inn) return;
+        html += '<div class="sheet-stat sheet-stat--red">' +
+                  '<div class="sheet-stat__k">' + sheetEsc(inn.team || 'Innings') + '</div>' +
+                  '<div class="sheet-stat__v">' + sheetNum(inn.runs) + '/' + sheetNum(inn.wickets) +
+                    '<small>' + sheetOvers(inn.balls) + ' ov</small></div>' +
+                '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    const boundaryKings = players.bat.slice().sort(function(a, b){
+      return (b.sixes * 6 + b.fours * 4) - (a.sixes * 6 + a.fours * 4);
+    }).filter(function(p){ return (p.fours + p.sixes) > 0; }).slice(0, 5);
+
+    if (boundaryKings.length){
+      html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Boundary Kings</div>';
+      html += '<div class="lb-wrap">';
+      boundaryKings.forEach(function(p, i){
+        html += '<div class="lb-row">' +
+                  '<div class="lb-rank">' + (i + 1) + '</div>' +
+                  '<div class="lb-name">' + sheetEsc(p.name) + '</div>' +
+                  '<div class="lb-val">' + p.sixes + '<span class="lb-sub">6s</span> · ' + p.fours + '<span class="lb-sub">4s</span></div>' +
+                '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    if (!players.bat.length && !players.bowl.length){
+      html = '<div class="sheet-empty">NO MATCH DATA YET<br><span style="opacity:.6">Waiting for the first ball…</span></div>';
+    }
+
+    return html;
+  }
+
+  (function wireSheetControls(){
+    const sheet = document.getElementById('viewerSheet');
+    if (!sheet) return;
+    const back = document.getElementById('sheetBack');
+    const close = document.getElementById('sheetClose');
+    if (back) back.addEventListener('click', function(e){ e.stopPropagation(); closeSheet(); });
+    if (close) close.addEventListener('click', function(e){ e.stopPropagation(); closeSheet(); });
+    sheet.querySelectorAll('.sheet-tab').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        showSheet(b.getAttribute('data-sheet'));
+      });
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && activeSheetTab) closeSheet();
+    });
+  })();
+  /* ═══════════════ end sheet block ═══════════════ */
 
   let stadiumViewActive = false;
   let __cmWagonDirty = true;
@@ -2418,6 +3157,21 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   function applyMatch(raw){
     if (!raw) return;
+
+    /* ── Detect "match has started" and hide the waiting overlay ── */
+    if (!window.__cricmaxMatchStarted){
+      let hasData = false;
+      if (raw.runs > 0 || raw.legalBalls > 0) hasData = true;
+      if (!hasData && raw.batters && Object.keys(raw.batters).length > 0) hasData = true;
+      if (!hasData && raw.bowlers && Object.keys(raw.bowlers).length > 0) hasData = true;
+      if (!hasData && raw.shotLog && Object.keys(raw.shotLog).length > 0) hasData = true;
+      if (!hasData && raw.currentOverBalls && Object.keys(raw.currentOverBalls).length > 0) hasData = true;
+      if (!hasData && raw.recentBalls && Object.keys(raw.recentBalls).length > 0) hasData = true;
+      if (!hasData && raw.innings1 && (raw.innings1.runs > 0 || raw.innings1.balls > 0 || (raw.innings1.batters && Object.keys(raw.innings1.batters).length > 0))) hasData = true;
+      if (!hasData && raw.innings2 && (raw.innings2.runs > 0 || raw.innings2.balls > 0 || (raw.innings2.batters && Object.keys(raw.innings2.batters).length > 0))) hasData = true;
+      if (hasData) __cmMarkMatchStarted();
+    }
+
     currentMatchState = raw;
     window.__cricmaxLastMatch = raw;
 
@@ -2464,6 +3218,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
     updateF1Hud(m);
     if (tvModeActive) refreshTVMode();
+    if (activeSheetTab) { try { renderSheet(activeSheetTab); } catch(e){} }
   }
 
   let lastSeenBalls = -1;
@@ -2572,6 +3327,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
   } catch(e){}
 
+  window.__cmProgress(70, 'CONNECTING TO MATCH');
+
   const CM_TARGET_FPS = CM_DEVICE.tier === 0 ? 30 : (CM_DEVICE.tier === 1 ? 45 : 60);
   const CM_FRAME_INTERVAL = 1000 / CM_TARGET_FPS;
   const WAGON_FRAME_INTERVAL = 1000 / 30;
@@ -2642,6 +3399,19 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       }
       if (!__cmFirstFrame){
         __cmFirstFrame = true;
+        window.__cmProgress(100, 'READY · LIGHTS OUT');
+        if (window.__cmLoaderFailsafe) clearInterval(window.__cmLoaderFailsafe);
+        const loaderEl = document.getElementById('cm-loader');
+        if (loaderEl){
+          const elapsedSinceStart = performance.now() - (window.__cmLoaderStart || 0);
+          const minShow = Math.max(0, 2400 - elapsedSinceStart);
+          setTimeout(function(){
+            setTimeout(function(){
+              loaderEl.classList.add('cm-hide');
+              setTimeout(() => { try { loaderEl.remove(); } catch(e){} }, 600);
+            }, 420);
+          }, minShow);
+        }
         if (window.requestIdleCallback) {
           requestIdleCallback(function(){
             const list = CM_DEVICE.tier === 0 ? [] : CM_DEVICE.tier === 1 ? ['environment.js'] : ['environment.js','crowd-animation.js','particles.js','stadium-detail.js'];
@@ -2685,18 +3455,47 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   window.handleNewMatchData = handleNewMatchData;
   window.playBall = playBall;
   window.triggerReplay = triggerReplay;
+  window.showSheet = showSheet;
+  window.closeSheet = closeSheet;
+
+  window.__cmProgress(20, 'LOADING STADIUM');
+
+  /* ═══════════════════════════════════════════════════════════════
+     LAND ON WAGON WHEEL — force wagon view immediately and repeatedly
+     so shared links always open on the wagon wheel, never the 3D view.
+     ═══════════════════════════════════════════════════════════════ */
+  setStadiumView(false, true);
+  requestAnimationFrame(function(){
+    setStadiumView(false, true);
+    try { drawWagonWheel(); } catch(e){}
+  });
+  setTimeout(function(){ setStadiumView(false, true); try { drawWagonWheel(); } catch(e){} }, 250);
+  setTimeout(function(){ setStadiumView(false, true); }, 1000);
+  setTimeout(function(){ setStadiumView(false, true); }, 2500);
 
   requestAnimationFrame(animate);
 
   bootStadiumModule().then(function(){
     setStadiumView(false, true);
+    setTimeout(function(){ setStadiumView(false, true); try { drawWagonWheel(); } catch(e){} }, 300);
+    setTimeout(function(){ setStadiumView(false, true); }, 1200);
     setTimeout(function(){
       if (!__cmFirstFrame){
         __cmFirstFrame = true;
+        window.__cmProgress(100, 'READY · LIGHTS OUT');
+        if (window.__cmLoaderFailsafe) clearInterval(window.__cmLoaderFailsafe);
+        const loaderEl = document.getElementById('cm-loader');
+        if (loaderEl){ setTimeout(function(){ loaderEl.classList.add('cm-hide'); setTimeout(() => { try { loaderEl.remove(); } catch(e){} }, 600); }, 420); }
       }
     }, 9000);
   }).catch(function(err){
-    console.error("Failed to load stadium", err);
+    if (__cmLoaderSub) __cmLoaderSub.innerText = '⚠️ FAILED TO LOAD';
+    setStadiumView(false, true);
+    setTimeout(function(){
+      window.__cmProgress(100, 'READY · LIGHTS OUT');
+      const loaderEl = document.getElementById('cm-loader');
+      if (loaderEl){ setTimeout(function(){ loaderEl.classList.add('cm-hide'); setTimeout(() => { try { loaderEl.remove(); } catch(e){} }, 600); }, 420); }
+    }, 2500);
   });
 
 })();
