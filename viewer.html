@@ -1358,13 +1358,16 @@ function showSheet(tab){
 }
   
 
-  function closeSheet(){
-    const sheet = document.getElementById('viewerSheet');
-    if (!sheet) return;
-    sheet.classList.remove('open');
-    sheet.setAttribute('aria-hidden', 'true');
-    activeSheetTab = null;
-  }
+ function closeSheet(){
+  const sheet = document.getElementById('viewerSheet');
+  if (!sheet) return;
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden', 'true');
+  activeSheetTab = null;
+  /* Bring the wagon wheel back when sheet closes */
+  var ww = document.getElementById('wagonWrap');
+  if (ww) ww.style.visibility = '';
+}
 
   function renderSheet(tab){
     const body = document.getElementById('sheetBody');
