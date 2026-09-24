@@ -2417,6 +2417,12 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     var sRunsEl = document.getElementById('bbStrikerRuns'); if (sRunsEl) sRunsEl.innerText = sB.runs || 0;
     var sBallsEl = document.getElementById('bbStrikerBalls'); if (sBallsEl) sBallsEl.innerText = sB.balls || 0;
 
+    var nst = m.nonStriker || 'Non-Striker';
+    var nstB = (m.batters && m.batters[nst]) || { runs: 0, balls: 0 };
+    var nstNameEl = document.getElementById('bbNonStriker'); if (nstNameEl) nstNameEl.innerText = nst;
+    var nstRunsEl = document.getElementById('bbNonStrikerRuns'); if (nstRunsEl) nstRunsEl.innerText = nstB.runs || 0;
+    var nstBallsEl = document.getElementById('bbNonStrikerBalls'); if (nstBallsEl) nstBallsEl.innerText = nstB.balls || 0;
+
     var bwName = m.currentBowler || 'Bowler';
     var bw = (m.bowlers && m.bowlers[bwName]) || { balls: 0, runs: 0, wickets: 0 };
     var bNameEl = document.getElementById('bbBowler'); if (bNameEl) bNameEl.innerText = bwName;
