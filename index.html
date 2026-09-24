@@ -1394,6 +1394,7 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
 <script>
 (function(){
   'use strict';
+
   var FIREBASE_CONFIG = {
     apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
     authDomain: "cricket-8cb1b.firebaseapp.com",
@@ -1403,108 +1404,66 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     messagingSenderId: "489545634269",
     appId: "1:489545634269:web:20b29fa190c4500670e634"
   };
-  window.__cricmaxFromRemote = false;
 
-  function resolveMatchCode(){
-    try { var c = localStorage.getItem('currentMatchCode'); if (c) return c; } catch(e){}
-    try { var q = new URLSearchParams(window.location.search).get('code'); if (q) return q; } catch(e){}
-    return 'match_current';
-  }
+  /* ── 1. Boot Firebase app ── */
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
     try { firebase.app(); return true; }
     catch (e) {
-      try { firebase.initializeApp(FIREBASE_CONFIG); return true; } catch (e2){ return false; }
+      try { firebase.initializeApp(FIREBASE_CONFIG); return true; }
+      catch (e2){ return false; }
     }
   }
-  function ensureAuth(){
-    return new Promise(function(resolve){
-      try {
-        var unsub = firebase.auth().onAuthStateChanged(function(user){
-          unsub();
-          if (user) resolve(user);
-          else firebase.auth().signInAnonymously().then(function(cred){ resolve(cred.user); }).catch(function(){ resolve(null); });
-        });
-      } catch(e){ resolve(null); }
-    });
-  }
 
-  var __currentWriteRef = null, __writeOverrideInstalled = false;
-  function installWriteOverride(){
-    if (__writeOverrideInstalled) return;
-    __writeOverrideInstalled = true;
-    var originalSetItem = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function(key, value){
-      originalSetItem(key, value);
-      if (window.__cricmaxFromRemote || key !== 'CricMax_Data' || !__currentWriteRef) return;
-      try {
-        var parsed = JSON.parse(value);
-        if (parsed && parsed.match) __currentWriteRef.set(parsed.match).catch(function(){});
-      } catch(e){}
-    };
-  }
-  function armWriteBridge(matchCode){
-    __currentWriteRef = firebase.database().ref('cricmax/matches/' + matchCode);
-    installWriteOverride();
+  /* ── 2. Expose globals that main.js / firebase.js expect ── */
+  function exposeGlobals(){
     try {
-      var raw = localStorage.getItem('CricMax_Data');
-      if (raw){ var p = JSON.parse(raw); if (p && p.match) __currentWriteRef.set(p.match); }
-    } catch(e){}
-  }
+      window.fbAuth = firebase.auth();
+      window.fbDb   = firebase.database();
 
-  var __currentReadRef = null, __currentReadHandler = null;
-  function detachReadBridge(){
-    if (__currentReadRef && __currentReadHandler) try { __currentReadRef.off('value', __currentReadHandler); } catch(e){}
-    __currentReadRef = null; __currentReadHandler = null;
-  }
-  function armReadBridge(matchCode){
-    detachReadBridge();
-    var ref = firebase.database().ref('cricmax/matches/' + matchCode);
-    var handler = function(snap){
-      var data = snap.val();
-      if (!data) return;
-      var flat = data;
-      if (data.innings1 || data.innings2){
-        var innNum = data.currentInnings || 1;
-        var inn = innNum === 2 ? (data.innings2 || data.innings1) : (data.innings1 || data.innings2);
-        if (inn){
-          var battingTeam = inn.team || data.teamBatting || '';
-          flat = Object.assign({}, data, {
-            runs: inn.runs || 0, wickets: inn.wickets || 0, legalBalls: inn.balls || 0,
-            teamBatting: battingTeam,
-            batters: inn.batters || data.batters || {},
-            bowlers: inn.bowlers || data.bowlers || {}
-          });
-        }
-      }
-      window.__cricmaxFromRemote = true;
-      try {
-        var existing = localStorage.getItem('CricMax_Data');
-        var wrapper = existing ? JSON.parse(existing) : {};
-        wrapper.match = flat;
-        localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
-      } catch(e){}
+      window.fbOnAuthStateChanged = function(auth, cb){ return auth.onAuthStateChanged(cb); };
+      window.fbSignInAnonymously   = function(auth){ return auth.signInAnonymously(); };
+
+      /* Realtime Database wrappers (used by firebase.js) */
+      window.fbRef   = function(db, path){ return db.ref(path); };
+      window.fbSet   = function(ref, data){ return ref.set(data); };
+      window.fbOnce  = function(ref){ return ref.once('value'); };
+      window.fbOnValue = function(ref, cb){ return ref.on('value', cb); };
+
+      /* Firestore wrappers — kept for compatibility, no-op if firestore missing */
+      window.fbDoc   = function(){ return null; };
+      window.fbSetDoc = function(){ return Promise.resolve(); };
+      window.fbOnSnapshot = function(){ return function(){}; };
+      window.fbCollection = function(){ return null; };
+
       window.__cricmaxFromRemote = false;
-      if (typeof scheduleRender === 'function') scheduleRender();
-    };
-    __currentReadRef = ref;
-    __currentReadHandler = handler;
-    ref.on('value', handler);
-  }
-
-  var __lastCode = null;
-  function watchCodeChange(){
-    var code = resolveMatchCode();
-    if (code !== __lastCode){
-      __lastCode = code;
-      try { armWriteBridge(code); } catch(e){}
-      try { armReadBridge(code); } catch(e){}
+    } catch (e){
+      console.warn('[CricMax] exposeGlobals failed:', e);
     }
   }
+
+  /* ── 3. Boot sequence ── */
   function boot(){
     if (!ensureFirebaseApp()){ setTimeout(boot, 300); return; }
-    ensureAuth().then(function(){ watchCodeChange(); setInterval(watchCodeChange, 500); });
+    exposeGlobals();
+
+    /* Sign in anonymously if not already signed in */
+    try {
+      window.fbOnAuthStateChanged(window.fbAuth, function(user){
+        if (!user){
+          window.fbSignInAnonymously(window.fbAuth).catch(function(err){
+            console.warn('[CricMax] Anonymous sign-in failed:', err);
+          });
+        } else {
+          window.firebaseReady = true;
+          console.log('[CricMax] ✅ Firebase ready, uid:', user.uid);
+        }
+      });
+    } catch (e){
+      console.warn('[CricMax] auth listener failed:', e);
+    }
   }
+
   boot();
 })();
 </script>
