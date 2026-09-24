@@ -281,9 +281,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   padding-top:env(safe-area-inset-top,0);
   padding-bottom:env(safe-area-inset-bottom,0);
   overscroll-behavior:contain;
-  animation:sheetIn .22s ease-out;
 }
-.viewer-sheet.open{ display:flex; }
+.viewer-sheet.open{ display:flex; animation:sheetIn .22s ease-out; }
 @keyframes sheetIn{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
 
 .viewer-sheet__bar{
@@ -429,6 +428,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .lb-sub{ font-size:10px;color:#7a8590;font-weight:700;margin-left:6px; }
 .lb-val{ font-size:15px;font-weight:900;color:var(--f1-red);font-variant-numeric:tabular-nums;flex:0 0 auto; }
 .lb-wrap{ background:var(--f1-carbon),rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; }
+.lb-bar{ display:block;height:2px;margin-top:4px;background:linear-gradient(90deg,var(--f1-red),var(--f1-purple));border-radius:1px; }
 
 .sheet-empty{ text-align:center;padding:40px 16px;color:#7a8590;font-size:12px;font-weight:700;letter-spacing:.5px; }
 
@@ -528,26 +528,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   font-size:12px !important;
   font-weight:600 !important;
   color:#c5cdd8 !important;
-}
-.wing-telemetry .wing-player-name--sub::after{
-  content:'';
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:-1px;
-  height:1px;
-  background:rgba(255,255,255,.05);
-  pointer-events:none;
-}
-.wing-telemetry .wing-player-name--sub + .wing-player-stats::after{
-  content:'';
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:-1px;
-  height:1px;
-  background:rgba(255,255,255,.05);
-  pointer-events:none;
 }
 .wing-player-stats{font-size:12px;color:#a0a0a0;font-weight:600;font-variant-numeric:tabular-nums;}
 .wing-player-stats strong{color:#fff;font-size:14px;}
@@ -1293,7 +1273,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
     });
     renderSheet(tab);
-    // close other overlays
     if (menuOpen){
       menuOpen = false;
       const mp = document.getElementById('menuPanel'); if (mp) mp.classList.remove('open');
@@ -1340,7 +1319,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
               '<span class="sheet-summary__meta">' + sheetOvers(balls) + ' OV · CRR ' + crr + '</span>' +
             '</div>';
 
-    /* Batting */
     const batters = m.batters || {};
     const striker = m.striker, nonStriker = m.nonStriker;
     const ordered = [];
@@ -1377,7 +1355,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
     html += '</div>';
 
-    /* Bowling */
     const bowlers = m.bowlers || {};
     const bwNames = Object.keys(bowlers);
     const currentBowler = m.currentBowler;
@@ -1409,7 +1386,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
     html += '</div>';
 
-    /* Extras / total line */
     const extras = sheetNum(m.extras, sheetNum(m.extrasTotal, 0));
     html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Innings</div>' +
               '<div class="sheet-grid">' +
@@ -1437,10 +1413,9 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     const proj = (balls > 0 && oversLimit > 0) ? Math.round(crr * oversLimit) : 0;
 
     const shots = toArray(m.shotLog);
-    let fours = 0, sixes = 0, dots = 0, wicketsInLog = 0;
+    let fours = 0, sixes = 0, dots = 0;
     shots.forEach(function(s){
       const r = sheetNum(s.runs);
-      if (s && (s.isWicket || s.isOut || s.wicketType)) wicketsInLog++;
       if (r === 4) fours++;
       else if (r === 6) sixes++;
       else if (r === 0) dots++;
@@ -1483,7 +1458,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
               '<div class="sheet-stat sheet-stat--red"><div class="sheet-stat__k">Wickets</div><div class="sheet-stat__v">' + wkts + '</div></div>' +
             '</div></div>';
 
-    /* Recent balls */
     let tags = toArray(m.currentOverBalls);
     if (!tags.length) tags = toArray(m.recentBalls).slice(-12);
     html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Recent Balls</div>';
@@ -1576,7 +1550,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     } else {
       html += '<div class="lb-wrap">';
       topBat.forEach(function(p, i){
-        const sr = p.balls > 0 ? ((p.runs / p.balls) * 100).toFixed(1) : '0.0';
         const pct = Math.round((p.runs / maxBat) * 100);
         html += '<div class="lb-row">' +
                   '<div class="lb-rank">' + (i + 1) + '</div>' +
@@ -1612,7 +1585,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
     html += '</div>';
 
-    /* Team totals */
     const inn1 = m.innings1, inn2 = m.innings2;
     if (inn1 || inn2){
       html += '<div class="sheet-sec"><div class="sheet-sec__ttl">Innings Totals</div><div class="sheet-grid">';
@@ -1627,7 +1599,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       html += '</div></div>';
     }
 
-    /* Boundary leaders */
     const boundaryKings = players.bat.slice().sort(function(a, b){
       return (b.sixes * 6 + b.fours * 4) - (a.sixes * 6 + a.fours * 4);
     }).filter(function(p){ return (p.fours + p.sixes) > 0; }).slice(0, 5);
@@ -1652,7 +1623,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     return html;
   }
 
-  /* Wire sheet controls (buttons + Esc) */
   (function wireSheetControls(){
     const sheet = document.getElementById('viewerSheet');
     if (!sheet) return;
@@ -3437,6 +3407,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   bootStadiumModule().then(function(){
     setStadiumView(false, true);
+    closeSheet();
     setTimeout(function(){
       if (!__cmFirstFrame){
         __cmFirstFrame = true;
