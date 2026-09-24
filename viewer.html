@@ -978,18 +978,20 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <div class="banner" id="banner">FOUR!</div>
 
   <!-- ═══════════════ DATA SHEET OVERLAY ═══════════════ -->
-  <div id="viewerSheet" class="viewer-sheet" aria-hidden="true">
-    <div class="viewer-sheet__bar">
-      <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
-      <div class="sheet-tabs">
-        <button type="button" class="sheet-tab" data-sheet="card" onclick="showSheet('card')">Card</button>
-        <button type="button" class="sheet-tab" data-sheet="stats" onclick="showSheet('stats')">Stats</button>
-        <button type="button" class="sheet-tab" data-sheet="boards" onclick="showSheet('boards')">Boards</button>
-      </div>
-      <button type="button" class="sheet-close" id="sheetClose">✕</button>
+<div id="viewerSheet" class="viewer-sheet" aria-hidden="true">
+  <div class="viewer-sheet__bar">
+    <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
+    <div class="sheet-tabs">
+      <button type="button" class="sheet-tab" data-sheet="live" onclick="showSheet('live')">Live</button>
+      <button type="button" class="sheet-tab" data-sheet="scorecard" onclick="showSheet('scorecard')">Card</button>
+      <button type="button" class="sheet-tab" data-sheet="analytics" onclick="showSheet('analytics')">Analysis</button>
+      <button type="button" class="sheet-tab" data-sheet="leaderboards" onclick="showSheet('leaderboards')">Stats</button>
+      <button type="button" class="sheet-tab" data-sheet="summary" onclick="showSheet('summary')">Summary</button>
     </div>
-    <div class="viewer-sheet__body" id="sheetBody"></div>
+    <button type="button" class="sheet-close" id="sheetClose">✕</button>
   </div>
+  <iframe id="sheetFrame" src="about:blank" style="flex:1 1 auto;width:100%;min-height:0;border:0;background:#0b1220;display:block;" allow="fullscreen"></iframe>
+</div>
 
   <!-- ═══════════════ F1 REAR-WING SCORECARD ═══════════════ -->
   <div class="wing-assembly" id="wingAssembly">
