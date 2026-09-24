@@ -3,6 +3,7 @@
    ✅ Self-contained
    ✅ normalizeMatch() runs at top of recordBall
    ✅ No auto-deletion of pastMatchesLedger
+   ✅ Race sequence wired (chase + podium)
    ============================================================ */
 
 var _SCORING_MAX_UNDO = 100;
@@ -493,10 +494,8 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
 function recordBall(runs = 0, extra = null, isWicket = false, region = "", distance = 0, dd = null) {
   if (!match.isActive || isViewerMode) return;
 
-  /* ⚡ Self-heal missing arrays before scoring */
   if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
-  /* Safety defaults */
   if (!match.striker)       match.striker       = 'Striker';
   if (!match.nonStriker)    match.nonStriker    = 'Non-Striker';
   if (!match.currentBowler) match.currentBowler = 'Bowler';
@@ -540,7 +539,7 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   window._tempExactAngle = undefined;
 
   const zoneIndex = region
-    ? ["Third Man","Point","Cover","Mid-off","Mid-on","Mid-wicket","Square Leg","Fine Leg"].indexOf(region)
+    ? ["Square Leg","Mid-wicket","Mid-on","Mid-off","Point","Cover","Third Man","Fine Leg"].indexOf(region)
     : -1;
   const overNum = Math.floor(match.legalBalls / 6) + 1;
   const bowlerType = detectBowlerType(match.currentBowler);
@@ -619,9 +618,9 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     if (dd && ['Caught','Run Out','Stumped'].includes(dd.method)) {
       const fn = dd.fielder || 'Fielder';
       if (!match.fielding[fn]) match.fielding[fn] = { catches: 0, stumpings: 0, runOuts: 0 };
-      if (dd.method === 'Caught')                                                        match.fielding[fn].catches   += 1;
-      else if (dd.method === 'Stumped' && matchConfig.autoDetectStumpings)               match.fielding[fn].stumpings += 1;
-      else if (dd.method === 'Run Out')                                                  match.fielding[fn].runOuts   += 1;
+      if (dd.method === 'Caught')                                          match.fielding[fn].catches   += 1;
+      else if (dd.method === 'Stumped' && matchConfig.autoDetectStumpings) match.fielding[fn].stumpings += 1;
+      else if (dd.method === 'Run Out')                                    match.fielding[fn].runOuts   += 1;
     }
     match.fow.push(`${match.runs}/${match.wickets} (${dismissedName})`);
     triggerBanner('WICKET! 🚨', `${dismissedName} out`, 'fx-wicket');
@@ -718,12 +717,10 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     }
   }
 
-  /* ---- Persist + render ---- */
   autoPersist();
   scheduleRender();
   broadcastMatchState(shotPayload);
 
-  /* ---- Voice ---- */
   if (isCommentaryVoiceActive) {
     const shouldSpeak =
       commentaryDensity === 'all' ? true :
@@ -930,6 +927,9 @@ function openInnings2Setup() {
   document.getElementById('i2Modal').style.display = 'flex';
 }
 
+/* ═══════════════════════════════════════════════════════════
+   BEGIN SECOND INNINGS — triggers F1 chase sequence
+   ═══════════════════════════════════════════════════════════ */
 function beginSecondInnings() {
   const s  = autoCapitalize((document.getElementById('i2StrikerNew').value    || document.getElementById('i2Striker').value    || '').trim());
   const ns = autoCapitalize((document.getElementById('i2NonStrikerNew').value || document.getElementById('i2NonStriker').value || '').trim());
@@ -969,7 +969,20 @@ function beginSecondInnings() {
     primeSpeech();
   }
 
-  playIPLOpening(match.teamBatting, match.teamBattingAbbr, match.teamBowling, match.teamBowlingAbbr, 'Target: ' + match.target + ' runs', () => {
+  /* ── F1 CHASE SEQUENCE ── */
+  var firstInn = match.innings1Score || { team: match.teamBowling, runs: 0, wickets: 0 };
+  playRaceSequence('chase', {
+    teamA: {
+      name: firstInn.team,
+      score: firstInn.runs + '/' + firstInn.wickets
+    },
+    teamB: {
+      name: match.teamBatting,
+      score: '0/0'
+    },
+    target: match.target,
+    voiceIntro: `Second innings underway. ${match.teamBatting} need ${match.target} runs to win. Let's play!`
+  }, function () {
     selectSubPane('live');
     renderLive();
     renderCommentary();
@@ -977,11 +990,6 @@ function beginSecondInnings() {
     broadcastMatchState();
     triggerBanner('2ND INNINGS! 🏏', `${match.teamBatting} need ${match.target}`, 'fx-milestone');
     if (isCommentaryVoiceActive) speak(`Second innings underway. ${match.teamBatting} need ${match.target} to win.`);
-  }, {
-    topLabel: '🏏 2ND INNINGS 🏏',
-    beginText: 'Chase Begins',
-    bottomText: 'Target: ' + match.target + ' runs',
-    voiceIntro: `Second innings underway. ${match.teamBatting} need ${match.target} runs to win. Let's play!`
   });
 }
 
@@ -991,6 +999,9 @@ function computeManOfTheMatch() {
   return pool.reduce((best, p) => (p.mvp > best.mvp ? p : best), pool[0]);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   END MATCH — triggers F1 podium sequence
+   ═══════════════════════════════════════════════════════════ */
 function endMatchAndDeclareWinner(skipConfirm = false) {
   if (!match.isActive) return;
   if (!skipConfirm && !confirm("End match?")) return;
@@ -1045,46 +1056,52 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
 
   if (isCommentaryVoiceActive) speak(`Match finished! ${margin}. Congratulations!`);
 
-  playIPLOpening(
-    winner === 'tie' ? i1t : winner,
-    winner === 'tie' ? 'TIE' : winner.substring(0, 3).toUpperCase(),
-    winner === 'tie' ? i2t : (winner === i1t ? i2t : i1t),
-    winner === 'tie' ? 'TIE' : (winner === i1t ? i2t : i1t).substring(0, 3).toUpperCase(),
-    '🏆 ' + margin,
-    () => {
-      document.getElementById('resultWinner').innerText = (winner === 'tie') ? 'Match Tied' : `🏆 ${winner}`;
-      document.getElementById('resultMargin').innerText = margin;
-      document.getElementById('resultScores').innerHTML = `
-        <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:8px;">
-          <span>${escapeHtml(i1t)}</span><b>${i1s}</b>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;">
-          <span>${escapeHtml(i2t)}</span><b>${i2s}</b>
-        </div>`;
-      if (match.motm) {
-        const box     = document.getElementById('motmBox');
-        const nameEl  = document.getElementById('motmName');
-        const statsEl = document.getElementById('motmStats');
-        if (box) {
-          box.style.display = 'block';
-          nameEl.innerText = match.motm.name;
-          const parts = [];
-          if (match.motm.runs > 0)    parts.push(`${match.motm.runs}(${match.motm.balls}) • SR ${match.motm.sr.toFixed(1)}`);
-          if (match.motm.wickets > 0) parts.push(`${match.motm.wickets}/${match.motm.bowlRuns} • Eco ${match.motm.eco.toFixed(2)}`);
-          if (match.motm.catches)     parts.push(`${match.motm.catches} catch${match.motm.catches > 1 ? 'es' : ''}`);
-          statsEl.innerText = parts.join('  |  ');
-        }
+  /* ── F1 PODIUM SEQUENCE ── */
+  playRaceSequence('podium', {
+    winner: winner === 'tie' ? 'Match Tied' : winner,
+    margin: margin,
+    motm: match.motm ? {
+      name: match.motm.name,
+      batRuns: match.motm.runs > 0 ? String(match.motm.runs) : null,
+      batBalls: match.motm.balls,
+      batSR: match.motm.sr ? match.motm.sr.toFixed(1) : null,
+      bowlFig: match.motm.wickets > 0 ? match.motm.wickets + '/' + match.motm.bowlRuns : null,
+      bowlOvers: null,
+      bowlEco: match.motm.eco ? match.motm.eco.toFixed(2) : null
+    } : null,
+    voiceIntro: `Match finished! ${margin}.`
+  }, function () {
+    document.getElementById('resultWinner').innerText = (winner === 'tie') ? 'Match Tied' : `🏆 ${winner}`;
+    document.getElementById('resultMargin').innerText = margin;
+    document.getElementById('resultScores').innerHTML = `
+      <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:8px;">
+        <span>${escapeHtml(i1t)}</span><b>${i1s}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;">
+        <span>${escapeHtml(i2t)}</span><b>${i2s}</b>
+      </div>`;
+    if (match.motm) {
+      const box     = document.getElementById('motmBox');
+      const nameEl  = document.getElementById('motmName');
+      const statsEl = document.getElementById('motmStats');
+      if (box) {
+        box.style.display = 'block';
+        nameEl.innerText = match.motm.name;
+        const parts = [];
+        if (match.motm.runs > 0)    parts.push(`${match.motm.runs}(${match.motm.balls}) • SR ${match.motm.sr.toFixed(1)}`);
+        if (match.motm.wickets > 0) parts.push(`${match.motm.wickets}/${match.motm.bowlRuns} • Eco ${match.motm.eco.toFixed(2)}`);
+        if (match.motm.catches)     parts.push(`${match.motm.catches} catch${match.motm.catches > 1 ? 'es' : ''}`);
+        statsEl.innerText = parts.join('  |  ');
       }
-      document.getElementById('resultModal').style.display = 'flex';
-      const ub = document.getElementById('undoBtn');        if (ub) ub.style.display = 'none';
-      const sb = document.getElementById('btnSoundToggle'); if (sb) sb.style.display = 'none';
-      renderPointsTable();
-      renderPastMatchesList();
-      updateContinueButton();
-      autoPersist();
-      broadcastMatchState();
-      updateLiveShareBadge();
-    },
-    { topLabel: '🏆 MATCH RESULT 🏆', beginText: 'Champion', bottomText: margin, voiceIntro: `Match finished! ${margin}.` }
-  );
+    }
+    document.getElementById('resultModal').style.display = 'flex';
+    const ub = document.getElementById('undoBtn');        if (ub) ub.style.display = 'none';
+    const sb = document.getElementById('btnSoundToggle'); if (sb) sb.style.display = 'none';
+    renderPointsTable();
+    renderPastMatchesList();
+    updateContinueButton();
+    autoPersist();
+    broadcastMatchState();
+    updateLiveShareBadge();
+  });
 }
