@@ -1,5 +1,6 @@
 /* ============================================================
    ui.js — Navigation, panes, modals, settings, IPL opening, finalize
+   ✅ Race sequence wired (playRaceSequence replaces playIPLOpening)
    ============================================================ */
 
 function isOnHomePage() {
@@ -34,10 +35,10 @@ function launchDashboard(paneId) {
   if (backHome) backHome.style.display = isViewerMode ? 'none' : 'flex';
   if (undoBtn) undoBtn.style.display = (match.isActive && !isViewerMode) ? 'flex' : 'none';
   selectSubPane(paneId);
-  updateTournamentProfileCard();
-  renderPastMatchesList();
-  renderTeamsList();
-  renderPointsTable();
+  if (typeof updateTournamentProfileCard === 'function') updateTournamentProfileCard();
+  if (typeof renderPastMatchesList === 'function') renderPastMatchesList();
+  if (typeof renderTeamsList === 'function') renderTeamsList();
+  if (typeof renderPointsTable === 'function') renderPointsTable();
   updateSettingsSummary();
   updateLiveShareBadge();
 }
@@ -52,7 +53,7 @@ function goToHomeScreen() {
   if (backHome) backHome.style.display = 'none';
   if (undoBtn) undoBtn.style.display = 'none';
   updateBottomNavActive('home');
-  archiveCurrentTournament();
+  if (typeof archiveCurrentTournament === 'function') archiveCurrentTournament();
 }
 
 function selectSubPane(paneId) {
@@ -64,23 +65,23 @@ function selectSubPane(paneId) {
   if (idx >= 0 && tabButtons[idx]) tabButtons[idx].classList.add('active');
   const ap = document.getElementById('pane-' + paneId);
   if (ap) ap.classList.add('active');
+
   if (paneId === 'tournament') {
-    renderPastMatchesList();
-    renderPointsTable();
-    updateContinueButton();
-    setTimeout(injectClearDataPanel, 60);
+    if (typeof renderPastMatchesList === 'function') renderPastMatchesList();
+    if (typeof renderPointsTable === 'function') renderPointsTable();
+    if (typeof updateContinueButton === 'function') updateContinueButton();
+    if (typeof injectClearDataPanel === 'function') setTimeout(injectClearDataPanel, 60);
   }
-  if (paneId === 'teams') renderTeamsList();
+  if (paneId === 'teams' && typeof renderTeamsList === 'function') renderTeamsList();
   if (paneId === 'live') { renderLive(); renderCommentary(); updateSettingsSummary(); updateLiveShareBadge(); }
   if (paneId === 'summary') renderSummary();
-  if (paneId === 'analytics') renderNzcAnalytics();
-  if (paneId === 'leaderboards') renderStatsCategory(currentStatsCategory);
+  if (paneId === 'analytics' && typeof renderNzcAnalytics === 'function') renderNzcAnalytics();
+  if (paneId === 'leaderboards' && typeof renderStatsCategory === 'function') renderStatsCategory(currentStatsCategory);
   if (['live', 'scorecard', 'analytics', 'leaderboards'].includes(paneId)) updateBottomNavActive(paneId);
   else updateBottomNavActive(null);
 }
 
 function openMoreOptionsModal() { document.getElementById('moreOptionsModal').style.display = 'flex'; }
-
 function closeModal(id) {
   if (id === 'wagonModal') { clearTimeout(window._wagonTimer); pendingRuns = 0; }
   const el = document.getElementById(id);
@@ -96,10 +97,9 @@ function switchScorecardTab(el, tab) {
   if (bowlEl) bowlEl.style.display = tab === 'bowling' ? 'block' : 'none';
 }
 
-/* ============ SETTINGS ============ */
 function setConfig(key, val, btnEl, groupId) {
   matchConfig[key] = val;
-  autoPersist();
+  if (typeof autoPersist === 'function') autoPersist();
   if (btnEl && groupId) {
     document.querySelectorAll(`#${groupId} .seg-btn`).forEach(b => b.classList.remove('active'));
     btnEl.classList.add('active');
@@ -113,11 +113,10 @@ function toggleConfig(key, el) {
   else el.classList.remove('on');
   if (key === 'forceFreeHit') {
     match.isFreeHit = matchConfig.forceFreeHit;
-    autoPersist();
     const t = document.getElementById('fhStateText');
     if (t) t.innerText = match.isFreeHit ? 'Yes' : 'No';
   }
-  autoPersist();
+  if (typeof autoPersist === 'function') autoPersist();
   updateSettingsSummary();
 }
 
@@ -161,12 +160,12 @@ function openExtrasModal() {
   document.getElementById('extrasModal').style.display = 'flex';
 }
 
-function saveSettingsAndClose() { autoPersist(); closeModal('settingsModal'); updateSettingsSummary(); }
+function saveSettingsAndClose() { if (typeof autoPersist === 'function') autoPersist(); closeModal('settingsModal'); updateSettingsSummary(); }
 
 function resetSettingsToDefaults() {
   matchConfig = Object.assign({}, DEFAULT_CONFIG);
   syncSettingsUI();
-  autoPersist();
+  if (typeof autoPersist === 'function') autoPersist();
   updateSettingsSummary();
 }
 
@@ -181,7 +180,7 @@ function updateSettingsSummary() {
 function setConfigFromSelect(key, val) {
   matchConfig[key] = parseInt(val, 10);
   if (isNaN(matchConfig[key])) matchConfig[key] = 0;
-  autoPersist();
+  if (typeof autoPersist === 'function') autoPersist();
   updateSettingsSummary();
 }
 
@@ -214,7 +213,9 @@ function upgradeSettingsDropdowns() {
   }
 }
 
-/* ============ IPL OPENING ============ */
+/* ═══════════════════════════════════════════════════════════
+   LEGACY IPL OPENING — kept as fallback, not called
+   ═══════════════════════════════════════════════════════════ */
 function playIPLOpening(t1Name, t1Abbr, t2Name, t2Abbr, venue, cb, opts = {}) {
   const el = document.getElementById('iplOpening');
   if (!el) { if (cb) cb(); return; }
@@ -263,7 +264,9 @@ function playIPLOpening(t1Name, t1Abbr, t2Name, t2Abbr, venue, cb, opts = {}) {
   }, 9000);
 }
 
-/* ============ FINALIZE MATCH START ============ */
+/* ═══════════════════════════════════════════════════════════
+   FINALIZE MATCH START — triggers F1 start sequence
+   ═══════════════════════════════════════════════════════════ */
 function finalizeMatchStart() {
   const batName = document.getElementById('battingTeamSelect').value;
   let bowlName;
@@ -306,32 +309,18 @@ function finalizeMatchStart() {
   match.previousBowler = "";
   match.batters = {}; match.bowlers = {}; match.fielding = {}; match.playerTeamMap = {};
   match.recentBalls = []; match.commentary = []; match.fow = [];
-  match.cumulativeWorm = [0];
-  match.sectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
-  match.currentOverBalls = [];
-  match.isFreeHit = false;
-  match.partnerRuns = [];
-  match.currentPartnership = { runs: 0, balls: 0, batters: [striker, nonStriker] };
-  match.innings1Score = null;
-  match.lastBowlerWkts = [];
-  usedPhrases = {};
-  match.shotLog = [];
-  match.innings1PartnerRuns = [];
-  match.innings1Fow = [];
-  match.innings1SectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
-  match.innings2SectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
-  match.innings1BattingSnapshot = null;
-  match.innings1BowlingSnapshot = null;
-  match.innings1FieldingSnapshot = null;
-  match._currentOverRuns = 0;
-  match._lastOverRuns = 0;
-  match.motm = null;
+  match.cumulativeWorm = [0]; match.sectorRuns = [0, 0, 0, 0, 0, 0, 0, 0]; match.currentOverBalls = [];
+  match.isFreeHit = false; match.partnerRuns = []; match.currentPartnership = { runs: 0, balls: 0, batters: [striker, nonStriker] };
+  match.innings1Score = null; match.lastBowlerWkts = [];
+  usedPhrases = {}; match.shotLog = []; match.innings1PartnerRuns = []; match.innings1Fow = [];
+  match.innings1SectorRuns = [0, 0, 0, 0, 0, 0, 0, 0]; match.innings2SectorRuns = [0, 0, 0, 0, 0, 0, 0, 0];
+  match.innings1BattingSnapshot = null; match.innings1BowlingSnapshot = null; match.innings1FieldingSnapshot = null;
+  match._currentOverRuns = 0; match._lastOverRuns = 0; match.motm = null;
   inningsTransitionLock = false;
 
-  matchCode = generateMatchCode();
+  if (typeof generateMatchCode === 'function') matchCode = generateMatchCode();
   match.shareCode = matchCode;
   try { localStorage.setItem('currentMatchCode', matchCode); } catch (e) {}
-  console.info('[CricMax] 📡 Match code:', matchCode, '| Overs locked:', lockedOvers);
 
   const bT = savedTeams.find(t => t.name === batName) || { squad: [] };
   const wT = savedTeams.find(t => t.name === bowlName) || { squad: [] };
@@ -366,28 +355,36 @@ function finalizeMatchStart() {
   if (sndBtn) sndBtn.style.display = 'flex';
 
   closeModal('openingRolesModal');
-  updateContinueButton();
-  autoPersist();
+  if (typeof updateContinueButton === 'function') updateContinueButton();
+  if (typeof autoPersist === 'function') autoPersist();
 
-  if (matchCode) registerViewerPresence(matchCode);
+  if (matchCode && typeof registerViewerPresence === 'function') registerViewerPresence(matchCode);
 
   if (!isCommentaryVoiceActive) {
     isCommentaryVoiceActive = true;
     if (sndBtn) sndBtn.classList.add('active');
     const icon = document.getElementById('soundIcon');
     if (icon) icon.innerText = '🔊';
-    primeSpeech();
+    if (typeof primeSpeech === 'function') primeSpeech();
   }
 
-  playIPLOpening(batName, match.teamBattingAbbr, bowlName, match.teamBowlingAbbr, match.venue, () => {
+  /* ── F1 START SEQUENCE ── */
+  playRaceSequence('start', {
+    teamA: { abbr: match.teamBattingAbbr, name: batName },
+    teamB: { abbr: match.teamBowlingAbbr, name: bowlName },
+    inningsLabel: 'Innings 1 · ' + lockedOvers + ' Ov',
+    voiceIntro: `Welcome to CricMax Pro. ${batName} versus ${bowlName}. Let the match begin!`
+  }, function () {
     launchDashboard('live');
     renderLive();
     renderCommentary();
-    broadcastMatchState();
+    if (typeof broadcastMatchState === 'function') broadcastMatchState();
     updateSettingsSummary();
     updateLiveShareBadge();
     setTimeout(() => {
-      if (isCommentaryVoiceActive) speak(`Play ball! ${striker} and ${nonStriker} at the crease. ${bowler} to bowl the first over.`);
+      if (isCommentaryVoiceActive && typeof speak === 'function') {
+        speak(`Play ball! ${striker} and ${nonStriker} at the crease. ${bowler} to bowl the first over.`);
+      }
     }, 400);
-  }, { topLabel: '⚡ CRICMAX PRO ⚡', beginText: 'Match Begins', bottomText: match.venue });
+  });
 }
