@@ -52,19 +52,7 @@
 })();
 </script>
 
-<script>
-/* IFRAME DETECTOR: Tags the HTML element if loaded inside the data sheet tabs */
-(function(){
-  if (new URLSearchParams(window.location.search).get('viewer') === '1') {
-    document.documentElement.classList.add('is-iframe-sheet');
-  }
-})();
-</script>
-
 <style>
-/* ═══════════════════════════════════════════════════════════════
-   ROOT / RESET
-   ═══════════════════════════════════════════════════════════════ */
 :root{
   --bg-deep:#0d1117;--bg-panel:rgba(13,17,23,.92);
   --border:rgba(255,255,255,.12);--border-soft:rgba(255,255,255,.08);
@@ -78,41 +66,14 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Titillium Web',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;overscroll-behavior:none;}
 canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;touch-action:none;}
 
-/* ═══════════════════════════════════════════════════════════════
-   IFRAME SHEET MODE (Hides the 3D Viewer UI when inside a tab)
-   ═══════════════════════════════════════════════════════════════ */
-html.is-iframe-sheet .hud,
-html.is-iframe-sheet #wagonWrap,
-html.is-iframe-sheet #wagonInfo,
-html.is-iframe-sheet #cm-loader,
-html.is-iframe-sheet canvas#three-canvas,
-html.is-iframe-sheet .vignette,
-html.is-iframe-sheet #viewerSheet {
-  display: none !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   3D VIEWER HUD — hidden when body.has-sheet
-   ═══════════════════════════════════════════════════════════════ */
 .hud{position:fixed;inset:0;pointer-events:none;z-index:100;touch-action:manipulation;}
 
-/* FIX: Force hide everything including wagon wheel when sheet is open */
-body.has-sheet .hud,
-body.has-sheet #wagonWrap,
-body.has-sheet #wagonInfo,
-body.has-sheet .wing-assembly,
-body.has-sheet canvas#three-canvas {
-  display: none !important;
-}
-
 .vignette{position:fixed;inset:0;pointer-events:none;z-index:50;background:radial-gradient(circle at center,transparent 55%,rgba(0,0,0,.5) 100%);}
-body.has-sheet .vignette{display:none;}
 
 #irisTransition{position:fixed;inset:0;z-index:100060;background:radial-gradient(circle at 50% 50%, #00e676 0%, #009270 60%, #005f4a 100%);clip-path:circle(0% at 50% 50%);opacity:0;pointer-events:none;will-change:clip-path, opacity;}
 #irisTransition.opening{opacity:1;pointer-events:auto;transition:clip-path 340ms cubic-bezier(.4, 0, .2, 1);clip-path:circle(160% at 50% 50%);}
 #irisTransition.closing{opacity:0;transition:opacity 220ms ease-out;clip-path:circle(160% at 50% 50%);}
 
-/* ── Top bar ── */
 .top-bar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;padding-top:env(safe-area-inset-top,0);pointer-events:none;z-index:100010;overflow:hidden;background:var(--f1-carbon),linear-gradient(180deg,rgba(10,10,10,.98),rgba(10,10,10,.85));border-bottom:1px solid var(--border-soft);}
 .top-bar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,var(--f1-red) 15%,var(--f1-green) 50%,var(--f1-red) 85%,transparent 100%);pointer-events:none;}
 .top-brand{display:flex;align-items:center;gap:8px;pointer-events:auto;}
@@ -138,7 +99,6 @@ body.has-sheet .vignette{display:none;}
 #btn-stadium.on .icon-web{display:none;}
 #btn-stadium.on .icon-stadium{display:block;}
 
-/* ── Pills ── */
 .pill-stack{position:absolute;top:62px;left:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:100005;max-width:calc(100vw - 24px);}
 .stat-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg-panel);backdrop-filter:blur(12px);border:1px solid var(--border);border-left:3px solid var(--f1-red);border-radius:12px;font-size:13px;font-weight:800;color:#f1f5f9;box-shadow:0 4px 20px rgba(0,0,0,.45);white-space:nowrap;align-self:flex-start;}
 .sp-team{font-size:11px;font-weight:900;letter-spacing:1px;color:var(--f1-red);}
@@ -184,7 +144,6 @@ body.has-sheet .vignette{display:none;}
 .cut-flash.fire{animation:cutFlashAnim 140ms ease-out;}
 @keyframes cutFlashAnim{0%{opacity:0;}15%{opacity:.55;}40%{opacity:.15;}100%{opacity:0;}}
 
-/* ── Audio FAB ── */
 .audio-fab{position:absolute;top:116px;left:12px;z-index:100003;pointer-events:auto;display:flex;flex-direction:column;align-items:flex-start;touch-action:manipulation;}
 .audio-fab > .ic{width:36px;height:36px;font-size:16px;border-radius:10px;position:relative;}
 .audio-fab > .ic .snd-caret{position:absolute;bottom:2px;right:3px;font-size:8px;opacity:.9;line-height:1;}
@@ -197,7 +156,6 @@ body.has-sheet .vignette{display:none;}
 .audio-opt.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;}
 .audio-opt.on .as{color:#fff;}
 
-/* ── Menu panel ── */
 #menuPanel{position:absolute;top:54px;right:6px;width:min(88vw,290px);background:linear-gradient(160deg,rgba(15,23,42,.98),rgba(3,8,16,.99));border:1px solid rgba(225,6,0,.35);border-radius:12px;padding:9px;z-index:100001;opacity:0;transform:translateY(-8px) scale(.96);transition:all .2s;visibility:hidden;pointer-events:auto;max-height:calc(100vh - 66px);overflow-y:auto;}
 #menuPanel.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
 .menu-sec{margin-bottom:8px;}
@@ -214,14 +172,12 @@ body.has-sheet .vignette{display:none;}
 .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
 .speed.on{opacity:1;}
 
-/* ── Wagon wheel ── */
 #wagonWrap{position:fixed;top:44px;left:0;right:0;bottom:88px;display:none;align-items:center;justify-content:center;padding:4px;z-index:10001;pointer-events:none;}
 #wagonWrap.show{display:flex;}
 #wagonWheelCanvas{max-width:100%;max-height:100%;width:auto;height:auto;aspect-ratio:1/1;background:#050b0a;border:1px solid rgba(0,230,118,.4);border-radius:50%;box-shadow:0 0 40px rgba(0,230,118,.35), inset 0 0 30px rgba(0,0,0,.6);pointer-events:auto;display:block;}
 #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
 #wagonInfo.show{display:block;}
 
-/* ── Waiting overlay ── */
 .wagon-waiting{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 36px;background:rgba(8,15,30,.96);border:1px solid rgba(0,230,118,.4);border-radius:16px;color:#00e676;z-index:100000;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,230,118,.1);transition:opacity .35s ease, transform .35s ease;text-align:center;}
 .wagon-waiting__spinner{width:32px;height:32px;border-radius:50%;border:3px solid rgba(0,230,118,.2);border-top-color:#00e676;animation:wagonSpin 0.9s linear infinite;}
 .wagon-waiting__text{font-size:14px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#fff;}
@@ -238,7 +194,6 @@ body.has-sheet .vignette{display:none;}
 .banner.run{color:var(--f1-red);text-shadow:0 0 30px #8b0300,0 6px 16px #000;}
 .banner.replay{color:#fbbf24;text-shadow:0 0 30px #b45309,0 6px 16px #000;letter-spacing:4px;}
 
-/* ── TV mode ── */
 #tvMode{position:fixed;inset:0;z-index:100050;background:var(--stripes),#000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;text-align:center;}
 #tvMode.show{display:flex;}
 .tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;}
@@ -257,9 +212,6 @@ body.has-sheet .vignette{display:none;}
 .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
 .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
 
-/* ═══════════════════════════════════════════════════════════════
-   F1 REAR-WING SCORECARD
-   ═══════════════════════════════════════════════════════════════ */
 .wing-assembly{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:100020;padding-bottom:calc(env(safe-area-inset-bottom,0) + 10px);padding-top:20px;perspective:1000px;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.5) 55%,transparent 100%);}
 .wing-assembly *{font-family:inherit;}
 
@@ -338,9 +290,6 @@ body.has-sheet .vignette{display:none;}
   .wagon-waiting__text{font-size:12px;}
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DATA SHEET — the full-screen overlay with iframe inside
-   ═══════════════════════════════════════════════════════════════ */
 #viewerSheet{
   position:fixed;
   inset:0;
@@ -404,7 +353,6 @@ body.has-sheet .vignette{display:none;}
   .sheet-tab{font-size:10px;padding:8px 4px;}
 }
 
-/* ── Loader ── */
 #cm-loader{position:fixed;inset:0;z-index:2000000;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#00e676;transition:opacity .5s ease;}
 #cm-loader.cm-hide{opacity:0;}
 .cm-loader-brand{font-size:32px;font-weight:900;letter-spacing:6px;color:#fff;}
@@ -432,7 +380,6 @@ body.has-sheet .vignette{display:none;}
 </head>
 <body>
 
-<!-- ═══════════════ LOADER ═══════════════ -->
 <div id="cm-loader">
   <div class="cm-speed-lines" id="cmSpeedLines"></div>
   <div class="cm-start-lights" id="cmStartLights">
@@ -526,13 +473,11 @@ body.has-sheet .vignette{display:none;}
 })();
 </script>
 
-<!-- ═══════════════ OVERLAYS / FX ═══════════════ -->
 <div id="irisTransition" aria-hidden="true"></div>
 <div class="vignette"></div>
 <div class="wicket-flash" id="wicketFlash"></div>
 <div class="cut-flash" id="cutFlash"></div>
 
-<!-- ═══════════════ WAITING OVERLAY ═══════════════ -->
 <div class="wagon-waiting" id="wagonWaiting">
   <div class="wagon-waiting__spinner"></div>
   <div class="wagon-waiting__text">Connecting to Live Match</div>
@@ -540,9 +485,6 @@ body.has-sheet .vignette{display:none;}
   <div class="wagon-waiting__hint">Waiting for host to start...</div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     3D VIEWER — everything inside .hud
-     ═══════════════════════════════════════════════════════════════ -->
 <div class="hud" id="viewerHud">
 
   <div class="top-bar">
@@ -735,9 +677,6 @@ body.has-sheet .vignette{display:none;}
 
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     DATA SHEET — outside .hud
-     ═══════════════════════════════════════════════════════════════ -->
 <div id="viewerSheet" aria-hidden="true">
   <div class="viewer-sheet__bar">
     <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
@@ -753,7 +692,6 @@ body.has-sheet .vignette{display:none;}
   <iframe id="sheetFrame" src="about:blank" allow="fullscreen"></iframe>
 </div>
 
-<!-- ═══════════════ TV MODE ═══════════════ -->
 <div id="tvMode">
   <button class="tv-close" onclick="toggleTVMode()">✕ Exit</button>
   <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
@@ -763,7 +701,6 @@ body.has-sheet .vignette{display:none;}
   <div class="tv-recent" id="tvRecent"></div>
 </div>
 
-<!-- ═══════════════ LIBS ═══════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
   if (typeof THREE === 'undefined') document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');
@@ -789,9 +726,6 @@ body.has-sheet .vignette{display:none;}
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     CORE ENGINE
-     ═══════════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -829,7 +763,6 @@ body.has-sheet .vignette{display:none;}
 
   if (typeof window.__cmProgress !== 'function') window.__cmProgress = function(){};
 
-  /* ═══════════ WAITING / LIVE ═══════════ */
   window.__cricmaxMatchStarted = false;
   function __cmShowWaiting(show){
     const w = document.getElementById('wagonWaiting');
@@ -862,7 +795,6 @@ body.has-sheet .vignette{display:none;}
     if (wc && urlCode) wc.textContent = 'Match Code: ' + urlCode;
   })();
 
-  /* ═══════════ THREE.JS BOOT ═══════════ */
   function loadScript(src){
     return new Promise(function(resolve){
       const s = document.createElement('script');
@@ -936,7 +868,6 @@ body.has-sheet .vignette{display:none;}
     window.__cmProgress(45, 'LOADING PLAYERS');
   }
 
-  /* ═══════════ MENU ═══════════ */
   let menuOpen = false;
   function toggleMenu(e){
     if (e && e.stopPropagation) e.stopPropagation();
@@ -969,7 +900,6 @@ body.has-sheet .vignette{display:none;}
     }
   }
 
-  /* ═══════════ SHEET ═══════════ */
   const SHEET_TABS = ['live', 'scorecard', 'analytics', 'leaderboards', 'summary'];
   const PANE_TO_SHEET = {
     scorecard: 'scorecard', card: 'scorecard',
@@ -979,6 +909,11 @@ body.has-sheet .vignette{display:none;}
   };
   let activeSheetTab = null;
 
+  /* ═══════════════════════════════════════════════════════════════
+     showSheet — THE BULLETPROOF VERSION
+     Hides the HUD by direct inline style + hides the wagon wrap
+     so nothing can bleed through the sheet.
+     ═══════════════════════════════════════════════════════════════ */
   function showSheet(tab){
     if (SHEET_TABS.indexOf(tab) < 0) tab = 'live';
 
@@ -999,15 +934,14 @@ body.has-sheet .vignette{display:none;}
       frame.src = src;
     }
 
-    // FIX: Bulletproof hiding using inline styles
+    /* Hide HUD — direct inline style, no CSS dependency */
     document.body.classList.add('has-sheet');
-    const elementsToHide = ['viewerHud', 'wagonWrap', 'wagonInfo', 'wingAssembly'];
-    elementsToHide.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-    const canvas = document.getElementById('three-canvas');
-    if (canvas) canvas.style.display = 'none';
+    var __hud = document.getElementById('viewerHud');
+    if (__hud) __hud.style.display = 'none';
+    var __ww = document.getElementById('wagonWrap');
+    if (__ww) __ww.style.display = 'none';
+    var __wing = document.getElementById('wingAssembly');
+    if (__wing) __wing.style.display = 'none';
 
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
@@ -1026,17 +960,16 @@ body.has-sheet .vignette{display:none;}
     sheet.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('has-sheet');
 
-    // FIX: Restore visibility using inline styles
-    const elementsToRestore = ['viewerHud', 'wagonWrap', 'wagonInfo', 'wingAssembly'];
-    elementsToRestore.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = '';
-    });
-    const canvas = document.getElementById('three-canvas');
-    if (canvas) canvas.style.display = '';
+    /* Restore HUD */
+    var __hud = document.getElementById('viewerHud');
+    if (__hud) __hud.style.display = '';
+    var __ww = document.getElementById('wagonWrap');
+    if (__ww) __ww.style.display = '';
+    var __wing = document.getElementById('wingAssembly');
+    if (__wing) __wing.style.display = '';
 
-    // Re-apply the correct view state
-    __cmApplyStadiumView(stadiumViewActive);
+    /* Trigger a redraw of the wagon canvas in case it went stale */
+    setTimeout(function(){ try { drawWagonWheel(); } catch(e){} }, 30);
 
     activeSheetTab = null;
   }
@@ -1068,8 +1001,7 @@ body.has-sheet .vignette{display:none;}
     });
   })();
 
-  /* ═══════════ STADIUM VIEW / WAGON TOGGLE ═══════════ */
-  let stadiumViewActive = true; // FIX: Default to true (3D view on load)
+  let stadiumViewActive = false;
   let __cmWagonDirty = true;
   let __cmWagonForceUntil = 0;
   let __cmViewSwitchLock = false;
@@ -1084,14 +1016,14 @@ body.has-sheet .vignette{display:none;}
 
     if (stadiumViewActive){
       canvas.style.display = 'block'; canvas.style.zIndex = '0';
-      if (wrap) { wrap.style.display = 'none'; wrap.classList.remove('show'); }
-      if (info) { info.style.display = 'none'; info.classList.remove('show'); }
+      if (wrap) wrap.classList.remove('show');
+      if (info) info.classList.remove('show');
       if (btn) btn.classList.add('on');
       if (wagonBtn) wagonBtn.classList.remove('on');
     } else {
       canvas.style.display = 'none';
-      if (wrap) { wrap.style.display = 'flex'; wrap.classList.add('show'); }
-      if (info) { info.style.display = 'block'; info.classList.add('show'); }
+      if (wrap) wrap.classList.add('show');
+      if (info) info.classList.add('show');
       if (btn) btn.classList.remove('on');
       if (wagonBtn) wagonBtn.classList.add('on');
       if (window.fxTrailStop) window.fxTrailStop();
@@ -1130,7 +1062,6 @@ body.has-sheet .vignette{display:none;}
 
   function toggleStadiumView(){ setStadiumView(!stadiumViewActive); }
 
-  /* ═══════════ TV MODE ═══════════ */
   let tvModeActive = false;
   function toggleTVMode(){
     tvModeActive = !tvModeActive;
@@ -1170,7 +1101,6 @@ body.has-sheet .vignette{display:none;}
     }
   }
 
-  /* ═══════════ PLAYER RIGS ═══════════ */
   const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
   const PAD  = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
   const SHOE = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
@@ -1451,7 +1381,6 @@ body.has-sheet .vignette{display:none;}
     });
   }
 
-  /* ═══════════ AUDIO ═══════════ */
   let actx = null, audioOn = true;
   function initAudio(){ if (actx){ if (actx.state === 'suspended') actx.resume(); return; } try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
   let activeRoarSrc = null, activeSpeechUtter = null;
@@ -1647,7 +1576,6 @@ body.has-sheet .vignette{display:none;}
   }
   ['pointerdown','touchstart','touchend','click','keydown'].forEach(function(evt){ document.addEventListener(evt, unlockAudio, { passive: true }); });
 
-  /* ═══════════ RUNNING STATE ═══════════ */
   const RunningState = {
     active: false, totalRuns: 0, progress: 0, durationPerRun: 1.35, timeScale: 1,
     update(dt){
@@ -1701,7 +1629,6 @@ body.has-sheet .vignette{display:none;}
     }
   };
 
-  /* ═══════════ SHOT PHYSICS ═══════════ */
   const SHOT_KINEMATICS = {
     defend:{prepTime:200,followTime:300,pose:{batX:-0.5,batZ:0,torsoY:0.1,lean:0,stride:0.2}},
     leave:{prepTime:300,followTime:400,pose:{batX:-2.0,batZ:0,torsoY:0,lean:-0.1,stride:0.1}},
@@ -1779,7 +1706,6 @@ body.has-sheet .vignette{display:none;}
     return Math.random() * Math.PI * 2;
   }
 
-  /* ═══════════ WAGON WHEEL ═══════════ */
   const wagonCanvas = document.getElementById('wagonWheelCanvas');
   let wagonCtx = null;
   try { wagonCtx = wagonCanvas ? wagonCanvas.getContext('2d') : null; } catch(e){}
@@ -1973,7 +1899,6 @@ body.has-sheet .vignette{display:none;}
 
   function toggleWagonWheel(){ setStadiumView(!stadiumViewActive); }
 
-  /* ═══════════ CAMERA ═══════════ */
   const CAM_MODES = {
     broadcast:{pos:new THREE.Vector3(0,16,-32),target:new THREE.Vector3(0,1.2,-2)},
     bowler:{pos:new THREE.Vector3(0,4.2,-22),target:new THREE.Vector3(0,1.0,9)},
@@ -2003,7 +1928,6 @@ body.has-sheet .vignette{display:none;}
   }
   function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
 
-  /* ═══════════ REPLAY ═══════════ */
   const REPLAY_FANCY = CM_DEVICE.tier >= 1;
   const REPLAY_SHOTS = {
     behindBowler:  { pos: new THREE.Vector3(2.8, 3.5, -18), target: new THREE.Vector3(0.4, 1.4, 8.8),  fov: 42 },
@@ -2077,7 +2001,6 @@ body.has-sheet .vignette{display:none;}
   function hideReplayBadge(){ const b = document.getElementById('replayBadge'); if (b) b.classList.remove('on'); }
   function scheduleHideReplayBadge(delay){ if (__cmReplayHideTimer) clearTimeout(__cmReplayHideTimer); __cmReplayHideTimer = setTimeout(function(){ hideReplayBadge(); hideReplayCamBadge(); }, delay || 400); }
 
-  /* ═══════════ SHOT PLAYBACK ═══════════ */
   function playBall(shot, skipWagonRecord, opts){
     if (!shot || !ball) return;
     opts = opts || {};
@@ -2376,7 +2299,6 @@ body.has-sheet .vignette{display:none;}
     playBall(Object.assign({}, shot), false, { isReplay: true, timeScale: 0.4 });
   }
 
-  /* ═══════════ OVER DOTS ═══════════ */
   function renderOverDots(ballTags){
     const container = document.getElementById('overDotsContainer');
     if (!container) return;
@@ -2536,7 +2458,6 @@ body.has-sheet .vignette{display:none;}
     }
   }
 
-  /* ═══════════ MATCH STATE ═══════════ */
   function applyMatch(raw){
     if (!raw) return;
 
@@ -2637,7 +2558,6 @@ body.has-sheet .vignette{display:none;}
     };
   } catch(e){}
 
-  /* ═══════════ FIREBASE ═══════════ */
   const firebaseConfig = {
     apiKey: "AIzaSyDJPJicTDB2KHtIQT-ePj225Ng1BGVffiw",
     authDomain: "cricket-8cb1b.firebaseapp.com",
@@ -2704,7 +2624,6 @@ body.has-sheet .vignette{display:none;}
     }
   } catch(e){}
 
-  /* ═══════════ RENDER LOOP ═══════════ */
   const CM_TARGET_FPS = CM_DEVICE.tier === 0 ? 30 : (CM_DEVICE.tier === 1 ? 45 : 60);
   const CM_FRAME_INTERVAL = 1000 / CM_TARGET_FPS;
   const WAGON_FRAME_INTERVAL = 1000 / 30;
@@ -2804,9 +2723,6 @@ body.has-sheet .vignette{display:none;}
     renderer.setSize(innerWidth, innerHeight);
   });
 
-  /* ═══════════════════════════════════════════════════════════════
-     WINDOW EXPORTS — every function called from onclick/onchange
-     ═══════════════════════════════════════════════════════════════ */
   window.toggleMenu = toggleMenu;
   window.setSky = setSky;
   window.navTo = navTo;
@@ -2825,23 +2741,26 @@ body.has-sheet .vignette{display:none;}
   window.playBall = playBall;
   window.handleNewMatchData = handleNewMatchData;
 
-  /* ═══════════ BOOT — FIX: Default to 3D stadium view ═══════════ */
   window.__cmProgress(20, 'LOADING STADIUM');
 
-  // FIX: Set the default view to 3D stadium (true = stadium, false = wagon wheel)
-  setStadiumView(true, true);
-  
+  setStadiumView(false, true);
   requestAnimationFrame(function(){
-    setStadiumView(true, true);
+    setStadiumView(false, true);
+    try { drawWagonWheel(); } catch(e){}
   });
+  setTimeout(function(){ setStadiumView(false, true); try { drawWagonWheel(); } catch(e){} }, 250);
+  setTimeout(function(){ setStadiumView(false, true); }, 1000);
+  setTimeout(function(){ setStadiumView(false, true); }, 2500);
 
   requestAnimationFrame(animate);
 
   bootStadiumModule().then(function(){
-    setStadiumView(true, true);
+    setStadiumView(false, true);
+    setTimeout(function(){ setStadiumView(false, true); try { drawWagonWheel(); } catch(e){} }, 300);
+    setTimeout(function(){ setStadiumView(false, true); }, 1200);
   }).catch(function(err){
     console.warn('[CricMax] stadium load failed:', err);
-    setStadiumView(true, true);
+    setStadiumView(false, true);
   });
 
 })();
