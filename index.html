@@ -1,33 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0d1117">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>CricMax Pro</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<title>CricMax Pro — F1 Edition</title>
+
+<link rel="dns-prefetch" href="//cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app">
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   MATCH CODE SYNC
-   1. On boot: adopt URL code into localStorage (viewers can join)
-   2. Watch the real match code — update URL whenever it changes
-   3. Share button always uses the current real code
-   ═══════════════════════════════════════════════════════════ */
+/* MATCH CODE SYNC — mirror URL ↔ localStorage */
 (function(){
   'use strict';
   var CODE_KEY = 'currentMatchCode';
-
-  /* Adopt URL code on boot */
   var initialUrlCode = null;
   try { initialUrlCode = new URLSearchParams(location.search).get('code'); } catch(e){}
-  if (initialUrlCode){
-    try { localStorage.setItem(CODE_KEY, initialUrlCode); } catch(e){}
-    console.info('[CodeSync] 📥 Adopted URL code:', initialUrlCode);
-  }
-
-  /* Watch for code changes — mirror into URL */
+  if (initialUrlCode){ try { localStorage.setItem(CODE_KEY, initialUrlCode); } catch(e){} }
   var __lastCode = null;
   function syncUrlToCode(){
     var code = null;
@@ -39,53 +42,231 @@
       if (url.searchParams.get('code') !== code){
         url.searchParams.set('code', code);
         history.replaceState(history.state, '', url.toString());
-        console.info('[CodeSync] 🔄 URL updated →', code);
       }
     } catch(e){}
   }
   setInterval(syncUrlToCode, 300);
   syncUrlToCode();
-
-  /* Keep LIVE badge in sync */
-  setInterval(function(){
-    var badge = document.getElementById('liveShareCodeText');
-    if (!badge) return;
-    var code = null;
-    try { code = localStorage.getItem(CODE_KEY); } catch(e){}
-    if (code && badge.textContent !== code) badge.textContent = code;
-  }, 400);
-
-  console.info('[CodeSync] ✅ URL will follow the active match code');
 })();
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-
-<!-- REMOVED: Firestore modular import (dead code — app uses Realtime DB) -->
-
-<link rel="stylesheet" href="styles.css">
-
 <style>
-  body { overscroll-behavior: contain; }
-  button, .pad-btn, .home-main-btn { touch-action: manipulation; }
+/* ═══════════════════════════════════════════════════════════
+   F1 TAB / BUTTON ENHANCEMENTS — slanted panels, carbon weave,
+   red accent bars on active states
+   ═══════════════════════════════════════════════════════════ */
+:root{
+  --f1-red:#e10600;
+  --f1-dark:#101010;
+  --f1-grey:#38383f;
+  --f1-green:#00d2be;
+  --f1-carbon:
+    repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px),
+    repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px);
+  --f1-font:'Titillium Web',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
 
-  #vppToolbar { display: none; position: fixed; top: 14px; left: 14px; z-index: 9999; flex-direction: column; gap: 8px; align-items: flex-start; pointer-events: auto; }
-  #vppToolbar .vpp-row { display: flex; gap: 6px; }
-  #vppToolbar button { backdrop-filter: blur(12px); background: rgba(10, 14, 26, .75); border: 1px solid rgba(255, 255, 255, .18); color: #fff; padding: 9px 14px; border-radius: 10px; font-weight: 900; font-size: 12.5px; cursor: pointer; transition: all .2s; font-family: inherit; }
-  #vppToolbar button:hover { background: rgba(0, 230, 118, .25); border-color: #00e676; box-shadow: 0 0 14px rgba(0, 230, 118, .5); }
-  #vppToolbar button.btn-primary { background: linear-gradient(135deg, #009270, #00e676); border-color: transparent; }
+body, button, input, select, textarea { font-family: var(--f1-font); }
 
-  #vppLiveBadge { display: none; position: fixed; bottom: 22px; right: 22px; z-index: 9999; align-items: center; gap: 9px; padding: 9px 16px; background: linear-gradient(135deg, rgba(220, 20, 60, .95), rgba(180, 10, 50, .98)); border: 1px solid rgba(255, 255, 255, .35); border-radius: 24px; box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); backdrop-filter: blur(10px); pointer-events: none; animation: vppLivePulse 1.6s ease-in-out infinite; }
-  #vppLiveBadge .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, .95); animation: vppDotBlink 1.1s ease-in-out infinite; }
-  #vppLiveBadge .live-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0, 0, 0, .6); }
-  @keyframes vppLivePulse { 0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(220, 20, 60, .55), 0 0 22px rgba(255, 60, 90, .4); } 50% { transform: scale(1.05); box-shadow: 0 10px 34px rgba(220, 20, 60, .75), 0 0 34px rgba(255, 60, 90, .65); } }
-  @keyframes vppDotBlink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.8); } }
+/* ── F1 TABS — slanted active with red underline ── */
+.tab-nav{
+  background:var(--f1-carbon),rgba(10,10,10,.98);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.tab-nav::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--f1-red) 20%,var(--f1-green) 50%,var(--f1-red) 80%,transparent 100%);
+  pointer-events:none;
+}
+.tab-btn{
+  position:relative;
+  padding:14px 16px 12px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.6px;
+  color:#7a8590;
+  background:transparent;
+  border:none;
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+  transition:all .18s cubic-bezier(.2,.8,.2,1);
+}
+.tab-btn::before{
+  content:'';
+  position:absolute;
+  left:0;right:0;bottom:0;height:0;
+  background:linear-gradient(90deg,var(--f1-red),#8b0300);
+  transition:height .2s cubic-bezier(.34,1.56,.64,1);
+  z-index:-1;
+}
+.tab-btn:hover{color:#fff;}
+.tab-btn.active{
+  color:#fff;
+  background:var(--f1-red);
+}
+.tab-btn.active::before{
+  height:100%;
+  background:linear-gradient(135deg,var(--f1-red),#8b0300);
+}
+.tab-btn.active::after{
+  content:'';position:absolute;
+  bottom:0;left:0;right:0;height:3px;
+  background:var(--f1-red);
+  box-shadow:0 0 12px rgba(225,6,0,.8);
+}
+
+/* ── F1 KEYPAD — carbon weave, slanted numbers ── */
+.pad-btn{
+  background:var(--f1-carbon),var(--f1-dark);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:4px;
+  color:#fff;
+  font-weight:900;
+  font-size:16px;
+  position:relative;
+  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);
+  transition:all .12s cubic-bezier(.2,.8,.2,1);
+  font-variant-numeric:tabular-nums;
+}
+.pad-btn:hover{
+  background:var(--f1-carbon),#1c1c1c;
+  border-color:var(--f1-green);
+  color:var(--f1-green);
+}
+.pad-btn:active{
+  transform:scale(.94);
+  background:var(--f1-red);
+  border-color:var(--f1-red);
+  color:#fff;
+  box-shadow:0 0 18px rgba(225,6,0,.7);
+}
+
+/* ── F1 BOTTOM NAV ── */
+.bottom-match-nav{
+  background:var(--f1-carbon),rgba(10,10,10,.98);
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.bottom-match-nav::before{
+  content:'';position:absolute;top:-1px;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--f1-red) 15%,var(--f1-green) 50%,var(--f1-red) 85%,transparent 100%);
+  pointer-events:none;
+}
+.bottom-nav-btn{
+  font-family:var(--f1-font);
+  transition:all .15s;
+}
+.bottom-nav-btn.active{
+  color:var(--f1-red);
+}
+.bottom-nav-btn.active .nav-icon{
+  background:linear-gradient(135deg,var(--f1-red),#8b0300);
+  border-color:transparent;
+  transform:translateY(-3px);
+  box-shadow:0 0 16px rgba(225,6,0,.55);
+}
+.bottom-nav-btn.active::after{
+  background:var(--f1-red);
+  box-shadow:0 2px 12px rgba(225,6,0,.7);
+}
+.bottom-nav-btn.nav-center .nav-icon{
+  background:linear-gradient(135deg,var(--f1-red),#8b0300);
+  border:2px solid #0d1117;
+}
+
+/* ── F1 BTN-UI — slanted edges ── */
+.btn-ui{
+  background:var(--f1-carbon),rgba(22,27,34,.92);
+  border:1px solid rgba(255,255,255,.1);
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+  transition:all .15s;
+}
+.btn-ui:hover{
+  background:var(--f1-carbon),#1c1c1c;
+  border-color:var(--f1-green);
+  color:var(--f1-green);
+}
+.btn-ui.btn-primary{
+  background:linear-gradient(135deg,#009270,var(--f1-green));
+  border-color:transparent;
+  color:#0a0e1a;
+}
+
+/* ── F1 WICKET / EXTRA BUTTONS ── */
+.btn-wkt{
+  background:var(--f1-carbon),rgba(225,6,0,.15);
+  border-color:rgba(225,6,0,.5);
+  color:#ff8a80;
+}
+.btn-wkt:hover{background:var(--f1-red);color:#fff;border-color:transparent;}
+.btn-wd-nb{
+  background:var(--f1-carbon),rgba(251,191,36,.12);
+  border-color:rgba(251,191,36,.4);
+  color:#fbbf24;
+}
+.btn-wd-nb:hover{background:#fbbf24;color:#0a0e1a;border-color:transparent;}
+
+/* ── F1 SCORE BANNER ── */
+.score-banner{
+  background:var(--f1-carbon),var(--grad-card);
+}
+.score-banner::before{
+  background:linear-gradient(180deg,var(--f1-red) 0%,#8b0300 100%);
+}
+
+/* ── F1 SECTION HEADER ── */
+.section-header-banner{
+  border-left-color:var(--f1-red);
+  background:linear-gradient(90deg,rgba(225,6,0,.15),transparent 70%);
+}
+
+/* ── F1 STAT PILLS ── */
+.stat-pill{
+  background:var(--f1-carbon),var(--surface-1);
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+}
+.stat-pill.active{
+  background:linear-gradient(135deg,var(--f1-red),#8b0300);
+  border-color:transparent;
+  color:#fff;
+}
+
+/* ── F1 HOME BUTTONS ── */
+.home-main-btn{
+  background:var(--f1-carbon),var(--grad-card);
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+}
+.home-main-btn::before{
+  background:linear-gradient(90deg,var(--f1-red),#8b0300);
+}
+.home-main-btn.primary{
+  background:linear-gradient(135deg,var(--f1-red) 0%,#8b0300 100%);
+}
+
+/* ── F1 PLAYER CHIPS ── */
+.player-chip .chip-avatar{
+  background:linear-gradient(135deg,var(--f1-red),#8b0300);
+}
+
+/* ── F1 CARD BADGES ── */
+.team-abbr-badge{
+  background:linear-gradient(135deg,var(--f1-red),#8b0300);
+}
+
+/* ── F1 SC TABS ── */
+.sc-tab.active{
+  background:linear-gradient(135deg,var(--f1-red),#8b0300) !important;
+}
+
+/* ── F1 MODAL CARD — top strip in red ── */
+.modal-card::before{
+  background:linear-gradient(90deg,transparent 0%,var(--f1-red) 25%,#8b0300 50%,var(--f1-red) 75%,transparent 100%);
+}
 </style>
 </head>
 <body>
 
-<!-- F1 Loader -->
+<!-- ═══════════════════════════════════════════════════════════
+     F1 LOADER
+     ═══════════════════════════════════════════════════════════ -->
 <div id="cm-loader">
   <div class="cm-speed-lines" id="cmSpeedLines"></div>
   <div class="cm-start-lights" id="cmStartLights">
@@ -101,7 +282,7 @@
   </div>
   <div class="cm-loader-status">
     <span class="cm-loader-dot"></span>
-    <span class="cm-loader-sub" id="cm-loader-sub">INITIALIZING</span>
+    <span class="cm-loader-sub" id="cm-loader-sub">INITIALIZING SYSTEM</span>
   </div>
   <div class="cm-progress-track"><div class="cm-progress-fill" id="cmProgressFill"></div></div>
   <div class="cm-progress-pct" id="cmProgressPct">0%</div>
@@ -163,26 +344,37 @@
     var p = Math.max(fakeProgress, realProgress);
     if (p > lastPct){ lastPct = p; renderUI(p); }
   };
-
   window.__cmLoaderStart = startTime;
 
   window.addEventListener('load', function(){
     var waited = Date.now() - startTime;
-    var delay = Math.max(0, 2400 - waited);
+    var delay = Math.max(0, 2200 - waited);
     setTimeout(function(){
       window.__cmProgress(100, 'READY · LIGHTS OUT');
       setTimeout(function(){
         var el = document.getElementById('cm-loader');
-        if (el){
-          el.classList.add('cm-hide');
-          setTimeout(function(){ try { el.remove(); } catch(e){} }, 600);
-        }
+        if (el){ el.classList.add('cm-hide'); setTimeout(function(){ try { el.remove(); } catch(e){} }, 600); }
       }, 420);
     }, delay);
   });
+
+  var failsafe = setInterval(function(){
+    var elapsed = Date.now() - startTime;
+    var loader = document.getElementById('cm-loader');
+    if (!loader){ clearInterval(failsafe); clearInterval(fakeTimer); return; }
+    if (elapsed > 10000){
+      clearInterval(failsafe); clearInterval(fakeTimer);
+      if (!goFlashed){ goFlashed = true; window.__cmProgress(100, 'READY · LIGHTS OUT'); }
+      setTimeout(function(){ loader.classList.add('cm-hide'); setTimeout(function(){ try { loader.remove(); } catch(e){} }, 600); }, 420);
+    }
+  }, 500);
+  window.__cmLoaderFailsafe = failsafe;
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     CINEMATIC BANNERS
+     ═══════════════════════════════════════════════════════════ -->
 <div id="topCinematicBanner" class="top-cinematic-banner fx-four">
   <div class="top-banner-title" id="topBannerTitle">FOUR!</div>
   <div class="top-banner-sub" id="topBannerSub">Boundary Scored</div>
@@ -222,8 +414,132 @@
   <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
   <div class="tv-score" id="tvScore">0/0</div>
   <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
-  <div style="margin-top:24px;display:flex;gap:40px;font-size:22px;flex-wrap:wrap;justify-content:center;" id="tvBatters"></div>
-  <div style="margin-top:30px;display:flex;gap:14px;" id="tvRecent"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     F1 RACE SEQUENCE OVERLAY
+     ═══════════════════════════════════════════════════════════ -->
+<div class="race-seq" id="raceSeq" hidden>
+  <div class="race-seq__glow"></div>
+  <div class="race-seq__scan"></div>
+  <div class="race-seq__stage" id="raceStage">
+    <div class="race-seq__vignette"></div>
+    <div class="race-seq__shake" id="raceShake"></div>
+
+    <!-- START -->
+    <div class="race-seq__body" data-mode="start">
+      <div class="start-lines" id="startLines">
+        <div class="streak" style="top:18%;--delay:0ms;"></div>
+        <div class="streak" style="top:34%;--delay:80ms;"></div>
+        <div class="streak" style="top:50%;--delay:40ms;"></div>
+        <div class="streak" style="top:66%;--delay:120ms;"></div>
+        <div class="streak" style="top:82%;--delay:60ms;"></div>
+      </div>
+      <div class="start-split">
+        <div class="start-half start-half--a" id="halfA">
+          <div class="start-half__bar"></div>
+          <div class="start-half__abbr" id="halfAAbbr"></div>
+          <div class="start-half__name" id="halfAName"></div>
+        </div>
+        <div class="start-half start-half--b" id="halfB">
+          <div class="start-half__bar"></div>
+          <div class="start-half__abbr" id="halfBAbbr"></div>
+          <div class="start-half__name" id="halfBName"></div>
+        </div>
+      </div>
+      <div class="start-center">
+        <div class="start-center__vs" id="startVs">VS</div>
+        <div class="start-center__innings" id="startInnings">Innings 1</div>
+      </div>
+      <div class="start-gantry" id="gantry">
+        <div class="start-gantry__light"></div>
+        <div class="start-gantry__light"></div>
+        <div class="start-gantry__light"></div>
+        <div class="start-gantry__light"></div>
+        <div class="start-gantry__light"></div>
+      </div>
+      <div class="start-go" id="startGo"></div>
+    </div>
+
+    <!-- CHASE -->
+    <div class="race-seq__body" data-mode="chase">
+      <div class="chase-wrap">
+        <div class="chase-row chase-row--a" id="chaseRowA">
+          <div class="chase-row__head">
+            <span class="chase-row__team"><span class="chase-row__swatch"></span><span id="chaseTeamALabel">Team One</span></span>
+            <span class="chase-row__score" id="chaseTeamAScore">0/0</span>
+          </div>
+          <div class="chase-track" id="chaseTrackA">
+            <div class="chase-track__fill" id="chaseFillA"></div>
+            <div class="chase-track__target" id="chaseTargetA" style="left:78%;"></div>
+            <div class="chase-track__target-label" id="chaseTargetLabelA" style="left:78%;">Target 0</div>
+          </div>
+        </div>
+        <div class="chase-headline" id="chaseHeadline">
+          <div class="chase-headline__number" id="chaseNumber"><span class="digit">0</span></div>
+          <div class="chase-headline__label">Runs to win</div>
+        </div>
+        <div class="chase-row chase-row--b" id="chaseRowB">
+          <div class="chase-row__head">
+            <span class="chase-row__team"><span class="chase-row__swatch"></span><span id="chaseTeamBLabel">Team Two</span></span>
+            <span class="chase-row__score" id="chaseTeamBScore">0/0</span>
+          </div>
+          <div class="chase-track" id="chaseTrackB">
+            <div class="chase-track__fill" id="chaseFillB"></div>
+            <div class="chase-track__target" id="chaseTargetB" style="left:78%;"></div>
+            <div class="chase-track__target-label" id="chaseTargetLabelB" style="left:78%;">Target 0</div>
+          </div>
+        </div>
+        <div class="chase-rail" id="chaseRail">
+          <div class="chase-rail__ticks" id="chaseTicks"></div>
+          <div class="chase-rail__beam" id="chaseBeam"></div>
+          <div class="chase-rail__marker" id="chaseMarker"></div>
+          <div class="chase-rail__labels"><span>0 Balls</span><span>120 Balls</span></div>
+        </div>
+      </div>
+      <div class="chase-go" id="chaseGo"></div>
+    </div>
+
+    <!-- PODIUM -->
+    <div class="race-seq__body" data-mode="podium">
+      <div class="podium-confetti" id="confetti"></div>
+      <div class="podium-strip podium-strip--top" id="podiumStripTop"></div>
+      <div class="podium-strip podium-strip--bottom" id="podiumStripBottom"></div>
+      <div class="podium-plate" id="winnerPlate"><span class="podium-plate__p">P1</span></div>
+      <div class="podium-winner">
+        <div class="podium-winner__name" id="winnerName"></div>
+        <div class="podium-winner__margin" id="margin"></div>
+      </div>
+      <div class="podium-motm" id="motm">
+        <div class="podium-motm__head"><span class="podium-motm__dot"></span><span>Man of the Match</span></div>
+        <div class="podium-motm__name" id="motmName"></div>
+        <div class="podium-motm__grid">
+          <div class="podium-motm__cell">
+            <div class="podium-motm__label">Batting</div>
+            <div class="podium-motm__val" id="motmBatVal">—</div>
+            <div class="podium-motm__sub" id="motmBatSub"></div>
+          </div>
+          <div class="podium-motm__cell">
+            <div class="podium-motm__label">Bowling</div>
+            <div class="podium-motm__val" id="motmBowlVal">—</div>
+            <div class="podium-motm__sub" id="motmBowlSub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="race-seq__trail" id="raceTrail">
+    <div class="race-seq__trail-line" style="top:22%;--delay:0ms;"></div>
+    <div class="race-seq__trail-line" style="top:38%;--delay:40ms;"></div>
+    <div class="race-seq__trail-line" style="top:50%;--delay:20ms;"></div>
+    <div class="race-seq__trail-line" style="top:62%;--delay:60ms;"></div>
+    <div class="race-seq__trail-line" style="top:78%;--delay:30ms;"></div>
+  </div>
+
+  <div class="race-seq__flash" id="raceFlash"></div>
+  <button type="button" class="race-seq__close" id="raceClose" aria-label="Close">Close ✕</button>
+  <button type="button" class="race-seq__replay" id="raceReplay" aria-label="Replay">Replay ↻</button>
 </div>
 
 <div id="loadingScreen" class="loading-screen">
@@ -236,12 +552,13 @@
   <div class="loading-text">Loading Match...</div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     TOP BAR
+     ═══════════════════════════════════════════════════════════ -->
 <header class="top-bar">
   <button class="btn-share-viewer" onclick="shareViewerOnly()" title="Share Viewer Link" aria-label="Share">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="18" cy="5" r="3"/>
-      <circle cx="6" cy="12" r="3"/>
-      <circle cx="18" cy="19" r="3"/>
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
     </svg>
@@ -255,26 +572,20 @@
     <button class="top-icon-btn" id="btnSoundToggle" style="display:none;" onclick="toggleCommentaryVoice()" title="Toggle Live Commentary"><span id="soundIcon">🔇</span></button>
     <button class="top-icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
     <button class="top-icon-btn" onclick="toggleTVMode()" title="TV Mode" aria-label="TV Mode">
-      <svg viewBox="0 0 24 24" width="18" height="18">
-        <rect x="2" y="7" width="20" height="13" rx="2"/>
-        <polyline points="17 2 12 7 7 2"/>
-      </svg>
+      <svg viewBox="0 0 24 24" width="18" height="18"><rect x="2" y="7" width="20" height="13" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
     </button>
     <button class="top-icon-btn" id="btnBackHome" style="display:none;" onclick="goToHomeScreen()" title="Home" aria-label="Home">
-      <svg viewBox="0 0 24 24" width="18" height="18">
-        <path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 21 9 14 15 14 15 21"/>
-      </svg>
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 21 9 14 15 14 15 21"/></svg>
     </button>
     <button class="top-icon-btn" id="undoBtn" style="display:none;" onclick="undoDelivery()" title="Undo" disabled aria-label="Undo">
-      <svg viewBox="0 0 24 24" width="18" height="18">
-        <path d="M9 14L4 9l5-5"/>
-        <path d="M4 9h11a6 6 0 0 1 0 12h-4"/>
-      </svg>
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a6 6 0 0 1 0 12h-4"/></svg>
     </button>
   </div>
 </header>
 
+<!-- ═══════════════════════════════════════════════════════════
+     HOME SCREEN
+     ═══════════════════════════════════════════════════════════ -->
 <section id="view-home">
   <div class="hero-wrap">
     <div class="hero-badge">LIVE CRICKET</div>
@@ -290,24 +601,9 @@
   </div>
 </section>
 
-<div id="vppToolbar">
-  <div class="vpp-row">
-    <button onclick="vppNavTo('pitch')" class="btn-primary">🏏 3D Pitch</button>
-    <button onclick="vppNavTo('scorecard')">🃏 Card</button>
-    <button onclick="vppNavTo('analytics')">📊 Analysis</button>
-    <button onclick="vppNavTo('leaderboards')">📈 Stats</button>
-  </div>
-  <div class="vpp-row">
-    <button onclick="vppToggleSound()" id="vppSndBtn" title="Toggle Commentary">🔊</button>
-    <button onclick="vppReplay()" title="Replay Last Ball">🔁</button>
-    <button onclick="vppFullscreen()" title="Fullscreen">⛶</button>
-  </div>
-</div>
-
-<div id="vppLiveBadge"><span class="live-dot"></span><span class="live-text">LIVE</span></div>
-
-<section id="vpp" class="vpp" style="display:none;"></section>
-
+<!-- ═══════════════════════════════════════════════════════════
+     DASHBOARD
+     ═══════════════════════════════════════════════════════════ -->
 <section id="view-dashboard">
   <nav class="tab-nav" id="topTabNav">
     <div class="tab-btn" onclick="selectSubPane('tournament')">Tournament</div>
@@ -320,6 +616,7 @@
     <div class="tab-btn" onclick="selectSubPane('info')">Info</div>
   </nav>
 
+  <!-- TOURNAMENT PANE -->
   <div class="sub-pane" id="pane-tournament">
     <div class="pad-title">Tournament Profile</div>
     <div class="panel-card" style="border:1px solid rgba(0,230,118,.4);">
@@ -341,6 +638,7 @@
     <div id="pastMatchesContainer"></div>
   </div>
 
+  <!-- LIVE SCORING PANE -->
   <div class="sub-pane active" id="pane-live">
     <div class="panel-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
@@ -360,6 +658,7 @@
       </div>
       <div class="over-commentary-strip" id="overCommentaryStrip"></div>
     </div>
+
     <div class="inplay-grid">
       <div class="inplay-card striker">
         <div class="inplay-title"><span id="strikerName">Striker*</span><span id="strikerRuns">0 (0)</span></div>
@@ -370,10 +669,12 @@
         <div class="inplay-meta">SR: <span id="nonStrikerSR">0.0</span> • 4s: <span id="nonStriker4s">0</span> • 6s: <span id="nonStriker6s">0</span></div>
       </div>
     </div>
+
     <div class="inplay-card" style="margin-bottom:12px;">
       <div class="inplay-title"><span id="bowlerName">Bowler</span><span id="bowlerFigures">0.0-0-0-0</span></div>
       <div class="inplay-meta">Economy: <span id="bowlerEco">0.00</span></div>
     </div>
+
     <div class="scoring-only">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div class="pad-title" style="margin:0;">Scoring Keypad</div>
@@ -384,8 +685,8 @@
         <button class="pad-btn" onclick="promptWagonWheel(1)">1</button>
         <button class="pad-btn" onclick="promptWagonWheel(2)">2</button>
         <button class="pad-btn" onclick="promptWagonWheel(3)">3</button>
-        <button class="pad-btn" style="background:rgba(34,211,238,.2);border-color:var(--cyan);color:var(--cyan);" onclick="promptWagonWheel(4)">4</button>
-        <button class="pad-btn" style="background:rgba(255,109,0,.2);border-color:var(--orange);color:var(--orange);" onclick="promptWagonWheel(6)">6</button>
+        <button class="pad-btn" style="background:rgba(34,211,238,.15);border-color:var(--cyan);color:var(--cyan);" onclick="promptWagonWheel(4)">4</button>
+        <button class="pad-btn" style="background:rgba(255,109,0,.15);border-color:var(--orange);color:var(--orange);" onclick="promptWagonWheel(6)">6</button>
       </div>
       <div class="btn-extra-row">
         <button class="pad-btn btn-wd-nb" onclick="promptWideWithRuns()">Wide</button>
@@ -400,10 +701,12 @@
       </div>
       <div id="settingsQuickSummary" style="font-size:10.5px;color:var(--muted);text-align:center;margin-top:6px;font-style:italic;"></div>
     </div>
+
     <div class="pad-title" style="margin-top:20px;">🎙️ Ball-by-Ball Commentary</div>
     <div id="commentaryContainer"></div>
   </div>
 
+  <!-- SUMMARY PANE -->
   <div class="sub-pane" id="pane-summary">
     <div class="pad-title">Partnership</div>
     <div class="panel-card"><div style="font-size:16px;font-weight:800;" id="partRuns">0 runs</div><div style="font-size:12px;color:var(--muted);margin-top:4px;" id="partDetails">Striker: 0 | Non-Striker: 0</div></div>
@@ -411,6 +714,7 @@
     <div class="panel-card" id="fowContainer">No wickets yet.</div>
   </div>
 
+  <!-- SCORECARD PANE -->
   <div class="sub-pane" id="pane-scorecard">
     <div style="display:flex;gap:4px;margin-bottom:10px;padding:4px;background:rgba(255,255,255,.03);border-radius:10px;overflow-x:auto;">
       <div class="sc-tab active" onclick="switchScorecardTab(this,'batting')">🏏 Batting</div>
@@ -426,6 +730,7 @@
     </div>
   </div>
 
+  <!-- ANALYTICS PANE -->
   <div class="sub-pane" id="pane-analytics">
     <div class="nzc-layout">
       <div class="nzc-left">
@@ -468,6 +773,7 @@
     </div>
   </div>
 
+  <!-- LEADERBOARDS PANE -->
   <div class="sub-pane" id="pane-leaderboards">
     <div class="section-header-banner"><span>🏅</span> Match Stats Hub</div>
     <div class="stat-pill-strip">
@@ -506,6 +812,7 @@
     </div>
   </div>
 
+  <!-- TEAMS PANE -->
   <div class="sub-pane" id="pane-teams">
     <div class="panel-card" style="border-left:4px solid var(--purple);">
       <div style="font-size:13px;font-weight:900;margin-bottom:4px;">Create New Team</div>
@@ -517,6 +824,7 @@
     <div id="teamsListContainer"></div>
   </div>
 
+  <!-- INFO PANE -->
   <div class="sub-pane" id="pane-info">
     <div class="panel-card" style="font-size:13px;line-height:1.9;">
       <div><b>Tournament:</b> <span id="infoTourn">--</span></div>
@@ -527,6 +835,9 @@
   </div>
 </section>
 
+<!-- ═══════════════════════════════════════════════════════════
+     BOTTOM MATCH NAV
+     ═══════════════════════════════════════════════════════════ -->
 <nav class="bottom-match-nav" id="bottomMatchNav">
   <div class="bottom-nav-inner">
     <button class="bottom-nav-btn" id="bNav-live" onclick="bottomNavAction('live')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>Scoring</button>
@@ -1000,7 +1311,6 @@
         <option value="2">2 runs completed</option>
         <option value="3">3 runs completed</option>
       </select>
-      <div style="font-size:10px;color:var(--muted);margin-top:5px;font-style:italic;">These runs count for the batsman & team before dismissal.</div>
     </div>
     <div class="form-group" style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:6px;">
       <label style="color:var(--green);font-weight:800;">👤 New Batsman (Coming In)</label>
@@ -1052,7 +1362,7 @@
   </div>
 </div>
 
-<!-- Global Touch / Audio Unlock Listener -->
+<!-- Global touch/audio unlock -->
 <script>
   window.addEventListener('pointerdown', function unlockAudioEngine() {
     if (window.speechSynthesis) {
@@ -1063,13 +1373,6 @@
     window.removeEventListener('pointerdown', unlockAudioEngine);
   }, { once: true });
 </script>
-
-<!-- Firebase Compat SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-
-<script src="viewer-bridge.js?v=5" defer></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      FIREBASE BRIDGE — re-subscribes on code change
@@ -1086,112 +1389,60 @@
     messagingSenderId: "489545634269",
     appId: "1:489545634269:web:20b29fa190c4500670e634"
   };
-
   window.__cricmaxFromRemote = false;
 
   function resolveMatchCode(){
-    try {
-      var c = localStorage.getItem('currentMatchCode');
-      if (c) return c;
-    } catch(e){}
-    try {
-      var q = new URLSearchParams(window.location.search).get('code');
-      if (q) return q;
-    } catch(e){}
+    try { var c = localStorage.getItem('currentMatchCode'); if (c) return c; } catch(e){}
+    try { var q = new URLSearchParams(window.location.search).get('code'); if (q) return q; } catch(e){}
     return 'match_current';
   }
-
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
     try { firebase.app(); return true; }
     catch (e) {
-      try {
-        firebase.initializeApp(FIREBASE_CONFIG);
-        console.info('[Sync] 🔥 Firebase compat app initialized');
-        return true;
-      } catch (e2){
-        console.warn('[Sync] Firebase init failed:', e2);
-        return false;
-      }
+      try { firebase.initializeApp(FIREBASE_CONFIG); return true; } catch (e2){ return false; }
     }
   }
-
   function ensureAuth(){
     return new Promise(function(resolve){
       try {
         var unsub = firebase.auth().onAuthStateChanged(function(user){
           unsub();
-          if (user){ console.info('[Sync] 🔐 Auth ready:', user.uid.substring(0,6) + '…'); resolve(user); }
-          else {
-            firebase.auth().signInAnonymously()
-              .then(function(cred){ console.info('[Sync] 🔐 Anonymous auth created'); resolve(cred.user); })
-              .catch(function(err){ console.warn('[Sync] Auth failed:', err && err.message); resolve(null); });
-          }
+          if (user) resolve(user);
+          else firebase.auth().signInAnonymously().then(function(cred){ resolve(cred.user); }).catch(function(){ resolve(null); });
         });
       } catch(e){ resolve(null); }
     });
   }
 
-  /* ── Write bridge ── */
-  var __currentWriteRef = null;
-  var __writeOverrideInstalled = false;
-
+  var __currentWriteRef = null, __writeOverrideInstalled = false;
   function installWriteOverride(){
     if (__writeOverrideInstalled) return;
     __writeOverrideInstalled = true;
     var originalSetItem = localStorage.setItem.bind(localStorage);
     localStorage.setItem = function(key, value){
       originalSetItem(key, value);
-      if (window.__cricmaxFromRemote) return;
-      if (key !== 'CricMax_Data') return;
-      if (!__currentWriteRef) return;
+      if (window.__cricmaxFromRemote || key !== 'CricMax_Data' || !__currentWriteRef) return;
       try {
         var parsed = JSON.parse(value);
-        if (parsed && parsed.match){
-          __currentWriteRef.set(parsed.match)
-            .then(function(){ /* silent */ })
-            .catch(function(err){ console.warn('[Sync] Write failed:', err && err.message); });
-        }
+        if (parsed && parsed.match) __currentWriteRef.set(parsed.match).catch(function(){});
       } catch(e){}
     };
   }
-
   function armWriteBridge(matchCode){
     __currentWriteRef = firebase.database().ref('cricmax/matches/' + matchCode);
     installWriteOverride();
     try {
       var raw = localStorage.getItem('CricMax_Data');
-      if (raw){
-        var p = JSON.parse(raw);
-        if (p && p.match){
-          __currentWriteRef.set(p.match);
-          console.info('[Sync] 🔥 Initial sync pushed to:', matchCode);
-        }
-      }
+      if (raw){ var p = JSON.parse(raw); if (p && p.match) __currentWriteRef.set(p.match); }
     } catch(e){}
-    console.info('[Sync] ✏️ Write bridge → cricmax/matches/' + matchCode);
   }
 
-  /* ── Read bridge ── */
-  var __currentReadRef = null;
-  var __currentReadHandler = null;
-
+  var __currentReadRef = null, __currentReadHandler = null;
   function detachReadBridge(){
-    if (__currentReadRef && __currentReadHandler){
-      try { __currentReadRef.off('value', __currentReadHandler); } catch(e){}
-    }
-    __currentReadRef = null;
-    __currentReadHandler = null;
+    if (__currentReadRef && __currentReadHandler) try { __currentReadRef.off('value', __currentReadHandler); } catch(e){}
+    __currentReadRef = null; __currentReadHandler = null;
   }
-
-  function rerenderAll(){
-    ['renderScorecardTab','renderStatsTab','renderAnalysisTab','renderCardTab','renderSummaryTab',
-     'renderAll','updateScoreboard','refreshUI','renderUI','rerenderUI','updateAllUI',
-     'drawScorecard','updateLiveTab','updateMatchUI'].forEach(function(fn){
-      try { if (typeof window[fn] === 'function') window[fn](); } catch(e){}
-    });
-  }
-
   function armReadBridge(matchCode){
     detachReadBridge();
     var ref = firebase.database().ref('cricmax/matches/' + matchCode);
@@ -1207,7 +1458,6 @@
           flat = Object.assign({}, data, {
             runs: inn.runs || 0, wickets: inn.wickets || 0, legalBalls: inn.balls || 0,
             teamBatting: battingTeam,
-            teamBattingAbbr: (data.teamBattingAbbr || battingTeam.substring(0,3).toUpperCase()),
             batters: inn.batters || data.batters || {},
             bowlers: inn.bowlers || data.bowlers || {}
           });
@@ -1221,43 +1471,37 @@
         localStorage.setItem('CricMax_Data', JSON.stringify(wrapper));
       } catch(e){}
       window.__cricmaxFromRemote = false;
-      rerenderAll();
+      if (typeof scheduleRender === 'function') scheduleRender();
     };
     __currentReadRef = ref;
     __currentReadHandler = handler;
     ref.on('value', handler);
-    console.info('[Sync] 📡 Read bridge → cricmax/matches/' + matchCode);
   }
 
-  /* ── Watch for code changes ── */
   var __lastCode = null;
   function watchCodeChange(){
     var code = resolveMatchCode();
     if (code !== __lastCode){
       __lastCode = code;
-      console.info('[Sync] 🔄 Match code →', code);
-      try { armWriteBridge(code); } catch(e){ console.warn('[Sync] Write error:', e); }
-      try { armReadBridge(code);  } catch(e){ console.warn('[Sync] Read error:',  e); }
+      try { armWriteBridge(code); } catch(e){}
+      try { armReadBridge(code); } catch(e){}
     }
   }
-
   function boot(){
     if (!ensureFirebaseApp()){ setTimeout(boot, 300); return; }
-    ensureAuth().then(function(){
-      watchCodeChange();
-      setInterval(watchCodeChange, 500);
-    });
+    ensureAuth().then(function(){ watchCodeChange(); setInterval(watchCodeChange, 500); });
   }
   boot();
 })();
 </script>
 
-<!-- Stats Scope Module -->
+<!-- ═══════════════════════════════════════════════════════════
+     STATS SCOPE MODULE
+     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
   var currentScope = 'match';
-
   function aggregateMatches(matches){
     var players = {};
     function ensure(name){
@@ -1303,23 +1547,10 @@
           });
         }
       });
-      var wktsArr = m.wickets || [];
-      if (Array.isArray(wktsArr)){
-        wktsArr.forEach(function(w){
-          var f = w.fielder || w.fielderName; if (!f) return;
-          var p = ensure(f); if (!p) return;
-          appeared[f] = true;
-          var t = (w.type || w.method || '').toLowerCase();
-          if (t.indexOf('catch') >= 0 || t.indexOf('caught') >= 0) p.catches++;
-          else if (t.indexOf('run out') >= 0) p.runOuts++;
-          else if (t.indexOf('stump') >= 0) p.stumpings++;
-        });
-      }
       Object.keys(appeared).forEach(function(n){ if (players[n]) players[n].matches++; });
     });
     return players;
   }
-
   function collectAllMatches(){
     var out = [], seen = {};
     function add(m){
@@ -1335,37 +1566,16 @@
       if (data.currentTourn && Array.isArray(data.currentTourn.pastMatches)) data.currentTourn.pastMatches.forEach(add);
       if (Array.isArray(data.pastMatchesLedger)) data.pastMatchesLedger.forEach(add);
       if (Array.isArray(data.pastMatches)) data.pastMatches.forEach(add);
-      if (data.matchArchive && typeof data.matchArchive === 'object') Object.values(data.matchArchive).forEach(add);
-      if (Array.isArray(data.tournamentHistory)) data.tournamentHistory.forEach(function(t){ if (t && Array.isArray(t.pastMatches)) t.pastMatches.forEach(add); });
-      if (Array.isArray(data.completedMatches)) data.completedMatches.forEach(add);
     } catch(e){}
     return out;
   }
-
   function buildCareerStats(){
     var matches = collectAllMatches();
     return { players: aggregateMatches(matches), matchesProcessed: matches.length };
   }
-
-  function buildTournamentStats(){
-    var players = {}, name = '', matches = [];
-    try {
-      var raw = localStorage.getItem('CricMax_Data');
-      if (!raw) return { players:{}, matchesProcessed:0, tournamentName:'' };
-      var data = JSON.parse(raw);
-      if (data.currentTourn){
-        name = data.currentTourn.name || '';
-        if (Array.isArray(data.currentTourn.pastMatches)) matches = matches.concat(data.currentTourn.pastMatches);
-        if (data.match && name) matches.push(data.match);
-      }
-    } catch(e){}
-    return { players: aggregateMatches(matches), matchesProcessed: matches.length, tournamentName: name };
-  }
-
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
   }
-
   function renderStatsScope(){
     var players, subtitle;
     if (currentScope === 'career'){
@@ -1373,70 +1583,42 @@
       players = c.players;
       subtitle = '📈 Career • ' + c.matchesProcessed + ' match' + (c.matchesProcessed === 1 ? '' : 'es');
     } else if (currentScope === 'tournament'){
-      var t = buildTournamentStats();
-      players = t.players;
-      subtitle = t.matchesProcessed ? ('🏆 ' + (t.tournamentName || 'Tournament') + ' • ' + t.matchesProcessed + ' match' + (t.matchesProcessed === 1 ? '' : 'es')) : '🏆 No tournament active';
+      var raw = localStorage.getItem('CricMax_Data');
+      var name = '';
+      var matches = [];
+      if (raw){
+        try {
+          var data = JSON.parse(raw);
+          if (data.currentTourn){
+            name = data.currentTourn.name || '';
+            if (Array.isArray(data.currentTourn.pastMatches)) matches = matches.concat(data.currentTourn.pastMatches);
+            if (data.match && name) matches.push(data.match);
+          }
+        } catch(e){}
+      }
+      players = aggregateMatches(matches);
+      subtitle = matches.length ? ('🏆 ' + (name || 'Tournament') + ' • ' + matches.length + ' match' + (matches.length === 1 ? '' : 'es')) : '🏆 No tournament active';
     } else { return; }
-
     var titleEl = document.getElementById('statsHubTitle');
     if (titleEl) titleEl.textContent = subtitle;
-
-    var activePill = document.querySelector('.stat-pill.active');
-    var category = 'mvp';
-    if (activePill){
-      var oc = activePill.getAttribute('onclick') || '';
-      var mm = oc.match(/renderStatsCategory\('([^']+)'/);
-      if (mm) category = mm[1];
-    }
-
     var list = Object.keys(players).map(function(k){ return players[k]; });
-    if (category === 'runs')          list.sort(function(a,b){ return b.runs - a.runs; });
-    else if (category === 'wickets')  list.sort(function(a,b){ return b.wkts - a.wkts; });
-    else if (category === 'fours')    list.sort(function(a,b){ return b.fours - a.fours; });
-    else if (category === 'sixes')    list.sort(function(a,b){ return b.sixes - a.sixes; });
-    else if (category === 'fielding') list.sort(function(a,b){ return (b.catches + b.stumpings + b.runOuts) - (a.catches + a.stumpings + a.runOuts); });
-    else                              list.sort(function(a,b){ return (b.runs + b.wkts*20) - (a.runs + a.wkts*20); });
-
+    list.sort(function(a,b){ return (b.runs + b.wkts*20) - (a.runs + a.wkts*20); });
     var thead = document.getElementById('statsTableHead');
     var tbody = document.getElementById('statsTableBody');
     if (!thead || !tbody) return;
-
-    var isBowling  = (category === 'wickets' || category === 'bowling');
-    var isFielding = (category === 'fielding');
-    var headers, rows;
-
-    if (isBowling){
-      headers = ['Bowler','M','O','R','W','Eco','Best','Mdns'];
-      rows = list.map(function(p){
-        var overs = p.bowlBalls / 6;
-        var oversStr = Math.floor(overs) + '.' + (p.bowlBalls % 6);
-        var eco = p.bowlBalls ? (p.bowlRuns / overs).toFixed(2) : '0.00';
-        var best = p.bestWkts ? (p.bestWkts + '/' + p.bestRuns) : '—';
-        return '<tr><td style="font-weight:800;">' + escapeHtml(p.name) + '</td><td>' + p.matches + '</td><td>' + oversStr + '</td><td>' + p.bowlRuns + '</td><td style="color:var(--red);font-weight:800;">' + p.wkts + '</td><td>' + eco + '</td><td style="color:var(--gold);font-weight:800;">' + best + '</td><td>' + p.maidens + '</td></tr>';
-      });
-    } else if (isFielding){
-      headers = ['Player','M','Catches','Stumpings','Run Outs','Total'];
-      rows = list.map(function(p){
-        return '<tr><td style="font-weight:800;">' + escapeHtml(p.name) + '</td><td>' + p.matches + '</td><td>' + p.catches + '</td><td>' + p.stumpings + '</td><td>' + p.runOuts + '</td><td style="color:var(--gold);font-weight:800;">' + (p.catches+p.stumpings+p.runOuts) + '</td></tr>';
-      });
-    } else {
-      headers = ['Batter','M','Runs','Balls','4s','6s','SR','50s','100s','HS'];
-      rows = list.map(function(p){
-        var sr = p.balls ? (p.runs / p.balls * 100).toFixed(1) : '0.0';
-        return '<tr><td style="font-weight:800;">' + escapeHtml(p.name) + '</td><td>' + p.matches + '</td><td style="color:var(--green);font-weight:800;">' + p.runs + '</td><td>' + p.balls + '</td><td>' + p.fours + '</td><td>' + p.sixes + '</td><td>' + sr + '</td><td>' + p.fifties + '</td><td style="color:var(--purple);font-weight:800;">' + p.hundreds + '</td><td style="color:var(--gold);font-weight:800;">' + p.hs + '</td></tr>';
-      });
-    }
-
+    var headers = ['Batter','M','Runs','Balls','4s','6s','SR','50s','100s','HS'];
+    var rows = list.map(function(p){
+      var sr = p.balls ? (p.runs / p.balls * 100).toFixed(1) : '0.0';
+      return '<tr><td style="font-weight:800;">' + escapeHtml(p.name) + '</td><td>' + p.matches + '</td><td style="color:var(--green);font-weight:800;">' + p.runs + '</td><td>' + p.balls + '</td><td>' + p.fours + '</td><td>' + p.sixes + '</td><td>' + sr + '</td><td>' + p.fifties + '</td><td style="color:var(--purple);font-weight:800;">' + p.hundreds + '</td><td style="color:var(--gold);font-weight:800;">' + p.hs + '</td></tr>';
+    });
     thead.innerHTML = '<tr>' + headers.map(function(h){ return '<th>' + h + '</th>'; }).join('') + '</tr>';
-
     if (!list.length){
-      var msg = currentScope === 'tournament' ? 'No tournament active — start a tournament to track stats.' : 'No data yet — complete a match to see ' + currentScope + ' stats.';
+      var msg = currentScope === 'tournament' ? 'No tournament active.' : 'No data yet — complete a match to see career stats.';
       tbody.innerHTML = '<tr><td colspan="' + headers.length + '" style="text-align:center;padding:24px;color:var(--muted);">' + msg + '</td></tr>';
     } else {
       tbody.innerHTML = rows.slice(0, 100).join('');
     }
   }
-
   window.setStatsScope = function(scope){
     currentScope = scope;
     document.querySelectorAll('.stats-scope-toggle .scope-btn').forEach(function(b){
@@ -1449,128 +1631,11 @@
       if (activePill && activePill.getAttribute('onclick')){ try { eval(activePill.getAttribute('onclick')); } catch(e){} }
     } else { renderStatsScope(); }
   };
-
-  function installWrappers(){
-    if (window.__cricmaxWrappersInstalled) return;
-    window.__cricmaxWrappersInstalled = true;
-
-    var _origRenderStatsCategory = window.renderStatsCategory;
-    window.renderStatsCategory = function(cat, btn){
-      try {
-        if (typeof _origRenderStatsCategory === 'function') _origRenderStatsCategory(cat, btn);
-      } catch(err){
-        if (currentScope === 'match') { setTimeout(function(){ setStatsScope('career'); }, 20); return; }
-      }
-      if (currentScope !== 'match') setTimeout(renderStatsScope, 30);
-    };
-
-    var _origSelectSubPane = window.selectSubPane;
-    window.selectSubPane = function(pane){
-      try {
-        if (typeof _origSelectSubPane === 'function') _origSelectSubPane(pane);
-      } catch(err){
-        if (pane === 'leaderboards'){
-          document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
-          var lp = document.getElementById('pane-leaderboards');
-          if (lp) lp.classList.add('active');
-        }
-      }
-      if (pane === 'leaderboards'){
-        setTimeout(function(){
-          if (currentScope === 'match') setStatsScope('career');
-          else renderStatsScope();
-        }, 100);
-      }
-    };
-
-    var _origLaunchDashboard = window.launchDashboard;
-    window.launchDashboard = function(which){
-      try {
-        if (typeof _origLaunchDashboard === 'function') _origLaunchDashboard(which);
-      } catch(err){
-        if (which === 'leaderboards'){
-          var vd = document.getElementById('view-dashboard');
-          var vh = document.getElementById('view-home');
-          if (vh) vh.style.display = 'none';
-          if (vd) vd.style.display = '';
-          document.querySelectorAll('.sub-pane').forEach(function(p){ p.classList.remove('active'); });
-          var lp = document.getElementById('pane-leaderboards');
-          if (lp) lp.classList.add('active');
-        }
-      }
-      if (which === 'leaderboards'){
-        setTimeout(function(){
-          if (currentScope === 'match') setStatsScope('career');
-          else renderStatsScope();
-        }, 100);
-      }
-    };
-
-    var _origBottomNav = window.bottomNavAction;
-    window.bottomNavAction = function(which){
-      try {
-        if (typeof _origBottomNav === 'function') _origBottomNav(which);
-      } catch(err){}
-      if (which === 'leaderboards'){
-        setTimeout(function(){
-          if (currentScope === 'match') setStatsScope('career');
-          else renderStatsScope();
-        }, 120);
-      }
-    };
-
-    console.info('[CricMax] 🔒 Entry-point wrappers installed');
-  }
-
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', installWrappers);
-  } else {
-    setTimeout(installWrappers, 100);
-  }
-  setTimeout(installWrappers, 2000);
-
-  setTimeout(function(){
-    var lp = document.getElementById('pane-leaderboards');
-    if (lp && lp.classList.contains('active') && currentScope === 'match'){
-      var tbody = document.getElementById('statsTableBody');
-      if (tbody && tbody.children.length === 0){
-        setStatsScope('career');
-      }
-    }
-  }, 1500);
-
-  function injectUI(){
-    var pane = document.getElementById('pane-leaderboards');
-    if (!pane) return;
-    if (!document.getElementById('statsScopeCSS')){
-      var style = document.createElement('style');
-      style.id = 'statsScopeCSS';
-      style.textContent = '.stats-scope-toggle{display:flex;gap:4px;padding:4px;background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:12px;}.stats-scope-toggle .scope-btn{flex:1;padding:10px;background:transparent;border:none;color:var(--muted);font-weight:800;font-size:12px;border-radius:9px;cursor:pointer;font-family:inherit;transition:all 0.2s;}.stats-scope-toggle .scope-btn.active{background:linear-gradient(135deg,rgba(0,230,118,.28),rgba(34,211,238,.16));color:var(--green);box-shadow:0 0 12px rgba(0,230,118,.35);}.stats-scope-toggle .scope-btn:hover:not(.active){color:#fff;background:rgba(255,255,255,0.06);}';
-      document.head.appendChild(style);
-    }
-    var firstBanner = pane.querySelector('.section-header-banner');
-    if (firstBanner && !document.getElementById('statsHubTitle')){
-      var bannerText = firstBanner.textContent.replace(/[🏅📊🏏]/g, '').trim() || 'Match Stats Hub';
-      firstBanner.innerHTML = '<span>🏅</span> <span id="statsHubTitle">' + bannerText + '</span>';
-    }
-    if (!pane.querySelector('.stats-scope-toggle')){
-      var toggle = document.createElement('div');
-      toggle.className = 'stats-scope-toggle';
-      toggle.innerHTML = '<button class="scope-btn active" data-scope="match" onclick="setStatsScope(\'match\')">🏏 Match</button><button class="scope-btn" data-scope="tournament" onclick="setStatsScope(\'tournament\')">🏆 Tournament</button><button class="scope-btn" data-scope="career" onclick="setStatsScope(\'career\')">📈 Career</button>';
-      if (firstBanner) pane.insertBefore(toggle, firstBanner);
-      else pane.insertBefore(toggle, pane.firstChild);
-    }
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectUI);
-  else injectUI();
-
-  console.info('[CricMax] 🏅 Stats Scope Module ready (Match / Tournament / Career)');
 })();
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════
-     MAIN APP MODULES — load order matters!
+     CORE APP MODULES — load order matters!
      ═══════════════════════════════════════════════════════════ -->
 <script src="state.js"></script>
 <script src="utils.js"></script>
@@ -1586,6 +1651,370 @@
 <script src="viewer.js"></script>
 <script src="dev-tools.js"></script>
 <script src="main.js"></script>
+
+<!-- Race sequence engine (replaces playIPLOpening when invoked) -->
+<script>
+(function(){
+  'use strict';
+  var overlay, stage, flash, shake, trail;
+  var halfA, halfB, halfAAbbr, halfBAbbr, halfAName, halfBName;
+  var startVs, startInn, startLines, gantry, lights, startGo;
+  var chaseRowA, chaseRowB, chaseTrackA, chaseTrackB, chaseFillA, chaseFillB;
+  var chaseTargetA, chaseTargetB, chaseTargetLabelA, chaseTargetLabelB;
+  var chaseTeamALabel, chaseTeamAScore, chaseTeamBLabel, chaseTeamBScore;
+  var chaseHeadline, chaseNumber, chaseRail, chaseTicks, chaseBeam, chaseMarker, chaseGo;
+  var winnerPlate, winnerName, margin, motm, confetti, podiumStripTop, podiumStripBottom;
+  var motmName, motmBatVal, motmBatSub, motmBowlVal, motmBowlSub;
+
+  var lastMode = 'start', lastConfig = {}, timers = [], shakeRAF = null, initialized = false;
+
+  function init(){
+    if (initialized) return true;
+    overlay = document.getElementById('raceSeq');
+    if (!overlay) return false;
+    stage = document.getElementById('raceStage');
+    flash = document.getElementById('raceFlash');
+    shake = document.getElementById('raceShake');
+    trail = document.getElementById('raceTrail');
+    halfA = document.getElementById('halfA'); halfB = document.getElementById('halfB');
+    halfAAbbr = document.getElementById('halfAAbbr'); halfBAbbr = document.getElementById('halfBAbbr');
+    halfAName = document.getElementById('halfAName'); halfBName = document.getElementById('halfBName');
+    startVs = document.getElementById('startVs'); startInn = document.getElementById('startInnings');
+    startLines = document.getElementById('startLines');
+    gantry = document.getElementById('gantry');
+    lights = gantry ? gantry.querySelectorAll('.start-gantry__light') : [];
+    startGo = document.getElementById('startGo');
+    chaseRowA = document.getElementById('chaseRowA'); chaseRowB = document.getElementById('chaseRowB');
+    chaseTrackA = document.getElementById('chaseTrackA'); chaseTrackB = document.getElementById('chaseTrackB');
+    chaseFillA = document.getElementById('chaseFillA'); chaseFillB = document.getElementById('chaseFillB');
+    chaseTargetA = document.getElementById('chaseTargetA'); chaseTargetB = document.getElementById('chaseTargetB');
+    chaseTargetLabelA = document.getElementById('chaseTargetLabelA'); chaseTargetLabelB = document.getElementById('chaseTargetLabelB');
+    chaseTeamALabel = document.getElementById('chaseTeamALabel'); chaseTeamAScore = document.getElementById('chaseTeamAScore');
+    chaseTeamBLabel = document.getElementById('chaseTeamBLabel'); chaseTeamBScore = document.getElementById('chaseTeamBScore');
+    chaseHeadline = document.getElementById('chaseHeadline'); chaseNumber = document.getElementById('chaseNumber');
+    chaseRail = document.getElementById('chaseRail'); chaseTicks = document.getElementById('chaseTicks');
+    chaseBeam = document.getElementById('chaseBeam'); chaseMarker = document.getElementById('chaseMarker');
+    chaseGo = document.getElementById('chaseGo');
+    winnerPlate = document.getElementById('winnerPlate'); winnerName = document.getElementById('winnerName');
+    margin = document.getElementById('margin'); motm = document.getElementById('motm');
+    confetti = document.getElementById('confetti');
+    podiumStripTop = document.getElementById('podiumStripTop'); podiumStripBottom = document.getElementById('podiumStripBottom');
+    motmName = document.getElementById('motmName'); motmBatVal = document.getElementById('motmBatVal');
+    motmBatSub = document.getElementById('motmBatSub'); motmBowlVal = document.getElementById('motmBowlVal');
+    motmBowlSub = document.getElementById('motmBowlSub');
+    document.getElementById('raceClose').addEventListener('click', deactivate);
+    document.getElementById('raceReplay').addEventListener('click', function(){ activate(lastMode, lastConfig); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && overlay.classList.contains('is-active')) deactivate(); });
+    initialized = true;
+    return true;
+  }
+
+  var actx = null;
+  function audio(){ if (actx) return actx; try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ actx = null; } if (actx && actx.state === 'suspended') actx.resume().catch(function(){}); return actx; }
+  function clunk(v){ var a=audio(); if(!a)return; var t=a.currentTime; var o=a.createOscillator(),g=a.createGain(); o.type='square'; var base=200+(v||0)*8; o.frequency.setValueAtTime(base,t); o.frequency.exponentialRampToValueAtTime(60,t+0.07); g.gain.setValueAtTime(0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.1); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+0.11); }
+  var rumble=null;
+  function startRumble(){ var a=audio(); if(!a||rumble)return; var t=a.currentTime; var o=a.createOscillator(),g=a.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(38,t); o.frequency.linearRampToValueAtTime(58,t+4); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.045,t+0.8); o.connect(g); g.connect(a.destination); o.start(t); rumble={osc:o,g:g}; }
+  function stopRumble(){ if(!rumble)return; try { var a=audio(),t=a.currentTime; rumble.g.gain.cancelScheduledValues(t); rumble.g.gain.setValueAtTime(rumble.g.gain.value,t); rumble.g.gain.linearRampToValueAtTime(0.0001,t+0.15); rumble.osc.stop(t+0.2); } catch(e){} rumble=null; }
+  function roar(){ var a=audio(); if(!a)return; var t=a.currentTime,dur=1.3,len=Math.floor(a.sampleRate*dur); var buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0); for(var i=0;i<len;i++){var env=Math.sin(Math.PI*(i/len));d[i]=(Math.random()*2-1)*env;} var src=a.createBufferSource();src.buffer=buf;var bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=780;bp.Q.value=0.7;var g=a.createGain();g.gain.value=0.32;src.connect(bp);bp.connect(g);g.connect(a.destination);src.start(t); }
+  function boom(){ var a=audio(); if(!a)return; var t=a.currentTime; var o=a.createOscillator(),g=a.createGain(); o.type='sine'; o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(32,t+0.5); g.gain.setValueAtTime(0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.55); o.connect(g);g.connect(a.destination); o.start(t); o.stop(t+0.6); var sub=a.createOscillator(),sg=a.createGain(); sub.type='sine'; sub.frequency.value=22; sg.gain.setValueAtTime(0.5,t); sg.gain.exponentialRampToValueAtTime(0.001,t+0.35); sub.connect(sg); sg.connect(a.destination); sub.start(t); sub.stop(t+0.4); }
+  function blip(f){ var a=audio(); if(!a)return; var t=a.currentTime; var o=a.createOscillator(),g=a.createGain(); o.type='sine'; o.frequency.setValueAtTime(f||1200,t); g.gain.setValueAtTime(0.16,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.045); o.connect(g);g.connect(a.destination); o.start(t);o.stop(t+0.055); }
+  function stinger(){ var a=audio(); if(!a)return; var t=a.currentTime; [440,660,880].forEach(function(f,i){ var o=a.createOscillator(),g=a.createGain(); o.type='triangle'; o.frequency.setValueAtTime(f,t+i*0.09); g.gain.setValueAtTime(0.18,t+i*0.09); g.gain.exponentialRampToValueAtTime(0.001,t+i*0.09+0.17); o.connect(g);g.connect(a.destination); o.start(t+i*0.09);o.stop(t+i*0.09+0.19); }); }
+  function launchWhoosh(){ var a=audio(); if(!a)return; var t=a.currentTime,dur=0.9; var o=a.createOscillator(),g=a.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(60,t); o.frequency.exponentialRampToValueAtTime(240,t+dur); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.28,t+0.15); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.connect(g);g.connect(a.destination); o.start(t);o.stop(t+dur); var o2=a.createOscillator(),g2=a.createGain(); o2.type='sine'; o2.frequency.setValueAtTime(400,t); o2.frequency.exponentialRampToValueAtTime(1400,t+dur*0.6); o2.frequency.exponentialRampToValueAtTime(300,t+dur); g2.gain.setValueAtTime(0.0001,t); g2.gain.linearRampToValueAtTime(0.14,t+0.1); g2.gain.exponentialRampToValueAtTime(0.001,t+dur); o2.connect(g2);g2.connect(a.destination); o2.start(t);o2.stop(t+dur); }
+
+  function after(ms, fn){ var id=setTimeout(fn,ms); timers.push(id); return id; }
+  function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
+  function splitChars(el, text){
+    el.innerHTML='';
+    var charIndex=0;
+    String(text).split(' ').forEach(function(word, wi){
+      if (wi>0){ var sp=document.createElement('span'); sp.className='ltr'; sp.style.setProperty('--i',charIndex++); sp.textContent='\u00A0'; el.appendChild(sp); }
+      var wordSpan=document.createElement('span'); wordSpan.className='word';
+      word.split('').forEach(function(c){ var s=document.createElement('span'); s.className='ltr'; s.style.setProperty('--i',charIndex++); s.textContent=c; wordSpan.appendChild(s); });
+      el.appendChild(wordSpan);
+    });
+  }
+  function startShake(intensity, duration){
+    var start=performance.now();
+    function frame(now){
+      var t=now-start;
+      if (t>duration){ shake.style.transform=''; shakeRAF=null; return; }
+      var decay=1-(t/duration); var amp=intensity*decay;
+      shake.style.transform='translate('+((Math.random()-0.5)*amp)+'px,'+((Math.random()-0.5)*amp)+'px)';
+      shakeRAF=requestAnimationFrame(frame);
+    }
+    if (shakeRAF) cancelAnimationFrame(shakeRAF);
+    shakeRAF=requestAnimationFrame(frame);
+  }
+  function flashScreen(dur){ flash.style.animation='none'; void flash.offsetWidth; flash.style.animation='flash-burst '+(dur||110)+'ms ease-out'; }
+
+  function resetAll(){
+    clearTimers(); stopRumble();
+    if (shakeRAF){ cancelAnimationFrame(shakeRAF); shakeRAF=null; }
+    shake.style.transform='';
+    stage.style.transform=''; stage.style.filter=''; stage.style.opacity=''; stage.style.transition=''; stage.style.transformOrigin='';
+    trail.classList.remove('is-in');
+    [halfA, halfB, startVs, startInn, startLines, gantry, startGo,
+     chaseRowA, chaseRowB, chaseHeadline, chaseRail, chaseTrackA, chaseTrackB,
+     chaseTargetA, chaseTargetB, chaseTargetLabelA, chaseTargetLabelB,
+     winnerPlate, winnerName, margin, motm,
+     podiumStripTop, podiumStripBottom].forEach(function(el){
+      if (el) el.classList.remove('is-in','is-on','is-go','is-tick','is-open','is-swipe-a','is-swipe-b','is-rev','is-flip-up','is-flip-down','is-pulse');
+    });
+    lights.forEach(function(l){ l.classList.remove('is-on','is-go'); });
+    if (halfA){ halfA.style.transform=''; halfA.style.opacity=''; halfA.style.transition=''; halfA.style.filter=''; }
+    if (halfB){ halfB.style.transform=''; halfB.style.opacity=''; halfB.style.transition=''; halfB.style.filter=''; }
+    if (startVs){ startVs.style.opacity=''; startVs.style.transition=''; }
+    if (startInn){ startInn.style.opacity=''; startInn.style.transition=''; }
+    if (chaseFillA) chaseFillA.style.width='0%';
+    if (chaseFillB) chaseFillB.style.width='0%';
+    if (chaseBeam) chaseBeam.style.width='0%';
+    if (chaseMarker) chaseMarker.style.left='0%';
+    if (chaseTicks) chaseTicks.innerHTML='';
+    flash.style.opacity='0'; flash.style.animation='none';
+    if (confetti) confetti.innerHTML='';
+  }
+
+  function activate(mode, config){
+    if (!init()) return;
+    resetAll();
+    lastMode=mode; lastConfig=config||{};
+    overlay.hidden=false;
+    overlay.setAttribute('data-mode', mode);
+    if (mode === 'start'){
+      splitChars(halfAAbbr, config.teamA.abbr);
+      splitChars(halfBAbbr, config.teamB.abbr);
+      splitChars(halfAName, config.teamA.name);
+      splitChars(halfBName, config.teamB.name);
+      splitChars(startGo, 'GO');
+      startInn.textContent = config.inningsLabel || 'Innings 1';
+    } else if (mode === 'chase'){
+      splitChars(chaseGo, 'GO');
+      buildRailTicks();
+      chaseTeamALabel.textContent = config.teamA.name;
+      chaseTeamAScore.textContent = config.teamA.score;
+      chaseTeamBLabel.textContent = config.teamB.name;
+      chaseTeamBScore.textContent = config.teamB.score;
+      chaseTargetA.style.left='78%'; chaseTargetB.style.left='78%';
+      chaseTargetLabelA.style.left='78%'; chaseTargetLabelB.style.left='78%';
+      chaseTargetLabelA.textContent='Target ' + config.target;
+      chaseTargetLabelB.textContent='Target ' + config.target;
+    } else if (mode === 'podium'){
+      splitChars(winnerName, config.winner || 'Winner');
+      margin.textContent = config.margin || '';
+      if (config.motm){
+        motmName.textContent = config.motm.name || '';
+        if (config.motm.batRuns){ motmBatVal.textContent = config.motm.batRuns; motmBatSub.textContent = (config.motm.batBalls || '') + ' balls · SR ' + (config.motm.batSR || ''); }
+        else { motmBatVal.textContent='—'; motmBatSub.textContent='Did not bat'; }
+        if (config.motm.bowlFig){ motmBowlVal.textContent = config.motm.bowlFig; motmBowlSub.textContent = (config.motm.bowlOvers||'') + ' ov · Eco ' + (config.motm.bowlEco || ''); }
+        else { motmBowlVal.textContent='—'; motmBowlSub.textContent='Did not bowl'; }
+      }
+    }
+    requestAnimationFrame(function(){ overlay.classList.add('is-active'); });
+    if (mode === 'start') runStart();
+    else if (mode === 'chase') runChase(config);
+    else if (mode === 'podium') runPodium();
+  }
+
+  function deactivate(){
+    clearTimers(); stopRumble();
+    if (shakeRAF){ cancelAnimationFrame(shakeRAF); shakeRAF=null; }
+    shake.style.transform='';
+    overlay.classList.remove('is-active');
+    after(300, function(){ overlay.hidden=true; });
+  }
+
+  function runStart(){
+    audio();
+    after(120, function(){ halfA.classList.add('is-swipe-a','is-open'); });
+    after(220, function(){ halfB.classList.add('is-swipe-b','is-open'); });
+    after(280, function(){ halfAAbbr.querySelectorAll('.ltr').forEach(function(el){ el.classList.add('is-in'); }); });
+    after(380, function(){ halfBAbbr.querySelectorAll('.ltr').forEach(function(el){ el.classList.add('is-in'); }); });
+    after(600, function(){ halfAName.querySelectorAll('.ltr').forEach(function(el){ el.classList.add('is-in'); }); });
+    after(680, function(){ halfBName.querySelectorAll('.ltr').forEach(function(el){ el.classList.add('is-in'); }); });
+    after(900, function(){ startVs.classList.add('is-in'); });
+    after(1020, function(){ startInn.classList.add('is-in'); });
+    after(1500, function(){
+      halfA.style.transition='opacity 260ms cubic-bezier(.7,0,.84,0), transform 280ms cubic-bezier(.7,0,.84,0), filter 260ms cubic-bezier(.7,0,.84,0)';
+      halfB.style.transition='opacity 260ms cubic-bezier(.7,0,.84,0), transform 280ms cubic-bezier(.7,0,.84,0), filter 260ms cubic-bezier(.7,0,.84,0)';
+      halfA.style.transform='translateX(-40px) scale(.96)'; halfB.style.transform='translateX(40px) scale(.96)';
+      halfA.style.opacity='0.15'; halfB.style.opacity='0.15';
+      halfA.style.filter='blur(3px)'; halfB.style.filter='blur(3px)';
+      startVs.style.opacity='0'; startVs.style.transition='opacity 220ms cubic-bezier(.7,0,.84,0)';
+      startInn.style.opacity='0'; startInn.style.transition='opacity 220ms cubic-bezier(.7,0,.84,0)';
+    });
+    after(1650, function(){
+      gantry.classList.add('is-in');
+      startLines.classList.add('is-in');
+      startRumble();
+      startShake(2.5, 2200);
+    });
+    var lightStart=2000, gap=550;
+    lights.forEach(function(l, i){
+      after(lightStart + i*gap, function(){
+        l.classList.add('is-on');
+        clunk(i);
+        startShake(3.5, 140);
+      });
+    });
+    var hold = 900 + Math.floor(Math.random() * 1200);
+    var outAt = lightStart + lights.length*gap + hold;
+    after(outAt, function(){
+      stopRumble();
+      lights.forEach(function(l){ l.classList.remove('is-on'); l.classList.add('is-go'); });
+      flashScreen(110); boom(); startShake(8, 400);
+    });
+    after(outAt+120, function(){ roar(); startGo.classList.add('is-in'); });
+    var launchAt = outAt + 780;
+    after(launchAt, function(){
+      launchWhoosh();
+      trail.classList.add('is-in');
+      after(20, function(){ trail.querySelectorAll('.race-seq__trail-line').forEach(function(l){ l.style.animation='none'; void l.offsetWidth; l.style.animation=''; }); });
+      stage.style.transition='transform 620ms cubic-bezier(.55,-.04,.9,.35), filter 620ms cubic-bezier(.55,-.04,.9,.35), opacity 620ms linear';
+      stage.style.transformOrigin='left center';
+      stage.style.transform='translateX(180vw) scaleX(2.6) skewX(-22deg)';
+      stage.style.filter='blur(26px)';
+      stage.style.opacity='0';
+    });
+    after(launchAt+60, function(){ startShake(12, 260); });
+    after(launchAt+720, function(){
+      deactivate();
+      if (typeof lastConfig.cb === 'function') lastConfig.cb();
+    });
+  }
+
+  function buildRailTicks(){
+    var count=20;
+    chaseTicks.innerHTML='';
+    for (var i=0;i<count;i++){
+      var t=document.createElement('div');
+      t.className='chase-rail__tick';
+      t.style.left = ((i+1)/(count+1)*100) + '%';
+      chaseTicks.appendChild(t);
+    }
+  }
+
+  function runChase(config){
+    audio();
+    var target = config.target || 100;
+    after(100, function(){ chaseRowA.classList.add('is-in'); });
+    after(240, function(){ chaseRowB.classList.add('is-in'); });
+    after(450, function(){ chaseTrackA.classList.add('is-rev'); clunk(0); });
+    after(800, function(){ chaseFillA.style.transition='width 780ms cubic-bezier(.16,1,.3,1)'; chaseFillA.style.width='100%'; });
+    after(1400, function(){ chaseTargetA.classList.add('is-in'); chaseTargetLabelA.classList.add('is-in'); clunk(2); });
+    after(1600, function(){ chaseTargetB.classList.add('is-in'); chaseTargetLabelB.classList.add('is-in'); clunk(3); });
+    after(1900, function(){ chaseHeadline.classList.add('is-in'); });
+    var steps=16, startTime=2000;
+    for (var i=1;i<=steps;i++){
+      (function(i){
+        var delay = i * (80 + i * 8);
+        after(startTime + delay, function(){
+          var val = Math.floor((i/steps)*target);
+          flipTo(val, i%2===0?'up':'down');
+          blip(760 + i*40);
+        });
+      })(i);
+    }
+    after(startTime + steps*210, function(){
+      flipTo(target, 'up');
+      chaseNumber.classList.add('is-pulse');
+      after(120, function(){ chaseNumber.classList.remove('is-pulse'); });
+    });
+    after(3600, function(){
+      chaseRail.classList.add('is-in');
+      var beamStart=performance.now(), dur=950;
+      function beam(now){
+        var p=Math.min(1,(now-beamStart)/dur);
+        var pEff = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+        chaseBeam.style.width = (pEff*100)+'%';
+        chaseMarker.style.left = (pEff*100)+'%';
+        chaseTicks.querySelectorAll('.chase-rail__tick').forEach(function(tk){
+          var pos=parseFloat(tk.style.left);
+          if (pEff*100 >= pos) tk.classList.add('is-on');
+        });
+        if (p<1) requestAnimationFrame(beam);
+      }
+      requestAnimationFrame(beam);
+    });
+    after(4650, function(){ chaseGo.classList.add('is-in'); boom(); roar(); flashScreen(120); startShake(8, 420); });
+    after(5100, launchWhoosh);
+    after(5550, function(){
+      deactivate();
+      if (typeof config.cb === 'function') config.cb();
+    });
+  }
+
+  function flipTo(value, dir){
+    var str = String(value);
+    chaseNumber.innerHTML = '<span class="digit">' + str + '</span>';
+    chaseNumber.classList.remove('is-flip-up', 'is-flip-down');
+    void chaseNumber.offsetWidth;
+    chaseNumber.classList.add(dir === 'up' ? 'is-flip-up' : 'is-flip-down');
+    after(130, function(){ chaseNumber.classList.remove('is-flip-up','is-flip-down'); });
+  }
+
+  function runPodium(){
+    audio();
+    after(150, function(){ spawnConfetti(); roar(); stinger(); startShake(2, 300); });
+    after(250, function(){ podiumStripTop.classList.add('is-in'); clunk(0); });
+    after(380, function(){ podiumStripBottom.classList.add('is-in'); clunk(1); });
+    after(650, function(){ winnerPlate.classList.add('is-in'); clunk(2); });
+    after(950, function(){ winnerName.classList.add('is-in'); });
+    after(1700, function(){ margin.classList.add('is-in'); });
+    after(2200, function(){ motm.classList.add('is-in'); clunk(3); });
+    after(5200, function(){
+      deactivate();
+      if (typeof lastConfig.cb === 'function') lastConfig.cb();
+    });
+  }
+
+  function spawnConfetti(){
+    var colours=['#e10600','#00d2be','#00ff7f','#b31bff','#ffd400','#f5f5f5'];
+    var count=70;
+    confetti.innerHTML='';
+    for (var i=0;i<count;i++){
+      var el=document.createElement('div');
+      el.className='podium-confetti__piece';
+      var colour=colours[Math.floor(Math.random()*colours.length)];
+      var left=Math.random()*100;
+      var dur=2.4+Math.random()*1.8, delay=Math.random()*1.4;
+      var swayAmp=10+Math.random()*30, swayPeriod=0.8+Math.random()*0.6;
+      var spinZ=(Math.random()>0.5?1:-1)*(360+Math.random()*720);
+      var spinX=(Math.random()>0.5?1:-1)*(180+Math.random()*540);
+      el.style.left=left+'%'; el.style.background=colour; el.style.opacity='0';
+      (function(el,dur,delay,swayAmp,swayPeriod,spinZ,spinX){
+        var start=null;
+        function frame(now){
+          if (!start) start=now;
+          var t=(now-start)/1000;
+          if (t<delay){ requestAnimationFrame(frame); return; }
+          var life=t-delay;
+          if (life>dur){ el.style.opacity='0'; return; }
+          var y=life*(window.innerHeight*1.15/dur);
+          var sway=Math.sin(life*(Math.PI*2)/swayPeriod)*swayAmp;
+          var rotZ=spinZ*(life/dur); var rotX=spinX*(life/dur);
+          var fade = life<0.2 ? life/0.2 : (life>dur-0.3 ? (dur-life)/0.3 : 1);
+          el.style.transform='translate3d('+sway+'px,'+y+'px,0) rotateZ('+rotZ+'deg) rotateX('+rotX+'deg)';
+          el.style.opacity = String(Math.max(0, Math.min(1, fade)));
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      })(el,dur,delay,swayAmp,swayPeriod,spinZ,spinX);
+      confetti.appendChild(el);
+    }
+  }
+
+  var kf=document.createElement('style');
+  kf.textContent = '@keyframes flash-burst { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }';
+  document.head.appendChild(kf);
+
+  window.playRaceSequence = function(mode, config, cb){
+    if (typeof config === 'function'){ cb = config; config = {}; }
+    config = config || {};
+    if (cb) config.cb = cb;
+    activate(mode, config);
+  };
+})();
+</script>
 
 </body>
 </html>
