@@ -3,6 +3,21 @@
 <head>
 <meta charset="UTF-8">  
 if (window.self !== window.top) return;
+<meta name="<meta charset="UTF-8">
+<script>
+/* Redirect to viewer.html ONLY when we're the top-level page.
+   If we're inside an iframe (the data sheet tabs), do NOT redirect. */
+(function(){
+  try {
+    if (window.self !== window.top) return;
+    var p = new URLSearchParams(location.search);
+    if (p.get('viewer') === '1'){
+      var code = p.get('code') || '';
+      location.replace('/viewer.html' + (code ? '?code=' + encodeURIComponent(code) : ''));
+    }
+  } catch(e){}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
 <meta name="color-scheme" content="dark">
