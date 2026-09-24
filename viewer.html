@@ -1335,7 +1335,7 @@ function showSheet(tab){
   }
 
   // Build the URL the iframe should load
-  const src = '/index.html?viewer=1' +
+  const src = location.origin + '/index.html?viewer=1' +
               (code ? '&code=' + encodeURIComponent(code) : '') +
               '&pane=' + encodeURIComponent(tab);
 
