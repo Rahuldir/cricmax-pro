@@ -1272,11 +1272,12 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   /* ═══════════════ DATA SHEET (Card / Stats / Boards) ═══════════════ */
   const SHEET_TABS = ['card', 'stats', 'boards'];
-  const PANE_TO_SHEET = {
-    scorecard: 'card', card: 'card',
-    analytics: 'stats', stats: 'stats',
-    leaderboards: 'boards', boards: 'boards'
-  };
+const PANE_TO_SHEET = {
+  scorecard: 'scorecard', card: 'scorecard',
+  analytics: 'analytics', stats: 'analytics',
+  leaderboards: 'leaderboards', boards: 'leaderboards',
+  summary: 'summary'
+};
   let activeSheetTab = null;
 
   function sheetEsc(v){
@@ -1316,22 +1317,42 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     toggleMenu();
   }
 
-  function showSheet(tab){
-    if (SHEET_TABS.indexOf(tab) < 0) tab = 'card';
-    const sheet = document.getElementById('viewerSheet');
-    if (!sheet) return;
-    activeSheetTab = tab;
-    sheet.classList.add('open');
-    sheet.setAttribute('aria-hidden', 'false');
-    sheet.querySelectorAll('.sheet-tab').forEach(function(b){
-      b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
-    });
-    renderSheet(tab);
-    if (menuOpen){
-      menuOpen = false;
-      const mp = document.getElementById('menuPanel'); if (mp) mp.classList.remove('open');
-      const mb = document.getElementById('btn-menu'); if (mb) mb.classList.remove('on');
-    }
+function showSheet(tab){
+  // Only allow these five tabs
+  const validTabs = ['live', 'scorecard', 'analytics', 'leaderboards', 'summary'];
+  if (validTabs.indexOf(tab) < 0) tab = 'live';
+
+  // Find the sheet and the iframe
+  const sheet = document.getElementById('viewerSheet');
+  const frame = document.getElementById('sheetFrame');
+  if (!sheet || !frame) return;
+
+  // Figure out the match code
+  let code = '';
+  try { code = new URLSearchParams(location.search).get('code') || ''; } catch(e){}
+  if (!code) {
+    try { code = localStorage.getItem('currentMatchCode') || ''; } catch(e){}
+  }
+
+  // Build the URL the iframe should load
+  const src = '/index.html?viewer=1' +
+              (code ? '&code=' + encodeURIComponent(code) : '') +
+              '&pane=' + encodeURIComponent(tab);
+
+  // Only reload if the URL actually changed
+  if (frame.getAttribute('data-src') !== src) {
+    frame.setAttribute('data-src', src);
+    frame.src = src;
+  }
+
+  // Show the sheet and mark the active tab
+  sheet.classList.add('open');
+  sheet.setAttribute('aria-hidden', 'false');
+  sheet.querySelectorAll('.sheet-tab').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
+  });
+  activeSheetTab = tab;
+}
   }
 
   function closeSheet(){
