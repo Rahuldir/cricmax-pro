@@ -3536,6 +3536,55 @@ function showSheet(tab){
   });
 
 })();
+</script> 
+  <script>
+/* ═══════════════════════════════════════════════════════════
+   DIRECT WIRING — guarantees tab clicks open the sheet
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  function ensureSheetOpen(tab){
+    try {
+      /* Force pointer-events on the sheet + bar so clicks always register */
+      var sheet = document.getElementById('viewerSheet');
+      if (sheet) {
+        sheet.style.pointerEvents = 'auto';
+        var bar = sheet.querySelector('.viewer-sheet__bar');
+        if (bar) bar.style.pointerEvents = 'auto';
+      }
+      /* Call the real function */
+      if (typeof showSheet === 'function') showSheet(tab);
+      console.log('[CricMax] Sheet forced open:', tab);
+    } catch (e) {
+      console.error('[CricMax] ensureSheetOpen failed:', e);
+    }
+  }
+
+  /* Global click listener — catches every tab click, ignores everything else */
+  document.addEventListener('click', function(e){
+    var btn = e.target && e.target.closest ? e.target.closest('.sheet-tab') : null;
+    if (!btn) return;
+    var tab = btn.getAttribute('data-sheet');
+    if (!tab) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ensureSheetOpen(tab);
+  }, true);
+
+  /* Also wire them at load time as a belt-and-braces fix */
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      document.querySelectorAll('.sheet-tab').forEach(function(btn){
+        btn.style.pointerEvents = 'auto';
+        btn.onclick = function(ev){
+          ev.preventDefault();
+          ev.stopPropagation();
+          ensureSheetOpen(btn.getAttribute('data-sheet'));
+        };
+      });
+      console.log('[CricMax] Sheet tabs wired:', document.querySelectorAll('.sheet-tab').length);
+    }, 800);
+  });
+})();
 </script>
 </body>
 </html>
