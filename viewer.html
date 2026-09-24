@@ -95,7 +95,15 @@ html.is-iframe-sheet #viewerSheet {
    3D VIEWER HUD — hidden when body.has-sheet
    ═══════════════════════════════════════════════════════════════ */
 .hud{position:fixed;inset:0;pointer-events:none;z-index:100;touch-action:manipulation;}
-body.has-sheet .hud{display:none;}
+
+/* FIX: Force hide everything including wagon wheel when sheet is open */
+body.has-sheet .hud,
+body.has-sheet #wagonWrap,
+body.has-sheet #wagonInfo,
+body.has-sheet .wing-assembly,
+body.has-sheet canvas#three-canvas {
+  display: none !important;
+}
 
 .vignette{position:fixed;inset:0;pointer-events:none;z-index:50;background:radial-gradient(circle at center,transparent 55%,rgba(0,0,0,.5) 100%);}
 body.has-sheet .vignette{display:none;}
@@ -991,7 +999,16 @@ body.has-sheet .vignette{display:none;}
       frame.src = src;
     }
 
+    // FIX: Bulletproof hiding using inline styles
     document.body.classList.add('has-sheet');
+    const elementsToHide = ['viewerHud', 'wagonWrap', 'wagonInfo', 'wingAssembly'];
+    elementsToHide.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    const canvas = document.getElementById('three-canvas');
+    if (canvas) canvas.style.display = 'none';
+
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
 
@@ -1008,6 +1025,19 @@ body.has-sheet .vignette{display:none;}
     sheet.classList.remove('open');
     sheet.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('has-sheet');
+
+    // FIX: Restore visibility using inline styles
+    const elementsToRestore = ['viewerHud', 'wagonWrap', 'wagonInfo', 'wingAssembly'];
+    elementsToRestore.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = '';
+    });
+    const canvas = document.getElementById('three-canvas');
+    if (canvas) canvas.style.display = '';
+
+    // Re-apply the correct view state
+    __cmApplyStadiumView(stadiumViewActive);
+
     activeSheetTab = null;
   }
 
@@ -1039,7 +1069,7 @@ body.has-sheet .vignette{display:none;}
   })();
 
   /* ═══════════ STADIUM VIEW / WAGON TOGGLE ═══════════ */
-  let stadiumViewActive = false;
+  let stadiumViewActive = true; // FIX: Default to true (3D view on load)
   let __cmWagonDirty = true;
   let __cmWagonForceUntil = 0;
   let __cmViewSwitchLock = false;
@@ -1054,14 +1084,14 @@ body.has-sheet .vignette{display:none;}
 
     if (stadiumViewActive){
       canvas.style.display = 'block'; canvas.style.zIndex = '0';
-      if (wrap) wrap.classList.remove('show');
-      if (info) info.classList.remove('show');
+      if (wrap) { wrap.style.display = 'none'; wrap.classList.remove('show'); }
+      if (info) { info.style.display = 'none'; info.classList.remove('show'); }
       if (btn) btn.classList.add('on');
       if (wagonBtn) wagonBtn.classList.remove('on');
     } else {
       canvas.style.display = 'none';
-      if (wrap) wrap.classList.add('show');
-      if (info) info.classList.add('show');
+      if (wrap) { wrap.style.display = 'flex'; wrap.classList.add('show'); }
+      if (info) { info.style.display = 'block'; info.classList.add('show'); }
       if (btn) btn.classList.remove('on');
       if (wagonBtn) wagonBtn.classList.add('on');
       if (window.fxTrailStop) window.fxTrailStop();
@@ -2795,27 +2825,23 @@ body.has-sheet .vignette{display:none;}
   window.playBall = playBall;
   window.handleNewMatchData = handleNewMatchData;
 
-  /* ═══════════ BOOT — land on wagon wheel ═══════════ */
+  /* ═══════════ BOOT — FIX: Default to 3D stadium view ═══════════ */
   window.__cmProgress(20, 'LOADING STADIUM');
 
-  setStadiumView(false, true);
+  // FIX: Set the default view to 3D stadium (true = stadium, false = wagon wheel)
+  setStadiumView(true, true);
+  
   requestAnimationFrame(function(){
-    setStadiumView(false, true);
-    try { drawWagonWheel(); } catch(e){}
+    setStadiumView(true, true);
   });
-  setTimeout(function(){ setStadiumView(false, true); try { drawWagonWheel(); } catch(e){} }, 250);
-  setTimeout(function(){ setStadiumView(false, true); }, 1000);
-  setTimeout(function(){ setStadiumView(false, true); }, 2500);
 
   requestAnimationFrame(animate);
 
   bootStadiumModule().then(function(){
-    setStadiumView(false, true);
-    setTimeout(function(){ setStadiumView(false, true); try { drawWagonWheel(); } catch(e){} }, 300);
-    setTimeout(function(){ setStadiumView(false, true); }, 1200);
+    setStadiumView(true, true);
   }).catch(function(err){
     console.warn('[CricMax] stadium load failed:', err);
-    setStadiumView(false, true);
+    setStadiumView(true, true);
   });
 
 })();
