@@ -2,6 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- ═══════════════════════════════════════════════════════════
+     EMBED BOOT — runs BEFORE any rendering.
+     If we're inside the sheet iframe (?viewer=1 or ?embed=1 or
+     loaded as a child frame), mark <html> with .cm-embed-boot
+     so the page stays invisible until the pane is ready.
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  try {
+    var inIframe = (window.self !== window.top);
+    var p = new URLSearchParams(location.search);
+    if (inIframe || p.get('viewer') === '1' || p.get('embed') === '1'){
+      document.documentElement.classList.add('cm-embed-boot');
+    }
+  } catch(e){}
+})();
+</script>
 <script>
 /* Only redirect to viewer.html when we're the TOP-LEVEL page.
    If we're inside an iframe (the data sheet), don't redirect. */
@@ -268,6 +285,18 @@ body.embed-mode .bottom-match-nav { display: none !important; }
 body.embed-mode .scoring-only { display: none !important; }
 body.embed-mode #view-home { display: none !important; }
 body.embed-mode #view-dashboard { display: block !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   EMBED BOOT — invisible until embed script is ready.
+   Prevents the home screen from flashing before the pane loads.
+   ═══════════════════════════════════════════════════════════ */
+html.cm-embed-boot {
+  background: #0d1117 !important;
+}
+html.cm-embed-boot body {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 </style>
 </head>
 <body>
@@ -304,7 +333,6 @@ body.embed-mode #view-dashboard { display: block !important; }
   var speedEl = document.getElementById('cmSpeedLines');
   var fakeProgress = 0, realProgress = 0, lastPct = 0, goFlashed = false;
 
-  // Hide loader entirely if we're inside the viewer iframe
   var isEmbed = false;
   try { isEmbed = (window.self !== window.top); } catch(e){ isEmbed = true; }
   if (isEmbed){
@@ -1941,6 +1969,8 @@ body.embed-mode #view-dashboard { display: block !important; }
 <!-- ═══════════════════════════════════════════════════════════
      EMBED MODE — when loaded inside viewer.html's sheet iframe,
      hide the scoring shell and jump straight to the requested pane.
+     Once the pane is rendered, remove the .cm-embed-boot class
+     (added in <head>) so the page becomes visible.
      ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
@@ -1959,7 +1989,6 @@ body.embed-mode #view-dashboard { display: block !important; }
     hasViewerParam = (v === '1' || e === '1');
   }
 
-  // Only run when we're inside the sheet iframe (or explicitly embed)
   if (!inIframe && !hasViewerParam) return;
 
   var pane = 'live';
@@ -2003,7 +2032,6 @@ body.embed-mode #view-dashboard { display: block !important; }
 
       document.body.style.paddingBottom = '0';
 
-      // Make sure we're actually on the dashboard view
       if (typeof window.launchDashboard === 'function'){
         try { window.launchDashboard(target); } catch(e){}
       }
@@ -2022,12 +2050,15 @@ body.embed-mode #view-dashboard { display: block !important; }
       if (dash) dash.style.display = 'block';
 
       console.log('[EmbedMode] ✅ Render pane:', target);
+
+      // Reveal the page now that the pane is ready
+      document.documentElement.classList.remove('cm-embed-boot');
     } catch(err){
       console.warn('[EmbedMode] applyEmbedView failed:', err);
+      document.documentElement.classList.remove('cm-embed-boot');
     }
   }
 
-  // Wait for modules (selectSubPane is defined in ui.js)
   var tries = 0;
   var t = setInterval(function(){
     tries++;
@@ -2041,10 +2072,14 @@ body.embed-mode #view-dashboard { display: block !important; }
     }
   }, 150);
 
-  // Also re-run on load (in case modules load late)
   window.addEventListener('load', function(){
     setTimeout(applyEmbedView, 800);
   });
+
+  // Failsafe — never leave the page hidden for more than 3 seconds
+  setTimeout(function(){
+    document.documentElement.classList.remove('cm-embed-boot');
+  }, 3000);
 })();
 </script>
 
