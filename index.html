@@ -2,20 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">  
-  <!-- ═══════════════ VIEWER REDIRECT ═══════════════
-     If the URL says ?viewer=1, jump straight to viewer.html
-     so shared links always land on the 3D wagon wheel page. -->
-<script>
-(function(){
-  try {
-    var p = new URLSearchParams(location.search);
-    if (p.get('viewer') === '1'){
-      var code = p.get('code') || '';
-      location.replace('/viewer.html' + (code ? '?code=' + encodeURIComponent(code) : ''));
-    }
-  } catch(e){}
-})();
-</script>
+if (window.self !== window.top) return;
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
 <meta name="color-scheme" content="dark">
