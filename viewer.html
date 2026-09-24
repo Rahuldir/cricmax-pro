@@ -70,9 +70,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Titi
 canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:100%;z-index:0;touch-action:none;}
 
 /* ═══════════════════════════════════════════════════════════════
-   3D VIEWER HUD  — everything inside .hud is the "3D view".
-   When body.has-sheet is set, the entire .hud is hidden so the
-   sheet can take over cleanly.
+   3D VIEWER HUD — hidden when body.has-sheet
    ═══════════════════════════════════════════════════════════════ */
 .hud{position:fixed;inset:0;pointer-events:none;z-index:100;touch-action:manipulation;}
 body.has-sheet .hud{display:none;}
@@ -186,7 +184,7 @@ body.has-sheet .vignette{display:none;}
 .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
 .speed.on{opacity:1;}
 
-/* ── Wagon wheel (the 3D-view content) ── */
+/* ── Wagon wheel ── */
 #wagonWrap{position:fixed;top:44px;left:0;right:0;bottom:88px;display:none;align-items:center;justify-content:center;padding:4px;z-index:10001;pointer-events:none;}
 #wagonWrap.show{display:flex;}
 #wagonWheelCanvas{max-width:100%;max-height:100%;width:auto;height:auto;aspect-ratio:1/1;background:#050b0a;border:1px solid rgba(0,230,118,.4);border-radius:50%;box-shadow:0 0 40px rgba(0,230,118,.35), inset 0 0 30px rgba(0,0,0,.6);pointer-events:auto;display:block;}
@@ -311,9 +309,7 @@ body.has-sheet .vignette{display:none;}
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DATA SHEET — the full-screen overlay with iframe inside.
-   Only requirement: fill the screen with a solid background so
-   nothing behind it can bleed through. Simple on purpose.
+   DATA SHEET — the full-screen overlay with iframe inside
    ═══════════════════════════════════════════════════════════════ */
 #viewerSheet{
   position:fixed;
@@ -488,7 +484,6 @@ body.has-sheet .vignette{display:none;}
   }
   window.__cmDismissLoader = dismiss;
 
-  /* If a code is present, hide the loader immediately */
   var urlCode = null;
   try { urlCode = new URLSearchParams(location.search).get('code'); } catch(e){}
   if (!urlCode){ try { urlCode = localStorage.getItem('currentMatchCode'); } catch(e){} }
@@ -517,11 +512,9 @@ body.has-sheet .vignette{display:none;}
 
 <!-- ═══════════════════════════════════════════════════════════════
      3D VIEWER — everything inside .hud
-     Hidden when body.has-sheet is set.
      ═══════════════════════════════════════════════════════════════ -->
 <div class="hud" id="viewerHud">
 
-  <!-- Top bar -->
   <div class="top-bar">
     <div class="top-brand">
       <span class="live-dot waiting" id="liveDot">WAITING</span>
@@ -555,7 +548,6 @@ body.has-sheet .vignette{display:none;}
     </div>
   </div>
 
-  <!-- Pills -->
   <div class="pill-stack">
     <div class="stat-pill" id="statPill">
       <span class="sp-team" id="spTeam">T1</span>
@@ -589,7 +581,6 @@ body.has-sheet .vignette{display:none;}
   </div>
   <div class="speed" id="speedTag">SPEED: --</div>
 
-  <!-- Audio FAB -->
   <div class="audio-fab">
     <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)">
       <span id="snd-ico">🏟️</span>
@@ -603,7 +594,6 @@ body.has-sheet .vignette{display:none;}
     </div>
   </div>
 
-  <!-- Menu panel -->
   <div id="menuPanel">
     <div class="menu-sec">
       <div class="menu-ttl">Navigate</div>
@@ -665,7 +655,6 @@ body.has-sheet .vignette{display:none;}
     </div>
   </div>
 
-  <!-- Wagon wheel -->
   <div id="wagonWrap">
     <canvas id="wagonWheelCanvas" width="800" height="800" style="max-width:100%;height:auto;"></canvas>
   </div>
@@ -673,7 +662,6 @@ body.has-sheet .vignette{display:none;}
 
   <div class="banner" id="banner">FOUR!</div>
 
-  <!-- F1 rear-wing scorecard -->
   <div class="wing-assembly" id="wingAssembly">
     <div class="drs-flap" id="drsFlap">
       <span class="drs-flap__label" id="drsLabel1">CRR</span>
@@ -718,9 +706,7 @@ body.has-sheet .vignette{display:none;}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
-     DATA SHEET — sits OUTSIDE .hud so hiding .hud reveals this.
-     Full viewport, solid black, contains an iframe pointing at
-     /index.html?viewer=1&code=X&pane=Y
+     DATA SHEET — outside .hud
      ═══════════════════════════════════════════════════════════════ -->
 <div id="viewerSheet" aria-hidden="true">
   <div class="viewer-sheet__bar">
@@ -747,7 +733,7 @@ body.has-sheet .vignette{display:none;}
   <div class="tv-recent" id="tvRecent"></div>
 </div>
 
-<!-- ═══════════════ THIRD-PARTY LIBS ═══════════════ -->
+<!-- ═══════════════ LIBS ═══════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
   if (typeof THREE === 'undefined') document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');
@@ -778,6 +764,8 @@ body.has-sheet .vignette{display:none;}
      ═══════════════════════════════════════════════════════════════ -->
 <script>
 (function(){
+  'use strict';
+
   function toArray(o){
     if (Array.isArray(o)) return o;
     if (o && typeof o === 'object'){
@@ -811,7 +799,7 @@ body.has-sheet .vignette{display:none;}
 
   if (typeof window.__cmProgress !== 'function') window.__cmProgress = function(){};
 
-  /* ═══════════ WAITING / LIVE STATE ═══════════ */
+  /* ═══════════ WAITING / LIVE ═══════════ */
   window.__cricmaxMatchStarted = false;
   function __cmShowWaiting(show){
     const w = document.getElementById('wagonWaiting');
@@ -836,7 +824,6 @@ body.has-sheet .vignette{display:none;}
   __cmShowWaiting(true);
   __cmSetLiveBadge(false);
 
-  /* Fill in match code from URL */
   (function(){
     var urlCode = null;
     try { urlCode = new URLSearchParams(location.search).get('code'); } catch(e){}
@@ -952,10 +939,7 @@ body.has-sheet .vignette{display:none;}
     }
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     SHEET — showSheet / closeSheet
-     The whole mechanism: hide .hud, show #viewerSheet. That's it.
-     ═══════════════════════════════════════════════════════════════ */
+  /* ═══════════ SHEET ═══════════ */
   const SHEET_TABS = ['live', 'scorecard', 'analytics', 'leaderboards', 'summary'];
   const PANE_TO_SHEET = {
     scorecard: 'scorecard', card: 'scorecard',
@@ -985,7 +969,6 @@ body.has-sheet .vignette{display:none;}
       frame.src = src;
     }
 
-    /* THE KEY: hide the whole 3D viewer by adding body.has-sheet */
     document.body.classList.add('has-sheet');
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden', 'false');
@@ -1006,9 +989,6 @@ body.has-sheet .vignette{display:none;}
     activeSheetTab = null;
   }
 
-  window.showSheet = showSheet;
-  window.closeSheet = closeSheet;
-
   function navTo(pane){
     document.querySelectorAll('.menu-t[data-pane]').forEach(t => {
       t.classList.toggle('on', t.getAttribute('data-pane') === pane);
@@ -1017,9 +997,7 @@ body.has-sheet .vignette{display:none;}
     if (PANE_TO_SHEET[pane]){ toggleMenu(); showSheet(PANE_TO_SHEET[pane]); return; }
     toggleMenu();
   }
-  window.navTo = navTo;
 
-  /* Wire sheet buttons */
   (function wireSheetControls(){
     const sheet = document.getElementById('viewerSheet');
     if (!sheet) return;
@@ -1099,8 +1077,6 @@ body.has-sheet .vignette{display:none;}
   }
 
   function toggleStadiumView(){ setStadiumView(!stadiumViewActive); }
-  window.toggleStadiumView = toggleStadiumView;
-  window.setStadiumView = setStadiumView;
 
   /* ═══════════ TV MODE ═══════════ */
   let tvModeActive = false;
@@ -1141,7 +1117,6 @@ body.has-sheet .vignette{display:none;}
       }).join('');
     }
   }
-  window.toggleTVMode = toggleTVMode;
 
   /* ═══════════ PLAYER RIGS ═══════════ */
   const SKIN = [0xd4a373, 0xc68642, 0xe0ac69, 0x8d5524, 0xf1c27d];
@@ -1606,8 +1581,6 @@ body.has-sheet .vignette{display:none;}
     if (mode === 'stadium') startAmbience(); else stopAmbience();
     closeAudioMenu();
   }
-  window.setAudioMode = setAudioMode;
-  window.toggleAudioMenu = toggleAudioMenu;
 
   let _audioUnlocked = false;
   function unlockAudio(){
@@ -1947,7 +1920,6 @@ body.has-sheet .vignette{display:none;}
   }
 
   function toggleWagonWheel(){ setStadiumView(!stadiumViewActive); }
-  window.toggleWagonWheel = toggleWagonWheel;
 
   /* ═══════════ CAMERA ═══════════ */
   const CAM_MODES = {
@@ -1978,9 +1950,6 @@ body.has-sheet .vignette{display:none;}
     if (directorOn) activeCam = 'broadcast';
   }
   function toggleFullscreen(){ if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-  window.setCamera = setCamera;
-  window.toggleDirector = toggleDirector;
-  window.toggleFullscreen = toggleFullscreen;
 
   /* ═══════════ REPLAY ═══════════ */
   const REPLAY_FANCY = CM_DEVICE.tier >= 1;
@@ -2339,7 +2308,6 @@ body.has-sheet .vignette{display:none;}
       }
     }
   }
-  window.playBall = playBall;
 
   let __cmReplayCooldown = false;
   function triggerReplay(){
@@ -2355,7 +2323,6 @@ body.has-sheet .vignette{display:none;}
     setTimeout(() => { __cmReplayCooldown = false; }, 2500);
     playBall(Object.assign({}, shot), false, { isReplay: true, timeScale: 0.4 });
   }
-  window.triggerReplay = triggerReplay;
 
   /* ═══════════ OVER DOTS ═══════════ */
   function renderOverDots(ballTags){
@@ -2604,7 +2571,6 @@ body.has-sheet .vignette{display:none;}
       replayCurrentOver(shots, ballsThisOver);
     }
   }
-  window.handleNewMatchData = handleNewMatchData;
 
   window.addEventListener('message', ev => {
     const d = ev.data || {};
@@ -2674,7 +2640,6 @@ body.has-sheet .vignette{display:none;}
   }
   try { startViewerFirebase(); } catch(e){}
 
-  /* Try local cache first for instant paint */
   try {
     const raw = localStorage.getItem('CricMax_Data');
     if (raw){
@@ -2786,6 +2751,27 @@ body.has-sheet .vignette{display:none;}
     renderer.setPixelRatio(__currentPixelRatio);
     renderer.setSize(innerWidth, innerHeight);
   });
+
+  /* ═══════════════════════════════════════════════════════════════
+     WINDOW EXPORTS — every function called from onclick/onchange
+     ═══════════════════════════════════════════════════════════════ */
+  window.toggleMenu = toggleMenu;
+  window.setSky = setSky;
+  window.navTo = navTo;
+  window.showSheet = showSheet;
+  window.closeSheet = closeSheet;
+  window.setCamera = setCamera;
+  window.toggleDirector = toggleDirector;
+  window.toggleStadiumView = toggleStadiumView;
+  window.setStadiumView = setStadiumView;
+  window.toggleWagonWheel = toggleWagonWheel;
+  window.toggleTVMode = toggleTVMode;
+  window.toggleFullscreen = toggleFullscreen;
+  window.toggleAudioMenu = toggleAudioMenu;
+  window.setAudioMode = setAudioMode;
+  window.triggerReplay = triggerReplay;
+  window.playBall = playBall;
+  window.handleNewMatchData = handleNewMatchData;
 
   /* ═══════════ BOOT — land on wagon wheel ═══════════ */
   window.__cmProgress(20, 'LOADING STADIUM');
