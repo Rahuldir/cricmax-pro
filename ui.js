@@ -322,20 +322,32 @@ function finalizeMatchStart() {
   match.shareCode = matchCode;
   try { localStorage.setItem('currentMatchCode', matchCode); } catch (e) {}
 
-  const bT = savedTeams.find(t => t.name === batName) || { squad: [] };
-  const wT = savedTeams.find(t => t.name === bowlName) || { squad: [] };
+ const bT = savedTeams.find(t => t.name === batName) || { squad: [] };
+const wT = savedTeams.find(t => t.name === bowlName) || { squad: [] };
 
-  [...new Set([...(bT.squad || []), striker, nonStriker])].forEach(p => {
-    match.batters[p] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: "dnb" };
-    match.playerTeamMap[p] = match.teamBattingAbbr;
-  });
-  match.batters[striker].status = "batting";
-  match.batters[nonStriker].status = "batting";
+/* ⚡ Persist new player names back into the saved team squads so 2nd innings dropdown sees them */
+if (!Array.isArray(bT.squad)) bT.squad = [];
+if (!Array.isArray(wT.squad)) wT.squad = [];
 
-  [...new Set([...(wT.squad || []), bowler])].forEach(p => {
-    match.bowlers[p] = { balls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, threeW: 0, fiveW: 0 };
-    match.playerTeamMap[p] = match.teamBowlingAbbr;
-  });
+[striker, nonStriker].forEach(function (p) {
+  if (bT.squad.indexOf(p) < 0) bT.squad.push(p);
+});
+if (wT.squad.indexOf(bowler) < 0) wT.squad.push(bowler);
+
+if (savedTeams.indexOf(bT) < 0) savedTeams.push(bT);
+if (savedTeams.indexOf(wT) < 0) savedTeams.push(wT);
+
+[...new Set([...(bT.squad || []), striker, nonStriker])].forEach(p => {
+  match.batters[p] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0, status: "dnb" };
+  match.playerTeamMap[p] = match.teamBattingAbbr;
+});
+match.batters[striker].status = "batting";
+match.batters[nonStriker].status = "batting";
+
+[...new Set([...(wT.squad || []), bowler])].forEach(p => {
+  match.bowlers[p] = { balls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, threeW: 0, fiveW: 0 };
+  match.playerTeamMap[p] = match.teamBowlingAbbr;
+});
 
   const hTitle = document.getElementById('headerMainTitle');
   const hSub = document.getElementById('headerSubTitle');
