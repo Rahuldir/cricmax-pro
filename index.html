@@ -7,7 +7,7 @@
    If we're inside an iframe (the data sheet), don't redirect. */
 (function(){
   try {
-    if (window.self !== window.top) return; // inside iframe → skip redirect
+    if (window.self !== window.top) return;
     var p = new URLSearchParams(location.search);
     if (p.get('viewer') === '1'){
       var code = p.get('code') || '';
@@ -65,10 +65,6 @@
 </script>
 
 <style>
-/* ═══════════════════════════════════════════════════════════
-   F1 TAB / BUTTON ENHANCEMENTS — slanted panels, carbon weave,
-   red accent bars on active states
-   ═══════════════════════════════════════════════════════════ */
 :root{
   --f1-red:#e10600;
   --f1-dark:#101010;
@@ -82,7 +78,6 @@
 
 body, button, input, select, textarea { font-family: var(--f1-font); }
 
-/* ── F1 TABS — slanted active with red underline ── */
 .tab-nav{
   background:var(--f1-carbon),rgba(10,10,10,.98);
   border-bottom:1px solid rgba(255,255,255,.08);
@@ -128,7 +123,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   box-shadow:0 0 12px rgba(225,6,0,.8);
 }
 
-/* ── F1 KEYPAD — carbon weave, slanted numbers ── */
 .pad-btn{
   background:var(--f1-carbon),var(--f1-dark);
   border:1px solid rgba(255,255,255,.1);
@@ -154,7 +148,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   box-shadow:0 0 18px rgba(225,6,0,.7);
 }
 
-/* ── F1 BOTTOM NAV ── */
 .bottom-match-nav{
   background:var(--f1-carbon),rgba(10,10,10,.98);
   border-top:1px solid rgba(255,255,255,.08);
@@ -186,7 +179,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   border:2px solid #0d1117;
 }
 
-/* ── F1 BTN-UI — slanted edges ── */
 .btn-ui{
   background:var(--f1-carbon),rgba(22,27,34,.92);
   border:1px solid rgba(255,255,255,.1);
@@ -204,7 +196,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   color:#0a0e1a;
 }
 
-/* ── F1 WICKET / EXTRA BUTTONS ── */
 .btn-wkt{
   background:var(--f1-carbon),rgba(225,6,0,.15);
   border-color:rgba(225,6,0,.5);
@@ -218,7 +209,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
 }
 .btn-wd-nb:hover{background:#fbbf24;color:#0a0e1a;border-color:transparent;}
 
-/* ── F1 SCORE BANNER ── */
 .score-banner{
   background:var(--f1-carbon),var(--grad-card);
 }
@@ -226,13 +216,11 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   background:linear-gradient(180deg,var(--f1-red) 0%,#8b0300 100%);
 }
 
-/* ── F1 SECTION HEADER ── */
 .section-header-banner{
   border-left-color:var(--f1-red);
   background:linear-gradient(90deg,rgba(225,6,0,.15),transparent 70%);
 }
 
-/* ── F1 STAT PILLS ── */
 .stat-pill{
   background:var(--f1-carbon),var(--surface-1);
   clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
@@ -243,7 +231,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   color:#fff;
 }
 
-/* ── F1 HOME BUTTONS ── */
 .home-main-btn{
   background:var(--f1-carbon),var(--grad-card);
   clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
@@ -255,32 +242,36 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   background:linear-gradient(135deg,var(--f1-red) 0%,#8b0300 100%);
 }
 
-/* ── F1 PLAYER CHIPS ── */
 .player-chip .chip-avatar{
   background:linear-gradient(135deg,var(--f1-red),#8b0300);
 }
 
-/* ── F1 CARD BADGES ── */
 .team-abbr-badge{
   background:linear-gradient(135deg,var(--f1-red),#8b0300);
 }
 
-/* ── F1 SC TABS ── */
 .sc-tab.active{
   background:linear-gradient(135deg,var(--f1-red),#8b0300) !important;
 }
 
-/* ── F1 MODAL CARD — top strip in red ── */
 .modal-card::before{
   background:linear-gradient(90deg,transparent 0%,var(--f1-red) 25%,#8b0300 50%,var(--f1-red) 75%,transparent 100%);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   EMBED MODE — kill extra chrome when loaded inside viewer
+   ═══════════════════════════════════════════════════════════ */
+body.embed-mode { padding-bottom: 0 !important; }
+body.embed-mode .top-bar { display: none !important; }
+body.embed-mode .tab-nav { display: none !important; }
+body.embed-mode .bottom-match-nav { display: none !important; }
+body.embed-mode .scoring-only { display: none !important; }
+body.embed-mode #view-home { display: none !important; }
+body.embed-mode #view-dashboard { display: block !important; }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
-     F1 LOADER
-     ═══════════════════════════════════════════════════════════ -->
 <div id="cm-loader">
   <div class="cm-speed-lines" id="cmSpeedLines"></div>
   <div class="cm-start-lights" id="cmStartLights">
@@ -312,6 +303,14 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   var pctEl = document.getElementById('cmProgressPct');
   var speedEl = document.getElementById('cmSpeedLines');
   var fakeProgress = 0, realProgress = 0, lastPct = 0, goFlashed = false;
+
+  // Hide loader entirely if we're inside the viewer iframe
+  var isEmbed = false;
+  try { isEmbed = (window.self !== window.top); } catch(e){ isEmbed = true; }
+  if (isEmbed){
+    var ld = document.getElementById('cm-loader');
+    if (ld) ld.style.display = 'none';
+  }
 
   if (speedEl){
     for (var i = 0; i < 7; i++){
@@ -386,9 +385,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CINEMATIC BANNERS
-     ═══════════════════════════════════════════════════════════ -->
 <div id="topCinematicBanner" class="top-cinematic-banner fx-four">
   <div class="top-banner-title" id="topBannerTitle">FOUR!</div>
   <div class="top-banner-sub" id="topBannerSub">Boundary Scored</div>
@@ -430,9 +426,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     F1 RACE SEQUENCE OVERLAY
-     ═══════════════════════════════════════════════════════════ -->
 <div class="race-seq" id="raceSeq" hidden>
   <div class="race-seq__glow"></div>
   <div class="race-seq__scan"></div>
@@ -440,7 +433,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <div class="race-seq__vignette"></div>
     <div class="race-seq__shake" id="raceShake"></div>
 
-    <!-- START -->
     <div class="race-seq__body" data-mode="start">
       <div class="start-lines" id="startLines">
         <div class="streak" style="top:18%;--delay:0ms;"></div>
@@ -475,7 +467,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
       <div class="start-go" id="startGo"></div>
     </div>
 
-    <!-- CHASE -->
     <div class="race-seq__body" data-mode="chase">
       <div class="chase-wrap">
         <div class="chase-row chase-row--a" id="chaseRowA">
@@ -514,7 +505,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
       <div class="chase-go" id="chaseGo"></div>
     </div>
 
-    <!-- PODIUM -->
     <div class="race-seq__body" data-mode="podium">
       <div class="podium-confetti" id="confetti"></div>
       <div class="podium-strip podium-strip--top" id="podiumStripTop"></div>
@@ -566,9 +556,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   <div class="loading-text">Loading Match...</div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOP BAR
-     ═══════════════════════════════════════════════════════════ -->
 <header class="top-bar">
   <button class="btn-share-viewer" onclick="shareViewerOnly()" title="Share Viewer Link" aria-label="Share">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -597,9 +584,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════════════
-     HOME SCREEN
-     ═══════════════════════════════════════════════════════════ -->
 <section id="view-home">
   <div class="hero-wrap">
     <div class="hero-badge">LIVE CRICKET</div>
@@ -615,9 +599,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     DASHBOARD
-     ═══════════════════════════════════════════════════════════ -->
 <section id="view-dashboard">
   <nav class="tab-nav" id="topTabNav">
     <div class="tab-btn" onclick="selectSubPane('tournament')">Tournament</div>
@@ -630,7 +611,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <div class="tab-btn" onclick="selectSubPane('info')">Info</div>
   </nav>
 
-  <!-- TOURNAMENT PANE -->
   <div class="sub-pane" id="pane-tournament">
     <div class="pad-title">Tournament Profile</div>
     <div class="panel-card" style="border:1px solid rgba(0,230,118,.4);">
@@ -652,7 +632,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <div id="pastMatchesContainer"></div>
   </div>
 
-  <!-- LIVE SCORING PANE -->
   <div class="sub-pane active" id="pane-live">
     <div class="panel-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
@@ -720,7 +699,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <div id="commentaryContainer"></div>
   </div>
 
-  <!-- SUMMARY PANE -->
   <div class="sub-pane" id="pane-summary">
     <div class="pad-title">Partnership</div>
     <div class="panel-card"><div style="font-size:16px;font-weight:800;" id="partRuns">0 runs</div><div style="font-size:12px;color:var(--muted);margin-top:4px;" id="partDetails">Striker: 0 | Non-Striker: 0</div></div>
@@ -728,7 +706,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <div class="panel-card" id="fowContainer">No wickets yet.</div>
   </div>
 
-  <!-- SCORECARD PANE -->
   <div class="sub-pane" id="pane-scorecard">
     <div style="display:flex;gap:4px;margin-bottom:10px;padding:4px;background:rgba(255,255,255,.03);border-radius:10px;overflow-x:auto;">
       <div class="sc-tab active" onclick="switchScorecardTab(this,'batting')">🏏 Batting</div>
@@ -744,7 +721,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     </div>
   </div>
 
-  <!-- ANALYTICS PANE -->
   <div class="sub-pane" id="pane-analytics">
     <div class="nzc-layout">
       <div class="nzc-left">
@@ -787,7 +763,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     </div>
   </div>
 
-  <!-- LEADERBOARDS PANE -->
   <div class="sub-pane" id="pane-leaderboards">
     <div class="section-header-banner"><span>🏅</span> Match Stats Hub</div>
     <div class="stat-pill-strip">
@@ -826,7 +801,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     </div>
   </div>
 
-  <!-- TEAMS PANE -->
   <div class="sub-pane" id="pane-teams">
     <div class="panel-card" style="border-left:4px solid var(--purple);">
       <div style="font-size:13px;font-weight:900;margin-bottom:4px;">Create New Team</div>
@@ -838,7 +812,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <div id="teamsListContainer"></div>
   </div>
 
-  <!-- INFO PANE -->
   <div class="sub-pane" id="pane-info">
     <div class="panel-card" style="font-size:13px;line-height:1.9;">
       <div><b>Tournament:</b> <span id="infoTourn">--</span></div>
@@ -849,9 +822,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════════
-     BOTTOM MATCH NAV
-     ═══════════════════════════════════════════════════════════ -->
 <nav class="bottom-match-nav" id="bottomMatchNav">
   <div class="bottom-nav-inner">
     <button class="bottom-nav-btn" id="bNav-live" onclick="bottomNavAction('live')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>Scoring</button>
@@ -861,10 +831,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     <button class="bottom-nav-btn" id="bNav-leaderboards" onclick="bottomNavAction('leaderboards')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg></span>Stats</button>
   </div>
 </nav>
-
-<!-- ═══════════════════════════════════════════════════════════
-     MODALS
-     ═══════════════════════════════════════════════════════════ -->
 
 <div class="modal-overlay" id="tournamentPickerModal">
   <div class="modal-card">
@@ -1376,7 +1342,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   </div>
 </div>
 
-<!-- Global touch/audio unlock -->
 <script>
   window.addEventListener('pointerdown', function unlockAudioEngine() {
     if (window.speechSynthesis) {
@@ -1388,9 +1353,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
   }, { once: true });
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     FIREBASE BRIDGE — re-subscribes on code change
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -1405,7 +1367,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     appId: "1:489545634269:web:20b29fa190c4500670e634"
   };
 
-  /* ── 1. Boot Firebase app ── */
   function ensureFirebaseApp(){
     if (typeof firebase === 'undefined') return false;
     try { firebase.app(); return true; }
@@ -1415,7 +1376,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     }
   }
 
-  /* ── 2. Expose globals that main.js / firebase.js expect ── */
   function exposeGlobals(){
     try {
       window.fbAuth = firebase.auth();
@@ -1424,13 +1384,11 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
       window.fbOnAuthStateChanged = function(auth, cb){ return auth.onAuthStateChanged(cb); };
       window.fbSignInAnonymously   = function(auth){ return auth.signInAnonymously(); };
 
-      /* Realtime Database wrappers (used by firebase.js) */
       window.fbRef   = function(db, path){ return db.ref(path); };
       window.fbSet   = function(ref, data){ return ref.set(data); };
       window.fbOnce  = function(ref){ return ref.once('value'); };
       window.fbOnValue = function(ref, cb){ return ref.on('value', cb); };
 
-      /* Firestore wrappers — kept for compatibility, no-op if firestore missing */
       window.fbDoc   = function(){ return null; };
       window.fbSetDoc = function(){ return Promise.resolve(); };
       window.fbOnSnapshot = function(){ return function(){}; };
@@ -1442,12 +1400,10 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     }
   }
 
-  /* ── 3. Boot sequence ── */
   function boot(){
     if (!ensureFirebaseApp()){ setTimeout(boot, 300); return; }
     exposeGlobals();
 
-    /* Sign in anonymously if not already signed in */
     try {
       window.fbOnAuthStateChanged(window.fbAuth, function(user){
         if (!user){
@@ -1468,9 +1424,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     STATS SCOPE MODULE
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -1607,9 +1560,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CORE APP MODULES — load order matters!
-     ═══════════════════════════════════════════════════════════ -->
 <script src="state.js"></script>
 <script src="utils.js"></script>
 <script src="speech.js"></script>
@@ -1625,7 +1575,6 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
 <script src="dev-tools.js"></script>
 <script src="main.js"></script>
 
-<!-- Race sequence engine (replaces playIPLOpening when invoked) -->
 <script>
 (function(){
   'use strict';
@@ -1986,6 +1935,197 @@ body, button, input, select, textarea { font-family: var(--f1-font); }
     if (cb) config.cb = cb;
     activate(mode, config);
   };
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     EMBED MODE — when loaded inside viewer.html's sheet iframe,
+     hide the scoring shell and jump straight to the requested pane.
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  var inIframe = false;
+  try { inIframe = (window.self !== window.top); } catch(e){ inIframe = true; }
+
+  var params = null;
+  try { params = new URLSearchParams(location.search); } catch(e){}
+
+  var hasViewerParam = false;
+  if (params){
+    var v = params.get('viewer');
+    var e = params.get('embed');
+    hasViewerParam = (v === '1' || e === '1');
+  }
+
+  // Only run when we're inside the sheet iframe (or explicitly embed)
+  if (!inIframe && !hasViewerParam) return;
+
+  var pane = 'live';
+  if (params) pane = params.get('pane') || 'live';
+
+  var paneMap = {
+    live: 'live',
+    scorecard: 'scorecard', card: 'scorecard',
+    analytics: 'analytics', stats: 'analytics',
+    leaderboards: 'leaderboards',
+    summary: 'summary',
+    tournament: 'tournament',
+    teams: 'teams',
+    info: 'info'
+  };
+  var target = paneMap[pane] || 'live';
+
+  function applyEmbedView(){
+    try {
+      document.body.classList.add('embed-mode');
+      document.body.classList.add('viewer-mode');
+
+      var home = document.getElementById('view-home');
+      if (home) home.style.display = 'none';
+      var dash = document.getElementById('view-dashboard');
+      if (dash) dash.style.display = 'block';
+
+      var topBar = document.querySelector('.top-bar');
+      if (topBar) topBar.style.display = 'none';
+
+      var tabNav = document.getElementById('topTabNav');
+      if (tabNav) tabNav.style.display = 'none';
+
+      var bottomNav = document.getElementById('bottomMatchNav');
+      if (bottomNav) bottomNav.style.display = 'none';
+
+      var scoringBlocks = document.querySelectorAll('.scoring-only');
+      for (var i = 0; i < scoringBlocks.length; i++){
+        scoringBlocks[i].style.display = 'none';
+      }
+
+      document.body.style.paddingBottom = '0';
+
+      // Make sure we're actually on the dashboard view
+      if (typeof window.launchDashboard === 'function'){
+        try { window.launchDashboard(target); } catch(e){}
+      }
+
+      if (typeof window.selectSubPane === 'function'){
+        try { window.selectSubPane(target); } catch(e){}
+      } else {
+        var panes = document.querySelectorAll('.sub-pane');
+        for (var j = 0; j < panes.length; j++){
+          var p = panes[j];
+          if (p && p.id === 'pane-' + target) p.classList.add('active');
+          else if (p) p.classList.remove('active');
+        }
+      }
+
+      if (dash) dash.style.display = 'block';
+
+      console.log('[EmbedMode] ✅ Render pane:', target);
+    } catch(err){
+      console.warn('[EmbedMode] applyEmbedView failed:', err);
+    }
+  }
+
+  // Wait for modules (selectSubPane is defined in ui.js)
+  var tries = 0;
+  var t = setInterval(function(){
+    tries++;
+    var ready = typeof window.selectSubPane === 'function';
+    if (ready || tries > 40){
+      clearInterval(t);
+      applyEmbedView();
+      setTimeout(applyEmbedView, 400);
+      setTimeout(applyEmbedView, 1200);
+      setTimeout(applyEmbedView, 2500);
+    }
+  }, 150);
+
+  // Also re-run on load (in case modules load late)
+  window.addEventListener('load', function(){
+    setTimeout(applyEmbedView, 800);
+  });
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SHARE BUTTON → COPY TO CLIPBOARD (override)
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  function buildViewerUrl(){
+    var code = '';
+    try { code = localStorage.getItem('currentMatchCode') || ''; } catch(e){}
+    if (!code){
+      try { code = new URLSearchParams(location.search).get('code') || ''; } catch(e){}
+    }
+    return location.origin + '/viewer.html' + (code ? '?code=' + encodeURIComponent(code) : '');
+  }
+
+  function showToast(msg, ok){
+    var t = document.getElementById('cm-copy-toast');
+    if (!t){
+      t = document.createElement('div');
+      t.id = 'cm-copy-toast';
+      t.style.cssText =
+        'position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);' +
+        'padding:12px 22px;border-radius:10px;z-index:9999999;' +
+        'font-family:Titillium Web,system-ui,sans-serif;font-size:13px;font-weight:900;' +
+        'letter-spacing:1.4px;text-transform:uppercase;color:#fff;' +
+        'background:linear-gradient(135deg,#00c853,#00e676);' +
+        'box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 24px rgba(0,230,118,.5);' +
+        'opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = ok
+      ? 'linear-gradient(135deg,#00c853,#00e676)'
+      : 'linear-gradient(135deg,#b91c1c,#ef4444)';
+    requestAnimationFrame(function(){
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(t._hideT);
+    t._hideT = setTimeout(function(){
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 2000);
+  }
+
+  function copyText(text){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function(resolve, reject){
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:-1000px;left:-1000px;opacity:0;';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve() : reject(new Error('execCommand failed'));
+      } catch(e){ reject(e); }
+    });
+  }
+
+  window.shareViewerOnly = function(){
+    var url = buildViewerUrl();
+    copyText(url).then(function(){
+      showToast('🔗 Viewer link copied!', true);
+      console.log('[Share] Copied:', url);
+    }).catch(function(err){
+      console.warn('[Share] Clipboard failed:', err);
+      window.prompt('Copy this viewer link:', url);
+      showToast('📋 Copy manually', false);
+    });
+  };
+
+  console.log('[Share] ✅ Copy-to-clipboard handler installed');
 })();
 </script>
 
