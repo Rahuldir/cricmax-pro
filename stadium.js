@@ -24,7 +24,7 @@
                   || (navigator.maxTouchPoints > 1 && window.innerWidth < 900);
 
   /* ── Config (coordinates taken from working StadiumView) ── */
-  const GLB_URL          = 'models/stadium.glb';
+  const GLB_URL          = 'stadium.glb';
   const STADIUM_SIZE     = 200;        // max dimension of the GLB after scaling
   const MODEL_ROT_Y      = 0;          // radians — rotate if pitch is not along Z
   const ENABLE_DRACO     = true;
