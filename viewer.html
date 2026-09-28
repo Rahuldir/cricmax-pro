@@ -1770,6 +1770,49 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   const camPos=CAM_MODES.broadcast.pos.clone(),camTarget=CAM_MODES.broadcast.target.clone();
   let __cmReplayActive=false;
 
+  /* ── Spider cam — realistic cable-mounted camera ──
+     Sweeps laterally with eased pauses (operator holding a shot),
+     hovers 18–22 m, gently bobs, always framing the action. */
+  function updateSpiderCam(elapsed,camPos,camTarget){
+    const t=elapsed;
+    // Eased lateral sweep — decelerates at the ends like a real operator
+    const raw=Math.sin(t*0.18);
+    const eased=raw*raw*raw*(raw*(raw*6-15)+10);   // smoothstep curve
+    const x=eased*26;
+    // Fore-aft drift for depth variation
+    const z=-4+Math.sin(t*0.24+0.5)*10;
+    // Altitude with slow bob + fast micro-shake
+    const y=20+Math.sin(t*0.7)*1.8+Math.sin(t*1.9)*0.3;
+    // Low lerp factor → soft cable-physics feel
+    camPos.lerp(new THREE.Vector3(x,y,z),0.04);
+    // Focus: action at striker end normally, tracks ball once it's live
+    const focus=(ball&&ball.visible)
+      ?new THREE.Vector3(ball.position.x*0.65,Math.max(1.4,ball.position.y*0.9),ball.position.z*0.7+2)
+      :new THREE.Vector3(0,1.5,STRIKER_BASE_Z*0.6);
+    camTarget.lerp(focus,0.06);
+  }
+
+  /* ── Drone cam — high-altitude orbiting camera ──
+     Continuous slow orbit around the stadium at 27–33 m,
+     with subtle operator wobble and breathing altitude. */
+  function updateDroneCam(elapsed,camPos,camTarget){
+    const t=elapsed;
+    // Continuous orbit + slight wobble (feels like real piloting)
+    const orbit=t*0.14+Math.sin(t*0.11)*0.25;
+    const rad=54+Math.sin(t*0.19)*5;
+    const x=Math.sin(orbit)*rad;
+    const z=Math.cos(orbit)*rad;
+    // Breathing altitude
+    const y=30+Math.sin(t*0.32)*3+Math.sin(t*0.9)*0.6;
+    camPos.lerp(new THREE.Vector3(x,y,z),0.03);
+    // Always frame the pitch / ball
+    const ballPos=(ball&&ball.visible)?ball.position:null;
+    const focus=ballPos
+      ?new THREE.Vector3(ballPos.x*0.5,Math.max(1.6,ballPos.y),ballPos.z*0.5)
+      :new THREE.Vector3(0,1.7,0);
+    camTarget.lerp(focus,0.05);
+  }
+
   function setCamera(mode){
     if(!CAM_MODES[mode])return;
     activeCam=mode;directorOn=false;
@@ -2497,6 +2540,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
           const bp=(ball&&ball.visible)?ball.position:new THREE.Vector3(0,0,STRIKER_BASE_Z);
           camPos.lerp(new THREE.Vector3(bp.x*0.6,Math.max(3.5,bp.y+3.5),bp.z-7),0.08);
           camTarget.lerp(bp,0.12);
+        }else if(!directorOn&&activeCam==='spider'){
+          updateSpiderCam(elapsed,camPos,camTarget);
+        }else if(!directorOn&&activeCam==='drone'){
+          updateDroneCam(elapsed,camPos,camTarget);
         }else if(!directorOn&&activeCam!=='follow'){
           camPos.lerp(CAM_MODES[activeCam].pos,0.05);
           camTarget.lerp(CAM_MODES[activeCam].target,0.05);
