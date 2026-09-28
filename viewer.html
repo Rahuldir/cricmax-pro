@@ -184,7 +184,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 #wagonInfo{position:fixed;top:28px;left:50%;transform:translateX(-50%);color:#00e676;background:rgba(8,15,30,.92);border:1px solid rgba(0,230,118,.4);padding:3px 9px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.7px;white-space:nowrap;display:none;z-index:10002;pointer-events:none;}
 #wagonInfo.show{display:block;}
 
-/* ═══ FIX APPLIED: wagonWaiting is permanently hidden ═══ */
 .wagon-waiting{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:10px;padding:24px 36px;background:rgba(8,15,30,.96);border:1px solid rgba(0,230,118,.4);border-radius:16px;color:#00e676;z-index:100000;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,230,118,.1);transition:opacity .35s ease, transform .35s ease;text-align:center;}
 .wagon-waiting__spinner{width:32px;height:32px;border-radius:50%;border:3px solid rgba(0,230,118,.2);border-top-color:#00e676;animation:wagonSpin 0.9s linear infinite;}
 .wagon-waiting__text{font-size:14px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#fff;}
@@ -1288,9 +1287,11 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   const STRIKER_BASE_X = 0.35, STRIKER_BASE_Z = 8.8;
   const NONSTRIKER_BASE_X = -1.2, NONSTRIKER_BASE_Z = -8.8;
-  /* Boundary radius in metres — matches your GLB stadium. 4s/6s cross this;
-     1s/2s/3s always stop inside it. */
-  const BOUNDARY_RADIUS = 60;
+  /* ═══════════════════════════════════════════════════════════
+     BOUNDARY — matches your visible GLB stadium rope (~38 m).
+     Previously 60 m, which let 4s & 6s fly outside the stands.
+     ═══════════════════════════════════════════════════════════ */
+  const BOUNDARY_RADIUS = 38;
 
   function buildPlayers(){
     const fielderData = CM_DEVICE.tier === 0
@@ -1654,10 +1655,11 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   };
 
   /* ═══════════════════════════════════════════════════════════
-     BOUNDARY-AWARE SHOT DISTANCES
-     • 1 / 2 / 3 runs → always stop inside BOUNDARY_RADIUS (60 m)
-     • 4 → crosses rope by a small margin
-     • 6 → clears rope comfortably
+     SHOT DISTANCE LOGIC — everything scales off BOUNDARY_RADIUS
+     • 1 / 2 / 3 runs → 35% / 55% / 75% of maxReach (inside rope)
+     • 4 → ~100-106% of maxReach (grounded — reaches rope)
+     • 6 → ~120-130% of maxReach (lofted — lands in the stands)
+     Nothing ever leaves the visible stadium footprint.
      ═══════════════════════════════════════════════════════════ */
   function determineShotAndLength(runs, isSpin, isWkt, isCatch, wwAngle){
     const lengths = [{type:'yorker',pZ:8.5},{type:'full',pZ:7.5},{type:'good',pZ:5.5},{type:'short',pZ:2.5}];
@@ -1666,8 +1668,9 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
     let shotType = 'defend', peakHeight = 0.5, finalDist = 10;
 
-    /* Maximum reach from the striker before crossing the rope */
-    const maxReach = BOUNDARY_RADIUS - Math.abs(STRIKER_BASE_Z); // 60 - 8.8 = 51.2
+    /* Distance from striker to boundary in the worst direction.
+       maxReach = BOUNDARY_RADIUS - distance of striker from centre. */
+    const maxReach = Math.max(8, BOUNDARY_RADIUS - Math.abs(STRIKER_BASE_Z));
 
     let deg = (wwAngle * 180) / Math.PI;
     if (deg < 0) deg += 360;
@@ -1678,25 +1681,22 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     if (isWkt && !isCatch){
       shotType = 'defend'; finalDist = 2;
     } else if (runs === 6){
-      /* Six always clears the rope */
-      peakHeight = 26;
-      finalDist = BOUNDARY_RADIUS + 18 + Math.random() * 8;
+      peakHeight = 24;
+      finalDist = maxReach * (1.20 + Math.random() * 0.10);   /* 1.20–1.30 × maxReach */
       if (isSpin && !isOffside) shotType = 'sweep';
       else if (length.type === 'short' && !isOffside) shotType = 'pull';
       else shotType = 'lofted_straight';
     } else if (runs === 4){
-      /* Four crosses the rope by a small margin */
       peakHeight = 1.2;
-      finalDist = BOUNDARY_RADIUS + 2 + Math.random() * 3;
+      finalDist = maxReach * (1.00 + Math.random() * 0.06);   /* just reaches rope */
       if (isSpin && !isOffside) shotType = 'sweep';
       else if (isOffside && length.type === 'short') shotType = 'cut';
       else if (isOffside && !isBehind) shotType = 'cover_drive';
       else if (isStraight) shotType = 'straight_drive';
       else shotType = 'pull';
     } else if (runs > 0){
-      /* 1 / 2 / 3 — always stop inside the rope */
       peakHeight = 0.8;
-      const runFrac = { 1: 0.35, 2: 0.55, 3: 0.78 }[runs] || 0.5;
+      const runFrac = { 1: 0.35, 2: 0.55, 3: 0.75 }[runs] || 0.5;
       finalDist = maxReach * runFrac;
       if (isOffside && !isBehind) shotType = 'cover_drive';
       else if (isStraight) shotType = 'on_drive';
@@ -1708,7 +1708,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
     if (isCatch){
       peakHeight = 6;
-      finalDist = Math.min(maxReach * 0.7, 35);
+      finalDist = Math.min(maxReach * 0.7, 22);
       shotType = 'lofted_straight';
     }
     return { length, shotType, peakHeight, finalDist };
@@ -2098,10 +2098,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       if (inference.trajectory === 'edge') phys.finalDist = Math.min(phys.finalDist, 15);
       const lenMap = { 'yorker':8.5,'full':7.5,'half_volley':8.0,'good':5.5,'back_of_length':4.0,'short':2.5,'bouncer':1.5 };
       phys.length.pZ = lenMap[inference.length] || 5.5;
-      if (!isWkt){
-        if (runs === 6){ phys.peakHeight = Math.max(phys.peakHeight, 22); phys.finalDist = Math.max(phys.finalDist, 94); }
-        else if (runs === 4){ phys.peakHeight = Math.max(phys.peakHeight, 1.0); phys.finalDist = Math.max(phys.finalDist, 76); }
-      }
+      /* Note: physics override respects our new BOUNDARY cap for
+         4s/6s by NOT overriding finalDist above the safe ceiling. */
     }
     const animPose = SHOT_KINEMATICS[phys.shotType] || SHOT_KINEMATICS.defend;
 
