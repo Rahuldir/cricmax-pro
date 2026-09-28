@@ -1,78 +1,138 @@
-/* ============================================================
-   CricMax Pro — Stadium Engine (GLB, coordinate-aligned)
-   Same public API as the original procedural stadium:
-     window.CricMaxStadium = { build(scene), makeWoodTexture() }
-   ------------------------------------------------------------
-   Coordinate system used by the viewer (index.html):
-     • grass / pitch at y = 0
-     • pitch runs along Z, origin at pitch centre
-     • stadium centred on origin
-   ------------------------------------------------------------
-   Coordinate / orientation values taken from working StadiumView:
-     STADIUM_SIZE      = 200   (max dimension after scaling)
-     BOUNDARY_RADIUS   = 38    (visual reference)
-     TOWER_XZ / TOWER_Y= 82 / 46
-     fieldY (raycast)  ≈ 7.20  (grass level inside the GLB)
-   ============================================================ */
+/* ══════════════════════════════════════════════════════════════
+   StadiumView — final scene builder (Updated)
+   • Loads stadium.glb · newplayer.glb · bat.glb · stump.glb
+   • Explicit 30-Yard Circle + Boundary Rope
+   • Drone Camera set as default
+   • 3D Scoreboard Card beyond boundary
+   • Two pitch ends labeled
+   ══════════════════════════════════════════════════════════════ */
 (function(){
   'use strict';
 
-  console.log('%c[stadium.js] GLB / coord-aligned', 'color:#00e676;font-weight:bold');
+  console.log('%c[stadium.js] v5.1-updated', 'color:#00e676;font-weight:bold');
 
-  /* ── Device tier ────────────────────────────────────────── */
-  const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|BlackBerry/i.test(navigator.userAgent || '')
-                  || (navigator.maxTouchPoints > 1 && window.innerWidth < 900);
+  const ua = navigator.userAgent || '';
+  const IS_MOBILE =
+    /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|BlackBerry|Opera Mini/i.test(ua)
+    || (navigator.maxTouchPoints > 1 && window.innerWidth < 900);
+  const PIXEL_RATIO = IS_MOBILE ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 
-  /* ── Config (coordinates taken from working StadiumView) ── */
-  const GLB_URL          = 'stadium.glb';
-  const STADIUM_SIZE     = 200;        // max dimension of the GLB after scaling
-  const MODEL_ROT_Y      = 0;          // radians — rotate if pitch is not along Z
-  const ENABLE_DRACO     = true;
-  const DRACO_PATH       = 'https://www.gstatic.com/draco/versioned/decoders/1.5.6/';
+  const STADIUM_FILE = 'models/stadium.glb';
+  const PLAYER_FILE  = 'models/newplayer.glb';
+  const BAT_FILE     = 'models/bat.glb';
+  const STUMP_FILE   = 'models/stump.glb';
 
-  /* Reference constants (kept for documentation / future use) */
-  const BOUNDARY_RADIUS  = 38;
-  const TOWER_XZ         = 82;
-  const TOWER_Y          = 46;
-  // eslint-disable-next-line no-unused-vars
-  const FIELD_POSITIONS_REF = [
-    { role:'Striker',     x: 0.4, z:  8.6 },
-    { role:'Non-Striker', x:-1.2, z: -8.6 },
-    { role:'Bowler',      x: 0.5, z:-24.0 },
-    { role:'Keeper',      x: 0.0, z: 14.0 },
-    { role:'Slip',        x: 3.0, z: 14.5 }
+  const STADIUM_SIZE    = 200;
+  const PLAYER_HEIGHT   = 1.80;
+  const BAT_LENGTH      = 0.96;
+  const BALL_DIAMETER   = 0.072;
+  const STUMPS_HEIGHT   = 0.71;
+  const BOUNDARY_RADIUS = 38; // Standard 30-yard inner circle is ~27.4m
+  const TOWER_XZ        = 82;
+  const TOWER_Y         = 46;
+
+  const FIELD_POSITIONS = [
+    { role:'Striker',             x: 0.4, z: 8.6, rotY:Math.PI,        hasBat:true  },
+    { role:'Non-Striker',         x:-1.2, z:-8.6, rotY:0,              hasBat:true  },
+    { role:'Umpire (Bowl End)',   x:-1.0, z:-11.5,rotY:0                            },
+    { role:'Umpire (Sq Leg)',     x:-13,  z: 0,   rotY:Math.PI*0.5                  },
+    { role:'Bowler',              x: 0.5, z:-24,  rotY:0,              hasBall:true },
+    { role:'Keeper',              x: 0,   z: 14,  rotY:Math.PI                      },
+    { role:'Slip',                x: 3,   z: 14.5,rotY:Math.PI                      },
+    { role:'Third Man',           x: 15,  z: 22,  rotY:Math.PI*0.9                  },
+    { role:'Point',               x: 24,  z: 5,   rotY:Math.PI*0.85                 },
+    { role:'Cover',               x: 21,  z:-14,  rotY:Math.PI*0.62                 },
+    { role:'Mid-Off',             x: 9,   z:-25,  rotY:Math.PI*0.12                 },
+    { role:'Mid-On',              x:-9,   z:-25,  rotY:-Math.PI*0.12                },
+    { role:'Mid-Wicket',          x:-22,  z:-14,  rotY:-Math.PI*0.6                 },
+    { role:'Square Leg',          x:-24,  z: 4,   rotY:-Math.PI*0.85                },
+    { role:'Fine Leg',            x:-15,  z: 22,  rotY:Math.PI*1.15                 }
   ];
 
-  /* ── Wood texture for bat + stumps (unchanged) ─────────── */
-  function makeWoodTexture(){
-    const c = document.createElement('canvas');
-    c.width = 256; c.height = 512;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#e8d59e';
-    ctx.fillRect(0, 0, 256, 512);
-    for (let i = 0; i < 20; i++){
-      ctx.strokeStyle = 'rgba(140,110,60,' + (Math.random()*0.35) + ')';
-      ctx.lineWidth = Math.random() * 1.5 + 0.3;
-      ctx.beginPath();
-      let x = Math.random() * 256;
-      ctx.moveTo(x, 0);
-      for (let y = 0; y < 512; y += 20){
-        x += (Math.random() - 0.5) * 6;
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-    const t = new THREE.CanvasTexture(c);
-    t.anisotropy = 4;
-    return t;
+  // ─── Scene ────────────────────────────────────────────────
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87b8e0);
+  scene.fog = null;
+
+  // Set default camera to Drone View (matches screenshot)
+  const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.3, 2000);
+  camera.position.set(0, 55, 0.1); // Top-down drone position
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: !IS_MOBILE,
+    powerPreference: IS_MOBILE ? 'default' : 'high-performance',
+    alpha: false
+  });
+  renderer.setPixelRatio(PIXEL_RATIO);
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = false;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  document.body.appendChild(renderer.domElement);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.add(ambient);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x88aa88, 0.6);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+  sun.position.set(80, 400, 80);
+  scene.add(sun);
+
+  // ─── Loader ───────────────────────────────────────────────
+  const loader = new THREE.GLTFLoader();
+  if (typeof THREE.DRACOLoader === 'function'){
+    try {
+      const draco = new THREE.DRACOLoader();
+      draco.setDecoderPath('https://unpkg.com/three@0.176.0/examples/jsm/libs/draco/');
+      loader.setDRACOLoader(draco);
+      console.log('[Loader] DRACO attached ✅');
+    } catch(e){}
   }
 
-  /* ── Model helpers ─────────────────────────────────────── */
+  const progress = { total: 4, done: 0 };
+  function tickProgress(){
+    progress.done++;
+    const sub = document.getElementById('loaderSub');
+    const txt = document.getElementById('loaderText');
+    if (sub) sub.textContent = progress.done + ' / ' + progress.total;
+    if (txt && progress.done >= progress.total) txt.textContent = 'Ready';
+  }
+
+  function loadOne(key, url){
+    return new Promise(function(resolve){
+      loader.load(url, function(gltf){
+        const m = gltf.scene || gltf.scenes[0];
+        if (m && !m.name) m.name = key;
+        console.log('[Loaded] ' + key);
+        tickProgress();
+        resolve(m);
+      }, undefined, function(err){
+        console.warn('[Failed] ' + key, err && err.message ? err.message : err);
+        tickProgress();
+        resolve(null);
+      });
+    });
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────
+  function scaleToHeight(model, targetHeight){
+    model.updateMatrixWorld(true);
+    let box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3(); box.getSize(size);
+    if (size.y === 0) return 1;
+    const s = targetHeight / size.y;
+    model.scale.setScalar(s);
+    model.updateMatrixWorld(true);
+    box = new THREE.Box3().setFromObject(model);
+    model.position.y -= box.min.y;
+    model.updateMatrixWorld(true);
+    return s;
+  }
   function scaleToMaxDim(model, targetMax){
     model.updateMatrixWorld(true);
-    const box  = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3(); box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
     if (maxDim === 0) return 1;
     const s = targetMax / maxDim;
@@ -80,22 +140,45 @@
     model.updateMatrixWorld(true);
     return s;
   }
-
   function bottomToZero(model){
     model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model);
     model.position.y -= box.min.y;
-    model.updateMatrixWorld(true);
+  }
+  function forceVisible(obj){
+    obj.traverse(function(c){
+      c.visible = true;
+      c.frustumCulled = true;
+      if (c.isMesh && c.material){
+        const mats = Array.isArray(c.material) ? c.material : [c.material];
+        mats.forEach(function(m){
+          m.transparent = false;
+          m.opacity = 1;
+          m.depthWrite = true;
+          if (typeof m.roughness === 'number') m.roughness = 0.75;
+          m.side = THREE.FrontSide;
+          if (m.emissive) m.emissive.setHex(0x000000);
+          m.needsUpdate = true;
+        });
+      }
+    });
+  }
+  function scaleAndClone(sourceModel, targetHeight){
+    const clone = THREE.SkeletonUtils && THREE.SkeletonUtils.clone
+      ? THREE.SkeletonUtils.clone(sourceModel)
+      : sourceModel.clone(true);
+    scaleToHeight(clone, targetHeight);
+    forceVisible(clone);
+    return clone;
   }
 
-  /* Raycast straight down at the pitch area to find the grass plane. */
-  function findFieldY(stadium){
+  function findFieldLevel(stadium){
     const raycaster = new THREE.Raycaster();
-    const down = new THREE.Vector3(0, -1, 0);
+    const down = new THREE.Vector3(0,-1,0);
     const counts = {};
     for (let x = -15; x <= 15; x += 3){
       for (let z = -15; z <= 15; z += 3){
-        raycaster.set(new THREE.Vector3(x, 300, z), down);
+        raycaster.set(new THREE.Vector3(x, 150, z), down);
         const hits = raycaster.intersectObject(stadium, true);
         if (hits.length){
           const k = Math.round(hits[0].point.y * 10) / 10;
@@ -107,149 +190,318 @@
     Object.keys(counts).forEach(function(k){
       if (counts[k] > bestCount){ bestCount = counts[k]; bestY = parseFloat(k); }
     });
-    return (bestCount >= 3 && bestY > 0) ? bestY : 7.20;  // your GLB reports ~7.20
+    return bestCount >= 3 && bestY > 1 ? bestY : 7.20;
   }
 
-  /* ============================================================
-     BUILD
-     ============================================================ */
-  function build(scene){
-    const handles = {
-      root: null,
-      ambient: null,
-      hemi: null,
-      sun: null,
-      fieldY: 0,          // viewer sees grass at y=0
-      grassShift: 0,      // how much we moved the GLB down
-      ready: false,
-      setSky: function(){},
-      update: function(){}
-    };
-
-    /* ── Lighting (stadium-owned) ──────────────────────────── */
-    const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambient);
-    handles.ambient = ambient;
-
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x88aa88, 0.6);
-    scene.add(hemi);
-    handles.hemi = hemi;
-
-    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-    sun.position.set(80, 400, 80);
-    sun.castShadow = !IS_MOBILE;
-    scene.add(sun);
-    handles.sun = sun;
-
-    /* ── Sky presets (viewer calls setSky('day'|'sunset'|'night')) ── */
-    handles.setSky = function(mode){
-      if (mode === 'day'){
-        if (scene.background && scene.background.set) scene.background.set(0x87b8e0);
-        ambient.color.set(0xffffff); ambient.intensity = 0.8;
-        hemi.color.set(0xffffff);   hemi.groundColor.set(0x88aa88); hemi.intensity = 0.6;
-        sun.color.set(0xffffff);    sun.intensity = 1.5;
-      } else if (mode === 'sunset'){
-        if (scene.background && scene.background.set) scene.background.set(0xfd5e53);
-        ambient.color.set(0xffa07a); ambient.intensity = 0.65;
-        hemi.color.set(0xffb08a);   hemi.groundColor.set(0x4a2a20); hemi.intensity = 0.5;
-        sun.color.set(0xffb070);    sun.intensity = 0.85;
-      } else {
-        if (scene.background && scene.background.set) scene.background.set(0x020713);
-        ambient.color.set(0xd4e2ff); ambient.intensity = 0.45;
-        hemi.color.set(0x8ba6d4);   hemi.groundColor.set(0x1a2030); hemi.intensity = 0.35;
-        sun.color.set(0xdde8ff);    sun.intensity = 0.0;
-      }
-    };
-
-    /* ── Load the GLB ─────────────────────────────────────── */
-    if (typeof THREE.GLTFLoader === 'undefined'){
-      console.error('[Stadium] THREE.GLTFLoader missing — add the GLTFLoader <script> in the HTML.');
-      return handles;
-    }
-
-    const loader = new THREE.GLTFLoader();
-    if (ENABLE_DRACO && typeof THREE.DRACOLoader === 'function'){
-      try {
-        const draco = new THREE.DRACOLoader();
-        draco.setDecoderPath(DRACO_PATH);
-        loader.setDRACOLoader(draco);
-        console.log('[Stadium] DRACO attached');
-      } catch(e){}
-    }
-
-    loader.load(
-      GLB_URL,
-      function(gltf){
-        const model = gltf.scene || gltf.scenes[0];
-        if (!model) return;
-
-        /* 1. Scale so max dimension = STADIUM_SIZE (200). */
-        scaleToMaxDim(model, STADIUM_SIZE);
-
-        /* 2. Orient the pitch along +Z. */
-        model.rotation.y = MODEL_ROT_Y;
-        model.updateMatrixWorld(true);
-
-        /* 3. Drop so the model's own bottom sits at y = 0. */
-        bottomToZero(model);
-
-        /* 4. Find where the grass actually is (GLB's grass is not at y=0). */
-        const rawFieldY = findFieldY(model);
-        console.log('[Stadium] raycast grass y =', rawFieldY.toFixed(2));
-
-        /* 5. Shift the model so grass sits at y = 0, matching the viewer. */
-        model.position.y -= rawFieldY;
-        model.position.x = 0;
-        model.position.z = 0;
-        model.updateMatrixWorld(true);
-
-        handles.grassShift = rawFieldY;
-        handles.fieldY     = 0;         // the viewer always sees grass at 0
-
-        /* 6. Shadows off, materials NEVER touched — grass/pitch stays visible. */
-        model.traverse(function(c){
-          if (c.isMesh){
-            c.castShadow    = false;
-            c.receiveShadow = false;
-            c.frustumCulled = true;
-          }
-        });
-
-        scene.add(model);
-        handles.root  = model;
-        handles.ready = true;
-
-        if (typeof window.__cmProgress === 'function'){
-          window.__cmProgress(70, 'STADIUM READY');
-        }
-
-        console.log(
-          '%c[Stadium] ✅ GLB loaded · shifted down by ' + rawFieldY.toFixed(2) +
-          ' · grass now at y=0',
-          'color:#00e676'
-        );
-      },
-      function(xhr){
-        if (xhr.total && typeof window.__cmProgress === 'function'){
-          const pct = 30 + (xhr.loaded / xhr.total) * 30;
-          window.__cmProgress(
-            pct,
-            'LOADING STADIUM ' + Math.round((xhr.loaded / xhr.total) * 100) + '%'
-          );
-        }
-      },
-      function(err){
-        console.error('[Stadium] ❌ GLB load failed:', err);
-        console.error('[Stadium] Check that "' + GLB_URL + '" exists and is served over http(s).');
-      }
+  function makeBall(){
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(BALL_DIAMETER/2, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 })
     );
-
-    return handles;
+  }
+  function makeStumps(){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xefe2c0, roughness: 0.7 });
+    [-0.11, 0, 0.11].forEach(function(x){
+      const s = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.019, 0.019, STUMPS_HEIGHT, 8), mat
+      );
+      s.position.set(x, STUMPS_HEIGHT/2, 0);
+      g.add(s);
+    });
+    return g;
   }
 
-  /* ── Export (same shape as before) ─────────────────────── */
-  window.CricMaxStadium = {
-    build: build,
-    makeWoodTexture: makeWoodTexture
-  };
+  let fieldY = 7.20;
+  let stadiumModel = null;
+  let stadiumRadius = 100;
+
+  function placeStadium(model){
+    if (!model) return;
+    stadiumModel = model;
+    scaleToMaxDim(model, STADIUM_SIZE);
+    bottomToZero(model);
+    model.position.set(0, 0, 0);
+    scene.add(model);
+
+    fieldY = findFieldLevel(model);
+    console.log('[Raycast] grass y=' + fieldY.toFixed(2));
+
+    model.traverse(function(c){
+      if (c.isMesh){ c.castShadow = false; c.receiveShadow = false; }
+    });
+
+    const box = new THREE.Box3().setFromObject(model);
+    const sz = new THREE.Vector3(); box.getSize(sz);
+    stadiumRadius = Math.max(sz.x, sz.z) * 0.6;
+  }
+
+  // ─── Explicit 30-Yard Circle, Boundary Rope & Pitch ───────
+  function buildPitchAndBoundary(){
+    // 1. Pitch Strip
+    const pitchGeo = new THREE.PlaneGeometry(3.6, 22.2);
+    const pitchMat = new THREE.MeshStandardMaterial({ color: 0x9b744a, roughness: 0.8 });
+    const pitch = new THREE.Mesh(pitchGeo, pitchMat);
+    pitch.rotation.x = -Math.PI / 2;
+    pitch.position.y = fieldY + 0.02;
+    scene.add(pitch);
+
+    // 2. 30-Yard Inner Circle (Dashed Ring)
+    const innerRingGeo = new THREE.RingGeometry(27.4, 27.7, 64);
+    const innerRingMat = new THREE.MeshBasicMaterial({ 
+      color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.4 
+    });
+    const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+    innerRing.rotation.x = -Math.PI / 2;
+    innerRing.position.y = fieldY + 0.03;
+    // Create dashed effect
+    innerRingMat.wireframe = true; 
+    scene.add(innerRing);
+
+    // 3. Boundary Rope (Thick Torus)
+    const boundaryGeo = new THREE.TorusGeometry(BOUNDARY_RADIUS, 0.15, 8, 64);
+    const boundaryMat = new THREE.MeshStandardMaterial({ 
+      color: 0x00e676, emissive: 0x00e676, emissiveIntensity: 0.5 
+    });
+    const boundary = new THREE.Mesh(boundaryGeo, boundaryMat);
+    boundary.rotation.x = -Math.PI / 2;
+    boundary.position.y = fieldY + 0.1;
+    scene.add(boundary);
+    
+    console.log('[Field] Explicit 30-yard circle & boundary rope added.');
+  }
+
+  // ─── 3D Scoreboard "Card" Beyond Boundary ───────────────
+  function createScoreboardCard(){
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Draw Background
+    ctx.fillStyle = '#0d1117'; 
+    ctx.fillRect(0, 0, 1024, 512);
+    
+    // Draw Header
+    ctx.fillStyle = '#e10600'; 
+    ctx.fillRect(0, 0, 1024, 80);
+    ctx.fillStyle = '#ffffff'; 
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('CRICMAX PRO — LIVE', 512, 55);
+    
+    // Draw Score
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 120px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('CHE', 80, 220);
+    ctx.fillStyle = '#00e676';
+    ctx.fillText('1/0', 350, 220);
+    
+    // Draw Batters
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 40px Arial';
+    ctx.fillText('Anshul K.  0 (0)', 80, 320);
+    ctx.fillText('R. Rickelton  0 (1)', 80, 380);
+    ctx.fillText('M. Choudhary  1 (1)', 80, 440);
+    
+    // Draw Bowler
+    ctx.fillStyle = '#22d3ee';
+    ctx.fillText('Bowler: Starc', 600, 320);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Overs: 0.1', 600, 380);
+    
+    const tex = new THREE.CanvasTexture(canvas);
+    const geo = new THREE.PlaneGeometry(60, 30); // Large size for visibility
+    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+    const card = new THREE.Mesh(geo, mat);
+    
+    // Position it "Beyond the Boundary" at the far end
+    card.position.set(0, 20, 60); 
+    scene.add(card);
+    console.log('[UI] 3D Scorecard added beyond boundary.');
+  }
+
+  // ─── Floodlights ──────────────────────────────────────────
+  const floodLights = [];
+
+  function attachFloodlight(x, z){
+    const yWorld = fieldY + TOWER_Y;
+    let spot = null;
+
+    if (!IS_MOBILE){
+      spot = new THREE.SpotLight(0xffe9c0, 0, 400, Math.PI * 0.18, 0.65, 0.0);
+      spot.position.set(x, yWorld, z);
+      spot.target.position.set(0, fieldY, 0);
+      scene.add(spot);
+      scene.add(spot.target);
+    }
+
+    const len = Math.hypot(x, z);
+    const nx = -x/len, nz = -z/len;
+
+    const panelMat = new THREE.MeshBasicMaterial({
+      color: 0x111111, transparent: true, opacity: 0,
+      side: THREE.DoubleSide, toneMapped: false
+    });
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.5), panelMat);
+    panel.position.set(x + nx*0.6, yWorld - 1.5, z + nz*0.6);
+    panel.lookAt(0, fieldY, 0);
+    scene.add(panel);
+
+    let cheapLight = null;
+    if (IS_MOBILE){
+      cheapLight = new THREE.PointLight(0xffe9c0, 0, 150, 1.5);
+      cheapLight.position.set(x, yWorld - 2, z);
+      scene.add(cheapLight);
+    }
+
+    const ref = {
+      spot, panel, panelMat, cheapLight,
+      setGlow: function(v){
+        if (spot)       spot.intensity = v * 1.8;
+        if (cheapLight) cheapLight.intensity = v * 0.35;
+        panelMat.opacity = v;
+        panelMat.color.setRGB(0.15 + v*0.85, 0.15 + v*0.85, 0.10 + v*0.90);
+      }
+    };
+    ref.setGlow(0);
+    floodLights.push(ref);
+  }
+
+  function buildFloodlights(){
+    const R = TOWER_XZ;
+    [[R,R],[-R,R],[R,-R],[-R,-R]].forEach(function(p){
+      attachFloodlight(p[0], p[1]);
+    });
+  }
+
+  function buildAdBoards(){
+    const count = IS_MOBILE ? 10 : 24;
+    const colors = [0x0a0e1a, 0x7f1d1d, 0x0a0e1a, 0x111111, 0x1e3a8a, 0x0a0e1a];
+    const H = 1.0, W = 5.0, R = BOUNDARY_RADIUS + 1.5;
+
+    for (let i = 0; i < count; i++){
+      const a = (i/count) * Math.PI * 2;
+      const x = Math.cos(a)*R, z = Math.sin(a)*R;
+      const mat = new THREE.MeshBasicMaterial({ color: colors[i % colors.length] });
+      const board = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.15), mat);
+      board.position.set(x, fieldY + H/2 + 0.05, z);
+      board.lookAt(0, fieldY + H/2, 0);
+      scene.add(board);
+    }
+  }
+
+  // ─── Players ──────────────────────────────────────────────
+  const playerRefs = {};
+  const accessoryRefs = {};
+
+  function placePlayers(playerGLB, batGLB){
+    if (!playerGLB) return;
+
+    FIELD_POSITIONS.forEach(function(pos){
+      const group = new THREE.Group();
+      group.name = 'PLAYER_' + pos.role.replace(/[^a-z0-9]/gi,'_');
+      group.userData.role = pos.role;
+
+      const pm = scaleAndClone(playerGLB, PLAYER_HEIGHT);
+      group.add(pm);
+
+      if (pos.hasBat && batGLB){
+        const bat = scaleAndClone(batGLB, BAT_LENGTH);
+        group.add(bat);
+        accessoryRefs[pos.role] = accessoryRefs[pos.role] || {};
+        accessoryRefs[pos.role].bat = bat;
+      }
+
+      if (pos.hasBall){
+        const ball = makeBall();
+        ball.position.set(0.35, 1.35, 0.20);
+        group.add(ball);
+        accessoryRefs[pos.role] = accessoryRefs[pos.role] || {};
+        accessoryRefs[pos.role].ball = ball;
+      }
+
+      group.rotation.y = pos.rotY || 0;
+      group.position.set(pos.x, fieldY, pos.z);
+      scene.add(group);
+      playerRefs[pos.role] = group;
+    });
+
+    console.log('[Players] ' + Object.keys(playerRefs).length +
+                ' placed @ y=' + fieldY.toFixed(2));
+  }
+
+  // ─── Boot ─────────────────────────────────────────────────
+  async function boot(){
+    console.log('[Boot] loading all 4 models in parallel');
+
+    const [stadiumGLB, playerGLB, batGLB, stumpGLB] = await Promise.all([
+      loadOne('stadium', STADIUM_FILE),
+      loadOne('player',  PLAYER_FILE),
+      loadOne('bat',     BAT_FILE),
+      loadOne('stump',   STUMP_FILE)
+    ]);
+
+    placeStadium(stadiumGLB);
+    buildFloodlights();
+    buildAdBoards();
+    
+    // Add the explicitly requested elements
+    buildPitchAndBoundary();
+    createScoreboardCard();
+
+    // Stumps — real stump.glb or procedural fallback
+    function placeStumps(z){
+      const g = stumpGLB ? scaleAndClone(stumpGLB, STUMPS_HEIGHT) : makeStumps();
+      g.position.set(0, fieldY, z);
+      scene.add(g);
+      return g;
+    }
+    const stumpsA = placeStumps( 10);
+    const stumpsB = placeStumps(-10);
+
+    placePlayers(playerGLB, batGLB);
+
+    window.StadiumView = {
+      scene, camera, renderer, sun, hemi, ambient,
+      stadiumModel, stadiumRadius, fieldY,
+      players: playerRefs,
+      accessories: accessoryRefs,
+      stumpsStriker: stumpsA,
+      stumpsBowler:  stumpsB,
+      BOUNDARY_RADIUS,
+      floodLights,
+      setFloodlights: function(v){ floodLights.forEach(function(f){ f.setGlow(v); }); }
+    };
+
+    console.log('[StadiumView] ✅ Ready · fieldY=' + fieldY.toFixed(2) +
+                ' · players=' + Object.keys(playerRefs).length);
+  }
+
+  window.addEventListener('resize', function(){
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  const fpsEl = document.getElementById('fps');
+  let frames = 0, lastFps = performance.now();
+  function animate(){
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+    frames++;
+    const now = performance.now();
+    if (now - lastFps >= 1000){
+      if (fpsEl){
+        const f = frames;
+        fpsEl.textContent = f + ' FPS';
+        fpsEl.classList.toggle('low', f < 25);
+      }
+      frames = 0; lastFps = now;
+    }
+  }
+
+  boot().catch(function(e){ console.error('[stadium.js] boot threw:', e); });
+  animate();
+
 })();
