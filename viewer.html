@@ -1772,7 +1772,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   /* ── Spider cam — realistic cable-mounted camera ──
      Sweeps laterally with eased pauses (operator holding a shot),
-     hovers 18–22 m, gently bobs, always framing the action. */
+     hovers ~17 m, gently bobs, always framing the action.
+     Uses 0.15s velocity look-ahead so the framing never lags the ball. */
   function updateSpiderCam(elapsed,camPos,camTarget){
     const t=elapsed;
     // Eased lateral sweep — decelerates at the ends like a real operator.
@@ -1785,16 +1786,24 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     // Lower altitude (≈17 m) → keeps the whole pitch in frame,
     // never swings out over the stands or the boundary rope.
     const y=17+Math.sin(t*0.7)*1.4+Math.sin(t*1.9)*0.25;
-    camPos.lerp(new THREE.Vector3(x,y,z),0.04);
+    camPos.lerp(new THREE.Vector3(x,y,z),0.06);
+    // Predict the ball's next position using its velocity (~0.15s look-ahead)
+    // so the framing catches up instantly instead of lagging behind.
     const focus=(ball&&ball.visible)
-      ?new THREE.Vector3(ball.position.x*0.65,Math.max(1.4,ball.position.y*0.9),ball.position.z*0.7+2)
+      ?new THREE.Vector3(
+          (ball.position.x+ball.velocity.x*0.15)*0.75,
+          Math.max(1.4,(ball.position.y+ball.velocity.y*0.15)*0.9),
+          (ball.position.z+ball.velocity.z*0.15)*0.8+1
+        )
       :new THREE.Vector3(0,1.5,STRIKER_BASE_Z*0.6);
-    camTarget.lerp(focus,0.06);
+    // Snap-look is much faster than position lerp → ball stays centred
+    camTarget.lerp(focus,0.22);
   }
 
   /* ── Drone cam — high-altitude orbiting camera ──
      Continuous slow orbit INSIDE the field boundary so the stadium
-     roof / shed can never come between the camera and the pitch. */
+     roof / shed can never come between the camera and the pitch.
+     Uses 0.15s velocity look-ahead so the framing never lags the ball. */
   function updateDroneCam(elapsed,camPos,camTarget){
     const t=elapsed;
     // Continuous orbit + slight wobble (feels like real piloting)
@@ -1806,12 +1815,18 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     // Moderate altitude (≈24 m) with a breathing wobble — always above
     // the pitch, never high enough to swing behind the top tier.
     const y=24+Math.sin(t*0.32)*2.5+Math.sin(t*0.9)*0.5;
-    camPos.lerp(new THREE.Vector3(x,y,z),0.03);
+    camPos.lerp(new THREE.Vector3(x,y,z),0.05);
+    // Predict ball position for tighter tracking.
     const ballPos=(ball&&ball.visible)?ball.position:null;
     const focus=ballPos
-      ?new THREE.Vector3(ballPos.x*0.5,Math.max(1.6,ballPos.y),ballPos.z*0.5)
+      ?new THREE.Vector3(
+          (ballPos.x+ball.velocity.x*0.15)*0.55,
+          Math.max(1.6,ballPos.y+ball.velocity.y*0.15),
+          (ballPos.z+ball.velocity.z*0.15)*0.6
+        )
       :new THREE.Vector3(0,1.7,0);
-    camTarget.lerp(focus,0.05);
+    // Faster target lerp so framing snaps to the ball quickly
+    camTarget.lerp(focus,0.20);
   }
 
   function setCamera(mode){
@@ -1994,6 +2009,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     const T_FOLLOW_END=T_CONTACT+animPose.followTime;
     const start=performance.now();
     let bounced=false,contacted=false,releaseThudPlayed=false;
+    // Seed initial ball velocity so look-ahead cameras have data from frame 0
+    ball.velocity=new THREE.Vector3(0,0,0);
 
     function loop(now){
       const elapsed=(now-start)*timeScale;
@@ -2062,13 +2079,17 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
           lastDustPuff=now;
           if(window.fxDustPuff)window.fxDustPuff(bowler.position.x,0.05,bowler.position.z,'pitch');
         }
-        ball.position.set(bowler.position.x+0.3,2.0,bowler.position.z);
+        const bx=bowler.position.x+0.3,by=2.0,bz=bowler.position.z;
+        ball.velocity.set(bx-ball.position.x,by-ball.position.y,bz-ball.position.z);
+        ball.position.set(bx,by,bz);
         if(!releaseThudPlayed&&(isWkt||isCatch||runs>=4)){releaseThudPlayed=true;if(!isReplay)playThud(0.55);}
       }else if(elapsed<T_PITCH){
         const t=(elapsed-T_RELEASE)/(T_PITCH-T_RELEASE);
-        ball.position.x=THREE.MathUtils.lerp(0.55,pitchX,t);
-        ball.position.z=THREE.MathUtils.lerp(-9.8,pitchZ,t);
-        ball.position.y=THREE.MathUtils.lerp(2.0,0.04,t*t);
+        const nx=THREE.MathUtils.lerp(0.55,pitchX,t);
+        const ny=THREE.MathUtils.lerp(2.0,0.04,t*t);
+        const nz=THREE.MathUtils.lerp(-9.8,pitchZ,t);
+        ball.velocity.set(nx-ball.position.x,ny-ball.position.y,nz-ball.position.z);
+        ball.position.set(nx,ny,nz);
       }else if(elapsed<T_CONTACT){
         const t=(elapsed-T_PITCH)/(T_CONTACT-T_PITCH);
         if(!bounced){
@@ -2077,9 +2098,11 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
           if(window.fxDustPuff)window.fxDustPuff(ball.position.x,0.05,ball.position.z,isSpin?'spin':'pitch');
           if(window.fxBounceMark)window.fxBounceMark(ball.position.x,ball.position.z);
         }
-        ball.position.x=THREE.MathUtils.lerp(pitchX,strikerBat.position.x-0.1,t);
-        ball.position.z=THREE.MathUtils.lerp(pitchZ,STRIKER_BASE_Z,t);
-        ball.position.y=0.04+Math.sin(t*Math.PI*0.5)*0.9;
+        const nx=THREE.MathUtils.lerp(pitchX,strikerBat.position.x-0.1,t);
+        const ny=0.04+Math.sin(t*Math.PI*0.5)*0.9;
+        const nz=THREE.MathUtils.lerp(pitchZ,STRIKER_BASE_Z,t);
+        ball.velocity.set(nx-ball.position.x,ny-ball.position.y,nz-ball.position.z);
+        ball.position.set(nx,ny,nz);
       }else if(elapsed<T_END){
         const t=(elapsed-T_CONTACT)/flightTime;
         if(!contacted){
@@ -2114,11 +2137,15 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
           if(runs>=4){camPos.lerp(new THREE.Vector3(ball.position.x*0.4,14,ball.position.z-20),0.05);camTarget.lerp(ball.position,0.08);}
           else if(isWkt){camPos.lerp(new THREE.Vector3(0,2.2,14.5),0.06);camTarget.lerp(new THREE.Vector3(0,1.2,STRIKER_BASE_Z),0.08);}
         }
-        if(isWkt&&!isCatch){ball.position.set(0.1,0.3,10.4);}
-        else{
-          ball.position.x=THREE.MathUtils.lerp(strikerBat.position.x,hitX,t);
-          ball.position.z=THREE.MathUtils.lerp(STRIKER_BASE_Z,hitZ,t);
-          ball.position.y=0.05+4*phys.peakHeight*t*(1-t);
+        if(isWkt&&!isCatch){
+          ball.velocity.set(0,0,0);
+          ball.position.set(0.1,0.3,10.4);
+        }else{
+          const nx=THREE.MathUtils.lerp(strikerBat.position.x,hitX,t);
+          const nz=THREE.MathUtils.lerp(STRIKER_BASE_Z,hitZ,t);
+          const ny=0.05+4*phys.peakHeight*t*(1-t);
+          ball.velocity.set(nx-ball.position.x,ny-ball.position.y,nz-ball.position.z);
+          ball.position.set(nx,ny,nz);
         }
       }else{
         if(!RunningState.active){
