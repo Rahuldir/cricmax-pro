@@ -132,7 +132,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 #audioMenu.open{opacity:1;transform:translateY(0) scale(1);visibility:visible;}
 .audio-opt{display:flex;align-items:center;gap:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:10px;color:#c5cdd8;font-size:11.5px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:5px;text-align:left;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);}
 .audio-opt:last-child{margin-bottom:0;}
-.audio-opt .ai{font-size:15px;line-height:1;}
+.audio-opt .ai{font-size:15px;line-height:1;display:inline-flex;align-items:center;}
 .audio-opt .as{margin-left:auto;font-size:8.5px;font-weight:900;color:#7a8590;letter-spacing:.5px;}
 .audio-opt.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;}
 .audio-opt.on .as{color:#fff;}
@@ -143,11 +143,11 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .menu-ttl{font-size:8.5px;font-weight:900;letter-spacing:1.5px;color:var(--f1-red);text-transform:uppercase;margin-bottom:5px;}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
 .menu-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
-.menu-t{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 5px;color:#c5cdd8;font-size:10px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;justify-content:center;text-align:center;min-height:34px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);}
+.menu-t{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 5px;color:#c5cdd8;font-size:10px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;justify-content:center;text-align:center;min-height:34px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);letter-spacing:1.2px;text-transform:uppercase;}
 .menu-t.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;}
-.menu-t .i{font-size:13px;line-height:1;}
+.menu-t .i{font-size:13px;line-height:1;display:inline-flex;align-items:center;flex-shrink:0;}
 .menu-div{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);margin:7px 0;}
-.cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;width:100%;}
+.cam-sel{background:rgba(15,23,42,.92);border:1px solid rgba(0,230,118,.45);color:#00e676;font-size:10px;font-weight:800;padding:5px 7px;border-radius:9px;outline:none;cursor:pointer;font-family:inherit;width:100%;letter-spacing:1px;text-transform:uppercase;}
 .cam-sel option{background:#0b1329;color:#fff;font-weight:700;}
 .speed{position:absolute;top:44px;right:12px;background:rgba(15,23,42,.92);border:1px solid rgba(34,211,238,.45);padding:3px 8px;border-radius:6px;color:#38bdf8;font-family:ui-monospace,monospace;font-size:10px;font-weight:800;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100006;}
 .speed.on{opacity:1;}
@@ -172,7 +172,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .banner.replay{color:#fbbf24;text-shadow:0 0 30px #b45309,0 6px 16px #000;letter-spacing:4px;}
 #tvMode{position:fixed;inset:0;z-index:100050;background:var(--stripes),#000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;text-align:center;}
 #tvMode.show{display:flex;}
-.tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;} .tv-mic{position:absolute;top:10px;right:92px;background:rgba(0,210,190,.15);border:1px solid rgba(0,210,190,.5);color:#00d2be;width:38px;height:32px;border-radius:9px;font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;} .tv-mic.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(225,6,0,.5);} .tv-mic:active{transform:scale(.94);}
+.tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;} .tv-mic{position:absolute;top:10px;right:92px;background:rgba(0,210,190,.15);border:1px solid rgba(0,210,190,.5);color:#00d2be;width:38px;height:32px;border-radius:9px;font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;} .tv-mic.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(225,6,0,.5);} .tv-mic:active{transform:scale(.94);}
 .tv-teams{font-size:clamp(14px,3.5vw,22px);font-weight:900;color:#00e676;margin-bottom:10px;}
 .tv-score{font-size:clamp(46px,15vw,100px);font-weight:900;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums;color:#fff;}
 .tv-meta{font-size:clamp(10px,1.7vw,13px);color:#7a8590;font-weight:700;margin-bottom:16px;}
@@ -267,7 +267,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 #viewerSheet{position:fixed;inset:0;width:100vw;height:100vh;z-index:1000000;display:none;flex-direction:column;background:#050505;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0);overflow:hidden;}
 #viewerSheet.open{display:flex;}
 .viewer-sheet__bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--f1-carbon),rgba(10,10,10,.98);border-bottom:2px solid transparent;border-image:linear-gradient(90deg,transparent,var(--f1-red) 15%,var(--f1-green) 50%,var(--f1-red) 85%,transparent) 1;}
-.sheet-back,.sheet-close{background:var(--f1-carbon),rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;font-family:inherit;font-size:11px;font-weight:900;letter-spacing:.6px;padding:8px 12px;border-radius:8px;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);flex:0 0 auto;touch-action:manipulation;}
+.sheet-back,.sheet-close{background:var(--f1-carbon),rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;font-family:inherit;font-size:11px;font-weight:900;letter-spacing:.6px;padding:8px 12px;border-radius:8px;cursor:pointer;clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%);flex:0 0 auto;touch-action:manipulation;display:inline-flex;align-items:center;gap:6px;}
 .sheet-close{background:rgba(225,6,0,.18);border-color:rgba(225,6,0,.5);color:#ffb4b0;}
 .sheet-tabs{flex:1 1 auto;display:flex;gap:6px;justify-content:center;min-width:0;}
 .sheet-tab{flex:1 1 0;min-width:0;background:var(--f1-carbon),rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#9aa3ae;font-family:inherit;font-size:11.5px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:9px 6px;border-radius:8px;cursor:pointer;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:background .15s,color .15s,border-color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:manipulation;}
@@ -300,6 +300,33 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   .cut-flash.fire{animation:none;}
   .ic.spin{animation:none;}
 }
+
+/* ═══ PREMIUM ICON SYSTEM ═══ */
+.ico{
+  display:inline-block;
+  width:14px;height:14px;
+  vertical-align:middle;
+  flex-shrink:0;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.ico-s{width:12px;height:12px;}
+.ico-l{width:18px;height:18px;stroke-width:1.8;}
+.ico-xl{width:22px;height:22px;stroke-width:1.6;}
+
+/* Audio FAB — 3 state icons, all rendered, one visible */
+#snd-ico{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;}
+#snd-ico .ico-snd{display:none;width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+#snd-ico .ico-snd.active{display:block;}
+
+/* Audio menu icons */
+.audio-opt .ai svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* Menu button icons */
+.menu-t .i svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;}
 
 /* ═══ F1 STANDALONE SHEET PANES ═══ */
 .sheet-body{
@@ -394,6 +421,15 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   font-size:9px;font-weight:700;color:rgba(255,255,255,.4);
   margin-top:1px;letter-spacing:.4px;
 }
+.f1-table .medal{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;
+  font-weight:900;font-size:11px;
+  font-family:ui-monospace,monospace;color:#000;
+}
+.f1-table .medal-1{background:linear-gradient(135deg,#ffd700,#b8860b);box-shadow:0 0 8px rgba(255,215,0,.6);}
+.f1-table .medal-2{background:linear-gradient(135deg,#e8e8e8,#a8a8a8);}
+.f1-table .medal-3{background:linear-gradient(135deg,#cd7f32,#8b4513);color:#fff;}
 
 .f1-stat-grid{
   display:grid;grid-template-columns:repeat(2,1fr);
@@ -631,15 +667,28 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <div class="speed" id="speedTag">SPEED: --</div>
 
   <div class="audio-fab">
-    <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)">
-      <span id="snd-ico">🏟️</span>
+    <div class="ic on" id="util-snd" onclick="toggleAudioMenu(event)" title="Audio">
+      <span id="snd-ico">
+        <svg class="ico-snd active" data-mode="stadium" viewBox="0 0 24 24"><line x1="4" y1="10" x2="4" y2="14"/><line x1="8" y1="7" x2="8" y2="17"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="16" y1="7" x2="16" y2="17"/><line x1="20" y1="10" x2="20" y2="14"/></svg>
+        <svg class="ico-snd" data-mode="commentary" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+        <svg class="ico-snd" data-mode="mute" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>
+      </span>
       <span class="snd-caret">▾</span>
     </div>
     <div id="audioMenu">
       <div class="menu-ttl">Audio Mode</div>
-      <button class="audio-opt on" id="aud-stadium" onclick="setAudioMode('stadium')"><span class="ai">🏟️</span><span>Stadium Sound</span><span class="as">ON</span></button>
-      <button class="audio-opt" id="aud-commentary" onclick="setAudioMode('commentary')"><span class="ai">🎙️</span><span>Ball-by-Ball</span><span class="as">LIVE</span></button>
-      <button class="audio-opt" id="aud-mute" onclick="setAudioMode('mute')"><span class="ai">🔇</span><span>Mute</span><span class="as">OFF</span></button>
+      <button class="audio-opt on" id="aud-stadium" onclick="setAudioMode('stadium')">
+        <span class="ai"><svg viewBox="0 0 24 24"><line x1="4" y1="10" x2="4" y2="14"/><line x1="8" y1="7" x2="8" y2="17"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="16" y1="7" x2="16" y2="17"/><line x1="20" y1="10" x2="20" y2="14"/></svg></span>
+        <span>Stadium Sound</span><span class="as">ON</span>
+      </button>
+      <button class="audio-opt" id="aud-commentary" onclick="setAudioMode('commentary')">
+        <span class="ai"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></span>
+        <span>Ball-by-Ball</span><span class="as">LIVE</span>
+      </button>
+      <button class="audio-opt" id="aud-mute" onclick="setAudioMode('mute')">
+        <span class="ai"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg></span>
+        <span>Mute</span><span class="as">OFF</span>
+      </button>
     </div>
   </div>
 
@@ -647,66 +696,66 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     <div class="menu-sec">
       <div class="menu-ttl">Navigate</div>
       <div class="menu-grid">
-        <button class="menu-t" data-pane="pitch" onclick="navTo('pitch')"><span class="i">🏏</span> Pitch</button>
-        <button class="menu-t" data-pane="scorecard" onclick="navTo('scorecard')"><span class="i">🃏</span> Card</button>
-        <button class="menu-t" data-pane="analytics" onclick="navTo('analytics')"><span class="i">📊</span> Stats</button>
-        <button class="menu-t" data-pane="leaderboards" onclick="navTo('leaderboards')"><span class="i">📈</span> Boards</button>
+        <button class="menu-t" data-pane="pitch" onclick="navTo('pitch')"><span class="i"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="16" x2="16" y2="16"/></svg></span>Pitch</button>
+        <button class="menu-t" data-pane="live" onclick="navTo('live')"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 6c2 3 2 9 0 12M16 6c-2 3-2 9 0 12"/></svg></span>Live</button>
+        <button class="menu-t" data-pane="analytics" onclick="navTo('analytics')"><span class="i"><svg viewBox="0 0 24 24"><line x1="3" y1="21" x2="21" y2="21"/><rect x="6" y="13" width="3" height="8"/><rect x="11" y="8" width="3" height="13"/><rect x="16" y="4" width="3" height="17"/></svg></span>Analysis</button>
+        <button class="menu-t" data-pane="leaderboards" onclick="navTo('leaderboards')"><span class="i"><svg viewBox="0 0 24 24"><path d="M6 4h12v4a6 6 0 0 1-12 0V4z"/><path d="M6 6H3v2a3 3 0 0 0 3 3M18 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M8 21h8"/></svg></span>Stats</button>
       </div>
     </div>
     <div class="menu-div"></div>
     <div class="menu-sec">
       <div class="menu-ttl">Environment</div>
       <div class="menu-grid-3">
-        <button class="menu-t on" id="env-day" onclick="setSky('day')"><span class="i">☀️</span> Day</button>
-        <button class="menu-t" id="env-sunset" onclick="setSky('sunset')"><span class="i">🌇</span> Dusk</button>
-        <button class="menu-t" id="env-night" onclick="setSky('night')"><span class="i">🌙</span> Night</button>
+        <button class="menu-t on" id="env-day" onclick="setSky('day')"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg></span>Day</button>
+        <button class="menu-t" id="env-sunset" onclick="setSky('sunset')"><span class="i"><svg viewBox="0 0 24 24"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/></svg></span>Dusk</button>
+        <button class="menu-t" id="env-night" onclick="setSky('night')"><span class="i"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>Night</button>
       </div>
     </div>
     <div class="menu-div"></div>
     <div class="menu-sec">
       <div class="menu-ttl">Audio</div>
       <div class="menu-grid-3">
-        <button class="menu-t on" id="menu-aud-stadium" onclick="setAudioMode('stadium')"><span class="i">🏟️</span> Stadium</button>
-        <button class="menu-t" id="menu-aud-commentary" onclick="setAudioMode('commentary')"><span class="i">🎙️</span> Comms</button>
-        <button class="menu-t" id="menu-aud-mute" onclick="setAudioMode('mute')"><span class="i">🔇</span> Mute</button>
+        <button class="menu-t on" id="menu-aud-stadium" onclick="setAudioMode('stadium')"><span class="i"><svg viewBox="0 0 24 24"><line x1="4" y1="10" x2="4" y2="14"/><line x1="8" y1="7" x2="8" y2="17"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="16" y1="7" x2="16" y2="17"/><line x1="20" y1="10" x2="20" y2="14"/></svg></span>Stadium</button>
+        <button class="menu-t" id="menu-aud-commentary" onclick="setAudioMode('commentary')"><span class="i"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></span>Comms</button>
+        <button class="menu-t" id="menu-aud-mute" onclick="setAudioMode('mute')"><span class="i"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg></span>Mute</button>
       </div>
     </div>
     <div class="menu-div"></div>
     <div class="menu-sec">
       <div class="menu-ttl">Camera</div>
       <select class="cam-sel" id="camSelMenu" onchange="setCamera(this.value)">
-        <option value="broadcast">📺 TV Broadcast</option>
-        <option value="bowler">🎯 Bowler View</option>
-        <option value="keeper">🧤 Keeper View</option>
-        <option value="slip">👐 Slip Cord</option>
-        <option value="side">🎬 Square Side</option>
-        <option value="drone">🚁 Drone</option>
-        <option value="spider">🕷️ Spider Cam</option>
-        <option value="helmet">⛑️ Helmet Cam</option>
-        <option value="follow">⚾ Ball Follow</option>
+        <option value="broadcast">TV Broadcast</option>
+        <option value="bowler">Bowler View</option>
+        <option value="keeper">Keeper View</option>
+        <option value="slip">Slip Cord</option>
+        <option value="side">Square Side</option>
+        <option value="drone">Drone</option>
+        <option value="spider">Spider Cam</option>
+        <option value="helmet">Helmet Cam</option>
+        <option value="follow">Ball Follow</option>
       </select>
     </div>
     <div class="menu-div"></div>
     <div class="menu-sec">
       <div class="menu-ttl">Utilities</div>
       <div class="menu-grid-3">
-        <button class="menu-t on" id="util-wagon" onclick="toggleWagonWheel()"><span class="i">🕸️</span> Wagon</button>
-        <button class="menu-t" onclick="triggerReplay()"><span class="i">↻</span> Replay</button>
-        <button class="menu-t" onclick="toggleTVMode()"><span class="i">📺</span> TV</button>
+        <button class="menu-t on" id="util-wagon" onclick="toggleWagonWheel()"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/><line x1="18.4" y1="5.6" x2="5.6" y2="18.4"/><circle cx="12" cy="12" r="2"/></svg></span>Wagon</button>
+        <button class="menu-t" onclick="triggerReplay()"><span class="i"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg></span>Replay</button>
+        <button class="menu-t" onclick="toggleTVMode()"><span class="i"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="13" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></span>TV</button>
       </div>
     </div>
     <div class="menu-div"></div>
     <div class="menu-sec">
       <div class="menu-ttl">Other</div>
       <div class="menu-grid-3">
-        <button class="menu-t" onclick="toggleFullscreen()"><span class="i">⛶</span> Full</button>
-        <button class="menu-t" onclick="toggleMenu(event)"><span class="i">✕</span> Close</button>
+        <button class="menu-t" onclick="toggleFullscreen()"><span class="i"><svg viewBox="0 0 24 24"><polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/></svg></span>Full</button>
+        <button class="menu-t" onclick="toggleMenu(event)"><span class="i"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></span>Close</button>
       </div>
     </div>
   </div>
 
   <div id="wagonWrap"><canvas id="wagonWheelCanvas" width="800" height="800" style="max-width:100%;height:auto;"></canvas></div>
-  <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
+  <div id="wagonInfo">LIVE WAGON — tap stadium for 3D view</div>
   <div class="banner" id="banner">FOUR!</div>
 
   <button type="button" id="showWingPill" onclick="toggleWing()" aria-label="Show score">     <span class="swp-dot"></span>     <span class="swp-team" id="swpTeam">T1</span>     <span class="swp-score" id="swpScore">0/0</span>   </button>    <div class="wing-assembly" id="wingAssembly">
@@ -761,13 +810,13 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
 <div id="viewerSheet" aria-hidden="true">
   <div class="viewer-sheet__bar">
-    <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
+    <button type="button" class="sheet-back" id="sheetBack"><svg class="ico ico-s" viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><polyline points="15 18 9 12 15 6"/></svg>3D</button>
     <div class="sheet-tabs">
       <button type="button" class="sheet-tab" data-sheet="live" onclick="showSheet('live')">Live</button>
       <button type="button" class="sheet-tab" data-sheet="analytics" onclick="showSheet('analytics')">Analysis</button>
       <button type="button" class="sheet-tab" data-sheet="leaderboards" onclick="showSheet('leaderboards')">Stats</button>
     </div>
-    <button type="button" class="sheet-close" id="sheetClose">✕</button>
+    <button type="button" class="sheet-close" id="sheetClose"><svg class="ico ico-s" viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
   </div>
 
   <div class="sheet-body" id="sheetBody">
@@ -862,8 +911,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 </div>
 
 <div id="tvMode">
-  <button class="tv-close" onclick="toggleTVMode()">✕ Exit</button>
-  <button class="tv-mic" id="tvMicBtn" onclick="toggleTVMic()" title="Toggle commentary">🎤</button>
+  <button class="tv-close" onclick="toggleTVMode()"><svg class="ico ico-s" viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>Exit</button>
+  <button class="tv-mic" id="tvMicBtn" onclick="toggleTVMic()" title="Toggle commentary"><svg class="ico ico-l" viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button>
   <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
   <div class="tv-score" id="tvScore">0/0</div>
   <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
@@ -954,7 +1003,85 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     const tk=document.getElementById('tickerText');
     if(tk&&/waiting for match/i.test(tk.innerText))tk.innerText='Ready — first ball incoming…';
   }
-  window.__cmMarkMatchStarted=__cmMarkMatchStarted;    /* ── AUTO-FLIP INFO CHIP ── */   window.__wffFlipIndex = 0;   window.__wffFlipped = false;   window.__wffFlipTimer = null;    function __wffTick(){     var flap = document.getElementById('wingFlipFlap');     if (!flap) return;     if (!window.__cricmaxLastMatch) return;     if (document.hidden) return;     window.__wffFlipIndex = (window.__wffFlipIndex + 1) % 2;     window.__wffFlipped = (window.__wffFlipIndex === 1);     flap.classList.toggle('flipped', window.__wffFlipped);   }    function __wffStart(){     if (window.__wffFlipTimer) clearInterval(window.__wffFlipTimer);     window.__wffFlipTimer = setInterval(__wffTick, 4500);   }   __wffStart();    window.__wffFlash = function(type){     var flap = document.getElementById('wingFlipFlap');     if (!flap) return;     flap.classList.remove('flash-four','flash-six','flash-wkt');     void flap.offsetWidth;     flap.classList.add('flash-' + type);     setTimeout(function(){ flap.classList.remove('flash-' + type); }, 1200);   };    /* ── WING FLIP TOGGLE — hides/shows bottom F1 scoreboard ── */   var __cmWingHidden = false;   try {     var __wh = localStorage.getItem('CricMax_hideWing');     if (__wh === '1') __cmWingHidden = true;   } catch(e){}    function updateWingPill(){     var pill = document.getElementById('showWingPill');     var btn  = document.getElementById('btn-wing-toggle');     if (!pill || !btn) return;     if (__cmWingHidden){       pill.classList.add('show');       btn.classList.add('on');     } else {       pill.classList.remove('show');       btn.classList.remove('on');     }     var m = window.__cricmaxLastMatch;     if (m){       var t = document.getElementById('swpTeam');       var s = document.getElementById('swpScore');       if (t) t.textContent = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');       if (s) s.textContent = (m.runs||0) + '/' + (m.wickets||0);     }   }    function toggleWing(){     __cmWingHidden = !__cmWingHidden;     try { localStorage.setItem('CricMax_hideWing', __cmWingHidden ? '1' : '0'); } catch(e){}     var wing = document.getElementById('wingAssembly');     if (wing) wing.classList.toggle('is-hidden', __cmWingHidden);     updateWingPill();   }    window.toggleWing = toggleWing;   window.isWingHidden = function(){ return __cmWingHidden; };    document.addEventListener('keydown', function(e){     var tag = (e.target && e.target.tagName) || '';     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;     if (e.key === 'h' || e.key === 'H'){ e.preventDefault(); toggleWing(); }   });    requestAnimationFrame(function(){     var wing = document.getElementById('wingAssembly');     if (wing && __cmWingHidden) wing.classList.add('is-hidden');     updateWingPill();   });
+  window.__cmMarkMatchStarted=__cmMarkMatchStarted;
+
+  /* ── AUTO-FLIP INFO CHIP ── */
+  window.__wffFlipIndex = 0;
+  window.__wffFlipped = false;
+  window.__wffFlipTimer = null;
+  function __wffTick(){
+    var flap = document.getElementById('wingFlipFlap');
+    if (!flap) return;
+    if (!window.__cricmaxLastMatch) return;
+    if (document.hidden) return;
+    window.__wffFlipIndex = (window.__wffFlipIndex + 1) % 2;
+    window.__wffFlipped = (window.__wffFlipIndex === 1);
+    flap.classList.toggle('flipped', window.__wffFlipped);
+  }
+  function __wffStart(){
+    if (window.__wffFlipTimer) clearInterval(window.__wffFlipTimer);
+    window.__wffFlipTimer = setInterval(__wffTick, 4500);
+  }
+  __wffStart();
+  window.__wffFlash = function(type){
+    var flap = document.getElementById('wingFlipFlap');
+    if (!flap) return;
+    flap.classList.remove('flash-four','flash-six','flash-wkt');
+    void flap.offsetWidth;
+    flap.classList.add('flash-' + type);
+    setTimeout(function(){ flap.classList.remove('flash-' + type); }, 1200);
+  };
+
+  /* ── WING FLIP TOGGLE ── */
+  var __cmWingHidden = false;
+  try {
+    var __wh = localStorage.getItem('CricMax_hideWing');
+    if (__wh === '1') __cmWingHidden = true;
+  } catch(e){}
+
+  function updateWingPill(){
+    var pill = document.getElementById('showWingPill');
+    var btn  = document.getElementById('btn-wing-toggle');
+    if (!pill || !btn) return;
+    if (__cmWingHidden){
+      pill.classList.add('show');
+      btn.classList.add('on');
+    } else {
+      pill.classList.remove('show');
+      btn.classList.remove('on');
+    }
+    var m = window.__cricmaxLastMatch;
+    if (m){
+      var t = document.getElementById('swpTeam');
+      var s = document.getElementById('swpScore');
+      if (t) t.textContent = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');
+      if (s) s.textContent = (m.runs||0) + '/' + (m.wickets||0);
+    }
+  }
+
+  function toggleWing(){
+    __cmWingHidden = !__cmWingHidden;
+    try { localStorage.setItem('CricMax_hideWing', __cmWingHidden ? '1' : '0'); } catch(e){}
+    var wing = document.getElementById('wingAssembly');
+    if (wing) wing.classList.toggle('is-hidden', __cmWingHidden);
+    updateWingPill();
+  }
+
+  window.toggleWing = toggleWing;
+  window.isWingHidden = function(){ return __cmWingHidden; };
+
+  document.addEventListener('keydown', function(e){
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key === 'h' || e.key === 'H'){ e.preventDefault(); toggleWing(); }
+  });
+
+  requestAnimationFrame(function(){
+    var wing = document.getElementById('wingAssembly');
+    if (wing && __cmWingHidden) wing.classList.add('is-hidden');
+    updateWingPill();
+  });
+
   __cmShowWaiting(false);
   __cmSetLiveBadge(false);
 
@@ -991,7 +1118,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   try{
     renderer=new THREE.WebGLRenderer({antialias:CM_DEVICE.tier>=1,powerPreference:'high-performance',alpha:false,stencil:false,depth:true});
   }catch(glErr){
-    window.__cmProgress(100,'⚠️ WEBGL NOT SUPPORTED');
+    window.__cmProgress(100,'WEBGL NOT SUPPORTED');
     return;
   }
   renderer.setSize(innerWidth,innerHeight);
@@ -1374,7 +1501,11 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       var sorted = pool.slice().sort(function(a,b){return b.mvp - a.mvp;}).slice(0, 10);
       var html = '';
       sorted.forEach(function(p, i){
-        var rank = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : (i+1);
+        var rank;
+        if (i === 0) rank = '<span class="medal medal-1">1</span>';
+        else if (i === 1) rank = '<span class="medal medal-2">2</span>';
+        else if (i === 2) rank = '<span class="medal medal-3">3</span>';
+        else rank = (i + 1);
         var active = (p.name===m.striker) ? ' is-active' : '';
         html += '<tr>'
           + '<td>'+rank+'</td>'
@@ -1986,13 +2117,24 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     if(runs===1)return pick(['Single taken.','Just the one run.']);
     return pick(['Dot ball.','Defended solidly.','No run — good line from '+bn+'.']);
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     SET AUDIO MODE — now swaps SVG icon instead of emoji
+     ═══════════════════════════════════════════════════════════ */
   function setAudioMode(mode){
     if(['stadium','commentary','mute'].indexOf(mode)<0)mode='stadium';
     const prev=audioMode;
     audioMode=mode;
     audioOn=(mode!=='mute');
-    const ico=document.getElementById('snd-ico');
-    if(ico)ico.innerText=mode==='mute'?'🔇':(mode==='commentary'?'🎙️':'🏟️');
+
+    /* Swap SVG icon state — all 3 icons exist in DOM, only 1 is .active */
+    var icoWrap = document.getElementById('snd-ico');
+    if(icoWrap){
+      icoWrap.querySelectorAll('.ico-snd').forEach(function(svg){
+        svg.classList.toggle('active', svg.getAttribute('data-mode') === mode);
+      });
+    }
+
     const btn=document.getElementById('util-snd');
     if(btn)btn.classList.toggle('on',mode!=='mute');
     ['stadium','commentary','mute'].forEach(function(k){
@@ -2346,12 +2488,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   function toggleWagonWheel(){setStadiumView(!stadiumViewActive);}
 
-  /* ═══════════════════════════════════════════════════════════
-     CAMERA MODES — spherical coords from controls.js
-     Formula: x = tx + r·sin(φ)·cos(θ)
-              y = ty + r·cos(φ)
-              z = tz + r·sin(φ)·sin(θ)
-     ═══════════════════════════════════════════════════════════ */
   const CAM_MODES={
     broadcast:{pos:new THREE.Vector3(0, 8.37, -33.40),target:new THREE.Vector3(0, 2, 0)},
     bowler:{pos:new THREE.Vector3(0, 9.96, -22.40),target:new THREE.Vector3(0, 2, 8.6)},
@@ -2448,7 +2584,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   }
   let __cmReplayTimeline=null,__cmReplayShotIndex=-1,__cmReplayTimeScale=1;
   function fireCutFlash(){if(!REPLAY_FANCY)return;const el=document.getElementById('cutFlash');if(!el)return;el.classList.remove('fire');void el.offsetWidth;el.classList.add('fire');}
-  function updateReplayCamBadge(shotKey){if(!REPLAY_FANCY)return;const badge=document.getElementById('replayCamBadge');const label=document.getElementById('replayCamLabel');const speed=document.getElementById('replayCamSpeed');if(!badge)return;badge.classList.add('on');const def=REPLAY_SHOTS[shotKey];if(label&&def)label.textContent='CAM';if(speed)speed.textContent=(__cmReplayTimeScale||1).toFixed(1)+'×';}
+  function updateReplayCamBadge(shotKey){if(!REPLAY_FANCY)return;const badge=document.getElementById('replayCamBadge');const label=document.getElementById('replayCamLabel');const speed=document.getElementById('replayCamSpeed');if(!badge)return;badge.classList.add('on');const def=REPLAY_SHOTS[shotKey];if(label&&def)label.textContent='CAM';if(speed)speed.textContent=(__cmReplayTimeScale||1).toFixed(1)+'x';}
   function hideReplayCamBadge(){const badge=document.getElementById('replayCamBadge');if(badge)badge.classList.remove('on');}
   function updateReplayCamera(elapsed,ballRef,T_CONTACT){
     if(!REPLAY_FANCY){camPos.set(8,5,22);camTarget.copy(ballRef&&ballRef.visible?ballRef.position:new THREE.Vector3(0,1,STRIKER_BASE_Z));return;}
@@ -2504,7 +2640,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     RunningState.timeScale=timeScale;
     __cmReplayActive=isReplay;
     __cmReplayTimeScale=timeScale;
-    if(isReplay){__cmReplayTimeline=null;__cmReplayShotIndex=-1;showReplayBadge('REPLAY · '+timeScale.toFixed(1)+'×');}
+    if(isReplay){__cmReplayTimeline=null;__cmReplayShotIndex=-1;showReplayBadge('REPLAY · '+timeScale.toFixed(1)+'x');}
     else{hideReplayCamBadge();}
     if(strikerWicket)strikerWicket.reset();
     if(bowlerWicket)bowlerWicket.reset();
@@ -2752,7 +2888,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     anim=requestAnimationFrame(loop);
 
     if(!isReplay){
-             setTimeout(()=>{
+      setTimeout(()=>{
         const b=document.getElementById('banner');
         if(!b)return;
         b.className='banner on';
@@ -2861,7 +2997,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     var totalBalls=(m.totalOvers||m.oversLimit||20)*6;
     var ballsLeft=Math.max(0,totalBalls-balls);
     var projected=balls>0?Math.round(crr*(m.totalOvers||m.oversLimit||20)):0;
-       var abbrEl=document.getElementById('bbAbbr');
+    var abbrEl=document.getElementById('bbAbbr');
     if(abbrEl)abbrEl.innerText=m.teamBattingAbbr||(m.teamBatting?m.teamBatting.substring(0,3).toUpperCase():'T1');
     var __swpTeam=document.getElementById('swpTeam');if(__swpTeam)__swpTeam.textContent=m.teamBattingAbbr||(m.teamBatting?m.teamBatting.substring(0,3).toUpperCase():'T1');
     var __swpScore=document.getElementById('swpScore');if(__swpScore)__swpScore.textContent=(m.runs||0)+'/'+(m.wickets||0);
@@ -2920,16 +3056,34 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
         if(dL3)dL3.textContent='CRR';
         if(dV3)dV3.textContent=crr.toFixed(2);
       }else{
-        var projected=balls>0?Math.round(crr*(m.totalOvers||20)):0;
+        var projected2=balls>0?Math.round(crr*(m.totalOvers||20)):0;
         if(dL1)dL1.textContent='CRR';
         if(dV1)dV1.textContent=crr.toFixed(2);
         if(dL2)dL2.textContent='PROJ';
-        if(dV2)dV2.textContent=String(projected);
+        if(dV2)dV2.textContent=String(projected2);
         if(dL3)dL3.textContent='BALLS';
         if(dV3)dV3.textContent=String(ballsLeft);
       }
     }else if(wing)wing.classList.remove('is-drs-open');
-    /* ── Auto-flip info chip ── */     (function(){       var flap = document.getElementById('wingFlipFlap');       var fF   = document.getElementById('wffFrontText');       var fB   = document.getElementById('wffBackText');       if (!flap || !fF || !fB) return;       var isChase2 = (m.innings === 2 && m.target && m.target > 0);       flap.classList.toggle('chase', isChase2);       if (isChase2){         var need2 = Math.max(0, m.target - runs);         var rrr2  = ballsLeft > 0 ? ((need2 / ballsLeft) * 6) : 0;         fF.innerHTML = 'NEED <b>' + need2 + '</b> OFF ' + ballsLeft;         fB.innerHTML = 'RRR <b>' + rrr2.toFixed(2) + '</b> · TGT ' + m.target;       } else {         fF.innerHTML = 'BALLS LEFT <b>' + ballsLeft + '</b>';         fB.innerHTML = 'CRR <b>' + crr.toFixed(2) + '</b>';       }     })();      var rpm=document.getElementById('wingRpmFill');
+    /* Auto-flip info chip */
+    (function(){
+      var flap = document.getElementById('wingFlipFlap');
+      var fF   = document.getElementById('wffFrontText');
+      var fB   = document.getElementById('wffBackText');
+      if (!flap || !fF || !fB) return;
+      var isChase2 = (m.innings === 2 && m.target && m.target > 0);
+      flap.classList.toggle('chase', isChase2);
+      if (isChase2){
+        var need2 = Math.max(0, m.target - runs);
+        var rrr2  = ballsLeft > 0 ? ((need2 / ballsLeft) * 6) : 0;
+        fF.innerHTML = 'NEED <b>' + need2 + '</b> OFF ' + ballsLeft;
+        fB.innerHTML = 'RRR <b>' + rrr2.toFixed(2) + '</b> · TGT ' + m.target;
+      } else {
+        fF.innerHTML = 'BALLS LEFT <b>' + ballsLeft + '</b>';
+        fB.innerHTML = 'CRR <b>' + crr.toFixed(2) + '</b>';
+      }
+    })();
+    var rpm=document.getElementById('wingRpmFill');
     if(rpm){
       var overRuns=m._currentOverRuns!=null?m._currentOverRuns:0;
       var pct=Math.min(100,(overRuns/20)*100);
@@ -3287,20 +3441,15 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   }
   window.shareViewerOnly=function(){
     var url=buildViewerUrl();
-    copyText(url).then(function(){showToast('🔗 Viewer link copied!',true);console.log('[Share] Copied:',url);}).catch(function(err){
+    copyText(url).then(function(){showToast('Viewer link copied',true);console.log('[Share] Copied:',url);}).catch(function(err){
       console.warn('[Share] Clipboard failed:',err);
       window.prompt('Copy this viewer link:',url);
-      showToast('📋 Copy manually',false);
+      showToast('Copy manually',false);
     });
   };
-  console.log('[Share] ✅ Copy-to-clipboard handler installed');
+  console.log('[Share] Copy-to-clipboard handler installed');
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     Viewer modes are 100% user-controlled. No auto-enable,
-     no scorer-side data, no forced TV. User freely toggles
-     Wagon ⇄ Stadium ⇄ TV via the icons.
-     ═══════════════════════════════════════════════════════════ -->
 </body>
 </html>
