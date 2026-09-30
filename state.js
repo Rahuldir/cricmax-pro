@@ -171,7 +171,7 @@ function normalizeMatch(m) {
   if (typeof m.isActive !== 'boolean') m.isActive = false;
   if (typeof m.isFreeHit !== 'boolean') m.isFreeHit = false;
 
-    /* ── currentPartnership ── */
+  /* ── currentPartnership ── */
   if (!m.currentPartnership || typeof m.currentPartnership !== 'object') {
     m.currentPartnership = { runs: 0, balls: 0, batters: [] };
   } else {
@@ -233,9 +233,6 @@ function normalizeMatch(m) {
     m.currentPartnership.runs  = __live.runs;
     m.currentPartnership.balls = __live.balls;
   }
-
-  return m;
-}
 
   /* ── HEAL shotLog entries ──
      Older versions logged shots without `over` / `inns`, which made the
