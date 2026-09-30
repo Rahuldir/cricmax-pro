@@ -3349,14 +3349,17 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     updateF1Hud(m);
     if(tvModeActive)refreshTVMode();
 
-    /* Auto-refresh the open sheet pane on new data */
-    if(activeSheetTab){
-      try{
-        if(activeSheetTab === 'live')          renderViewerLive();
-        else if(activeSheetTab === 'analytics')renderViewerAnalysis();
-        else if(activeSheetTab === 'leaderboards') renderViewerStats();
-      }catch(e){}
-    }
+     /* Auto-refresh whichever sheet pane is visible. */
+    try {
+      var __openPane = activeSheetTab;
+      if (!__openPane){
+        var __activeEl = document.querySelector('.sheet-pane.active');
+        if (__activeEl) __openPane = __activeEl.getAttribute('data-pane');
+      }
+      if (__openPane === 'live')            renderViewerLive();
+      else if (__openPane === 'analytics')  renderViewerAnalysis();
+      else if (__openPane === 'leaderboards') renderViewerStats();
+    } catch(e){ console.warn('[viewer] auto-refresh failed:', e); }
   }
 
   let lastSeenBalls=-1;
