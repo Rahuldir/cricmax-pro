@@ -8,7 +8,6 @@
 
 function broadcastMatchState(latestShot = null) {
   try {
-    /* ⚡ Normalize before broadcasting — ensures all arrays exist */
     if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
     window.match = match;
@@ -117,8 +116,6 @@ async function registerViewerPresence(code) {
 }
 
 /* ─── Sharing ──────────────────────────────────────────── */
-/* Clean URL: /viewer.html?code=XXXXXX
-   Every shared link lands directly on the 3D wagon-wheel viewer. */
 function shareViewerOnly() {
   try {
     const code = (typeof matchCode !== 'undefined' && matchCode)
@@ -126,7 +123,6 @@ function shareViewerOnly() {
               || '';
     const url = location.origin + '/viewer.html' + (code ? '?code=' + encodeURIComponent(code) : '');
 
-    /* Native share sheet (mobile) */
     if (navigator.share) {
       navigator.share({
         title: 'CricMax Pro — Live Match',
@@ -136,7 +132,6 @@ function shareViewerOnly() {
       return;
     }
 
-    /* Clipboard copy (desktop) */
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url)
         .then(() => showToast('✅ Viewer link copied!' + (code ? ' • Code: ' + code : '')))
@@ -170,7 +165,6 @@ function copyCommentaryLink() { shareViewerOnly(); }
 async function autoPersist() {
   window.match = match;
 
-  /* ⚡ Normalize BEFORE persisting — never save incomplete match */
   if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
   const d = {
@@ -238,7 +232,6 @@ function loadMatchFromLocalStorage() {
 
     try { localStorage.setItem('currentMatchCode', matchCode); } catch (e) {}
 
-    /* ⚡ Normalize — self-heal missing fields */
     if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
     updateTournamentProfileCard();
