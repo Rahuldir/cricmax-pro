@@ -4,11 +4,53 @@
 
 function buildStatsPool() {
   const pool = [];
-  const allNames = new Set([...Object.keys(match.batters), ...Object.keys(match.bowlers), ...Object.keys(match.fielding)]);
+
+  /* ── MERGE INNINGS 1 + INNINGS 2 ──
+     In the 2nd innings, match.batters/bowlers/fielding only hold
+     the *current* innings. The 1st innings is preserved in the
+     innings1*Snapshot fields. Combine both so the stats pane
+     shows the full match, not just whichever innings is live. */
+  const _bat1 = (match.innings === 2 && match.innings1BattingSnapshot)  ? match.innings1BattingSnapshot  : {};
+  const _bwl1 = (match.innings === 2 && match.innings1BowlingSnapshot)  ? match.innings1BowlingSnapshot  : {};
+  const _fld1 = (match.innings === 2 && match.innings1FieldingSnapshot) ? match.innings1FieldingSnapshot : {};
+
+  const allNames = new Set([
+    ...Object.keys(match.batters), ...Object.keys(match.bowlers), ...Object.keys(match.fielding),
+    ...Object.keys(_bat1),         ...Object.keys(_bwl1),         ...Object.keys(_fld1)
+  ]);
+
+  const N = v => (Number(v) || 0);
+
   allNames.forEach(n => {
-    const b = match.batters[n] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, fifties: 0, hundreds: 0 };
-    const bw = match.bowlers[n] || { balls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, threeW: 0, fiveW: 0 };
-    const f = match.fielding[n] || { catches: 0, stumpings: 0, runOuts: 0 };
+    const b1 = _bat1[n] || {}, b2 = match.batters[n] || {};
+    const w1 = _bwl1[n] || {}, w2 = match.bowlers[n] || {};
+    const f1 = _fld1[n] || {}, f2 = match.fielding[n] || {};
+
+    const b = {
+      runs:     N(b1.runs)     + N(b2.runs),
+      balls:    N(b1.balls)    + N(b2.balls),
+      fours:    N(b1.fours)    + N(b2.fours),
+      sixes:    N(b1.sixes)    + N(b2.sixes),
+      dots:     N(b1.dots)     + N(b2.dots),
+      fifties:  N(b1.fifties)  + N(b2.fifties),
+      hundreds: N(b1.hundreds) + N(b2.hundreds),
+      status:   (b2.status && b2.status !== 'dnb') ? b2.status : (b1.status || 'dnb')
+    };
+    const bw = {
+      balls:   N(w1.balls)   + N(w2.balls),
+      maidens: N(w1.maidens) + N(w2.maidens),
+      runs:    N(w1.runs)    + N(w2.runs),
+      wickets: N(w1.wickets) + N(w2.wickets),
+      dots:    N(w1.dots)    + N(w2.dots),
+      threeW:  N(w1.threeW)  + N(w2.threeW),
+      fiveW:   N(w1.fiveW)   + N(w2.fiveW)
+    };
+    const f = {
+      catches:   N(f1.catches)   + N(f2.catches),
+      stumpings: N(f1.stumpings) + N(f2.stumpings),
+      runOuts:   N(f1.runOuts)   + N(f2.runOuts)
+    };
+
     const sr = b.balls > 0 ? (b.runs / b.balls) * 100 : 0;
     const eco = bw.balls > 0 ? (bw.runs / (bw.balls / 6)) : 99.9;
     const bowlSR = bw.wickets > 0 ? bw.balls / bw.wickets : 0;
@@ -103,7 +145,25 @@ function renderStatsCategory(cat, btnEl) {
   const body = document.getElementById('statsTableBody');
   if (!head || !body) return;
 
-  let pool = statsScope === 'tournament' ? aggregateTournamentStats() : buildStatsPool();
+  /* ── EMBED MODE OVERRIDE ──
+     When this page is loaded inside viewer.html's sheet iframe
+     (?embed=1 or ?viewer=1, or when framed), stats must reflect
+     the match that viewer.js hydrated from Firebase for the code
+     in the URL — never the local browser's pastMatchesLedger
+     (which belongs to the *scorer's* history, not the viewer's). */
+  var __inEmbed = false;
+  try {
+    var __p = new URLSearchParams(location.search);
+    __inEmbed = (__p.get('embed') === '1' ||
+                 __p.get('viewer') === '1' ||
+                 window.self !== window.top);
+  } catch(e){}
+
+  var __effectiveScope = __inEmbed ? 'live' : statsScope;
+
+  let pool = __effectiveScope === 'tournament'
+    ? aggregateTournamentStats()
+    : buildStatsPool();
 
   if (pool.length === 0) {
     head.innerHTML = `<tr><th>Player</th><th>No stats available yet</th></tr>`;
