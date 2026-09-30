@@ -3612,6 +3612,16 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     setStadiumView(false,true);
   });
 
+  /* Failsafe — re-render commentary every 3s while Live pane is visible */
+  (function __commFailsafe(){
+    setInterval(function(){
+      try {
+        var active = document.querySelector('.sheet-pane.active[data-pane="live"]');
+        if (active) renderViewerLive();
+      } catch(e){}
+    }, 3000);
+  })();
+
 })();
 </script>
 <script>
