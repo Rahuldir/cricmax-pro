@@ -300,6 +300,181 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   .cut-flash.fire{animation:none;}
   .ic.spin{animation:none;}
 }
+
+/* ═══ F1 STANDALONE SHEET PANES ═══ */
+.sheet-body{
+  flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+  padding:14px 12px 28px;
+  -webkit-overflow-scrolling:touch;
+}
+.sheet-body::-webkit-scrollbar{width:4px;}
+.sheet-body::-webkit-scrollbar-thumb{background:rgba(225,6,0,.4);border-radius:2px;}
+
+.sheet-pane{display:none;}
+.sheet-pane.active{display:block;animation:sheetFadeIn 300ms ease-out;}
+@keyframes sheetFadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.f1-panel{
+  background:linear-gradient(180deg,#111118 0%,#0a0a10 100%);
+  border:1px solid rgba(255,255,255,.08);
+  border-left:3px solid var(--f1-red);
+  border-radius:4px;margin-bottom:12px;overflow:hidden;position:relative;
+}
+.f1-panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--f1-red),transparent 60%);
+}
+.f1-panel.green{border-left-color:var(--f1-green);}
+.f1-panel.green::before{background:linear-gradient(90deg,var(--f1-green),transparent 60%);}
+.f1-panel.purple{border-left-color:var(--f1-purple);}
+.f1-panel.purple::before{background:linear-gradient(90deg,var(--f1-purple),transparent 60%);}
+.f1-panel.gold{border-left-color:#fbbf24;}
+.f1-panel.gold::before{background:linear-gradient(90deg,#fbbf24,transparent 60%);}
+
+.f1-panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;
+  background:linear-gradient(90deg,rgba(225,6,0,.08),transparent 70%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.f1-panel-title{
+  font-size:10px;font-weight:900;letter-spacing:2.4px;
+  text-transform:uppercase;color:#fff;
+  display:flex;align-items:center;gap:8px;
+}
+.f1-panel-title::before{
+  content:'';width:6px;height:6px;background:var(--f1-red);
+  transform:rotate(45deg);
+}
+.f1-panel.green .f1-panel-title::before{background:var(--f1-green);}
+.f1-panel.purple .f1-panel-title::before{background:var(--f1-purple);}
+.f1-panel.gold .f1-panel-title::before{background:#fbbf24;}
+.f1-panel-sub{
+  font-family:ui-monospace,monospace;
+  font-size:10px;font-weight:900;
+  color:rgba(255,255,255,.5);letter-spacing:.4px;
+}
+
+.f1-table{
+  width:100%;border-collapse:collapse;
+  font-family:ui-monospace,monospace;font-size:12px;
+}
+.f1-table th{
+  padding:8px 10px;
+  font-family:'Titillium Web',sans-serif;
+  font-size:8.5px;font-weight:900;letter-spacing:1.6px;
+  text-transform:uppercase;color:rgba(255,255,255,.45);
+  text-align:right;background:rgba(0,0,0,.4);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.f1-table th:first-child{text-align:left;}
+.f1-table td{
+  padding:9px 10px;color:#e2e8f0;text-align:right;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  font-variant-numeric:tabular-nums;
+}
+.f1-table td:first-child{text-align:left;}
+.f1-table tr:last-child td{border-bottom:none;}
+.f1-table tbody tr:hover{background:rgba(255,255,255,.03);}
+.f1-table .player-name{
+  font-family:'Titillium Web',sans-serif;font-weight:900;
+  letter-spacing:.6px;text-transform:uppercase;color:#fff;
+  display:flex;align-items:center;gap:6px;
+}
+.f1-table .player-name.is-active::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--f1-green);box-shadow:0 0 6px var(--f1-green);
+  flex-shrink:0;
+}
+.f1-table .stat-hl{color:var(--f1-green);font-weight:900;}
+.f1-table .stat-warn{color:var(--f1-red);font-weight:900;}
+.f1-table .stat-gold{color:#fbbf24;font-weight:900;}
+.f1-table .player-status{
+  display:block;font-family:'Titillium Web',sans-serif;
+  font-size:9px;font-weight:700;color:rgba(255,255,255,.4);
+  margin-top:1px;letter-spacing:.4px;
+}
+
+.f1-stat-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:1px;background:rgba(255,255,255,.06);
+}
+.f1-stat-grid > div{
+  background:linear-gradient(180deg,#0f0f17,#080810);
+  padding:12px 14px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.f1-stat-grid .k{
+  font-size:8.5px;font-weight:900;letter-spacing:1.6px;
+  text-transform:uppercase;color:rgba(255,255,255,.4);
+}
+.f1-stat-grid .v{
+  font-family:ui-monospace,monospace;
+  font-size:20px;font-weight:900;color:#fff;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.f1-stat-grid .v.green{color:var(--f1-green);text-shadow:0 0 8px rgba(0,210,190,.4);}
+.f1-stat-grid .v.red{color:var(--f1-red);text-shadow:0 0 8px rgba(225,6,0,.4);}
+.f1-stat-grid .v.purple{color:var(--f1-purple);text-shadow:0 0 8px rgba(179,27,255,.4);}
+.f1-stat-grid .v.gold{color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,.4);}
+
+.f1-chart-wrap{padding:12px 10px 8px;background:#080810;}
+.f1-chart{width:100%;height:auto;display:block;}
+.f1-chart-legend{
+  display:flex;gap:16px;flex-wrap:wrap;
+  padding:8px 14px 12px;
+  border-top:1px solid rgba(255,255,255,.05);
+  font-size:9px;font-weight:900;letter-spacing:1.2px;
+  text-transform:uppercase;color:rgba(255,255,255,.5);
+}
+.f1-chart-legend span{display:flex;align-items:center;gap:5px;}
+.f1-chart-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;}
+
+.f1-empty{
+  padding:40px 20px;text-align:center;
+  font-size:11px;font-weight:900;letter-spacing:2px;
+  text-transform:uppercase;color:rgba(255,255,255,.35);
+  font-family:ui-monospace,monospace;
+}
+
+.f1-part-row{
+  display:grid;grid-template-columns:1fr auto;
+  gap:10px;align-items:center;
+  padding:10px 14px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.f1-part-row:last-child{border-bottom:none;}
+.f1-part-names{
+  font-size:12px;font-weight:800;letter-spacing:.4px;
+  color:#e2e8f0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.f1-part-names b{color:#fff;font-weight:900;}
+.f1-part-bar{
+  margin-top:6px;height:4px;
+  background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;
+}
+.f1-part-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--f1-red),var(--f1-purple));
+  border-radius:2px;
+  box-shadow:0 0 8px rgba(179,27,255,.4);
+}
+.f1-part-val{
+  font-family:ui-monospace,monospace;font-size:16px;
+  font-weight:900;color:#fff;text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.f1-part-val small{
+  font-size:10px;color:rgba(255,255,255,.45);font-weight:700;
+}
+
+@media (max-width:620px){
+  .f1-table th,.f1-table td{padding:7px 6px;font-size:11px;}
+  .f1-table .player-name{font-size:11px;}
+  .f1-stat-grid .v{font-size:17px;}
+  .sheet-body{padding:10px 8px 24px;}
+}
 </style>
 </head>
 <body>
@@ -589,14 +764,101 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     <button type="button" class="sheet-back" id="sheetBack">← 3D</button>
     <div class="sheet-tabs">
       <button type="button" class="sheet-tab" data-sheet="live" onclick="showSheet('live')">Live</button>
-      <button type="button" class="sheet-tab" data-sheet="scorecard" onclick="showSheet('scorecard')">Card</button>
       <button type="button" class="sheet-tab" data-sheet="analytics" onclick="showSheet('analytics')">Analysis</button>
       <button type="button" class="sheet-tab" data-sheet="leaderboards" onclick="showSheet('leaderboards')">Stats</button>
-      <button type="button" class="sheet-tab" data-sheet="summary" onclick="showSheet('summary')">Summary</button>
     </div>
     <button type="button" class="sheet-close" id="sheetClose">✕</button>
   </div>
-  <iframe id="sheetFrame" src="about:blank" allow="fullscreen"></iframe>
+
+  <div class="sheet-body" id="sheetBody">
+
+    <!-- LIVE -->
+    <div class="sheet-pane" data-pane="live">
+      <div class="f1-panel" id="livePaneCard"></div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div class="sheet-pane" data-pane="analytics">
+      <div class="f1-panel gold">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Manhattan — Runs Per Over</span>
+          <span class="f1-panel-sub" id="manhattanSub">--</span>
+        </div>
+        <div class="f1-chart-wrap">
+          <canvas id="manhattanCanvas" class="f1-chart" width="800" height="320"></canvas>
+        </div>
+        <div class="f1-chart-legend">
+          <span><i style="background:var(--f1-green)"></i>Runs</span>
+          <span><i style="background:var(--f1-red);border-radius:50%"></i>Wicket over</span>
+        </div>
+      </div>
+
+      <div class="f1-panel purple">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Worm — Cumulative Runs</span>
+          <span class="f1-panel-sub" id="wormSub">--</span>
+        </div>
+        <div class="f1-chart-wrap">
+          <canvas id="wormCanvas" class="f1-chart" width="800" height="320"></canvas>
+        </div>
+        <div class="f1-chart-legend">
+          <span><i style="background:var(--f1-red)"></i>Innings 1</span>
+          <span><i style="background:#a855f7"></i>Innings 2</span>
+        </div>
+      </div>
+
+      <div class="f1-panel">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Partnerships</span>
+          <span class="f1-panel-sub" id="partnershipSub">--</span>
+        </div>
+        <div id="viewerPartnerships"></div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="sheet-pane" data-pane="leaderboards">
+      <div class="f1-panel gold">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Most Valuable Player</span>
+          <span class="f1-panel-sub">MVP Ranking</span>
+        </div>
+        <table class="f1-table">
+          <thead><tr>
+            <th>#</th><th>Player</th><th>MVP</th><th>R</th><th>W</th><th>Ct</th>
+          </tr></thead>
+          <tbody id="statsMvpBody"></tbody>
+        </table>
+      </div>
+
+      <div class="f1-panel green">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Most Runs</span>
+          <span class="f1-panel-sub">Batting Leaderboard</span>
+        </div>
+        <table class="f1-table">
+          <thead><tr>
+            <th>Player</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th>
+          </tr></thead>
+          <tbody id="statsRunsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="f1-panel purple">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Most Wickets</span>
+          <span class="f1-panel-sub">Bowling Leaderboard</span>
+        </div>
+        <table class="f1-table">
+          <thead><tr>
+            <th>Player</th><th>O</th><th>R</th><th>W</th><th>Eco</th>
+          </tr></thead>
+          <tbody id="statsBowlBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <div id="tvMode">
@@ -804,28 +1066,357 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
   }
 
-  const SHEET_TABS=['live','scorecard','analytics','leaderboards','summary'];
-  const PANE_TO_SHEET={scorecard:'scorecard',card:'scorecard',analytics:'analytics',stats:'analytics',leaderboards:'leaderboards',boards:'leaderboards',summary:'summary',live:'live'};
+  /* ═══ 3-TAB SHEET — standalone panes, no iframe ═══ */
+  const SHEET_TABS=['live','analytics','leaderboards'];
+  const PANE_TO_SHEET={analytics:'analytics',stats:'analytics',leaderboards:'leaderboards',boards:'leaderboards',live:'live'};
   let activeSheetTab=null;
 
+  function __viewerMatch(){
+    var m = window.__cricmaxLastMatch || currentMatchState;
+    if(!m) return null;
+    return m;
+  }
+
+  function __esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function __toArr(o){
+    if(Array.isArray(o)) return o;
+    if(o && typeof o === 'object'){
+      return Object.keys(o).filter(function(k){return /^\d+$/.test(k);})
+        .sort(function(a,b){return a-b;})
+        .map(function(k){return o[k];});
+    }
+    return [];
+  }
+
   function showSheet(tab){
-    if(SHEET_TABS.indexOf(tab)<0)tab='live';
-    const sheet=document.getElementById('viewerSheet');
-    const frame=document.getElementById('sheetFrame');
-    if(!sheet||!frame)return;
-    let code='';
-    try{code=new URLSearchParams(location.search).get('code')||'';}catch(e){}
-    if(!code){try{code=localStorage.getItem('currentMatchCode')||'';}catch(e){}}
-    const src=location.origin+'/index.html?embed=1'+(code?'&code='+encodeURIComponent(code):'')+'&pane='+encodeURIComponent(tab);
-    if(frame.getAttribute('data-src')!==src){frame.setAttribute('data-src',src);frame.src=src;}
+    if(SHEET_TABS.indexOf(tab)<0) tab='live';
+    const sheet = document.getElementById('viewerSheet');
+    if(!sheet) return;
+
+    sheet.querySelectorAll('.sheet-tab').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-sheet') === tab);
+    });
+    sheet.querySelectorAll('.sheet-pane').forEach(function(p){
+      p.classList.toggle('active', p.getAttribute('data-pane') === tab);
+    });
+
     document.body.classList.add('has-sheet');
-    var __hud=document.getElementById('viewerHud');if(__hud)__hud.style.display='none';
-    var __ww=document.getElementById('wagonWrap');if(__ww)__ww.style.display='none';
-    var __wing=document.getElementById('wingAssembly');if(__wing)__wing.style.display='none';
+    var __hud  = document.getElementById('viewerHud');     if(__hud)  __hud.style.display  = 'none';
+    var __ww   = document.getElementById('wagonWrap');     if(__ww)   __ww.style.display   = 'none';
+    var __wing = document.getElementById('wingAssembly');  if(__wing) __wing.style.display = 'none';
+
     sheet.classList.add('open');
     sheet.setAttribute('aria-hidden','false');
-    sheet.querySelectorAll('.sheet-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-sheet')===tab);});
-    activeSheetTab=tab;
+    activeSheetTab = tab;
+
+    try{
+      if(tab === 'live')          renderViewerLive();
+      else if(tab === 'analytics')renderViewerAnalysis();
+      else if(tab === 'leaderboards') renderViewerStats();
+    }catch(e){ console.warn('[viewer] render failed:', tab, e); }
+  }
+
+  function renderViewerLive(){
+    var m = __viewerMatch(); var el = document.getElementById('livePaneCard');
+    if(!el) return;
+    if(!m || !m.teamBatting){ el.innerHTML = '<div class="f1-empty">Waiting for match data…</div>'; return; }
+    var balls = m.legalBalls||0, runs = m.runs||0, wkts = m.wickets||0;
+    var ov = Math.floor(balls/6)+'.'+(balls%6);
+    var crr = balls>0 ? ((runs/balls)*6).toFixed(2) : '0.00';
+    var isChase = m.innings===2 && m.target>0;
+    var totalBalls = (m.totalOvers||20)*6;
+    var ballsLeft = Math.max(0, totalBalls - balls);
+    var need = isChase ? Math.max(0, m.target - runs) : 0;
+    var rrr = (isChase && ballsLeft>0) ? ((need/ballsLeft)*6).toFixed(2) : '0.00';
+
+    var html = ''
+      + '<div class="f1-panel-head">'
+      +   '<span class="f1-panel-title">'+__esc(m.teamBatting)+' vs '+__esc(m.teamBowling)+'</span>'
+      +   '<span class="f1-panel-sub">INNINGS '+(m.innings||1)+'</span>'
+      + '</div>'
+      + '<div class="f1-stat-grid">'
+      +   '<div><span class="k">Score</span><span class="v green">'+runs+'<small style="font-size:13px;color:rgba(255,255,255,.4)">/'+wkts+'</small></span></div>'
+      +   '<div><span class="k">Overs</span><span class="v">'+ov+'</span></div>'
+      +   '<div><span class="k">CRR</span><span class="v">'+crr+'</span></div>'
+      +   (isChase
+          ? '<div><span class="k">Need</span><span class="v red">'+need+'<small style="font-size:13px;color:rgba(255,255,255,.4)"> off '+ballsLeft+'</small></span></div>'
+            +'<div><span class="k">RRR</span><span class="v red">'+rrr+'</span></div>'
+          : '<div><span class="k">Balls Left</span><span class="v">'+ballsLeft+'</span></div>'
+            +'<div><span class="k">Projected</span><span class="v purple">'+(balls>0?Math.round((runs/balls)*totalBalls):0)+'</span></div>'
+        )
+      + '</div>';
+    el.innerHTML = html;
+  }
+
+  function renderViewerAnalysis(){
+    var m = __viewerMatch(); if(!m) return;
+    var totalOv = m.totalOvers || 20;
+    var shots = __toArr(m.shotLog);
+    var currentInn = m.innings || 1;
+
+    /* Manhattan */
+    var perOver = new Array(totalOv).fill(0);
+    var wktsPerOver = new Array(totalOv).fill(0);
+    shots.forEach(function(s){
+      if(!s) return;
+      var inn = (Number(s.inns)===2) ? 2 : 1;
+      if(inn !== currentInn) return;
+      var over = Number(s.over);
+      if(!isFinite(over) || over < 1){
+        var b = Number(s.ball);
+        if(isFinite(b) && b>=1) over = Math.floor((b-1)/6) + 1;
+        else return;
+      }
+      if(over > totalOv) return;
+      var r = Number(s.runs) || 0;
+      if(s.extra === 'WD' || s.extra === 'NB') r += 1;
+      perOver[over-1] += r;
+      if(s.isWicket) wktsPerOver[over-1] += 1;
+    });
+
+    var manCv = document.getElementById('manhattanCanvas');
+    var manSub = document.getElementById('manhattanSub');
+    if(manCv){
+      var ctx = manCv.getContext('2d');
+      var W = manCv.width, H = manCv.height;
+      ctx.clearRect(0,0,W,H);
+
+      var padL=44, padR=16, padT=20, padB=34;
+      var chartW = W-padL-padR, chartH = H-padT-padB;
+      var yMax = Math.max(10, Math.ceil(Math.max.apply(null, perOver.concat([10]))) + 4);
+      yMax = Math.ceil(yMax/4)*4;
+
+      ctx.strokeStyle='rgba(255,255,255,.06)';
+      ctx.lineWidth=1;
+      ctx.font='11px ui-monospace, monospace';
+      ctx.fillStyle='rgba(255,255,255,.45)';
+      ctx.textAlign='right';
+      ctx.textBaseline='middle';
+      for(var g=0; g<=5; g++){
+        var yy = padT + chartH*(1 - g/5);
+        ctx.beginPath();
+        ctx.moveTo(padL, yy);
+        ctx.lineTo(W-padR, yy);
+        ctx.stroke();
+        ctx.fillText(String(Math.round(yMax * g/5)), padL-8, yy);
+      }
+
+      var groupW = chartW/totalOv;
+      var gap = 2;
+      var barW = Math.max(2, groupW - gap);
+
+      perOver.forEach(function(r, i){
+        var x = padL + i*groupW + gap/2;
+        var h = (r/yMax) * chartH;
+        if(r > 0){
+          var grd = ctx.createLinearGradient(0, padT+chartH-h, 0, padT+chartH);
+          if(wktsPerOver[i] > 0){
+            grd.addColorStop(0, '#ef4444');
+            grd.addColorStop(1, '#7f1d1d');
+          } else {
+            grd.addColorStop(0, '#00d2be');
+            grd.addColorStop(1, '#008f80');
+          }
+          ctx.fillStyle = grd;
+          ctx.fillRect(x, padT+chartH-h, barW, h);
+        }
+        ctx.fillStyle='rgba(255,255,255,.4)';
+        ctx.font='10px ui-monospace, monospace';
+        ctx.textAlign='center';
+        ctx.textBaseline='top';
+        if(totalOv <= 20 || (i+1) % Math.ceil(totalOv/10) === 0){
+          ctx.fillText(String(i+1), x + barW/2, padT+chartH+6);
+        }
+      });
+    }
+    if(manSub) manSub.textContent = 'Ov ' + totalOv + ' · Innings ' + currentInn;
+
+    /* Worm */
+    var wormCv = document.getElementById('wormCanvas');
+    var wormSub = document.getElementById('wormSub');
+    var maxRuns = 0;
+    if(wormCv){
+      var ctx2 = wormCv.getContext('2d');
+      var W2 = wormCv.width, H2 = wormCv.height;
+      ctx2.clearRect(0,0,W2,H2);
+
+      var padL2=44, padR2=16, padT2=20, padB2=34;
+      var cW = W2-padL2-padR2, cH = H2-padT2-padB2;
+
+      var cumul = {1:[0], 2:[0]};
+      var perOverAll = {1:new Array(totalOv).fill(0), 2:new Array(totalOv).fill(0)};
+      shots.forEach(function(s){
+        if(!s) return;
+        var inn = (Number(s.inns)===2)?2:1;
+        var over = Number(s.over);
+        if(!isFinite(over) || over<1){
+          var b = Number(s.ball);
+          if(isFinite(b) && b>=1) over = Math.floor((b-1)/6)+1;
+          else return;
+        }
+        if(over > totalOv) return;
+        var r = Number(s.runs)||0;
+        if(s.extra==='WD'||s.extra==='NB') r += 1;
+        perOverAll[inn][over-1] += r;
+      });
+      for(var inn=1; inn<=2; inn++){
+        var run=0;
+        for(var i2=0; i2<totalOv; i2++){
+          run += perOverAll[inn][i2];
+          cumul[inn][i2+1] = run;
+        }
+      }
+      maxRuns = Math.max(cumul[1][totalOv]||0, cumul[2][totalOv]||0, 20);
+      var yMaxW = Math.ceil(maxRuns/20)*20 + 20;
+
+      ctx2.strokeStyle='rgba(255,255,255,.06)';
+      ctx2.fillStyle='rgba(255,255,255,.45)';
+      ctx2.font='11px ui-monospace, monospace';
+      ctx2.textAlign='right';
+      ctx2.textBaseline='middle';
+      for(var g2=0; g2<=5; g2++){
+        var y2 = padT2 + cH*(1 - g2/5);
+        ctx2.beginPath();
+        ctx2.moveTo(padL2, y2);
+        ctx2.lineTo(W2-padR2, y2);
+        ctx2.stroke();
+        ctx2.fillText(String(Math.round(yMaxW*g2/5)), padL2-8, y2);
+      }
+
+      function plotLine(data, color, glow){
+        ctx2.strokeStyle = color;
+        ctx2.lineWidth = 2.5;
+        ctx2.shadowColor = glow;
+        ctx2.shadowBlur = 8;
+        ctx2.beginPath();
+        for(var i3=0; i3<=totalOv; i3++){
+          var x3 = padL2 + (cW*i3)/totalOv;
+          var y3 = padT2 + cH*(1 - (data[i3]||0)/yMaxW);
+          if(i3===0) ctx2.moveTo(x3,y3); else ctx2.lineTo(x3,y3);
+        }
+        ctx2.stroke();
+        ctx2.shadowBlur = 0;
+      }
+      plotLine(cumul[1], '#e10600', 'rgba(225,6,0,.6)');
+      if(cumul[2][totalOv] > 0 || (m.innings===2)) plotLine(cumul[2], '#a855f7', 'rgba(168,85,247,.6)');
+
+      ctx2.fillStyle='rgba(255,255,255,.4)';
+      ctx2.font='10px ui-monospace, monospace';
+      ctx2.textAlign='center';
+      ctx2.textBaseline='top';
+      for(var i4=0; i4<=totalOv; i4+=Math.ceil(totalOv/10)){
+        var x4 = padL2 + (cW*i4)/totalOv;
+        ctx2.fillText(String(i4), x4, padT2+cH+6);
+      }
+    }
+    if(wormSub) wormSub.textContent = 'Max ' + (maxRuns||0) + ' · Innings ' + currentInn;
+
+    /* Partnerships */
+    var listEl = document.getElementById('viewerPartnerships');
+    var partSub = document.getElementById('partnershipSub');
+    if(listEl){
+      var parts = [];
+      if(Array.isArray(m.partnerRuns)) parts = parts.concat(m.partnerRuns);
+      var cur = m.currentPartnership;
+      if(cur && (cur.runs>0 || cur.balls>0)) parts.push(cur);
+      if(partSub) partSub.textContent = parts.length + ' RECORDED';
+      if(!parts.length){
+        listEl.innerHTML = '<div class="f1-empty">No partnerships yet</div>';
+      } else {
+        var maxRunsP = Math.max.apply(null, parts.map(function(p){return p.runs||0;}).concat([1]));
+        listEl.innerHTML = parts.map(function(p, i){
+          var names = (p.batters && p.batters.length) ? p.batters.map(__esc).join(' &amp; ') : ('Partnership ' + (i+1));
+          var pct = Math.max(2, Math.round(((p.runs||0)/maxRunsP)*100));
+          return '<div class="f1-part-row">'
+            + '<div>'
+            +   '<div class="f1-part-names">'+names+'</div>'
+            +   '<div class="f1-part-bar"><div class="f1-part-fill" style="width:'+pct+'%"></div></div>'
+            + '</div>'
+            + '<div class="f1-part-val">'+(p.runs||0)+' <small>('+(p.balls||0)+'b)</small></div>'
+            + '</div>';
+        }).join('');
+      }
+    }
+  }
+
+  function renderViewerStats(){
+    var m = __viewerMatch(); if(!m) return;
+
+    var pool = [];
+    var allNames = {};
+    ['batters','bowlers','fielding'].forEach(function(k){
+      var obj = m[k] || {};
+      Object.keys(obj).forEach(function(n){ allNames[n] = true; });
+    });
+    Object.keys(allNames).forEach(function(n){
+      var b = (m.batters && m.batters[n]) || {runs:0,balls:0,fours:0,sixes:0,fifties:0,hundreds:0};
+      var bw = (m.bowlers && m.bowlers[n]) || {balls:0,maidens:0,runs:0,wickets:0};
+      var f = (m.fielding && m.fielding[n]) || {catches:0,stumpings:0,runOuts:0};
+      var sr = b.balls>0 ? (b.runs/b.balls)*100 : 0;
+      var eco = bw.balls>0 ? (bw.runs/(bw.balls/6)) : 99.9;
+      var mvp = Math.round(b.runs + b.fours*1.5 + b.sixes*2.5 + bw.wickets*25 + f.catches*10 + f.stumpings*12 - bw.runs*0.4);
+      pool.push({
+        name: n,
+        runs: b.runs||0, balls: b.balls||0, fours: b.fours||0, sixes: b.sixes||0, sr: sr,
+        bowlBalls: bw.balls||0, bowlRuns: bw.runs||0, wickets: bw.wickets||0, eco: eco,
+        catches: f.catches||0, stumpings: f.stumpings||0, runOuts: f.runOuts||0,
+        mvp: Math.max(0, mvp)
+      });
+    });
+
+    var mvpBody = document.getElementById('statsMvpBody');
+    if(mvpBody){
+      var sorted = pool.slice().sort(function(a,b){return b.mvp - a.mvp;}).slice(0, 10);
+      var html = '';
+      sorted.forEach(function(p, i){
+        var rank = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : (i+1);
+        var active = (p.name===m.striker) ? ' is-active' : '';
+        html += '<tr>'
+          + '<td>'+rank+'</td>'
+          + '<td><span class="player-name'+active+'">'+__esc(p.name)+'</span></td>'
+          + '<td class="stat-gold">'+p.mvp+'</td>'
+          + '<td>'+p.runs+'</td>'
+          + '<td>'+p.wickets+'</td>'
+          + '<td>'+p.catches+'</td>'
+          + '</tr>';
+      });
+      mvpBody.innerHTML = html || '<tr><td colspan="6" class="f1-empty">No stats yet</td></tr>';
+    }
+
+    var runsBody = document.getElementById('statsRunsBody');
+    if(runsBody){
+      var rSorted = pool.slice().sort(function(a,b){return b.runs-a.runs || b.sr-a.sr;}).filter(function(p){return p.balls>0;}).slice(0,10);
+      runsBody.innerHTML = rSorted.map(function(p){
+        return '<tr>'
+          + '<td><span class="player-name">'+__esc(p.name)+'</span></td>'
+          + '<td class="stat-hl">'+p.runs+'</td>'
+          + '<td>'+p.balls+'</td>'
+          + '<td>'+p.fours+'</td>'
+          + '<td>'+p.sixes+'</td>'
+          + '<td>'+p.sr.toFixed(1)+'</td>'
+          + '</tr>';
+      }).join('') || '<tr><td colspan="6" class="f1-empty">No batting data</td></tr>';
+    }
+
+    var bowlBody = document.getElementById('statsBowlBody');
+    if(bowlBody){
+      var bSorted = pool.slice().sort(function(a,b){return b.wickets-a.wickets || a.eco-b.eco;}).filter(function(p){return p.bowlBalls>0;}).slice(0,10);
+      bowlBody.innerHTML = bSorted.map(function(p){
+        var ov = Math.floor(p.bowlBalls/6)+'.'+(p.bowlBalls%6);
+        return '<tr>'
+          + '<td><span class="player-name">'+__esc(p.name)+'</span></td>'
+          + '<td>'+ov+'</td>'
+          + '<td>'+p.bowlRuns+'</td>'
+          + '<td class="stat-warn">'+p.wickets+'</td>'
+          + '<td>'+p.eco.toFixed(2)+'</td>'
+          + '</tr>';
+      }).join('') || '<tr><td colspan="5" class="f1-empty">No bowling data</td></tr>';
+    }
   }
 
   function closeSheet(){
@@ -1762,48 +2353,28 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
               z = tz + r·sin(φ)·sin(θ)
      ═══════════════════════════════════════════════════════════ */
   const CAM_MODES={
-    /* controls.js: tv        x0 y2 z0  th-π/2  ph0.44π  r34  → pos(0, 8.37, -33.40) */
     broadcast:{pos:new THREE.Vector3(0, 8.37, -33.40),target:new THREE.Vector3(0, 2, 0)},
-    /* controls.js: bowler    x0 y2 z8.6 th-π/2 ph0.42π r32  → pos(0, 9.96, -22.40) */
     bowler:{pos:new THREE.Vector3(0, 9.96, -22.40),target:new THREE.Vector3(0, 2, 8.6)},
-    /* controls.js: batsman   x0.4 y2 z8.6 th+π/2 ph0.42π r12 → pos(0.4, 4.98, 20.22) */
     keeper:{pos:new THREE.Vector3(0.4, 4.98, 20.22),target:new THREE.Vector3(0.4, 2, 8.6)},
-    /* controls.js: closeup   x0.4 y1.4 z8.6 th-0.35π ph0.42π r4.5 → pos(2.38, 2.52, 4.72) */
     slip:{pos:new THREE.Vector3(2.38, 2.52, 4.72),target:new THREE.Vector3(0.4, 1.4, 8.6)},
-    /* controls.js: sideOn    x0 y2 z0 th0 ph0.46π r26 → pos(25.79, 5.26, 0) */
     side:{pos:new THREE.Vector3(25.79, 5.26, 0),target:new THREE.Vector3(0, 2, 0)},
-    /* controls.js: drone     x0 y4 z5 th1.2π ph0.35π r65 → pos(-46.86, 33.51, -29.05) */
     drone:{pos:new THREE.Vector3(-46.86, 33.51, -29.05),target:new THREE.Vector3(0, 4, 5)},
-    /* controls.js: spider    x0 y6 z0 th0.75π ph0.35π r42 → pos(-26.46, 25.07, 26.46) */
     spider:{pos:new THREE.Vector3(-26.46, 25.07, 26.46),target:new THREE.Vector3(0, 6, 0)},
-    /* controls.js: stumps    x0.4 y1 z8.6 th+π/2 ph0.42π r3 → pos(0.4, 1.75, 11.51) */
     helmet:{pos:new THREE.Vector3(0.4, 1.75, 11.51),target:new THREE.Vector3(0.4, 1.0, 8.6)},
-    /* controls.js: tvlong    x0 y2 z0 th-π/2 ph0.45π r55 → pos(0, 10.60, -54.32) */
     follow:{pos:new THREE.Vector3(0, 10.60, -54.32),target:new THREE.Vector3(0, 2, 0)}
   };
   let activeCam='broadcast',directorOn=true;
   const camPos=CAM_MODES.broadcast.pos.clone(),camTarget=CAM_MODES.broadcast.target.clone();
   let __cmReplayActive=false;
 
-  /* ── Spider cam — realistic cable-mounted camera ──
-     Sweeps laterally with eased pauses (operator holding a shot),
-     hovers ~17 m, gently bobs, always framing the action.
-     Uses 0.15s velocity look-ahead so the framing never lags the ball. */
   function updateSpiderCam(elapsed,camPos,camTarget){
     const t=elapsed;
-    // Eased lateral sweep — decelerates at the ends like a real operator.
-    // Restricted to ±18 m so the camera stays comfortably INSIDE the field.
     const raw=Math.sin(t*0.18);
-    const eased=raw*raw*raw*(raw*(raw*6-15)+10);   // smoothstep curve
+    const eased=raw*raw*raw*(raw*(raw*6-15)+10);
     const x=eased*18;
-    // Gentle fore-aft drift, always hovering behind / beside the striker.
     const z=-3+Math.sin(t*0.24+0.5)*7;
-    // Lower altitude (≈17 m) → keeps the whole pitch in frame,
-    // never swings out over the stands or the boundary rope.
     const y=17+Math.sin(t*0.7)*1.4+Math.sin(t*1.9)*0.25;
     camPos.lerp(new THREE.Vector3(x,y,z),0.06);
-    // Predict the ball's next position using its velocity (~0.15s look-ahead)
-    // so the framing catches up instantly instead of lagging behind.
     const focus=(ball&&ball.visible)
       ?new THREE.Vector3(
           (ball.position.x+ball.velocity.x*0.15)*0.75,
@@ -1811,27 +2382,17 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
           (ball.position.z+ball.velocity.z*0.15)*0.8+1
         )
       :new THREE.Vector3(0,1.5,STRIKER_BASE_Z*0.6);
-    // Snap-look is much faster than position lerp → ball stays centred
     camTarget.lerp(focus,0.22);
   }
 
-  /* ── Drone cam — high-altitude orbiting camera ──
-     Continuous slow orbit INSIDE the field boundary so the stadium
-     roof / shed can never come between the camera and the pitch.
-     Uses 0.15s velocity look-ahead so the framing never lags the ball. */
   function updateDroneCam(elapsed,camPos,camTarget){
     const t=elapsed;
-    // Continuous orbit + slight wobble (feels like real piloting)
     const orbit=t*0.14+Math.sin(t*0.11)*0.25;
-    // Radius 34–42 m — well inside the 48 m boundary rope
     const rad=38+Math.sin(t*0.19)*4;
     const x=Math.sin(orbit)*rad;
     const z=Math.cos(orbit)*rad;
-    // Moderate altitude (≈24 m) with a breathing wobble — always above
-    // the pitch, never high enough to swing behind the top tier.
     const y=24+Math.sin(t*0.32)*2.5+Math.sin(t*0.9)*0.5;
     camPos.lerp(new THREE.Vector3(x,y,z),0.05);
-    // Predict ball position for tighter tracking.
     const ballPos=(ball&&ball.visible)?ball.position:null;
     const focus=ballPos
       ?new THREE.Vector3(
@@ -1840,7 +2401,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
           (ballPos.z+ball.velocity.z*0.15)*0.6
         )
       :new THREE.Vector3(0,1.7,0);
-    // Faster target lerp so framing snaps to the ball quickly
     camTarget.lerp(focus,0.20);
   }
 
@@ -2024,7 +2584,6 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     const T_FOLLOW_END=T_CONTACT+animPose.followTime;
     const start=performance.now();
     let bounced=false,contacted=false,releaseThudPlayed=false;
-    // Seed initial ball velocity so look-ahead cameras have data from frame 0
     ball.velocity=new THREE.Vector3(0,0,0);
 
     function loop(now){
@@ -2427,6 +2986,15 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     else if(_recentBalls.length>0)renderOverDots(_recentBalls.slice(-6));
     updateF1Hud(m);
     if(tvModeActive)refreshTVMode();
+
+    /* Auto-refresh the open sheet pane on new data */
+    if(activeSheetTab){
+      try{
+        if(activeSheetTab === 'live')          renderViewerLive();
+        else if(activeSheetTab === 'analytics')renderViewerAnalysis();
+        else if(activeSheetTab === 'leaderboards') renderViewerStats();
+      }catch(e){}
+    }
   }
 
   let lastSeenBalls=-1;
@@ -2478,8 +3046,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     appId:"1:489545634269:web:20b29fa190c4500670e634"
   };
   function resolveViewerCode(){
-    try{var c=localStorage.getItem('currentMatchCode');if(c)return c;}catch(e){}
     try{var q=new URLSearchParams(window.location.search).get('code');if(q)return q;}catch(e){}
+    try{var c=localStorage.getItem('currentMatchCode');if(c)return c;}catch(e){}
     return null;
   }
   var __viewerReadRef=null,__viewerReadHandler=null,__viewerLastCode=null;
@@ -2686,8 +3254,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   'use strict';
   function buildViewerUrl(){
     var code='';
-    try{code=localStorage.getItem('currentMatchCode')||'';}catch(e){}
-    if(!code){try{code=new URLSearchParams(location.search).get('code')||'';}catch(e){}}
+    try{code=new URLSearchParams(location.search).get('code')||'';}catch(e){}
+    if(!code){try{code=localStorage.getItem('currentMatchCode')||'';}catch(e){}}
     return location.origin+'/viewer.html'+(code?'?code='+encodeURIComponent(code):'');
   }
   function showToast(msg,ok){
