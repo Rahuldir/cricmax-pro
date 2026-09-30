@@ -1,5 +1,7 @@
 /* ============================================================
-   firebase.js — Broadcast channel, Firestore sync, viewer presence
+   firebase.js — Realtime Database sync + viewer presence
+   ✅ Writes to the SAME path viewer.html reads from:
+         cricmax/matches/{matchCode}
    ✅ Self-healing: normalizeMatch() runs before every state use
    ✅ Clean viewer share URL: /viewer.html?code=XXXXXX
    ============================================================ */
@@ -52,53 +54,63 @@ function setupBroadcast() {
 }
 
 function waitForFirebaseAndSubscribe(code, attempt = 0) {
-  if (window.firebaseReady && window.fbOnSnapshot) {
+  if (window.firebaseReady && typeof firebase !== 'undefined') {
     return subscribeToMatch(code);
   }
   if (attempt > 60) return showToast('Unable to connect to live feed.');
   setTimeout(() => waitForFirebaseAndSubscribe(code, attempt + 1), 500);
 }
 
+/* ─── Viewer subscription — Realtime Database ─── */
 function subscribeToMatch(code) {
   if (viewerUnsubscribe) {
     try { viewerUnsubscribe(); } catch (e) {}
   }
-  const docRef = window.fbDoc(window.fbDb, 'matches', code);
-  viewerUnsubscribe = window.fbOnSnapshot(docRef, (snap) => {
-    if (!snap.exists()) return;
-    const data = snap.data();
-    if (data && data.matchState) {
-      /* ⚡ Normalize BEFORE applying viewer state */
-      if (typeof normalizeMatch === 'function') normalizeMatch(data.matchState);
-      applyViewerState(data.matchState);
+  if (typeof firebase === 'undefined') return;
+  const ref = firebase.database().ref('cricmax/matches/' + code);
+  const handler = (snap) => {
+    const data = snap.val();
+    if (!data) return;
+    const state = data.matchState || data;
+    if (state) {
+      if (typeof normalizeMatch === 'function') normalizeMatch(state);
+      applyViewerState(state);
       showLiveViewerPulse();
     }
-  }, err => console.error('Firestore sub error:', err));
+  };
+  ref.on('value', handler);
+  viewerUnsubscribe = function () {
+    try { ref.off('value', handler); } catch (e) {}
+  };
 }
 
 async function registerViewerPresence(code) {
-  if (!window.firebaseReady || !window.fbDb || !code) return;
+  if (!window.firebaseReady || typeof firebase === 'undefined' || !code) return;
   try {
     const uid = (window.fbAuth && window.fbAuth.currentUser && window.fbAuth.currentUser.uid)
-      || ('anon_' + Math.random().toString(36).slice(2, 9));
-    const vref = window.fbDoc(window.fbDb, 'matches', code, 'viewers', uid);
+              || ('anon_' + Math.random().toString(36).slice(2, 9));
+    const vref = firebase.database().ref('cricmax/matches/' + code + '/viewers/' + uid);
     viewerPresenceDocRef = vref;
-    await window.fbSetDoc(vref, {
+    await vref.update({
       joinedAt: Date.now(),
       role: isViewerMode ? 'viewer' : 'host'
-    }, { merge: true });
+    });
 
     if (viewerCountUnsub) {
       try { viewerCountUnsub(); } catch (e) {}
     }
-    const colRef = window.fbCollection(window.fbDb, 'matches', code, 'viewers');
-    viewerCountUnsub = window.fbOnSnapshot(colRef, snap => {
+    const viewersRef = firebase.database().ref('cricmax/matches/' + code + '/viewers');
+    const countHandler = (snap) => {
+      const size = snap.numChildren ? snap.numChildren() : Object.keys(snap.val() || {}).length;
       const num = document.getElementById('liveViewerCountNum');
       const badge = document.getElementById('liveViewerCount');
-      const size = snap.size;
       if (num) num.innerText = size;
       if (badge) badge.style.display = size > 0 ? 'inline-flex' : 'none';
-    }, err => console.warn('Viewer count error:', err));
+    };
+    viewersRef.on('value', countHandler);
+    viewerCountUnsub = function () {
+      try { viewersRef.off('value', countHandler); } catch (e) {}
+    };
   } catch (e) {
     console.warn('[CricMax] registerViewerPresence failed:', e);
   }
@@ -154,7 +166,7 @@ function fallbackCopy(url) {
 
 function copyCommentaryLink() { shareViewerOnly(); }
 
-/* ─── Persistence ──────────────────────────────────────── */
+/* ─── Persistence — Realtime Database ─── */
 async function autoPersist() {
   window.match = match;
 
@@ -176,25 +188,25 @@ async function autoPersist() {
 
   try {
     localStorage.setItem('CricMax_Data', JSON.stringify(d));
+    if (matchCode) localStorage.setItem('currentMatchCode', matchCode);
   } catch (e) {
     console.warn('[CricMax] localStorage save failed:', e);
   }
 
-  if (window.firebaseReady && window.fbAuth && window.fbAuth.currentUser && matchCode) {
+  if (typeof firebase !== 'undefined' && window.firebaseReady && window.fbAuth && window.fbAuth.currentUser && matchCode) {
     clearTimeout(cloudWriteTimer);
     cloudWriteTimer = setTimeout(async () => {
       try {
-        const docRef = window.fbDoc(window.fbDb, 'matches', matchCode);
-        await window.fbSetDoc(docRef, {
+        await firebase.database().ref('cricmax/matches/' + matchCode).set({
           matchState: match,
           shareCode: matchCode,
           hostUid: window.fbAuth.currentUser.uid,
           isActive: match.isActive,
-          updatedAt: new Date().toISOString()
+          updatedAt: Date.now()
         });
         showLiveViewerPulse();
       } catch (e) {
-        console.warn('[CricMax] Firestore write failed:', e);
+        console.warn('[CricMax] RTDB write failed:', e);
       }
     }, 250);
   }
@@ -223,6 +235,8 @@ function loadMatchFromLocalStorage() {
     match = p.match || emptyMatch();
     window.match = match;
     matchCode = p.matchCode || (p.match && p.match.shareCode) || '';
+
+    try { localStorage.setItem('currentMatchCode', matchCode); } catch (e) {}
 
     /* ⚡ Normalize — self-heal missing fields */
     if (typeof normalizeMatch === 'function') normalizeMatch(match);
