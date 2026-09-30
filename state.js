@@ -171,13 +171,42 @@ function normalizeMatch(m) {
   if (typeof m.isActive !== 'boolean') m.isActive = false;
   if (typeof m.isFreeHit !== 'boolean') m.isFreeHit = false;
 
-  /* ── currentPartnership ── */
+    /* ── currentPartnership ── */
   if (!m.currentPartnership || typeof m.currentPartnership !== 'object') {
     m.currentPartnership = { runs: 0, balls: 0, batters: [] };
   } else {
     if (typeof m.currentPartnership.runs !== 'number')  m.currentPartnership.runs = 0;
     if (typeof m.currentPartnership.balls !== 'number') m.currentPartnership.balls = 0;
     if (!Array.isArray(m.currentPartnership.batters))   m.currentPartnership.batters = [];
+  }
+
+  /* ── HEAL shotLog entries ──
+     Older versions logged shots without `over` / `inns`, which made the
+     Manhattan chart drop them. Retro-fill both fields from ball index so
+     the analytics pane works on already-in-progress matches too. */
+  if (Array.isArray(m.shotLog)) {
+    for (var si2 = 0; si2 < m.shotLog.length; si2++){
+      var sh = m.shotLog[si2];
+      if (!sh || typeof sh !== 'object') continue;
+
+      /* innings — anything not exactly 2 becomes 1 */
+      var inn2 = Number(sh.inns);
+      if (inn2 !== 2) sh.inns = 1;
+
+      /* over — derive from `ball` if missing or bogus */
+      var ov2 = Number(sh.over);
+      if (!isFinite(ov2) || ov2 < 1){
+        var b2 = Number(sh.ball);
+        if (isFinite(b2) && b2 >= 1) sh.over = Math.floor((b2 - 1) / 6) + 1;
+        else sh.over = 1;   /* last resort: assume over 1 */
+      }
+
+      /* ball — derive from `over` if missing */
+      var b3 = Number(sh.ball);
+      if (!isFinite(b3) || b3 < 1){
+        sh.ball = ((sh.over - 1) * 6) + 1;
+      }
+    }
   }
 
   return m;
