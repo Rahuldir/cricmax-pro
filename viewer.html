@@ -2705,5 +2705,68 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   console.log('[Share] ✅ Copy-to-clipboard handler installed');
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     VIEWER DEFAULT: TV MODE WHEN WAGON WHEEL IS OFF
+     - If the scorer turned OFF the wagon wheel toggle for this
+       match (localStorage: CricMax_useWagonWheel = '0'),
+       the viewer auto-enables TV mode on load.
+     - Reacts live if the scorer flips the toggle while the
+       viewer is open in another tab (same origin).
+     - Idempotent: never toggles TV mode OFF by itself.
+     - Runs only in the viewer page (this file).
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  var KEY = 'CricMax_useWagonWheel';
+
+  function isTVActive(){
+    var tv = document.getElementById('tvMode');
+    if (!tv) return false;
+    if (tv.classList.contains('show')) return true;
+    var d = '';
+    try { d = window.getComputedStyle(tv).display; } catch(e){ d = tv.style.display; }
+    return d && d !== 'none';
+  }
+
+  function isWagonOff(){
+    var val = '1';
+    try { val = localStorage.getItem(KEY) || '1'; } catch(e){}
+    return val === '0';
+  }
+
+  function enableTVIfWagonOff(){
+    if (!isWagonOff()) return;
+    if (isTVActive()) return;
+    if (typeof window.toggleTVMode === 'function'){
+      try {
+        window.toggleTVMode();
+        console.log('[Viewer] 🎯 Wagon Wheel OFF → TV mode enabled by default');
+      } catch(err){
+        console.warn('[Viewer] toggleTVMode failed:', err);
+      }
+    }
+  }
+
+  function scheduleTries(){
+    var delays = [400, 900, 1600, 2400, 3200];
+    delays.forEach(function(d){ setTimeout(enableTVIfWagonOff, d); });
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', scheduleTries);
+  } else {
+    scheduleTries();
+  }
+  window.addEventListener('load', scheduleTries);
+
+  window.addEventListener('storage', function(e){
+    if (e.key !== KEY) return;
+    if (e.newValue === '0'){ enableTVIfWagonOff(); }
+  });
+})();
+</script> 
 </body>
 </html>
