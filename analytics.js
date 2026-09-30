@@ -49,12 +49,30 @@ function renderNzcRunChart() {
   const wicketsAtInns = { 1: [], 2: [] };
 
   (match.shotLog || []).forEach(s => {
-    if (!s.over || s.over < 1 || s.over > totalOv) return;
-    const ovIdx = s.over - 1;
+    if (!s) return;
+
+    /* Resolve over number — fall back to ball index if s.over is missing. */
+    let overNum = Number(s.over);
+    if (!isFinite(overNum) || overNum < 1){
+      const b = Number(s.ball);
+      if (isFinite(b) && b >= 1) overNum = Math.floor((b - 1) / 6) + 1;
+      else return;
+    }
+    if (overNum > totalOv) return;
+    const ovIdx = overNum - 1;
+
+    /* Resolve innings — treat anything other than 2 as innings 1. */
+    const inn = (Number(s.inns) === 2) ? 2 : 1;
+
     let r = s.runs || 0;
-    if (s.extra === 'WD' || s.extra === 'NB') r += 1;
-    overRunsPerInns[s.inns][ovIdx] += r;
-    if (s.isWicket) overWicketsPerInns[s.inns][ovIdx] += 1;
+    if (s.extra === 'WD' || s.extra === 'NB') r += (typeof matchConfig !== 'undefined' && matchConfig)
+      ? (s.extra === 'WD'
+          ? ((typeof matchConfig.wideRuns === 'number') ? matchConfig.wideRuns : 1)
+          : ((typeof matchConfig.nbRuns   === 'number') ? matchConfig.nbRuns   : 1))
+      : 1;
+
+    overRunsPerInns[inn][ovIdx] += r;
+    if (s.isWicket) overWicketsPerInns[inn][ovIdx] += 1;
   });
 
   for (const inn of [1, 2]) {
