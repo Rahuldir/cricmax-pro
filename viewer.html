@@ -536,12 +536,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   <button type="button" id="showWingPill" onclick="toggleWing()" aria-label="Show score">     <span class="swp-dot"></span>     <span class="swp-team" id="swpTeam">T1</span>     <span class="swp-score" id="swpScore">0/0</span>   </button>    <div class="wing-assembly" id="wingAssembly">
     <div class="wing-flip-flap" id="wingFlipFlap">
-      <div class="wff-face wff-front">
-        <span class="wff-ico" id="wffIcoFront">📊</span>
-        <span class="wff-text" id="wffFrontText">PROJECTED <b>--</b></span>
+          <div class="wff-face wff-front">
+        <span class="wff-text" id="wffFrontText">BALLS LEFT <b>--</b></span>
       </div>
       <div class="wff-face wff-back">
-        <span class="wff-ico" id="wffIcoBack">📈</span>
         <span class="wff-text" id="wffBackText">CRR <b>--</b></span>
       </div>
     </div>
@@ -2372,7 +2370,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
         if(dV3)dV3.textContent=String(ballsLeft);
       }
     }else if(wing)wing.classList.remove('is-drs-open');
-    /* ── Auto-flip info chip ── */     (function(){       var flap = document.getElementById('wingFlipFlap');       var fF   = document.getElementById('wffFrontText');       var fB   = document.getElementById('wffBackText');       var iF   = document.getElementById('wffIcoFront');       var iB   = document.getElementById('wffIcoBack');       if (!flap || !fF || !fB) return;       var isChase2 = (m.innings === 2 && m.target && m.target > 0);       flap.classList.toggle('chase', isChase2);       if (isChase2){         var need2 = Math.max(0, m.target - runs);         var rrr2  = ballsLeft > 0 ? ((need2 / ballsLeft) * 6) : 0;         if (iF) iF.textContent = '🎯';         if (iB) iB.textContent = '⚡';         fF.innerHTML = 'NEED <b>' + need2 + '</b> OFF ' + ballsLeft;         fB.innerHTML = 'RRR <b>' + rrr2.toFixed(2) + '</b> · TGT ' + m.target;       } else {         if (iF) iF.textContent = '📊';         if (iB) iB.textContent = '📈';         fF.innerHTML = 'PROJECTED <b>' + projected + '</b>';         fB.innerHTML = 'CRR <b>' + crr.toFixed(2) + '</b> · BALLS ' + ballsLeft;       }     })();      var rpm=document.getElementById('wingRpmFill');
+    /* ── Auto-flip info chip ── */     (function(){       var flap = document.getElementById('wingFlipFlap');       var fF   = document.getElementById('wffFrontText');       var fB   = document.getElementById('wffBackText');       if (!flap || !fF || !fB) return;       var isChase2 = (m.innings === 2 && m.target && m.target > 0);       flap.classList.toggle('chase', isChase2);       if (isChase2){         var need2 = Math.max(0, m.target - runs);         var rrr2  = ballsLeft > 0 ? ((need2 / ballsLeft) * 6) : 0;         fF.innerHTML = 'NEED <b>' + need2 + '</b> OFF ' + ballsLeft;         fB.innerHTML = 'RRR <b>' + rrr2.toFixed(2) + '</b> · TGT ' + m.target;       } else {         fF.innerHTML = 'BALLS LEFT <b>' + ballsLeft + '</b>';         fB.innerHTML = 'CRR <b>' + crr.toFixed(2) + '</b>';       }     })();      var rpm=document.getElementById('wingRpmFill');
     if(rpm){
       var overRuns=m._currentOverRuns!=null?m._currentOverRuns:0;
       var pct=Math.min(100,(overRuns/20)*100);
