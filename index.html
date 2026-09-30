@@ -1539,9 +1539,35 @@ html.cm-embed-boot body {
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
   }
-  function renderStatsScope(){
+   function renderStatsScope(){
     var players, subtitle;
-    if (currentScope === 'career'){
+
+    /* ── EMBED / VIEWER MODE ──
+       When the sheet iframe is opened by viewer.html, it passes
+       ?embed=1&code=XYZ. In that case, we should NOT read the
+       local user's CricMax_Data — we should aggregate from the
+       live match object that viewer.js has already hydrated
+       from Firebase. Otherwise the Stats pane shows whichever
+       match happens to be in this browser's localStorage. */
+    var __inEmbed = false;
+    var __embedCode = '';
+    try {
+      var __p = new URLSearchParams(location.search);
+      __inEmbed = (__p.get('embed') === '1' || __p.get('viewer') === '1');
+      __embedCode = __p.get('code') || '';
+    } catch(e){}
+    var __liveMatch = (typeof window.match !== 'undefined' && window.match && window.match.isActive)
+                    ? window.match
+                    : (window.__cricmaxLastMatch || null);
+
+    if (__inEmbed && __liveMatch && __liveMatch.teamBatting){
+      /* Live scope — aggregate only the current match. */
+      players = aggregateMatches([__liveMatch]);
+      subtitle = '📺 ' + (__liveMatch.teamBatting || 'Match') +
+                 ' vs ' + (__liveMatch.teamBowling || 'Opponent') +
+                 ' • ' + (__liveMatch.runs || 0) + '/' + (__liveMatch.wickets || 0) +
+                 ' (' + Math.floor((__liveMatch.legalBalls||0)/6) + '.' + ((__liveMatch.legalBalls||0)%6) + ')';
+    } else if (currentScope === 'career'){
       var c = buildCareerStats();
       players = c.players;
       subtitle = '📈 Career • ' + c.matchesProcessed + ' match' + (c.matchesProcessed === 1 ? '' : 'es');
