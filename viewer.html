@@ -2474,8 +2474,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     var ref=firebase.database().ref('cricmax/matches/'+code);
     var handler=function(snap){
       var d=snap.val();
-      if(d)handleNewMatchData(d);
-    };
+      if(d)handleNewMatchData(d.matchState||d);    };
     __viewerReadRef=ref;__viewerReadHandler=handler;
     ref.on('value',handler);
   }
