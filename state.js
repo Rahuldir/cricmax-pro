@@ -180,6 +180,63 @@ function normalizeMatch(m) {
     if (!Array.isArray(m.currentPartnership.batters))   m.currentPartnership.batters = [];
   }
 
+  /* ── RECOMPUTE PARTNERSHIPS FROM SHOTLOG ──
+     Older builds never incremented currentPartnership.runs, so both
+     the live partnership and every stored partnerRuns entry show
+     "0 runs" even when the batter stats are correct. Rebuild runs
+     and balls from shotLog — the source of truth for every ball.
+     O(shots), safe to run on every normalize. */
+  if (Array.isArray(m.shotLog) && m.shotLog.length > 0) {
+    var __cfg = (typeof matchConfig !== 'undefined' && matchConfig) ? matchConfig : {};
+    var __wd  = (typeof __cfg.wideRuns === 'number') ? __cfg.wideRuns : 1;
+    var __nb  = (typeof __cfg.nbRuns   === 'number') ? __cfg.nbRuns   : 1;
+
+    var __innNow = (Number(m.innings) === 2) ? 2 : 1;
+
+    /* Split the innings' shots into partnership windows.
+       Each wicket closes the current window and starts a new one. */
+    var __windows = [];
+    var __cur     = { runs: 0, balls: 0 };
+    for (var __i = 0; __i < m.shotLog.length; __i++) {
+      var __s = m.shotLog[__i];
+      if (!__s || typeof __s !== 'object') continue;
+
+      var __inn = (Number(__s.inns) === 2) ? 2 : 1;
+      if (__inn !== __innNow) continue;              /* skip other innings */
+
+      if (__s.extra !== 'WD') __cur.balls += 1;      /* wide = not a legal ball */
+
+      var __r = Number(__s.runs) || 0;
+      if (__s.extra === 'WD')      __r += __wd;
+      else if (__s.extra === 'NB') __r += __nb;
+      __cur.runs += __r;
+
+      if (__s.isWicket) {
+        __windows.push(__cur);
+        __cur = { runs: 0, balls: 0 };
+      }
+    }
+    __windows.push(__cur);   /* trailing window = current live partnership */
+
+    /* Write back to stored partnerRuns (window k ↔ partnerRuns[k]) */
+    if (Array.isArray(m.partnerRuns)) {
+      for (var __k = 0; __k < m.partnerRuns.length; __k++) {
+        if (__k < __windows.length - 1 && m.partnerRuns[__k]) {
+          m.partnerRuns[__k].runs  = __windows[__k].runs;
+          m.partnerRuns[__k].balls = __windows[__k].balls;
+        }
+      }
+    }
+
+    /* Write back to the live partnership object */
+    var __live = __windows[__windows.length - 1];
+    m.currentPartnership.runs  = __live.runs;
+    m.currentPartnership.balls = __live.balls;
+  }
+
+  return m;
+}
+
   /* ── HEAL shotLog entries ──
      Older versions logged shots without `over` / `inns`, which made the
      Manhattan chart drop them. Retro-fill both fields from ball index so
