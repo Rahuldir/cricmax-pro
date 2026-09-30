@@ -624,8 +624,15 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
     }
     match.fow.push(`${match.runs}/${match.wickets} (${dismissedName})`);
     triggerBanner('WICKET! 🚨', `${dismissedName} out`, 'fx-wicket');
-    match.partnerRuns.push({ ...match.currentPartnership });
-    match.currentPartnership = { runs: 0, balls: 0, batters: [] };
+      match.partnerRuns.push({ ...match.currentPartnership });
+    /* Persist the surviving batter so the analytics list never renders a
+       nameless "Partnership N" row for the in-progress pair. The next
+       batter, when chosen, overwrites this with the fresh pair. */
+    (function(){
+      const dismissed = (dd && dd.dismissedRole === 'nonStriker') ? 'nonStriker' : 'striker';
+      const survivor  = (dismissed === 'striker') ? match.nonStriker : match.striker;
+      match.currentPartnership = { runs: 0, balls: 0, batters: survivor ? [survivor] : [] };
+    })();
   } else {
     match.runs += runs; match.legalBalls += 1; bowler.balls += 1;
     bowler.runs += runs; striker.balls += 1; striker.runs += runs;
