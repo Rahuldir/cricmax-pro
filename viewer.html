@@ -1422,39 +1422,68 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     el.innerHTML = html;
   }
 
-  /* ═══ BALL-BY-BALL COMMENTARY ═══ */
+  /* ═══ CYBERPUNK COMMENTARY FEED ═══ */
   function renderViewerCommentary(){
     var wrap = document.getElementById('viewerCommentary');
     var sub  = document.getElementById('commentarySub');
     if(!wrap) return;
     var m = __viewerMatch();
     if(!m){
-      wrap.innerHTML = '<div class="f1-empty">Waiting for match data…</div>';
+      wrap.innerHTML = '<div class="comm-empty">Waiting for match data…</div>';
       if(sub) sub.textContent = '--';
       return;
     }
     var list = Array.isArray(m.commentary) ? m.commentary : [];
     if(sub) sub.textContent = list.length + ' ENTRIES';
     if(!list.length){
-      wrap.innerHTML = '<div class="f1-empty">No commentary yet</div>';
+      wrap.innerHTML = '<div class="comm-empty">No commentary yet</div>';
       return;
     }
     var html = '';
     list.slice(0, 40).forEach(function(c){
       if(!c) return;
-      if(c.type === 'summary'){
-        html += '<div class="f1-comm-summary">' + (c.html ? c.desc : __esc(c.desc)) + '</div>';
-        return;
+      var cls = 'comm-item';
+      var badge = '';
+      var duel = '';
+      var body = c.html ? c.desc : __esc(c.desc);
+      var ballLabel = (c.ball != null) ? String(c.ball) : '•';
+      if (c.type === 'summary'){
+        cls += ' summary';
+        badge = 'END';
+      } else if (c.type === 'w'){
+        cls += ' wkt';
+        badge = 'WICKET';
+        duel = 'Wicket';
+      } else if (c.type === 'four'){
+        cls += ' four';
+        badge = 'FOUR';
+      } else if (c.type === 'six'){
+        cls += ' six';
+        badge = 'SIX';
+      } else {
+        var runMatch = String(c.desc || '').match(/(\d+)\s*run/i);
+        if (runMatch){
+          var n = parseInt(runMatch[1], 10);
+          cls += n === 0 ? ' dot' : ' run';
+          badge = n === 0 ? 'DOT' : (n + ' RUN' + (n === 1 ? '' : 'S'));
+        } else {
+          cls += ' dot';
+          badge = 'BALL';
+        }
       }
-      var cls = 'f1-comm-row';
-      if(c.type === 'w') cls += ' wkt';
-      else if(c.type === 'four') cls += ' four';
-      else if(c.type === 'six') cls += ' six';
-      var badge = (c.ball != null) ? String(c.ball) : '•';
-      var desc  = c.html ? c.desc : __esc(c.desc);
       html += '<div class="' + cls + '">'
-        + '<div class="f1-comm-badge">' + __esc(badge) + '</div>'
-        + '<div class="f1-comm-text">' + desc + '</div>'
+        + '<div class="comm-timeline">'
+        + '<div class="comm-over">' + __esc(ballLabel) + '</div>'
+        + '</div>'
+        + '<div class="comm-card">'
+        + '<div class="comm-card-inner">'
+        + '<div class="comm-head">'
+        + (duel ? '<div class="comm-duel">' + duel + '</div>' : '<div class="comm-duel"></div>')
+        + '<div class="comm-badge">' + __esc(badge) + '</div>'
+        + '</div>'
+        + '<div class="comm-body">' + body + '</div>'
+        + '</div>'
+        + '</div>'
         + '</div>';
     });
     wrap.innerHTML = html;
