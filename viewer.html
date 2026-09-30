@@ -187,8 +187,15 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .tv-ball.four{background:rgba(34,211,238,.3);color:#22d3ee;border-color:#22d3ee;}
 .tv-ball.six{background:rgba(251,191,36,.35);color:#fbbf24;border-color:#fbbf24;}
 .tv-ball.wkt{background:rgba(239,68,68,.5);color:#fff;border-color:#ef4444;}
-.wing-assembly{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:100020;padding-bottom:calc(env(safe-area-inset-bottom,0) + 10px);padding-top:20px;perspective:1000px;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.5) 55%,transparent 100%);}
-.wing-assembly *{font-family:inherit;}
+.wing-assembly{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:100020;padding-bottom:calc(env(safe-area-inset-bottom,0) + 10px);padding-top:20px;perspective:1000px;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.5) 55%,transparent 100%);transform-origin:bottom center;transition:transform 620ms cubic-bezier(.65,0,.35,1),opacity 480ms ease,filter 480ms ease;will-change:transform,opacity;}
+.wing-assembly.is-hidden{transform:rotateX(-92deg) translateY(80px) scale(.96);opacity:0;filter:blur(6px);pointer-events:none;}
+#showWingPill{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0) + 14px);z-index:100025;display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--f1-carbon),rgba(16,16,16,.92);border:1px solid rgba(225,6,0,.45);border-left:3px solid var(--f1-red);border-radius:11px;color:#fff;font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);box-shadow:0 8px 22px rgba(0,0,0,.6);opacity:0;transform:translateY(20px) scale(.9);pointer-events:none;transition:opacity .3s ease,transform .3s cubic-bezier(.34,1.56,.64,1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+#showWingPill.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+#showWingPill:active{transform:scale(.94);}
+#showWingPill .swp-dot{width:6px;height:6px;border-radius:50%;background:var(--f1-green);box-shadow:0 0 8px var(--f1-green);animation:livePulse 1.2s ease-in-out infinite;}
+#showWingPill .swp-score{font-family:ui-monospace,monospace;color:#fff;font-weight:900;}
+#showWingPill .swp-team{color:var(--f1-red);font-weight:900;}
+#btn-wing-toggle.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;}.wing-assembly *{font-family:inherit;}
 .drs-flap{background:var(--f1-carbon),#101010;border-top:2px solid var(--f1-green);padding:6px 40px 16px 40px;margin-bottom:-10px;clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 100%,0 100%);display:flex;gap:18px;align-items:center;transform-origin:bottom center;transform:rotateX(85deg);opacity:0;transition:transform 500ms cubic-bezier(.34,1.56,.64,1),opacity 300ms ease;box-shadow:inset 0 20px 20px -20px rgba(0,210,190,.5);pointer-events:auto;}
 .wing-assembly.is-drs-open .drs-flap{transform:rotateX(0deg);opacity:1;}
 .drs-flap__label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--f1-green);text-transform:uppercase;}
@@ -410,7 +417,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       <div class="ic" id="btn-replay" onclick="triggerReplay()" title="Replay">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg>
       </div>
-      <div class="ic" id="btn-menu" onclick="toggleMenu(event)" title="Menu">
+      <div class="ic" id="btn-wing-toggle" onclick="toggleWing()" title="Hide/Show Score (H)">         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/><line x1="4" y1="4" x2="20" y2="4" opacity="0.5"/><line x1="4" y1="20" x2="20" y2="20" opacity="0.5"/></svg>       </div>       <div class="ic" id="btn-menu" onclick="toggleMenu(event)" title="Menu">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
       </div>
     </div>
@@ -528,7 +535,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
   <div class="banner" id="banner">FOUR!</div>
 
-  <div class="wing-assembly" id="wingAssembly">
+  <button type="button" id="showWingPill" onclick="toggleWing()" aria-label="Show score">     <span class="swp-dot"></span>     <span class="swp-team" id="swpTeam">T1</span>     <span class="swp-score" id="swpScore">0/0</span>   </button>   <div class="wing-assembly" id="wingAssembly">
     <div class="drs-flap" id="drsFlap">
       <span class="drs-flap__label" id="drsLabel1">CRR</span>
       <span class="drs-flap__value" id="drsValue1">0.00</span>
@@ -677,7 +684,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     const tk=document.getElementById('tickerText');
     if(tk&&/waiting for match/i.test(tk.innerText))tk.innerText='Ready — first ball incoming…';
   }
-  window.__cmMarkMatchStarted=__cmMarkMatchStarted;
+  window.__cmMarkMatchStarted=__cmMarkMatchStarted;    /* ── WING FLIP TOGGLE — hides/shows bottom F1 scoreboard ── */   var __cmWingHidden = false;   try {     var __wh = localStorage.getItem('CricMax_hideWing');     if (__wh === '1') __cmWingHidden = true;   } catch(e){}    function updateWingPill(){     var pill = document.getElementById('showWingPill');     var btn  = document.getElementById('btn-wing-toggle');     if (!pill || !btn) return;     if (__cmWingHidden){       pill.classList.add('show');       btn.classList.add('on');     } else {       pill.classList.remove('show');       btn.classList.remove('on');     }     var m = window.__cricmaxLastMatch;     if (m){       var t = document.getElementById('swpTeam');       var s = document.getElementById('swpScore');       if (t) t.textContent = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');       if (s) s.textContent = (m.runs||0) + '/' + (m.wickets||0);     }   }    function toggleWing(){     __cmWingHidden = !__cmWingHidden;     try { localStorage.setItem('CricMax_hideWing', __cmWingHidden ? '1' : '0'); } catch(e){}     var wing = document.getElementById('wingAssembly');     if (wing) wing.classList.toggle('is-hidden', __cmWingHidden);     updateWingPill();   }    window.toggleWing = toggleWing;   window.isWingHidden = function(){ return __cmWingHidden; };    document.addEventListener('keydown', function(e){     var tag = (e.target && e.target.tagName) || '';     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;     if (e.key === 'h' || e.key === 'H'){ e.preventDefault(); toggleWing(); }   });    requestAnimationFrame(function(){     var wing = document.getElementById('wingAssembly');     if (wing && __cmWingHidden) wing.classList.add('is-hidden');     updateWingPill();   });
   __cmShowWaiting(false);
   __cmSetLiveBadge(false);
 
@@ -2284,8 +2291,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     var wkts=m.wickets||0;
     var overs=Math.floor(balls/6)+'.'+(balls%6);
     var crr=balls>0?((runs/balls)*6):0;
-    var abbrEl=document.getElementById('bbAbbr');
+       var abbrEl=document.getElementById('bbAbbr');
     if(abbrEl)abbrEl.innerText=m.teamBattingAbbr||(m.teamBatting?m.teamBatting.substring(0,3).toUpperCase():'T1');
+    var __swpTeam=document.getElementById('swpTeam');if(__swpTeam)__swpTeam.textContent=m.teamBattingAbbr||(m.teamBatting?m.teamBatting.substring(0,3).toUpperCase():'T1');
+    var __swpScore=document.getElementById('swpScore');if(__swpScore)__swpScore.textContent=(m.runs||0)+'/'+(m.wickets||0);
     var scoreEl=document.getElementById('bbScore');if(scoreEl)scoreEl.innerText=runs;
     var wkEl=document.getElementById('bbWickets');if(wkEl)wkEl.innerText='/'+wkts;
     var st=m.striker||'Striker';
