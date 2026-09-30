@@ -172,7 +172,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .banner.replay{color:#fbbf24;text-shadow:0 0 30px #b45309,0 6px 16px #000;letter-spacing:4px;}
 #tvMode{position:fixed;inset:0;z-index:100050;background:var(--stripes),#000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;text-align:center;}
 #tvMode.show{display:flex;}
-.tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;}
+.tv-close{position:absolute;top:10px;right:10px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.5);color:#fca5a5;padding:6px 11px;border-radius:9px;font-size:11px;font-weight:900;cursor:pointer;font-family:inherit;} .tv-mic{position:absolute;top:10px;right:92px;background:rgba(0,210,190,.15);border:1px solid rgba(0,210,190,.5);color:#00d2be;width:38px;height:32px;border-radius:9px;font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;} .tv-mic.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;box-shadow:0 0 14px rgba(225,6,0,.5);} .tv-mic:active{transform:scale(.94);}
 .tv-teams{font-size:clamp(14px,3.5vw,22px);font-weight:900;color:#00e676;margin-bottom:10px;}
 .tv-score{font-size:clamp(46px,15vw,100px);font-weight:900;line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums;color:#fff;}
 .tv-meta{font-size:clamp(10px,1.7vw,13px);color:#7a8590;font-weight:700;margin-bottom:16px;}
@@ -195,7 +195,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 #showWingPill .swp-dot{width:6px;height:6px;border-radius:50%;background:var(--f1-green);box-shadow:0 0 8px var(--f1-green);animation:livePulse 1.2s ease-in-out infinite;}
 #showWingPill .swp-score{font-family:ui-monospace,monospace;color:#fff;font-weight:900;}
 #showWingPill .swp-team{color:var(--f1-red);font-weight:900;}
-#btn-wing-toggle.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;}.wing-assembly *{font-family:inherit;}
+#btn-wing-toggle.on{background:linear-gradient(135deg,#8b0300,var(--f1-red));border-color:transparent;color:#fff;}.wing-assembly *{font-family:inherit;} .wing-flip-flap{position:relative;width:fit-content;min-width:190px;height:22px;margin:0 auto 6px;padding:0 14px;background:var(--f1-carbon),#0a0a0a;border:1px solid rgba(0,210,190,.45);border-radius:6px;display:flex;align-items:center;justify-content:center;perspective:500px;font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#fff;transform-style:preserve-3d;transition:transform 520ms cubic-bezier(.5,0,.5,1),box-shadow 220ms ease,border-color 220ms ease;will-change:transform;pointer-events:none;box-shadow:0 0 14px rgba(0,210,190,.25),inset 0 0 0 1px rgba(255,255,255,.03);} .wing-flip-flap::before{content:'';position:absolute;left:8px;right:8px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--f1-green),transparent);opacity:.7;} .wing-flip-flap.flipped{transform:rotateX(180deg);} .wing-flip-flap.flash-four{border-color:#22d3ee;box-shadow:0 0 22px rgba(34,211,238,.9),inset 0 0 0 1px rgba(34,211,238,.3);} .wing-flip-flap.flash-six{border-color:#ff6d00;box-shadow:0 0 22px rgba(255,109,0,.9),inset 0 0 0 1px rgba(255,109,0,.3);} .wing-flip-flap.flash-wkt{border-color:#ef4444;box-shadow:0 0 22px rgba(239,68,68,.95),inset 0 0 0 1px rgba(239,68,68,.3);} .wff-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;white-space:nowrap;} .wff-face.wff-back{transform:rotateX(180deg);} .wff-ico{font-size:10px;line-height:1;} .wff-text{font-family:ui-monospace,monospace;font-size:10px;font-weight:900;letter-spacing:.5px;} .wff-text b{color:var(--f1-green);font-weight:900;font-style:italic;margin-left:2px;} .wing-flip-flap.chase .wff-text b{color:#ff8800;} @media (max-width:620px){   .wing-flip-flap{height:19px;min-width:160px;padding:0 10px;font-size:8.5px;margin-bottom:4px;}   .wff-face{padding:0 10px;gap:4px;}   .wff-ico{font-size:9px;}   .wff-text{font-size:8.5px;} }
 .drs-flap{background:var(--f1-carbon),#101010;border-top:2px solid var(--f1-green);padding:6px 40px 16px 40px;margin-bottom:-10px;clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 100%,0 100%);display:flex;gap:18px;align-items:center;transform-origin:bottom center;transform:rotateX(85deg);opacity:0;transition:transform 500ms cubic-bezier(.34,1.56,.64,1),opacity 300ms ease;box-shadow:inset 0 20px 20px -20px rgba(0,210,190,.5);pointer-events:auto;}
 .wing-assembly.is-drs-open .drs-flap{transform:rotateX(0deg);opacity:1;}
 .drs-flap__label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--f1-green);text-transform:uppercase;}
@@ -535,7 +535,17 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <div id="wagonInfo">🕸️ LIVE WAGON — tap 🏟️ for stadium</div>
   <div class="banner" id="banner">FOUR!</div>
 
-  <button type="button" id="showWingPill" onclick="toggleWing()" aria-label="Show score">     <span class="swp-dot"></span>     <span class="swp-team" id="swpTeam">T1</span>     <span class="swp-score" id="swpScore">0/0</span>   </button>   <div class="wing-assembly" id="wingAssembly">
+  <button type="button" id="showWingPill" onclick="toggleWing()" aria-label="Show score">     <span class="swp-dot"></span>     <span class="swp-team" id="swpTeam">T1</span>     <span class="swp-score" id="swpScore">0/0</span>   </button>    <div class="wing-assembly" id="wingAssembly">
+    <div class="wing-flip-flap" id="wingFlipFlap">
+      <div class="wff-face wff-front">
+        <span class="wff-ico" id="wffIcoFront">📊</span>
+        <span class="wff-text" id="wffFrontText">PROJECTED <b>--</b></span>
+      </div>
+      <div class="wff-face wff-back">
+        <span class="wff-ico" id="wffIcoBack">📈</span>
+        <span class="wff-text" id="wffBackText">CRR <b>--</b></span>
+      </div>
+    </div>
     <div class="drs-flap" id="drsFlap">
       <span class="drs-flap__label" id="drsLabel1">CRR</span>
       <span class="drs-flap__value" id="drsValue1">0.00</span>
@@ -594,6 +604,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
 <div id="tvMode">
   <button class="tv-close" onclick="toggleTVMode()">✕ Exit</button>
+  <button class="tv-mic" id="tvMicBtn" onclick="toggleTVMic()" title="Toggle commentary">🎤</button>
   <div class="tv-teams" id="tvTeams">Team A vs Team B</div>
   <div class="tv-score" id="tvScore">0/0</div>
   <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
@@ -684,7 +695,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     const tk=document.getElementById('tickerText');
     if(tk&&/waiting for match/i.test(tk.innerText))tk.innerText='Ready — first ball incoming…';
   }
-  window.__cmMarkMatchStarted=__cmMarkMatchStarted;    /* ── WING FLIP TOGGLE — hides/shows bottom F1 scoreboard ── */   var __cmWingHidden = false;   try {     var __wh = localStorage.getItem('CricMax_hideWing');     if (__wh === '1') __cmWingHidden = true;   } catch(e){}    function updateWingPill(){     var pill = document.getElementById('showWingPill');     var btn  = document.getElementById('btn-wing-toggle');     if (!pill || !btn) return;     if (__cmWingHidden){       pill.classList.add('show');       btn.classList.add('on');     } else {       pill.classList.remove('show');       btn.classList.remove('on');     }     var m = window.__cricmaxLastMatch;     if (m){       var t = document.getElementById('swpTeam');       var s = document.getElementById('swpScore');       if (t) t.textContent = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');       if (s) s.textContent = (m.runs||0) + '/' + (m.wickets||0);     }   }    function toggleWing(){     __cmWingHidden = !__cmWingHidden;     try { localStorage.setItem('CricMax_hideWing', __cmWingHidden ? '1' : '0'); } catch(e){}     var wing = document.getElementById('wingAssembly');     if (wing) wing.classList.toggle('is-hidden', __cmWingHidden);     updateWingPill();   }    window.toggleWing = toggleWing;   window.isWingHidden = function(){ return __cmWingHidden; };    document.addEventListener('keydown', function(e){     var tag = (e.target && e.target.tagName) || '';     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;     if (e.key === 'h' || e.key === 'H'){ e.preventDefault(); toggleWing(); }   });    requestAnimationFrame(function(){     var wing = document.getElementById('wingAssembly');     if (wing && __cmWingHidden) wing.classList.add('is-hidden');     updateWingPill();   });
+  window.__cmMarkMatchStarted=__cmMarkMatchStarted;    /* ── AUTO-FLIP INFO CHIP ── */   window.__wffFlipIndex = 0;   window.__wffFlipped = false;   window.__wffFlipTimer = null;    function __wffTick(){     var flap = document.getElementById('wingFlipFlap');     if (!flap) return;     if (!window.__cricmaxLastMatch) return;     if (document.hidden) return;     window.__wffFlipIndex = (window.__wffFlipIndex + 1) % 2;     window.__wffFlipped = (window.__wffFlipIndex === 1);     flap.classList.toggle('flipped', window.__wffFlipped);   }    function __wffStart(){     if (window.__wffFlipTimer) clearInterval(window.__wffFlipTimer);     window.__wffFlipTimer = setInterval(__wffTick, 4500);   }   __wffStart();    window.__wffFlash = function(type){     var flap = document.getElementById('wingFlipFlap');     if (!flap) return;     flap.classList.remove('flash-four','flash-six','flash-wkt');     void flap.offsetWidth;     flap.classList.add('flash-' + type);     setTimeout(function(){ flap.classList.remove('flash-' + type); }, 1200);   };    /* ── WING FLIP TOGGLE — hides/shows bottom F1 scoreboard ── */   var __cmWingHidden = false;   try {     var __wh = localStorage.getItem('CricMax_hideWing');     if (__wh === '1') __cmWingHidden = true;   } catch(e){}    function updateWingPill(){     var pill = document.getElementById('showWingPill');     var btn  = document.getElementById('btn-wing-toggle');     if (!pill || !btn) return;     if (__cmWingHidden){       pill.classList.add('show');       btn.classList.add('on');     } else {       pill.classList.remove('show');       btn.classList.remove('on');     }     var m = window.__cricmaxLastMatch;     if (m){       var t = document.getElementById('swpTeam');       var s = document.getElementById('swpScore');       if (t) t.textContent = m.teamBattingAbbr || (m.teamBatting ? m.teamBatting.substring(0,3).toUpperCase() : 'T1');       if (s) s.textContent = (m.runs||0) + '/' + (m.wickets||0);     }   }    function toggleWing(){     __cmWingHidden = !__cmWingHidden;     try { localStorage.setItem('CricMax_hideWing', __cmWingHidden ? '1' : '0'); } catch(e){}     var wing = document.getElementById('wingAssembly');     if (wing) wing.classList.toggle('is-hidden', __cmWingHidden);     updateWingPill();   }    window.toggleWing = toggleWing;   window.isWingHidden = function(){ return __cmWingHidden; };    document.addEventListener('keydown', function(e){     var tag = (e.target && e.target.tagName) || '';     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;     if (e.key === 'h' || e.key === 'H'){ e.preventDefault(); toggleWing(); }   });    requestAnimationFrame(function(){     var wing = document.getElementById('wingAssembly');     if (wing && __cmWingHidden) wing.classList.add('is-hidden');     updateWingPill();   });
   __cmShowWaiting(false);
   __cmSetLiveBadge(false);
 
@@ -2361,7 +2372,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
         if(dV3)dV3.textContent=String(ballsLeft);
       }
     }else if(wing)wing.classList.remove('is-drs-open');
-    var rpm=document.getElementById('wingRpmFill');
+    /* ── Auto-flip info chip ── */     (function(){       var flap = document.getElementById('wingFlipFlap');       var fF   = document.getElementById('wffFrontText');       var fB   = document.getElementById('wffBackText');       var iF   = document.getElementById('wffIcoFront');       var iB   = document.getElementById('wffIcoBack');       if (!flap || !fF || !fB) return;       var isChase2 = (m.innings === 2 && m.target && m.target > 0);       flap.classList.toggle('chase', isChase2);       if (isChase2){         var need2 = Math.max(0, m.target - runs);         var rrr2  = ballsLeft > 0 ? ((need2 / ballsLeft) * 6) : 0;         if (iF) iF.textContent = '🎯';         if (iB) iB.textContent = '⚡';         fF.innerHTML = 'NEED <b>' + need2 + '</b> OFF ' + ballsLeft;         fB.innerHTML = 'RRR <b>' + rrr2.toFixed(2) + '</b> · TGT ' + m.target;       } else {         if (iF) iF.textContent = '📊';         if (iB) iB.textContent = '📈';         fF.innerHTML = 'PROJECTED <b>' + projected + '</b>';         fB.innerHTML = 'CRR <b>' + crr.toFixed(2) + '</b> · BALLS ' + ballsLeft;       }     })();      var rpm=document.getElementById('wingRpmFill');
     if(rpm){
       var overRuns=m._currentOverRuns!=null?m._currentOverRuns:0;
       var pct=Math.min(100,(overRuns/20)*100);
@@ -2715,66 +2726,9 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════
-     VIEWER DEFAULT: TV MODE WHEN WAGON WHEEL IS OFF
-     - If the scorer turned OFF the wagon wheel toggle for this
-       match (localStorage: CricMax_useWagonWheel = '0'),
-       the viewer auto-enables TV mode on load.
-     - Reacts live if the scorer flips the toggle while the
-       viewer is open in another tab (same origin).
-     - Idempotent: never toggles TV mode OFF by itself.
-     - Runs only in the viewer page (this file).
+     Viewer modes are 100% user-controlled. No auto-enable,
+     no scorer-side data, no forced TV. User freely toggles
+     Wagon ⇄ Stadium ⇄ TV via the icons.
      ═══════════════════════════════════════════════════════════ -->
-<script>
-(function(){
-  'use strict';
-
-  var KEY = 'CricMax_useWagonWheel';
-
-  function isTVActive(){
-    var tv = document.getElementById('tvMode');
-    if (!tv) return false;
-    if (tv.classList.contains('show')) return true;
-    var d = '';
-    try { d = window.getComputedStyle(tv).display; } catch(e){ d = tv.style.display; }
-    return d && d !== 'none';
-  }
-
-  function isWagonOff(){
-    var val = '1';
-    try { val = localStorage.getItem(KEY) || '1'; } catch(e){}
-    return val === '0';
-  }
-
-  function enableTVIfWagonOff(){
-    if (!isWagonOff()) return;
-    if (isTVActive()) return;
-    if (typeof window.toggleTVMode === 'function'){
-      try {
-        window.toggleTVMode();
-        console.log('[Viewer] 🎯 Wagon Wheel OFF → TV mode enabled by default');
-      } catch(err){
-        console.warn('[Viewer] toggleTVMode failed:', err);
-      }
-    }
-  }
-
-  function scheduleTries(){
-    var delays = [400, 900, 1600, 2400, 3200];
-    delays.forEach(function(d){ setTimeout(enableTVIfWagonOff, d); });
-  }
-
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', scheduleTries);
-  } else {
-    scheduleTries();
-  }
-  window.addEventListener('load', scheduleTries);
-
-  window.addEventListener('storage', function(e){
-    if (e.key !== KEY) return;
-    if (e.newValue === '0'){ enableTVIfWagonOff(); }
-  });
-})();
-</script> 
 </body>
 </html>
