@@ -511,6 +511,99 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   .f1-stat-grid .v{font-size:17px;}
   .sheet-body{padding:10px 8px 24px;}
 }
+
+/* ═══ F1 COMMENTARY LIST ═══ */
+#viewerCommentary{
+  max-height:520px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+#viewerCommentary::-webkit-scrollbar{width:3px;}
+#viewerCommentary::-webkit-scrollbar-thumb{background:rgba(225,6,0,.4);border-radius:2px;}
+
+.f1-comm-row{
+  display:grid;
+  grid-template-columns:46px 1fr;
+  gap:12px;
+  padding:10px 14px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  align-items:flex-start;
+  position:relative;
+}
+.f1-comm-row:last-child{border-bottom:none;}
+
+/* Left accent bar — colour-coded by outcome */
+.f1-comm-row::before{
+  content:'';
+  position:absolute;
+  left:0;top:6px;bottom:6px;width:2px;
+  background:rgba(255,255,255,.08);
+}
+.f1-comm-row.four::before{background:#22d3ee;box-shadow:0 0 8px rgba(34,211,238,.5);}
+.f1-comm-row.six::before{background:#ff8800;box-shadow:0 0 8px rgba(255,136,0,.6);}
+.f1-comm-row.wkt::before{background:var(--f1-red);box-shadow:0 0 10px rgba(225,6,0,.7);}
+
+.f1-comm-badge{
+  display:flex;align-items:center;justify-content:center;
+  min-width:42px;height:26px;padding:0 8px;
+  border-radius:3px;
+  font-family:ui-monospace,monospace;
+  font-size:11px;font-weight:900;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.12);
+  color:#c5cdd8;
+  letter-spacing:.3px;
+  flex-shrink:0;
+}
+.f1-comm-row.four .f1-comm-badge{
+  background:rgba(34,211,238,.15);
+  border-color:rgba(34,211,238,.5);
+  color:#22d3ee;
+}
+.f1-comm-row.six .f1-comm-badge{
+  background:rgba(255,136,0,.18);
+  border-color:rgba(255,136,0,.55);
+  color:#ff8800;
+}
+.f1-comm-row.wkt .f1-comm-badge{
+  background:rgba(225,6,0,.25);
+  border-color:rgba(225,6,0,.7);
+  color:#fff;
+  box-shadow:0 0 8px rgba(225,6,0,.4);
+}
+
+.f1-comm-text{
+  font-size:12.5px;
+  line-height:1.45;
+  color:#e2e8f0;
+  font-weight:600;
+  min-width:0;
+  word-wrap:break-word;
+}
+.f1-comm-row.four .f1-comm-text{color:#bff4ff;}
+.f1-comm-row.six  .f1-comm-text{color:#ffd7a8;}
+.f1-comm-row.wkt  .f1-comm-text{color:#ffb4b0;font-weight:800;}
+
+/* End-of-over summary rows — full width, subtle red-tinted band */
+.f1-comm-summary{
+  padding:12px 14px;
+  background:linear-gradient(90deg,rgba(225,6,0,.06),transparent 70%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  border-left:2px solid rgba(225,6,0,.4);
+  font-size:11.5px;
+  line-height:1.6;
+  color:#c5cdd8;
+  font-family:'Titillium Web',sans-serif;
+}
+.f1-comm-summary .sum-line{
+  display:block;
+  margin-bottom:3px;
+}
+.f1-comm-summary .sum-line:last-child{margin-bottom:0;}
+.f1-comm-summary .sum-team{color:var(--f1-red);font-weight:900;}
+.f1-comm-summary .sum-bowler{color:var(--f1-green);font-weight:900;}
+.f1-comm-summary b{color:#fff;font-weight:900;}
+.f1-comm-summary small{color:rgba(255,255,255,.5);}
 </style>
 </head>
 <body>
@@ -824,6 +917,14 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     <!-- LIVE -->
     <div class="sheet-pane" data-pane="live">
       <div class="f1-panel" id="livePaneCard"></div>
+
+      <div class="f1-panel">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">Ball-by-Ball Commentary</span>
+          <span class="f1-panel-sub" id="commentarySub">--</span>
+        </div>
+        <div id="viewerCommentary"></div>
+      </div>
     </div>
 
     <!-- ANALYSIS -->
@@ -1280,6 +1381,43 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     el.innerHTML = html;
   }
 
+  /* ═══ BALL-BY-BALL COMMENTARY ═══ */
+  function renderViewerCommentary(){
+    var wrap = document.getElementById('viewerCommentary');
+    var sub  = document.getElementById('commentarySub');
+    if(!wrap) return;
+    var m = __viewerMatch();
+    if(!m){
+      wrap.innerHTML = '<div class="f1-empty">Waiting for match data…</div>';
+      if(sub) sub.textContent = '--';
+      return;
+    }
+    var list = Array.isArray(m.commentary) ? m.commentary : [];
+    if(sub) sub.textContent = list.length + ' ENTRIES';
+    if(!list.length){
+      wrap.innerHTML = '<div class="f1-empty">No commentary yet</div>';
+      return;
+    }
+    var html = '';
+    list.slice(0, 40).forEach(function(c){
+      if(!c) return;
+      if(c.type === 'summary'){
+        html += '<div class="f1-comm-summary">' + (c.html ? c.desc : __esc(c.desc)) + '</div>';
+        return;
+      }
+      var cls = 'f1-comm-row';
+      if(c.type === 'w') cls += ' wkt';
+      else if(c.type === 'four') cls += ' four';
+      else if(c.type === 'six') cls += ' six';
+      var badge = (c.ball != null) ? String(c.ball) : '•';
+      var desc  = c.html ? c.desc : __esc(c.desc);
+      html += '<div class="' + cls + '">'
+        + '<div class="f1-comm-badge">' + __esc(badge) + '</div>'
+        + '<div class="f1-comm-text">' + desc + '</div>'
+        + '</div>';
+    });
+    wrap.innerHTML = html;
+  }
   function renderViewerAnalysis(){
     var m = __viewerMatch(); if(!m) return;
     var totalOv = m.totalOvers || 20;
