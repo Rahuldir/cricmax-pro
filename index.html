@@ -703,9 +703,12 @@ html.cm-embed-boot body {
     </div>
 
     <div class="scoring-only">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
         <div class="pad-title" style="margin:0;">Scoring Keypad</div>
-        <button class="top-icon-btn" onclick="openSettingsModal()" style="width:38px;height:38px;font-size:18px;" title="Scoring Settings">⚙️</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn-ui" id="btnWagonToggle" onclick="toggleWagonWheel()" style="padding:6px 10px;font-size:10px;font-weight:900;letter-spacing:.5px;" title="Toggle Wagon Wheel Prompt">🎯 Wagon: --</button>
+          <button class="top-icon-btn" onclick="openSettingsModal()" style="width:38px;height:38px;font-size:18px;" title="Scoring Settings">⚙️</button>
+        </div>
       </div>
       <div class="btn-row">
         <button class="pad-btn" onclick="recordBall(0)">0</button>
@@ -2167,6 +2170,126 @@ html.cm-embed-boot body {
   };
 
   console.log('[Share] ✅ Copy-to-clipboard handler installed');
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     WAGON WHEEL TOGGLE
+     - Persists to localStorage (survives reloads)
+     - Syncs live across tabs/iframes via 'storage' event
+     - When OFF, 1/2/3/4/6 buttons record the ball directly
+       (same recordBall() call, same data, just no shot prompt)
+     - Zero changes to any other element or data shape
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  var KEY = 'CricMax_useWagonWheel';
+  var enabled = true;
+
+  try {
+    var stored = localStorage.getItem(KEY);
+    if (stored !== null) enabled = (stored === '1');
+  } catch(e){}
+
+  function refreshBtn(){
+    var btn = document.getElementById('btnWagonToggle');
+    if (!btn) return;
+    if (enabled){
+      btn.textContent = '🎯 Wagon: ON';
+      btn.style.background = 'linear-gradient(135deg,#009270,#00d2be)';
+      btn.style.color = '#0a0e1a';
+      btn.style.borderColor = 'transparent';
+    } else {
+      btn.textContent = '🎯 Wagon: OFF';
+      btn.style.background = 'rgba(255,255,255,.06)';
+      btn.style.color = '#7a8590';
+      btn.style.borderColor = 'rgba(255,255,255,.1)';
+    }
+  }
+
+  window.isWagonWheelEnabled = function(){ return enabled; };
+
+  window.toggleWagonWheel = function(){
+    enabled = !enabled;
+    try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch(e){}
+    refreshBtn();
+
+    /* Tiny inline toast so the user gets feedback */
+    var t = document.getElementById('ww-toast');
+    if (!t){
+      t = document.createElement('div');
+      t.id = 'ww-toast';
+      t.style.cssText =
+        'position:fixed;left:50%;bottom:120px;transform:translateX(-50%) translateY(20px);' +
+        'padding:10px 18px;border-radius:10px;z-index:999999;font-size:12px;font-weight:900;' +
+        'letter-spacing:1px;text-transform:uppercase;color:#fff;pointer-events:none;' +
+        'background:linear-gradient(135deg,#009270,#00d2be);' +
+        'box-shadow:0 6px 24px rgba(0,0,0,.5),0 0 20px rgba(0,210,190,.4);' +
+        'transition:opacity .25s,transform .25s;opacity:0;';
+      document.body.appendChild(t);
+    }
+    t.textContent = enabled ? 'Wagon Wheel ON' : 'Wagon Wheel OFF';
+    t.style.background = enabled
+      ? 'linear-gradient(135deg,#009270,#00d2be)'
+      : 'linear-gradient(135deg,#7a8590,#4b5563)';
+    requestAnimationFrame(function(){
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(t._h);
+    t._h = setTimeout(function(){
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 1400);
+  };
+
+  /* Cross-tab / cross-iframe sync */
+  window.addEventListener('storage', function(e){
+    if (e.key !== KEY) return;
+    enabled = (e.newValue === '1');
+    refreshBtn();
+  });
+
+  /* Override promptWagonWheel once scoring.js has defined it.
+     When OFF, we simply defer to recordBall(runs) — same payload,
+     same data shape, so nothing downstream breaks. */
+  var wrapped = false;
+  function tryWrap(){
+    if (wrapped) return false;
+    if (typeof window.promptWagonWheel !== 'function') return false;
+    var orig = window.promptWagonWheel;
+    window.promptWagonWheel = function(runs){
+      if (enabled) return orig.apply(this, arguments);
+      if (typeof window.recordBall === 'function'){
+        return window.recordBall(runs);
+      }
+      return orig.apply(this, arguments);
+    };
+    wrapped = true;
+    return true;
+  }
+
+  function init(){
+    refreshBtn();
+    if (tryWrap()) return;
+
+    /* Poll briefly in case scoring.js loads a tick late */
+    var tries = 0;
+    var t = setInterval(function(){
+      tries++;
+      refreshBtn();
+      if (tryWrap() || tries > 60) clearInterval(t);
+    }, 250);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  window.addEventListener('load', function(){ setTimeout(init, 100); });
 })();
 </script>
 
