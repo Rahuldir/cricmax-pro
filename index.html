@@ -1028,11 +1028,27 @@ html.cm-embed-boot body {
         <div class="bar"><div class="fill" id="impFill"></div></div>
       </div>
 
-      <div id="impPdfInfo"></div>
+        <div id="impPdfInfo"></div>
       <div class="pdf-viewer" id="impPdfViewer"><iframe id="impPdfFrame" title="PDF"></iframe></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MATCH LIBRARY — click match → scorecard → click player → career
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="imp-card">
+      <h3>📚 Match Library</h3>
+      <div class="desc">Tap "Scorecard" on any match below, then tap a player name to see their career aggregate across every imported match.</div>
+      <div id="matchLibraryList">
+        <div class="mlib-empty">No imported matches yet</div>
+      </div>
     </div>
   </div>
 </section>
+
+<!-- ═══ IMPORTED PLAYER CAREER POPUP ═══ -->
+<div class="mlp-overlay" id="mlpOverlay" onclick="if(event.target===this)window.closeMlibPlayer()">
+  <div class="mlp-card" id="mlpCard"></div>
+</div>
 
 <nav class="bottom-match-nav" id="bottomMatchNav">
   <div class="bottom-nav-inner">
