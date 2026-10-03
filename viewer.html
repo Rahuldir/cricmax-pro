@@ -1799,8 +1799,8 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
     listEl.innerHTML = '<div class="f1-empty">Loading matches…</div>';
 
-    var ref = firebase.database().ref('cricmax/importedMatches');
-    ref.once('value').then(function(snap){
+       var ref = firebase.database().ref('cricmax/importedMatches');
+    ref.on('value', function(snap){
       var v = snap.val() || {};
       var arr = Object.keys(v).map(function(k){ return Object.assign({id:k}, v[k]); });
       arr.sort(function(a,b){ return (b.importedAt||0) - (a.importedAt||0); });
