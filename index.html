@@ -2437,5 +2437,335 @@ html.cm-embed-boot body {
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     IMPORT LOGIC — Firebase sync + local PDF storage
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  /* ─── IndexedDB for PDFs ─── */
+  var IDB_NAME='cricmaxImports', IDB_STORE='pdfs', IDB_KEY='matchPdf';
+  var MEM={};
+  function idbOpen(){
+    return new Promise(function(res){
+      if(!('indexedDB' in window)){res(null);return;}
+      try{
+        var req=indexedDB.open(IDB_NAME,1);
+        req.onupgradeneeded=function(e){
+          var db=e.target.result;
+          if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE,{keyPath:'id'});
+        };
+        req.onsuccess=function(e){res(e.target.result);};
+        req.onerror=function(){res(null);};
+      }catch(e){res(null);}
+    });
+  }
+  function idbPut(key,val){
+    return idbOpen().then(function(db){
+      if(!db){MEM[key]=val;return;}
+      return new Promise(function(res){
+        try{
+          var tx=db.transaction(IDB_STORE,'readwrite');
+          tx.objectStore(IDB_STORE).put({id:key,value:val});
+          tx.oncomplete=function(){db.close();res();};
+          tx.onerror=function(){MEM[key]=val;res();};
+        }catch(e){MEM[key]=val;res();}
+      });
+    });
+  }
+  function idbGet(key){
+    return idbOpen().then(function(db){
+      if(!db)return MEM[key]||null;
+      return new Promise(function(res){
+        try{
+          var tx=db.transaction(IDB_STORE,'readonly');
+          var r=tx.objectStore(IDB_STORE).get(key);
+          r.onsuccess=function(e){res(e.target.result||null);};
+          r.onerror=function(){res(MEM[key]||null);};
+          tx.oncomplete=function(){db.close();};
+        }catch(e){res(MEM[key]||null);}
+      });
+    });
+  }
+  function idbDelete(key){
+    return idbOpen().then(function(db){
+      delete MEM[key];
+      if(!db)return;
+      return new Promise(function(res){
+        try{
+          var tx=db.transaction(IDB_STORE,'readwrite');
+          tx.objectStore(IDB_STORE).delete(key);
+          tx.oncomplete=function(){db.close();res();};
+          tx.onerror=function(){res();};
+        }catch(e){res();}
+      });
+    });
+  }
+
+  /* ─── UI helpers ─── */
+  function setStatus(msg,kind){
+    var el=document.getElementById('impStatus');
+    if(!el)return;
+    el.textContent=msg;
+    el.className='imp-status'+(kind?(' '+kind):'');
+  }
+  function showProgress(on,status,pct){
+    var w=document.getElementById('impProgress');
+    if(!w)return;
+    w.classList.toggle('on',!!on);
+    if(status!==undefined)document.getElementById('impStatusTxt').textContent=status;
+    if(pct!==undefined){
+      document.getElementById('impPct').textContent=Math.round(pct)+'%';
+      document.getElementById('impFill').style.width=pct+'%';
+    }
+  }
+  function fmtBytes(b){
+    if(b<1024)return b+' B';
+    if(b<1048576)return (b/1024).toFixed(1)+' KB';
+    return (b/1048576).toFixed(2)+' MB';
+  }
+
+  /* ─── JSON apply → local + Firebase ─── */
+  window.applyImportJSON=function(){
+    var ed=document.getElementById('jsonEditor');
+    if(!ed)return;
+    var txt=ed.value.trim();
+    if(!txt){setStatus('JSON is empty','err');return;}
+    var parsed;
+    try{parsed=JSON.parse(txt);}
+    catch(e){setStatus('Invalid JSON: '+e.message,'err');return;}
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)){
+      setStatus('JSON must be an object of matches','err');return;
+    }
+    var keys=Object.keys(parsed);
+    if(!keys.length){setStatus('No matches found','err');return;}
+
+    window.__importedMatches=parsed;
+    try{localStorage.setItem('cricmax_importedMatches',JSON.stringify(parsed));}catch(e){}
+
+    if(window.fbDb){
+      setStatus('Pushing '+keys.length+' match'+(keys.length===1?'':'es')+' to Firebase…');
+      var promises=keys.map(function(id){
+        var data=Object.assign({},parsed[id],{id:id,importedAt:Date.now()});
+        return window.fbDb.ref('cricmax/importedMatches/'+id).set(data);
+      });
+      Promise.all(promises).then(function(){
+        setStatus('✔ '+keys.length+' match'+(keys.length===1?'':'es')+' pushed to Firebase','ok');
+      }).catch(function(err){
+        setStatus('Local OK · Firebase failed: '+(err.message||err),'err');
+      });
+    }else{
+      setStatus('Saved locally · Firebase not ready','err');
+    }
+  };
+
+  window.pullFromFirebase=function(){
+    if(!window.fbDb){setStatus('Firebase not ready','err');return;}
+    setStatus('Pulling from Firebase…');
+    window.fbDb.ref('cricmax/importedMatches').once('value').then(function(snap){
+      var v=snap.val()||{};
+      var keys=Object.keys(v);
+      if(!keys.length){setStatus('No matches in Firebase yet','err');return;}
+      document.getElementById('jsonEditor').value=JSON.stringify(v,null,2);
+      window.__importedMatches=v;
+      setStatus('✔ Pulled '+keys.length+' match'+(keys.length===1?'':'es'),'ok');
+    }).catch(function(err){
+      setStatus('Pull failed: '+(err.message||err),'err');
+    });
+  };
+
+  window.downloadImportJSON=function(){
+    var data=JSON.stringify(window.__importedMatches||{},null,2);
+    var blob=new Blob([data],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='cricmax-imported-matches.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    setStatus('JSON downloaded','ok');
+  };
+
+  window.loadImportSample=function(){
+    if(!confirm('Replace editor with a sample match?'))return;
+    var sample={
+      "sample-1":{
+        id:"sample-1",
+        fixture:"Alpha 11 vs Bravo 11",
+        tournament:"Ravi Cup 2026",
+        venue:"Local Stadium",
+        date:"01/07/2026",
+        result:"Alpha 11 won by 4 wickets",
+        winner:"Alpha 11",
+        innings1:{
+          team:"Bravo 11",runs:98,wickets:6,balls:72,
+          extras:{b:0,lb:2,w:1,nb:0,total:3},dnb:[],
+          batters:{
+            "Player 1":{runs:24,balls:18,fours:2,sixes:1,dots:5,status:"c X b Y"},
+            "Player 2":{runs:31,balls:24,fours:3,sixes:1,dots:6,status:"not out"}
+          },
+          bowlers:{
+            "Bowler 1":{balls:18,maidens:0,runs:22,wickets:1,dots:6,wides:0,noBalls:0},
+            "Bowler 2":{balls:18,maidens:0,runs:30,wickets:2,dots:5,wides:1,noBalls:0}
+          },
+          fielding:{},
+          fow:["28-1 (Player 1, 4.2)","68-2 (Player 3, 9.5)"],
+          partnerships:[{wicket:1,runs:28,balls:24,contrib:"Player 1 24(18) • Player 3 4(6)"}]
+        },
+        innings2:{
+          team:"Alpha 11",runs:102,wickets:4,balls:66,
+          extras:{b:0,lb:1,w:0,nb:0,total:1},dnb:[],
+          batters:{
+            "Batter A":{runs:44,balls:30,fours:5,sixes:1,dots:6,status:"not out"},
+            "Batter B":{runs:28,balls:22,fours:2,sixes:1,dots:5,status:"b Bowler 1"}
+          },
+          bowlers:{
+            "Bowler 3":{balls:18,maidens:0,runs:28,wickets:2,dots:5,wides:0,noBalls:0},
+            "Bowler 4":{balls:18,maidens:0,runs:32,wickets:1,dots:4,wides:0,noBalls:0}
+          },
+          fielding:{},
+          fow:["42-1 (Batter B, 5.3)","88-2 (Batter C, 9.1)"],
+          partnerships:[{wicket:1,runs:42,balls:33,contrib:"Batter A 22(18) • Batter B 20(15)"}]
+        }
+      }
+    };
+    document.getElementById('jsonEditor').value=JSON.stringify(sample,null,2);
+    setStatus('Sample loaded — click Apply to push it','ok');
+  };
+
+  window.clearImportAll=function(){
+    if(!confirm('Clear imported matches (local + Firebase)?'))return;
+    window.__importedMatches={};
+    try{localStorage.removeItem('cricmax_importedMatches');}catch(e){}
+    if(window.fbDb){window.fbDb.ref('cricmax/importedMatches').remove().catch(function(){});}
+    idbDelete(IDB_KEY);
+    document.getElementById('impPdfInfo').innerHTML='';
+    document.getElementById('impPdfViewer').classList.remove('on');
+    document.getElementById('jsonEditor').value='';
+    setStatus('All cleared','ok');
+  };
+
+  /* ─── PDF local storage ─── */
+  function showPdfInfo(name,size){
+    document.getElementById('impPdfInfo').innerHTML=
+      '<div class="pdf-info">'+
+        '<div class="meta">'+
+          '<div class="name">'+name+'</div>'+
+          '<div class="size">'+fmtBytes(size)+' · IndexedDB</div>'+
+        '</div>'+
+        '<button class="btn-ui" onclick="document.getElementById(\'impPdfViewer\').classList.toggle(\'on\')">👁 Toggle</button>'+
+        '<button class="btn-ui" onclick="window.__removeImportPdf()" style="background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5;">🗑 Remove</button>'+
+      '</div>';
+  }
+  window.__removeImportPdf=function(){
+    if(!confirm('Remove stored PDF?'))return;
+    idbDelete(IDB_KEY).then(function(){
+      document.getElementById('impPdfInfo').innerHTML='';
+      document.getElementById('impPdfViewer').classList.remove('on');
+      document.getElementById('impPdfFrame').src='';
+      setStatus('PDF removed','ok');
+    });
+  };
+
+  function handlePdf(file){
+    if(!file)return;
+    if(!/\.pdf$/i.test(file.name) && file.type!=='application/pdf'){
+      setStatus('Please choose a PDF','err');return;
+    }
+    if(file.size > 25*1024*1024){
+      setStatus('File too large (max 25 MB)','err');return;
+    }
+    showProgress(true,'Reading…',5);
+    var fr=new FileReader();
+    fr.onprogress=function(e){
+      if(e.lengthComputable)showProgress(true,'Reading…',(e.loaded/e.total)*40);
+    };
+    fr.onload=function(e){
+      var blob=new Blob([e.target.result],{type:'application/pdf'});
+      showProgress(true,'Saving…',70);
+      idbPut(IDB_KEY,{blob:blob,name:file.name,size:file.size,type:'application/pdf',savedAt:Date.now()})
+      .then(function(){
+        var url=URL.createObjectURL(blob);
+        document.getElementById('impPdfFrame').src=url;
+        document.getElementById('impPdfViewer').classList.add('on');
+        showPdfInfo(file.name,file.size);
+        showProgress(true,'Ready',100);
+        setTimeout(function(){showProgress(false);},700);
+        setStatus('PDF saved locally ('+fmtBytes(file.size)+')','ok');
+      }).catch(function(err){
+        showProgress(false);
+        setStatus('Save failed: '+(err.message||err),'err');
+      });
+    };
+    fr.onerror=function(){showProgress(false);setStatus('Failed to read file','err');};
+    fr.readAsArrayBuffer(file);
+  }
+
+  function setupDropzone(){
+    var dz=document.getElementById('impDropzone');
+    var inp=document.getElementById('impPdfInput');
+    if(!dz||!inp)return;
+    inp.addEventListener('change',function(e){
+      if(e.target.files&&e.target.files[0])handlePdf(e.target.files[0]);
+      inp.value='';
+    });
+    ['dragenter','dragover'].forEach(function(ev){
+      dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();dz.classList.add('drag');});
+    });
+    ['dragleave','drop'].forEach(function(ev){
+      dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();dz.classList.remove('drag');});
+    });
+    dz.addEventListener('drop',function(e){
+      var f=e.dataTransfer&&e.dataTransfer.files;
+      if(f&&f[0])handlePdf(f[0]);
+    });
+  }
+
+  var hydrated=false;
+  function hydrate(){
+    if(hydrated)return;hydrated=true;
+    setupDropzone();
+    try{
+      var raw=localStorage.getItem('cricmax_importedMatches');
+      if(raw){
+        var v=JSON.parse(raw);
+        window.__importedMatches=v;
+        var ed=document.getElementById('jsonEditor');
+        if(ed && !ed.value.trim())ed.value=JSON.stringify(v,null,2);
+      }
+    }catch(e){}
+    idbGet(IDB_KEY).then(function(rec){
+      if(rec&&rec.value&&rec.value.blob){
+        try{
+          var url=URL.createObjectURL(rec.value.blob);
+          document.getElementById('impPdfFrame').src=url;
+          document.getElementById('impPdfViewer').classList.add('on');
+        }catch(e){}
+        showPdfInfo(rec.value.name,rec.value.size);
+      }
+    });
+  }
+
+  function wrapSelectSubPane(){
+    if(typeof window.selectSubPane!=='function'){setTimeout(wrapSelectSubPane,200);return;}
+    if(window.selectSubPane.__importWrapped)return;
+    var orig=window.selectSubPane;
+    window.selectSubPane=function(name){
+      var r=orig.apply(this,arguments);
+      if(name==='import')hydrate();
+      return r;
+    };
+    window.selectSubPane.__importWrapped=true;
+  }
+  wrapSelectSubPane();
+
+  document.addEventListener('click',function(e){
+    var t=e.target.closest && e.target.closest('.tab-btn');
+    if(t && /import/i.test(t.textContent))hydrate();
+  },true);
+
+})();
+</script>
+
 </body>
 </html>
