@@ -303,6 +303,76 @@ html.cm-embed-boot body {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   IMPORT PANE — styles
+   ═══════════════════════════════════════════════════════════ */
+.imp-card{
+  position:relative;padding:16px 18px;margin-bottom:14px;
+  background:linear-gradient(150deg,rgba(255,255,255,.035),rgba(255,255,255,.008));
+  border:1px solid rgba(255,255,255,.12);
+  border-left:3px solid var(--f1-red);
+  border-radius:10px;
+}
+.imp-card.gr{border-left-color:var(--f1-green);}
+.imp-card h3{
+  font-size:15px;font-weight:900;letter-spacing:1.5px;
+  text-transform:uppercase;color:#fff;margin:0 0 6px;
+}
+.imp-card .desc{
+  font-family:ui-monospace,monospace;font-size:10px;font-weight:700;
+  letter-spacing:1.2px;color:#7a8590;text-transform:uppercase;
+  margin-bottom:14px;line-height:1.7;
+}
+.dropzone{
+  display:block;position:relative;padding:30px 20px;text-align:center;cursor:pointer;
+  border:2px dashed rgba(225,6,0,.45);background:rgba(225,6,0,.03);
+  border-radius:10px;transition:.2s;overflow:hidden;
+}
+.dropzone:hover,.dropzone.drag{
+  border-color:var(--f1-red);background:rgba(225,6,0,.08);
+  box-shadow:inset 0 0 40px rgba(225,6,0,.12);
+}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.dz-ic{font-size:36px;line-height:1;margin-bottom:8px;}
+.dz-t{font-size:15px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#fff;}
+.dz-s{font-family:ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:2px;color:#7a8590;margin-top:6px;text-transform:uppercase;}
+.upload-progress{display:none;margin-top:12px;padding:12px 14px;background:rgba(0,0,0,.5);border-radius:8px;border:1px solid rgba(255,255,255,.12);}
+.upload-progress.on{display:block;}
+.upload-progress .lbl{display:flex;justify-content:space-between;font-family:ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:2px;color:#7a8590;text-transform:uppercase;margin-bottom:8px;}
+.upload-progress .bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.upload-progress .fill{height:100%;width:0;background:linear-gradient(90deg,var(--f1-red),#fbbf24,var(--f1-green));transition:width .25s;box-shadow:0 0 14px rgba(225,6,0,.6);}
+.json-editor{
+  width:100%;min-height:240px;padding:14px;margin-bottom:12px;
+  background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;color:#c8c8d2;font-family:ui-monospace,monospace;
+  font-size:11.5px;line-height:1.7;outline:none;resize:vertical;
+  box-sizing:border-box;
+}
+.json-editor:focus{border-color:var(--f1-green);box-shadow:0 0 0 3px rgba(0,210,190,.12);}
+.json-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.imp-status{
+  font-family:ui-monospace,monospace;font-size:10px;font-weight:800;
+  letter-spacing:1.2px;color:#7a8590;text-transform:uppercase;
+  padding:10px 12px;background:rgba(0,0,0,.4);border-radius:6px;
+  border-left:3px solid var(--f1-green);
+}
+.imp-status.err{border-left-color:#ef4444;color:#fca5a5;}
+.imp-status.ok{border-left-color:var(--f1-green);color:#7effd2;}
+.hint{
+  font-family:ui-monospace,monospace;font-size:9.5px;color:#7a8590;
+  background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);
+  padding:10px 12px;margin-top:12px;line-height:1.9;border-radius:6px;
+}
+.hint b{color:#fbbf24;font-weight:800;text-transform:uppercase;font-size:8.5px;letter-spacing:1px;}
+.hint code{color:var(--f1-green);background:rgba(0,210,190,.08);padding:1px 5px;border-radius:3px;}
+.pdf-info{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(100deg,rgba(0,210,190,.12),transparent);border:1px solid rgba(0,210,190,.35);border-radius:8px;margin-top:12px;flex-wrap:wrap;}
+.pdf-info .meta{flex:1;min-width:0;}
+.pdf-info .name{font-weight:800;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pdf-info .size{font-family:ui-monospace,monospace;font-size:9px;color:#7a8590;font-weight:700;letter-spacing:1.4px;margin-top:4px;text-transform:uppercase;}
+.pdf-viewer{display:none;margin-top:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.6);border-radius:8px;overflow:hidden;}
+.pdf-viewer.on{display:block;}
+.pdf-viewer iframe{width:100%;height:min(70vh,700px);border:none;background:#1a1a1a;display:block;}
 </style>
 </head>
 <body>
