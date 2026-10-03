@@ -409,7 +409,13 @@ html.cm-embed-boot body {
 .mlib-link{color:#22d3ee;font-weight:800;cursor:pointer;font-family:'Titillium Web',sans-serif;letter-spacing:.4px;border-bottom:1px dashed rgba(34,211,238,.35);background:transparent;border:none;padding:0;font-size:12.5px;}
 .mlib-link:hover{color:#fff;border-bottom-color:#fff;text-shadow:0 0 8px rgba(34,211,238,.5);}
 .mlib-empty{padding:20px;text-align:center;font-family:ui-monospace,monospace;font-size:10px;color:#7a8590;text-transform:uppercase;letter-spacing:1.4px;}
-
+.mlib-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+.mlib-act{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#e2e8f0;padding:6px 10px;border-radius:6px;font-family:inherit;font-size:10px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;}
+.mlib-act:hover{background:rgba(255,255,255,.12);color:#fff;}
+.mlib-act.del{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:#fca5a5;}
+.mlib-act.del:hover{background:rgba(239,68,68,.3);color:#fff;}
+.mlib-act.edit{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.5);color:#fbbf24;}
+.mlib-act.edit:hover{background:rgba(251,191,36,.3);color:#fff;}
 /* ═══ IMPORTED PLAYER CAREER POPUP ═══ */
 .mlp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(12px);z-index:999999;display:none;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;}
 .mlp-overlay.on{display:flex;animation:mlibFade .25s ease;}
