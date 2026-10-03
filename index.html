@@ -2955,16 +2955,8 @@ html.cm-embed-boot body {
         if(ed && !ed.value.trim())ed.value=JSON.stringify(v,null,2);
       }
     }catch(e){}
-    idbGet(IDB_KEY).then(function(rec){
-      if(rec&&rec.value&&rec.value.blob){
-        try{
-          var url=URL.createObjectURL(rec.value.blob);
-          document.getElementById('impPdfFrame').src=url;
-          document.getElementById('impPdfViewer').classList.add('on');
-        }catch(e){}
-        showPdfInfo(rec.value.name,rec.value.size);
-      }
-    });
+     /* PDF caching removed — old stored PDFs are ignored */
+    idbDelete(IDB_KEY).catch(function(){});
   }
 
   function wrapSelectSubPane(){
