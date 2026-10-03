@@ -857,6 +857,53 @@ html.cm-embed-boot body {
       <div><b>Overs:</b> <span id="infoOvers">20</span></div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       IMPORT PANE — JSON (Firebase sync) + PDF (local)
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="sub-pane" id="pane-import">
+    <div class="imp-card gr">
+      <h3>📦 Match Data (JSON)</h3>
+      <div class="desc">Paste a map of matches — each one is pushed to Firebase so your viewer can show them.</div>
+
+      <textarea class="json-editor" id="jsonEditor" spellcheck="false" placeholder='{"m1":{"fixture":"A vs B","innings1":{...},"innings2":{...}}}'></textarea>
+
+      <div class="json-actions">
+        <button class="btn-ui btn-primary" onclick="applyImportJSON()">✅ Apply &amp; Push to Firebase</button>
+        <button class="btn-ui" onclick="pullFromFirebase()">⬇ Pull from Firebase</button>
+        <button class="btn-ui" onclick="downloadImportJSON()">📤 Export JSON</button>
+        <button class="btn-ui" onclick="loadImportSample()">👁 Load Sample</button>
+        <button class="btn-ui" onclick="clearImportAll()" style="background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5;">🗑 Clear All</button>
+      </div>
+
+      <div class="imp-status" id="impStatus">Ready.</div>
+
+      <div class="hint">
+        <b>Firebase path</b> <code>cricmax/importedMatches/&lt;id&gt;</code><br>
+        <b>Viewer reads</b> from the same path — no extra wiring needed.
+      </div>
+    </div>
+
+    <div class="imp-card">
+      <h3>📄 Match PDF (local only)</h3>
+      <div class="desc">Stored in your browser (IndexedDB). Not synced to Firebase — RTDB has a 10 MB write limit per write.</div>
+
+      <label class="dropzone" id="impDropzone">
+        <input type="file" id="impPdfInput" accept="application/pdf,.pdf">
+        <div class="dz-ic">⬆</div>
+        <div class="dz-t">Drop PDF Here</div>
+        <div class="dz-s">or click to browse · max 25 MB</div>
+      </label>
+
+      <div class="upload-progress" id="impProgress">
+        <div class="lbl"><span id="impStatusTxt">Reading…</span><span id="impPct">0%</span></div>
+        <div class="bar"><div class="fill" id="impFill"></div></div>
+      </div>
+
+      <div id="impPdfInfo"></div>
+      <div class="pdf-viewer" id="impPdfViewer"><iframe id="impPdfFrame" title="PDF"></iframe></div>
+    </div>
+  </div>
 </section>
 
 <nav class="bottom-match-nav" id="bottomMatchNav">
