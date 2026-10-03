@@ -505,6 +505,39 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   font-size:10px;color:rgba(255,255,255,.45);font-weight:700;
 }
 
+/* ═══ IMPORTED MATCH CARD (read-only, viewer) ═══ */
+.vm-card{
+  background:linear-gradient(135deg,rgba(225,6,0,.08),rgba(0,0,0,.4));
+  border:1px solid rgba(255,255,255,.08);
+  border-left:3px solid #fbbf24;
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:8px;
+}
+.vm-card .vm-fixture{
+  font-size:13.5px;font-weight:900;color:#fff;letter-spacing:.5px;
+}
+.vm-card .vm-result{
+  font-size:11px;color:var(--f1-green);font-weight:800;margin-top:3px;
+}
+.vm-card .vm-meta{
+  font-size:9.5px;color:rgba(255,255,255,.5);margin-top:5px;
+  font-family:ui-monospace,monospace;letter-spacing:.5px;
+}
+.vm-card .vm-scores{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.06);
+}
+.vm-card .vm-team-lbl{
+  font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1.4px;font-weight:800;
+}
+.vm-card .vm-team-score{
+  font-size:15px;font-weight:900;color:#fff;font-family:ui-monospace,monospace;
+}
+.vm-card .vm-team-score small{
+  font-size:10px;opacity:.6;
+}
+
 @media (max-width:620px){
   .f1-table th,.f1-table td{padding:7px 6px;font-size:11px;}
   .f1-table .player-name{font-size:11px;}
@@ -846,6 +879,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
         <button class="menu-t" data-pane="live" onclick="navTo('live')"><span class="i"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 6c2 3 2 9 0 12M16 6c-2 3-2 9 0 12"/></svg></span>Live</button>
         <button class="menu-t" data-pane="analytics" onclick="navTo('analytics')"><span class="i"><svg viewBox="0 0 24 24"><line x1="3" y1="21" x2="21" y2="21"/><rect x="6" y="13" width="3" height="8"/><rect x="11" y="8" width="3" height="13"/><rect x="16" y="4" width="3" height="17"/></svg></span>Analysis</button>
         <button class="menu-t" data-pane="leaderboards" onclick="navTo('leaderboards')"><span class="i"><svg viewBox="0 0 24 24"><path d="M6 4h12v4a6 6 0 0 1-12 0V4z"/><path d="M6 6H3v2a3 3 0 0 0 3 3M18 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M8 21h8"/></svg></span>Stats</button>
+        <button class="menu-t" data-pane="matches" onclick="navTo('matches')"><span class="i"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></span>Matches</button>
       </div>
     </div>
     <div class="menu-div"></div>
@@ -961,6 +995,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       <button type="button" class="sheet-tab" data-sheet="live" onclick="showSheet('live')">Live</button>
       <button type="button" class="sheet-tab" data-sheet="analytics" onclick="showSheet('analytics')">Analysis</button>
       <button type="button" class="sheet-tab" data-sheet="leaderboards" onclick="showSheet('leaderboards')">Stats</button>
+      <button type="button" class="sheet-tab" data-sheet="matches" onclick="showSheet('matches')">📚 Matches</button>
     </div>
     <button type="button" class="sheet-close" id="sheetClose"><svg class="ico ico-s" viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
   </div>
@@ -1085,6 +1120,32 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
             <th>Player</th><th>O</th><th>R</th><th>W</th><th>Eco</th>
           </tr></thead>
           <tbody id="statsBowlBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MATCHES (read-only imported matches) -->
+    <div class="sheet-pane" data-pane="matches">
+      <div class="f1-panel gold">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">📚 Imported Matches</span>
+          <span class="f1-panel-sub" id="viewerMatchesSub">--</span>
+        </div>
+        <div id="viewerMatchesList" style="padding:10px 12px;">
+          <div class="f1-empty">Loading matches…</div>
+        </div>
+      </div>
+
+      <div class="f1-panel purple">
+        <div class="f1-panel-head">
+          <span class="f1-panel-title">📊 Aggregated Stats</span>
+          <span class="f1-panel-sub" id="viewerAggSub">--</span>
+        </div>
+        <table class="f1-table">
+          <thead><tr>
+            <th>#</th><th>Player</th><th>M</th><th>R</th><th>SR</th><th>W</th><th>Eco</th>
+          </tr></thead>
+          <tbody id="viewerAggBody"></tbody>
         </table>
       </div>
     </div>
@@ -1375,9 +1436,9 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }
   }
 
-  /* ═══ 3-TAB SHEET — standalone panes, no iframe ═══ */
-  const SHEET_TABS=['live','analytics','leaderboards'];
-  const PANE_TO_SHEET={analytics:'analytics',stats:'analytics',leaderboards:'leaderboards',boards:'leaderboards',live:'live'};
+  /* ═══ 4-TAB SHEET — standalone panes, no iframe ═══ */
+  const SHEET_TABS=['live','analytics','leaderboards','matches'];
+  const PANE_TO_SHEET={analytics:'analytics',stats:'analytics',leaderboards:'leaderboards',boards:'leaderboards',live:'live',matches:'matches'};
   let activeSheetTab=null;
 
   function __viewerMatch(){
@@ -1427,6 +1488,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       if(tab === 'live')          renderViewerLive();
       else if(tab === 'analytics')renderViewerAnalysis();
       else if(tab === 'leaderboards') renderViewerStats();
+      else if(tab === 'matches')  renderViewerMatches();
     }catch(e){ console.warn('[viewer] render failed:', tab, e); }
   }
 
@@ -1721,7 +1783,113 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     try { drawViewerWagon(); } catch(e){}
   }
 
-  /* ═══ VIEWER WAGON WHEEL / SPIDER / CATCH MAP ═══ */   var __vWagonTeam = 1;   var __vWagonMode = 'wagon';    window.vSwitchWagonTeam = function(team){     __vWagonTeam = team;     var t1 = document.getElementById('vTeamToggle1');     var t2 = document.getElementById('vTeamToggle2');     if (t1) t1.classList.toggle('active', team === 1);     if (t2) t2.classList.toggle('active', team === 2);     drawViewerWagon();   };    window.vSwitchWagonMode = function(mode){     __vWagonMode = mode;     var ids = { wagon:'vWagonTabWagon', spider:'vWagonTabSpider', catch:'vWagonTabCatch' };     Object.keys(ids).forEach(function(k){       var el = document.getElementById(ids[k]);       if (el) el.classList.toggle('active', k === mode);     });     drawViewerWagon();   };    function drawViewerWagon(){     var cv = document.getElementById('viewerWagonCanvas');     if (!cv) return;     var ctx = cv.getContext('2d');     if (!ctx) return;     var W = cv.width, H = cv.height;     var cx = W/2, cy = H/2;     var R = W/2 - 20;      ctx.clearRect(0, 0, W, H);     ctx.setLineDash([]);     ctx.shadowBlur = 0;     ctx.globalAlpha = 1;      var fieldGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);     fieldGrad.addColorStop(0,   '#1f4a24');     fieldGrad.addColorStop(0.55,'#143419');     fieldGrad.addColorStop(0.85,'#0e2511');     fieldGrad.addColorStop(1,   '#071808');     ctx.fillStyle = fieldGrad;     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();      ctx.save();     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();     ctx.globalAlpha = 0.08;     for (var i = -R; i < R; i += 22){       ctx.fillStyle = (Math.floor(i/22) % 2 === 0) ? '#ffffff' : '#000000';       ctx.fillRect(cx - R, cy + i, R*2, 11);     }     ctx.globalAlpha = 1;     ctx.restore();      ctx.strokeStyle = 'rgba(255,255,255,.4)';     ctx.lineWidth = 2;     ctx.setLineDash([10, 8]);     ctx.beginPath(); ctx.arc(cx, cy, R*0.58, 0, Math.PI*2); ctx.stroke();     ctx.setLineDash([]);      var pitchW = 26, pitchLen = R * 1.55;     var pitchGrad = ctx.createLinearGradient(cx - pitchW/2, 0, cx + pitchW/2, 0);     pitchGrad.addColorStop(0,   'rgba(140,110,70,.35)');     pitchGrad.addColorStop(0.5, 'rgba(196,168,130,.75)');     pitchGrad.addColorStop(1,   'rgba(140,110,70,.35)');     ctx.fillStyle = pitchGrad;     ctx.fillRect(cx - pitchW/2, cy - pitchLen/2, pitchW, pitchLen);      ctx.strokeStyle = 'rgba(255,255,255,.7)';     ctx.lineWidth = 1.5;     ctx.beginPath();     ctx.moveTo(cx - 22, cy - R*0.62); ctx.lineTo(cx + 22, cy - R*0.62);     ctx.moveTo(cx - 22, cy + R*0.62); ctx.lineTo(cx + 22, cy + R*0.62);     ctx.stroke();      ctx.strokeStyle = '#f8fafc';     ctx.lineWidth = 3;     ctx.shadowBlur = 14;     ctx.shadowColor = 'rgba(248,250,252,.5)';     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();     ctx.shadowBlur = 0;      var m = __viewerMatch();     var allShots = m ? __toArr(m.shotLog) : [];     var shots = allShots.filter(function(s){       if (!s) return false;       var inn = Number(s.inns) || 1;       return inn === __vWagonTeam;     });      if (__vWagonMode === 'catch'){       drawViewerCatchMap(ctx, cx, cy, R, shots);     } else {       drawViewerShots(ctx, cx, cy, R, shots, __vWagonMode === 'spider');     }      ctx.shadowBlur = 16;     ctx.shadowColor = 'rgba(0,230,118,.9)';     ctx.fillStyle = '#00e676';     ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI*2); ctx.fill();     ctx.shadowBlur = 0;     ctx.fillStyle = '#0a0e1a';     ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();     ctx.fillStyle = '#00e676';     ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, Math.PI*2); ctx.fill();      var runsTotal = shots.reduce(function(a, s){ return a + (Number(s.runs) || 0); }, 0);     var boundaries = shots.filter(function(s){ return (Number(s.runs) || 0) >= 4; }).length;     var sumEl = document.getElementById('viewerWagonSummary');     var subEl = document.getElementById('wagonSub');     if (sumEl) sumEl.textContent = shots.length + ' balls · ' + runsTotal + ' runs · ' + boundaries + ' boundaries';     if (subEl) subEl.textContent = shots.length + ' SHOTS';   }    function drawViewerShots(ctx, cx, cy, R, shots, spiderMode){     shots.forEach(function(s){       var runs = Number(s.runs) || 0;       var isWkt = !!(s.isWicket || s.isOut);       var angle = (typeof s.angle === 'number') ? s.angle : parseFloat(s.angle);       if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;        if (runs === 0 && !isWkt){         var dx = cx + Math.sin(angle) * 20;         var dy = cy - Math.cos(angle) * 20;         ctx.fillStyle = 'rgba(148,163,184,.7)';         ctx.beginPath(); ctx.arc(dx, dy, 2.5, 0, Math.PI*2); ctx.fill();         return;       }        var lenFraction;       if (runs >= 6) lenFraction = 0.95;       else if (runs === 4) lenFraction = 0.86;       else if (runs === 3) lenFraction = 0.62;       else if (runs === 2) lenFraction = 0.46;       else if (runs === 1) lenFraction = 0.32;       else lenFraction = 0.14;        var len = R * lenFraction;       var ex = cx + Math.sin(angle) * len;       var ey = cy - Math.cos(angle) * len;        var col;       if (runs >= 6) col = '#d946ef';       else if (runs === 4) col = '#22d3ee';       else if (runs > 0) col = '#94a3b8';       else col = '#ef4444';        ctx.strokeStyle = col;       ctx.lineWidth = runs >= 6 ? 4 : runs >= 4 ? 3.5 : 2.2;       ctx.lineCap = 'round';       ctx.shadowBlur = spiderMode ? 5 : 10;       ctx.shadowColor = col;        ctx.beginPath();       ctx.moveTo(cx, cy);       ctx.lineTo(ex, ey);       ctx.stroke();        ctx.fillStyle = col;       ctx.beginPath(); ctx.arc(ex, ey, runs >= 4 ? 4 : 3, 0, Math.PI*2); ctx.fill();        ctx.shadowBlur = 0;     });   }    function drawViewerCatchMap(ctx, cx, cy, R, shots){     var catches = shots.filter(function(s){       if (!s) return false;       return s.isCatch || (s.isWicket && /catch/i.test(String(s.wicketType || s.method || '')));     });      catches.forEach(function(s){       var angle = (typeof s.angle === 'number') ? s.angle : parseFloat(s.angle);       if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;        var px = cx + Math.sin(angle) * R * 0.88;       var py = cy - Math.cos(angle) * R * 0.88;        ctx.strokeStyle = 'rgba(239,68,68,.35)';       ctx.lineWidth = 1.5;       ctx.setLineDash([4, 4]);       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();       ctx.setLineDash([]);        ctx.fillStyle = '#ef4444';       ctx.shadowBlur = 12;       ctx.shadowColor = 'rgba(239,68,68,.9)';       ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();       ctx.shadowBlur = 0;        ctx.fillStyle = '#fff';       ctx.font = 'bold 10px sans-serif';       ctx.textAlign = 'center';       ctx.textBaseline = 'middle';       ctx.fillText('C', px, py + 0.5);     });      if (!catches.length){       ctx.fillStyle = 'rgba(255,255,255,.35)';       ctx.font = 'bold 12px ui-monospace, monospace';       ctx.textAlign = 'center';       ctx.textBaseline = 'middle';       ctx.fillText('NO CATCHES', cx, cy + R * 0.35);     }   }    function renderViewerStats(){
+  /* ═══ VIEWER WAGON WHEEL / SPIDER / CATCH MAP ═══ */   var __vWagonTeam = 1;   var __vWagonMode = 'wagon';    window.vSwitchWagonTeam = function(team){     __vWagonTeam = team;     var t1 = document.getElementById('vTeamToggle1');     var t2 = document.getElementById('vTeamToggle2');     if (t1) t1.classList.toggle('active', team === 1);     if (t2) t2.classList.toggle('active', team === 2);     drawViewerWagon();   };    window.vSwitchWagonMode = function(mode){     __vWagonMode = mode;     var ids = { wagon:'vWagonTabWagon', spider:'vWagonTabSpider', catch:'vWagonTabCatch' };     Object.keys(ids).forEach(function(k){       var el = document.getElementById(ids[k]);       if (el) el.classList.toggle('active', k === mode);     });     drawViewerWagon();   };    function drawViewerWagon(){     var cv = document.getElementById('viewerWagonCanvas');     if (!cv) return;     var ctx = cv.getContext('2d');     if (!ctx) return;     var W = cv.width, H = cv.height;     var cx = W/2, cy = H/2;     var R = W/2 - 20;      ctx.clearRect(0, 0, W, H);     ctx.setLineDash([]);     ctx.shadowBlur = 0;     ctx.globalAlpha = 1;      var fieldGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);     fieldGrad.addColorStop(0,   '#1f4a24');     fieldGrad.addColorStop(0.55,'#143419');     fieldGrad.addColorStop(0.85,'#0e2511');     fieldGrad.addColorStop(1,   '#071808');     ctx.fillStyle = fieldGrad;     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();      ctx.save();     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();     ctx.globalAlpha = 0.08;     for (var i = -R; i < R; i += 22){       ctx.fillStyle = (Math.floor(i/22) % 2 === 0) ? '#ffffff' : '#000000';       ctx.fillRect(cx - R, cy + i, R*2, 11);     }     ctx.globalAlpha = 1;     ctx.restore();      ctx.strokeStyle = 'rgba(255,255,255,.4)';     ctx.lineWidth = 2;     ctx.setLineDash([10, 8]);     ctx.beginPath(); ctx.arc(cx, cy, R*0.58, 0, Math.PI*2); ctx.stroke();     ctx.setLineDash([]);      var pitchW = 26, pitchLen = R * 1.55;     var pitchGrad = ctx.createLinearGradient(cx - pitchW/2, 0, cx + pitchW/2, 0);     pitchGrad.addColorStop(0,   'rgba(140,110,70,.35)');     pitchGrad.addColorStop(0.5, 'rgba(196,168,130,.75)');     pitchGrad.addColorStop(1,   'rgba(140,110,70,.35)');     ctx.fillStyle = pitchGrad;     ctx.fillRect(cx - pitchW/2, cy - pitchLen/2, pitchW, pitchLen);      ctx.strokeStyle = 'rgba(255,255,255,.7)';     ctx.lineWidth = 1.5;     ctx.beginPath();     ctx.moveTo(cx - 22, cy - R*0.62); ctx.lineTo(cx + 22, cy - R*0.62);     ctx.moveTo(cx - 22, cy + R*0.62); ctx.lineTo(cx + 22, cy + R*0.62);     ctx.stroke();      ctx.strokeStyle = '#f8fafc';     ctx.lineWidth = 3;     ctx.shadowBlur = 14;     ctx.shadowColor = 'rgba(248,250,252,.5)';     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();     ctx.shadowBlur = 0;      var m = __viewerMatch();     var allShots = m ? __toArr(m.shotLog) : [];     var shots = allShots.filter(function(s){       if (!s) return false;       var inn = Number(s.inns) || 1;       return inn === __vWagonTeam;     });      if (__vWagonMode === 'catch'){       drawViewerCatchMap(ctx, cx, cy, R, shots);     } else {       drawViewerShots(ctx, cx, cy, R, shots, __vWagonMode === 'spider');     }      ctx.shadowBlur = 16;     ctx.shadowColor = 'rgba(0,230,118,.9)';     ctx.fillStyle = '#00e676';     ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI*2); ctx.fill();     ctx.shadowBlur = 0;     ctx.fillStyle = '#0a0e1a';     ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();     ctx.fillStyle = '#00e676';     ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, Math.PI*2); ctx.fill();      var runsTotal = shots.reduce(function(a, s){ return a + (Number(s.runs) || 0); }, 0);     var boundaries = shots.filter(function(s){ return (Number(s.runs) || 0) >= 4; }).length;     var sumEl = document.getElementById('viewerWagonSummary');     var subEl = document.getElementById('wagonSub');     if (sumEl) sumEl.textContent = shots.length + ' balls · ' + runsTotal + ' runs · ' + boundaries + ' boundaries';     if (subEl) subEl.textContent = shots.length + ' SHOTS';   }    function drawViewerShots(ctx, cx, cy, R, shots, spiderMode){     shots.forEach(function(s){       var runs = Number(s.runs) || 0;       var isWkt = !!(s.isWicket || s.isOut);       var angle = (typeof s.angle === 'number') ? s.angle : parseFloat(s.angle);       if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;        if (runs === 0 && !isWkt){         var dx = cx + Math.sin(angle) * 20;         var dy = cy - Math.cos(angle) * 20;         ctx.fillStyle = 'rgba(148,163,184,.7)';         ctx.beginPath(); ctx.arc(dx, dy, 2.5, 0, Math.PI*2); ctx.fill();         return;       }        var lenFraction;       if (runs >= 6) lenFraction = 0.95;       else if (runs === 4) lenFraction = 0.86;       else if (runs === 3) lenFraction = 0.62;       else if (runs === 2) lenFraction = 0.46;       else if (runs === 1) lenFraction = 0.32;       else lenFraction = 0.14;        var len = R * lenFraction;       var ex = cx + Math.sin(angle) * len;       var ey = cy - Math.cos(angle) * len;        var col;       if (runs >= 6) col = '#d946ef';       else if (runs === 4) col = '#22d3ee';       else if (runs > 0) col = '#94a3b8';       else col = '#ef4444';        ctx.strokeStyle = col;       ctx.lineWidth = runs >= 6 ? 4 : runs >= 4 ? 3.5 : 2.2;       ctx.lineCap = 'round';       ctx.shadowBlur = spiderMode ? 5 : 10;       ctx.shadowColor = col;        ctx.beginPath();       ctx.moveTo(cx, cy);       ctx.lineTo(ex, ey);       ctx.stroke();        ctx.fillStyle = col;       ctx.beginPath(); ctx.arc(ex, ey, runs >= 4 ? 4 : 3, 0, Math.PI*2); ctx.fill();        ctx.shadowBlur = 0;     });   }    function drawViewerCatchMap(ctx, cx, cy, R, shots){     var catches = shots.filter(function(s){       if (!s) return false;       return s.isCatch || (s.isWicket && /catch/i.test(String(s.wicketType || s.method || '')));     });      catches.forEach(function(s){       var angle = (typeof s.angle === 'number') ? s.angle : parseFloat(s.angle);       if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;        var px = cx + Math.sin(angle) * R * 0.88;       var py = cy - Math.cos(angle) * R * 0.88;        ctx.strokeStyle = 'rgba(239,68,68,.35)';       ctx.lineWidth = 1.5;       ctx.setLineDash([4, 4]);       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();       ctx.setLineDash([]);        ctx.fillStyle = '#ef4444';       ctx.shadowBlur = 12;       ctx.shadowColor = 'rgba(239,68,68,.9)';       ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();       ctx.shadowBlur = 0;        ctx.fillStyle = '#fff';       ctx.font = 'bold 10px sans-serif';       ctx.textAlign = 'center';       ctx.textBaseline = 'middle';       ctx.fillText('C', px, py + 0.5);     });      if (!catches.length){       ctx.fillStyle = 'rgba(255,255,255,.35)';       ctx.font = 'bold 12px ui-monospace, monospace';       ctx.textAlign = 'center';       ctx.textBaseline = 'middle';       ctx.fillText('NO CATCHES', cx, cy + R * 0.35);     }   }
+
+  /* ═══ IMPORTED MATCHES (read-only viewer) ═══ */
+  function renderViewerMatches(){
+    var listEl  = document.getElementById('viewerMatchesList');
+    var subEl   = document.getElementById('viewerMatchesSub');
+    var aggBody = document.getElementById('viewerAggBody');
+    var aggSub  = document.getElementById('viewerAggSub');
+    if(!listEl) return;
+
+    if(typeof firebase === 'undefined' || !firebase.database){
+      listEl.innerHTML = '<div class="f1-empty">Firebase not ready</div>';
+      return;
+    }
+    listEl.innerHTML = '<div class="f1-empty">Loading matches…</div>';
+
+    var ref = firebase.database().ref('cricmax/importedMatches');
+    ref.once('value').then(function(snap){
+      var v = snap.val() || {};
+      var arr = Object.keys(v).map(function(k){ return Object.assign({id:k}, v[k]); });
+      arr.sort(function(a,b){ return (b.importedAt||0) - (a.importedAt||0); });
+
+      if(subEl) subEl.textContent = arr.length + ' MATCH' + (arr.length === 1 ? '' : 'ES');
+
+      if(!arr.length){
+        listEl.innerHTML = '<div class="f1-empty">No matches imported yet</div>';
+        if(aggBody) aggBody.innerHTML = '<tr><td colspan="7" class="f1-empty">No data</td></tr>';
+        return;
+      }
+
+      var html = '';
+      arr.forEach(function(m){
+        var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+        function ovStr(b){ b = b||0; return Math.floor(b/6)+'.'+(b%6); }
+        html += '<div class="vm-card">'
+              + '<div class="vm-fixture">' + __esc(m.fixture || 'Match') + '</div>'
+              + '<div class="vm-result">' + __esc(m.result || '') + '</div>'
+              + '<div class="vm-meta">'
+              +   __esc(m.tournamentName || 'Tournament') + ' · ' + __esc(m.venue || '') + ' · ' + __esc(m.date || '')
+              + '</div>'
+              + '<div class="vm-scores">'
+              +   '<div><div class="vm-team-lbl">'+(i1.team||'T1')+'</div>'
+              +        '<div class="vm-team-score">'+(i1.runs||0)+'/'+(i1.wickets||0)+' <small>('+ovStr(i1.balls)+' ov)</small></div></div>'
+              +   '<div><div class="vm-team-lbl">'+(i2.team||'T2')+'</div>'
+              +        '<div class="vm-team-score">'+(i2.runs||0)+'/'+(i2.wickets||0)+' <small>('+ovStr(i2.balls)+' ov)</small></div></div>'
+              + '</div>'
+              + '</div>';
+      });
+      listEl.innerHTML = html;
+
+      var players = {};
+      function ensure(name){
+        if(!name) return null;
+        if(!players[name]) players[name] = {
+          name:name, matches:0, runs:0, balls:0, fours:0, sixes:0,
+          wkts:0, bowlRuns:0, bowlBalls:0
+        };
+        return players[name];
+      }
+      arr.forEach(function(m){
+        var seen = {};
+        [m.innings1, m.innings2].forEach(function(inn){
+          if(!inn) return;
+          if(inn.batters) Object.keys(inn.batters).forEach(function(n){
+            var b = inn.batters[n], p = ensure(n); if(!p) return;
+            seen[n] = true;
+            p.runs += b.runs||0; p.balls += b.balls||0;
+            p.fours += b.fours||0; p.sixes += b.sixes||0;
+          });
+          if(inn.bowlers) Object.keys(inn.bowlers).forEach(function(n){
+            var b = inn.bowlers[n], p = ensure(n); if(!p) return;
+            seen[n] = true;
+            p.wkts += b.wickets||0; p.bowlRuns += b.runs||0;
+            p.bowlBalls += b.balls||0;
+          });
+        });
+        Object.keys(seen).forEach(function(n){ if(players[n]) players[n].matches++; });
+      });
+      var pl = Object.keys(players).map(function(k){ return players[k]; });
+      pl.sort(function(a,b){ return (b.runs + b.wkts*20) - (a.runs + a.wkts*20); });
+
+      if(aggSub) aggSub.textContent = pl.length + ' PLAYERS';
+      if(aggBody){
+        aggBody.innerHTML = pl.slice(0, 30).map(function(p, i){
+          var sr = p.balls > 0 ? (p.runs/p.balls*100).toFixed(1) : '0.0';
+          var eco = p.bowlBalls > 0 ? (p.bowlRuns/(p.bowlBalls/6)).toFixed(2) : '—';
+          var medal = i === 0 ? '<span class="medal medal-1">1</span>'
+                    : i === 1 ? '<span class="medal medal-2">2</span>'
+                    : i === 2 ? '<span class="medal medal-3">3</span>'
+                    : (i+1);
+          return '<tr>'
+               + '<td>'+medal+'</td>'
+               + '<td><span class="player-name">'+__esc(p.name)+'</span></td>'
+               + '<td>'+p.matches+'</td>'
+               + '<td class="stat-hl">'+p.runs+'</td>'
+               + '<td>'+sr+'</td>'
+               + '<td class="stat-warn">'+p.wkts+'</td>'
+               + '<td>'+eco+'</td>'
+               + '</tr>';
+        }).join('') || '<tr><td colspan="7" class="f1-empty">No stats</td></tr>';
+      }
+    }).catch(function(err){
+      listEl.innerHTML = '<div class="f1-empty">Failed to load: '+__esc(err.message||'error')+'</div>';
+    });
+  }
+
+  function renderViewerStats(){
     var m = __viewerMatch(); if(!m) return;
 
     var pool = [];
@@ -1816,6 +1984,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   function navTo(pane){
     document.querySelectorAll('.menu-t[data-pane]').forEach(t=>{t.classList.toggle('on',t.getAttribute('data-pane')===pane);});
     if(pane==='pitch'){closeSheet();toggleMenu();return;}
+    if(pane==='matches'){toggleMenu();showSheet('matches');return;}
     if(PANE_TO_SHEET[pane]){toggleMenu();showSheet(PANE_TO_SHEET[pane]);return;}
     toggleMenu();
   }
@@ -2369,7 +2538,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   }
 
   /* ═══════════════════════════════════════════════════════════
-     SET AUDIO MODE — now swaps SVG icon instead of emoji
+     SET AUDIO MODE — swaps SVG icon state
      ═══════════════════════════════════════════════════════════ */
   function setAudioMode(mode){
     if(['stadium','commentary','mute'].indexOf(mode)<0)mode='stadium';
@@ -3401,6 +3570,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       if (__openPane === 'live')            renderViewerLive();
       else if (__openPane === 'analytics')  renderViewerAnalysis();
       else if (__openPane === 'leaderboards') renderViewerStats();
+      else if (__openPane === 'matches')    renderViewerMatches();
     } catch(e){ console.warn('[viewer] auto-refresh failed:', e); }
   }
 
