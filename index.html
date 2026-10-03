@@ -2832,12 +2832,346 @@ html.cm-embed-boot body {
     window.selectSubPane.__importWrapped=true;
   }
   wrapSelectSubPane();
-
   document.addEventListener('click',function(e){
     var t=e.target.closest && e.target.closest('.tab-btn');
     if(t && /import/i.test(t.textContent))hydrate();
   },true);
 
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MATCH LIBRARY — clickable players + aggregated career popup
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function ovStr(b){b=b||0;return Math.floor(b/6)+'.'+(b%6);}
+
+  function getImported(){
+    if (window.__importedMatches && typeof window.__importedMatches === 'object' && Object.keys(window.__importedMatches).length){
+      return window.__importedMatches;
+    }
+    try {
+      var raw = localStorage.getItem('cricmax_importedMatches');
+      if (raw){ var v = JSON.parse(raw); window.__importedMatches = v; return v; }
+    } catch(e){}
+    return window.__importedMatches || {};
+  }
+
+  function renderDrawer(m){
+    var out = '';
+    [['innings1','1st Innings'],['innings2','2nd Innings']].forEach(function(pair){
+      var inn = m[pair[0]];
+      if (!inn) return;
+      out += '<div class="mlib-inn-hd"><span>'+esc(inn.team||'Team')+' — '+pair[1]+'</span><small>'+(inn.runs||0)+'/'+(inn.wickets||0)+' ('+ovStr(inn.balls)+')</small></div>';
+
+      out += '<div class="mlib-sub">🏏 Batting</div>';
+      out += '<table class="mlib-table"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
+      var batters = inn.batters || {}, bkeys = Object.keys(batters);
+      if (!bkeys.length){
+        out += '<tr><td colspan="6" style="text-align:center;padding:14px;color:#7a8590;">No batting data</td></tr>';
+      } else {
+        bkeys.forEach(function(name){
+          var b = batters[name];
+          var sr = b.balls ? (b.runs/b.balls*100).toFixed(1) : '0.0';
+          out += '<tr>'
+            + '<td><button class="mlib-link" onclick="window.openMlibPlayer(\''+String(name).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+esc(name)+'</button></td>'
+            + '<td>'+(b.runs||0)+'</td><td>'+(b.balls||0)+'</td><td>'+(b.fours||0)+'</td><td>'+(b.sixes||0)+'</td><td>'+sr+'</td></tr>';
+        });
+      }
+      out += '</tbody></table>';
+
+      out += '<div class="mlib-sub">⚾ Bowling</div>';
+      out += '<table class="mlib-table"><thead><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Eco</th></tr></thead><tbody>';
+      var bowlers = inn.bowlers || {}, wkeys = Object.keys(bowlers);
+      if (!wkeys.length){
+        out += '<tr><td colspan="5" style="text-align:center;padding:14px;color:#7a8590;">No bowling data</td></tr>';
+      } else {
+        wkeys.forEach(function(name){
+          var b = bowlers[name];
+          var eco = b.balls ? (b.runs/(b.balls/6)).toFixed(2) : '0.00';
+          out += '<tr>'
+            + '<td><button class="mlib-link" onclick="window.openMlibPlayer(\''+String(name).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+esc(name)+'</button></td>'
+            + '<td>'+ovStr(b.balls)+'</td><td>'+(b.runs||0)+'</td><td>'+(b.wickets||0)+'</td><td>'+eco+'</td></tr>';
+        });
+      }
+      out += '</tbody></table>';
+    });
+    return out || '<div class="mlib-empty">No scorecard data</div>';
+  }
+
+  window.renderMatchLibrary = function(){
+    var el = document.getElementById('matchLibraryList');
+    if (!el) return;
+    var list = getImported();
+    var keys = Object.keys(list);
+    if (!keys.length){
+      el.innerHTML = '<div class="mlib-empty">No imported matches yet — paste JSON or upload a PDF above</div>';
+      return;
+    }
+    el.innerHTML = keys.map(function(id, idx){
+      var m = list[id] || {};
+      var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+      return '<div class="mlib-row">'
+        + '<div class="mlib-row-hd">'
+        +   '<div class="mlib-info">'
+        +     '<div class="mlib-fixture">'+esc(m.fixture||id)+'</div>'
+        +     '<div class="mlib-result">'+esc(m.result||'—')+'</div>'
+        +     '<div class="mlib-meta">'+(i1.team||'T1')+' '+(i1.runs||0)+'/'+(i1.wickets||0)+' · '+(i2.team||'T2')+' '+(i2.runs||0)+'/'+(i2.wickets||0)+' · '+esc(m.date||'')+'</div>'
+        +   '</div>'
+        +   '<button class="mlib-btn" onclick="window.toggleMlibDrawer('+idx+',this)">📊 Scorecard</button>'
+        + '</div>'
+        + '<div class="mlib-drawer" id="mlibDrawer'+idx+'">'+renderDrawer(m)+'</div>'
+        + '</div>';
+    }).join('');
+  };
+
+  window.toggleMlibDrawer = function(idx, btn){
+    var d = document.getElementById('mlibDrawer'+idx);
+    if (!d) return;
+    d.classList.toggle('open');
+    btn.textContent = d.classList.contains('open') ? '▲ Hide' : '📊 Scorecard';
+  };
+
+  /* ═══ CAREER AGGREGATION ═══ */
+  function aggregatePlayer(name){
+    var list = getImported();
+    var matches = Object.keys(list).map(function(k){ return list[k]; });
+    var agg = {
+      name:name, teams:{}, matches:0, innings:0,
+      runs:0, balls:0, fours:0, sixes:0, dots:0,
+      dismissals:0, notOuts:0, fifties:0, hundreds:0, hs:0,
+      bowlBalls:0, bowlRuns:0, wkts:0, maidens:0, bowlDots:0,
+      bestWkts:0, bestRuns:9999, matchLog:[]
+    };
+    var seenMatches = {};
+    matches.forEach(function(m){
+      var appeared = false;
+      [['innings1',m.innings1],['innings2',m.innings2]].forEach(function(pair){
+        var inn = pair[1];
+        if (!inn) return;
+        var team = inn.team || '';
+        if (inn.batters && inn.batters[name]){
+          var b = inn.batters[name];
+          appeared = true;
+          agg.innings++;
+          agg.runs += b.runs || 0;
+          agg.balls += b.balls || 0;
+          agg.fours += b.fours || 0;
+          agg.sixes += b.sixes || 0;
+          agg.dots += b.dots || 0;
+          if ((b.runs||0) > agg.hs) agg.hs = b.runs;
+          if (b.runs >= 100) agg.hundreds++;
+          else if (b.runs >= 50) agg.fifties++;
+          var st = String(b.status||'').toLowerCase();
+          if (st && st !== 'dnb' && st.indexOf('not out') === -1 && st.indexOf('retired') === -1) agg.dismissals++;
+          else if (st && st !== 'dnb') agg.notOuts++;
+          if (team) agg.teams[team] = true;
+          agg.matchLog.push({
+            fixture: m.fixture || '', team: team, date: m.date || '',
+            batRuns: b.runs || 0, batBalls: b.balls || 0,
+            batSR: b.balls ? (b.runs/b.balls*100).toFixed(1) : '0.0'
+          });
+        }
+        if (inn.bowlers && inn.bowlers[name]){
+          var bw = inn.bowlers[name];
+          appeared = true;
+          var w = bw.wickets || 0, r = bw.runs || 0;
+          agg.bowlBalls += bw.balls || 0;
+          agg.bowlRuns += r;
+          agg.wkts += w;
+          agg.maidens += bw.maidens || 0;
+          agg.bowlDots += bw.dots || 0;
+          if (w > agg.bestWkts || (w === agg.bestWkts && r < agg.bestRuns)){
+            agg.bestWkts = w; agg.bestRuns = r;
+          }
+          if (team) agg.teams[team] = true;
+          var log = agg.matchLog.find(function(x){ return x.fixture === (m.fixture||'') && x.team === team; });
+          if (log){
+            log.bowlOvers = ovStr(bw.balls);
+            log.bowlRuns = r;
+            log.bowlWkts = w;
+            log.bowlEco = bw.balls ? (r/(bw.balls/6)).toFixed(2) : '0.00';
+          } else {
+            agg.matchLog.push({
+              fixture: m.fixture || '', team: team, date: m.date || '',
+              bowlOvers: ovStr(bw.balls), bowlRuns: r, bowlWkts: w,
+              bowlEco: bw.balls ? (r/(bw.balls/6)).toFixed(2) : '0.00'
+            });
+          }
+        }
+      });
+      if (appeared) seenMatches[m.id || m.fixture || (Math.random()+'')] = true;
+    });
+    agg.matches = Object.keys(seenMatches).length;
+    return agg;
+  }
+
+  function cell(l, v, c){
+    return '<div class="mlp-cell"><div class="l">'+l+'</div><div class="v '+(c||'')+'">'+v+'</div></div>';
+  }
+
+  window.openMlibPlayer = function(name){
+    var p = aggregatePlayer(name);
+    var batAvg = p.dismissals ? (p.runs/p.dismissals).toFixed(1) : (p.runs>0 ? p.runs+'*' : '0.0');
+    var batSR = p.balls ? (p.runs/p.balls*100).toFixed(1) : '0.0';
+    var bowlAvg = p.wkts ? (p.bowlRuns/p.wkts).toFixed(1) : '—';
+    var bowlEco = p.bowlBalls ? (p.bowlRuns/(p.bowlBalls/6)).toFixed(2) : '—';
+    var bowlSR = p.wkts ? (p.bowlBalls/p.wkts).toFixed(1) : '—';
+    var bowlBest = p.bestWkts > 0 ? (p.bestWkts + '/' + p.bestRuns) : '—';
+    var teams = Object.keys(p.teams);
+
+    var h = '';
+    h += '<div class="mlp-hd">'
+      + '<div><h3>'+esc(name)+'</h3>'
+      + '<div class="sub">Career Aggregate · '+p.matches+' match'+(p.matches===1?'':'es')+' · '+p.innings+' innings</div></div>'
+      + '<button class="mlp-close" onclick="window.closeMlibPlayer()">✕</button>'
+      + '</div>';
+    h += '<div class="mlp-body">';
+
+    if (teams.length){
+      h += '<div class="mlp-sec">Teams</div><div>';
+      teams.forEach(function(t){ h += '<span class="mlp-tchip">'+esc(t)+'</span>'; });
+      h += '</div>';
+    }
+
+    h += '<div class="mlp-sec">🏏 Batting Career</div>';
+    h += '<div class="mlp-grid">'
+      + cell('Innings', p.innings)
+      + cell('Runs', p.runs, 'g')
+      + cell('Balls', p.balls)
+      + cell('Fours', p.fours, 'c')
+      + cell('Sixes', p.sixes, 'a')
+      + cell('High Score', p.hs, 'a')
+      + cell('Average', batAvg)
+      + cell('Strike Rate', batSR, 'c')
+      + cell('Not Outs', p.notOuts)
+      + cell('Fifties', p.fifties, 'a')
+      + cell('Hundreds', p.hundreds, 'a')
+      + cell('Dots Faced', p.dots)
+      + '</div>';
+
+    h += '<div class="mlp-sec">⚾ Bowling Career</div>';
+    h += '<div class="mlp-grid">'
+      + cell('Overs', ovStr(p.bowlBalls))
+      + cell('Wickets', p.wkts, 'r')
+      + cell('Runs Conceded', p.bowlRuns)
+      + cell('Best Bowling', bowlBest, 'a')
+      + cell('Average', bowlAvg)
+      + cell('Economy', bowlEco, 'c')
+      + cell('Strike Rate', bowlSR)
+      + cell('Maidens', p.maidens)
+      + cell('Dot Balls', p.bowlDots)
+      + '</div>';
+
+    h += '<div class="mlp-sec">📋 Match Log</div>';
+    if (!p.matchLog.length){
+      h += '<div style="padding:14px;text-align:center;color:#7a8590;font-size:11px;">No matches recorded</div>';
+    } else {
+      var shown = {};
+      p.matchLog.forEach(function(l){
+        var key = (l.fixture||'') + '|' + (l.team||'');
+        if (shown[key]) return;
+        shown[key] = true;
+        var batLine = (l.batRuns !== undefined)
+          ? '<span class="bat">🏏 '+l.batRuns+' ('+l.batBalls+') SR '+l.batSR+'</span>' : '';
+        var bowlLine = (l.bowlWkts !== undefined)
+          ? '<span class="bowl">⚾ '+l.bowlWkts+'/'+l.bowlRuns+' ('+l.bowlOvers+') Eco '+l.bowlEco+'</span>' : '';
+        h += '<div class="mlp-log-item">'
+          + '<div class="fx">'+esc(l.fixture)+'<small>'+esc(l.team)+'</small></div>'
+          + '<div class="ln">'+esc(l.date)+'</div>'
+          + '<div class="st">'+batLine+bowlLine+'</div>'
+          + '</div>';
+      });
+    }
+    h += '</div>';
+
+    document.getElementById('mlpCard').innerHTML = h;
+    document.getElementById('mlpOverlay').classList.add('on');
+  };
+
+  window.closeMlibPlayer = function(){
+    var o = document.getElementById('mlpOverlay');
+    if (o) o.classList.remove('on');
+  };
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') window.closeMlibPlayer();
+  });
+
+  /* ─── Auto-render hooks ─── */
+  (function initialRender(){
+    var tries = 0;
+    var t = setInterval(function(){
+      tries++;
+      if (typeof window.selectSubPane === 'function' || tries > 20){
+        clearInterval(t);
+        window.renderMatchLibrary();
+      }
+    }, 250);
+  })();
+
+  (function wrapSelectSubPane(){
+    if (typeof window.selectSubPane !== 'function'){ setTimeout(wrapSelectSubPane, 200); return; }
+    if (window.selectSubPane.__mlibWrapped) return;
+    var orig = window.selectSubPane;
+    window.selectSubPane = function(name){
+      var r = orig.apply(this, arguments);
+      if (name === 'import') setTimeout(window.renderMatchLibrary, 60);
+      return r;
+    };
+    window.selectSubPane.__mlibWrapped = true;
+  })();
+
+  /* Cross-tab sync */
+  window.addEventListener('storage', function(e){
+    if (e.key === 'cricmax_importedMatches'){
+      try { window.__importedMatches = JSON.parse(e.newValue||'{}'); } catch(err){}
+      window.renderMatchLibrary();
+    }
+  });
+
+  /* Same-tab watcher (JSON was applied in this tab) */
+  var lastSnapshot = '';
+  setInterval(function(){
+    try {
+      var cur = localStorage.getItem('cricmax_importedMatches') || '';
+      if (cur !== lastSnapshot){
+        lastSnapshot = cur;
+        try { window.__importedMatches = JSON.parse(cur||'{}'); } catch(e){}
+        var pane = document.getElementById('pane-import');
+        if (pane && pane.classList.contains('active')){
+          window.renderMatchLibrary();
+        }
+      }
+    } catch(e){}
+  }, 1200);
+
+  /* Also re-render right after Apply/Pull/Clear complete (via setTimeout) */
+  var _apply = window.applyImportJSON;
+  if (typeof _apply === 'function' && !_apply.__mlibPatched){
+    window.applyImportJSON = function(){ var r = _apply.apply(this, arguments); setTimeout(window.renderMatchLibrary, 300); return r; };
+    window.applyImportJSON.__mlibPatched = true;
+  }
+  var _pull = window.pullFromFirebase;
+  if (typeof _pull === 'function' && !_pull.__mlibPatched){
+    window.pullFromFirebase = function(){ var r = _pull.apply(this, arguments); setTimeout(window.renderMatchLibrary, 300); return r; };
+    window.pullFromFirebase.__mlibPatched = true;
+  }
+  var _clear = window.clearImportAll;
+  if (typeof _clear === 'function' && !_clear.__mlibPatched){
+    window.clearImportAll = function(){ var r = _clear.apply(this, arguments); setTimeout(window.renderMatchLibrary, 300); return r; };
+    window.clearImportAll.__mlibPatched = true;
+  }
+
+  console.log('[Match Library] ✅ Ready');
 })();
 </script>
 
