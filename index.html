@@ -2318,6 +2318,398 @@ html.cm-embed-boot body {
   window.addEventListener('load', function(){ setTimeout(init, 100); });
 })();
 </script>
+<!-- TOURNAMENT IMPORT HUB (INDEX.HTML / SCORING ONLY) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function(){
+  'use strict';
 
+  var FB_MATCHES_PATH = 'cricmax/importedMatches';
+  var __importedMatches = [];
+  var __importUnsub = null;
+
+  function addFab(){
+    if (document.getElementById('tournamentFab')) return;
+    var b = document.createElement('button');
+    b.id = 'tournamentFab';
+    b.innerHTML = '📚';
+    b.title = 'Tournament Hub — upload & view past matches';
+    b.style.cssText =
+      'position:fixed;bottom:160px;right:14px;z-index:9998;width:52px;height:52px;' +
+      'border-radius:16px;background:linear-gradient(135deg,#b45309,#fbbf24);' +
+      'border:none;color:#fff;font-size:24px;cursor:pointer;' +
+      'box-shadow:0 8px 24px rgba(251,191,36,.5),0 0 0 2px rgba(255,255,255,.1) inset;' +
+      'display:flex;align-items:center;justify-content:center;';
+    b.onclick = openTournamentHub;
+    document.body.appendChild(b);
+  }
+
+  function openTournamentHub(){
+    var existing = document.getElementById('tournamentHubModal');
+    if (existing) existing.remove();
+    var html =
+      '<div id="tournamentHubModal" class="modal-overlay" style="display:flex;align-items:flex-start;overflow-y:auto;padding-top:20px;">' +
+        '<div class="modal-card" style="width:min(96vw,720px);max-height:92vh;overflow-y:auto;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--card-border);padding-bottom:12px;margin-bottom:14px;">' +
+            '<div><h3 style="font-size:18px;font-weight:900;color:#fbbf24;">📚 Tournament Hub</h3>' +
+            '<p style="font-size:11px;color:var(--muted);margin-top:2px;">Import scorecards from PDF / JSON · view aggregated stats</p></div>' +
+            '<button class="btn-ui" id="thClose">✕</button>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">' +
+            '<button class="btn-ui btn-primary" id="thTabUpload" style="flex:1;min-width:100px;">📥 Import</button>' +
+            '<button class="btn-ui" id="thTabMatches" style="flex:1;min-width:100px;">📋 Matches</button>' +
+            '<button class="btn-ui" id="thTabStats" style="flex:1;min-width:100px;">📊 Stats</button>' +
+          '</div>' +
+          '<div id="thPaneUpload">' +
+            '<div style="background:rgba(251,191,36,.08);border:1px dashed rgba(251,191,36,.5);border-radius:12px;padding:18px;text-align:center;margin-bottom:14px;">' +
+              '<div style="font-size:36px;margin-bottom:6px;">📄</div>' +
+              '<div style="font-size:13px;font-weight:900;color:#fbbf24;margin-bottom:4px;">Drop or pick a file</div>' +
+              '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">PDF, JSON, or TXT scorecard</div>' +
+              '<input type="file" id="thFileInput" accept=".pdf,.json,.txt" style="display:none;">' +
+              '<button class="btn-ui btn-primary" id="thPickFile" style="padding:10px 20px;">Choose File</button>' +
+            '</div>' +
+            '<div style="margin-bottom:10px;font-size:11px;color:var(--muted);text-align:center;font-weight:800;text-transform:uppercase;">— Or paste JSON directly —</div>' +
+            '<textarea id="thJsonInput" class="form-control" rows="10" placeholder="Paste match JSON here..." style="font-family:monospace;font-size:11px;min-height:180px;"></textarea>' +
+            '<div style="display:flex;gap:8px;margin-top:12px;">' +
+              '<button class="btn-ui" id="thLoadExample" style="flex:0 0 auto;">📋 Load Template</button>' +
+              '<button class="btn-ui btn-primary" id="thImportBtn" style="flex:1;">✓ Upload to Firebase</button>' +
+            '</div>' +
+            '<div id="thStatus" style="margin-top:10px;font-size:12px;text-align:center;font-weight:800;"></div>' +
+          '</div>' +
+          '<div id="thPaneMatches" style="display:none;"><div id="thMatchesList"></div></div>' +
+          '<div id="thPaneStats" style="display:none;"><div id="thStatsAgg"></div></div>' +
+        '</div>' +
+      '</div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    document.getElementById('thClose').onclick = function(){ document.getElementById('tournamentHubModal').remove(); };
+    document.getElementById('thTabUpload').onclick = function(){ thShowPane('Upload'); };
+    document.getElementById('thTabMatches').onclick = function(){ thShowPane('Matches'); renderMatchesList(true); };
+    document.getElementById('thTabStats').onclick = function(){ thShowPane('Stats'); renderAggStats(); };
+    document.getElementById('thPickFile').onclick = function(){ document.getElementById('thFileInput').click(); };
+    document.getElementById('thFileInput').onchange = onFilePicked;
+    document.getElementById('thImportBtn').onclick = onImportJson;
+    document.getElementById('thLoadExample').onclick = loadExampleJson;
+
+    thShowPane('Upload');
+    loadImportedMatches();
+  }
+
+  function thShowPane(name){
+    ['Upload','Matches','Stats'].forEach(function(n){
+      var btn = document.getElementById('thTab'+n);
+      var pane = document.getElementById('thPane'+n);
+      var on = (n === name);
+      if (btn){ btn.className = on ? 'btn-ui btn-primary' : 'btn-ui'; btn.style.flex='1'; btn.style.minWidth='100px'; }
+      if (pane) pane.style.display = on ? 'block' : 'none';
+    });
+  }
+
+  function onFilePicked(e){
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var ext = f.name.toLowerCase().split('.').pop();
+    if (ext === 'pdf'){
+      extractPdfText(f);
+    } else {
+      var reader = new FileReader();
+      reader.onload = function(ev){ document.getElementById('thJsonInput').value = ev.target.result; };
+      reader.readAsText(f);
+    }
+    e.target.value = '';
+  }
+
+  function extractPdfText(file){
+    var status = document.getElementById('thStatus');
+    if (typeof pdfjsLib === 'undefined'){
+      if (status){ status.style.color = 'var(--red)'; status.innerText = '❌ PDF.js not loaded'; }
+      return;
+    }
+    if (status){ status.style.color = '#22d3ee'; status.innerText = '📄 Extracting PDF text…'; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try {
+        var typedArr = new Uint8Array(ev.target.result);
+        pdfjsLib.getDocument({data: typedArr}).promise.then(function(pdf){
+          var pages = [];
+          var chain = Promise.resolve();
+          for (var i = 1; i <= pdf.numPages; i++){
+            (function(n){
+              chain = chain.then(function(){
+                return pdf.getPage(n).then(function(page){
+                  return page.getTextContent().then(function(tc){
+                    var txt = tc.items.map(function(it){ return it.str; }).join(' ');
+                    pages.push('--- Page ' + n + ' ---\n' + txt);
+                  });
+                });
+              });
+            })(i);
+          }
+          chain.then(function(){
+            var all = pages.join('\n\n');
+            document.getElementById('thJsonInput').value = all;
+            if (status){ status.style.color = '#fbbf24'; status.innerText = '📄 Text extracted — edit if needed, then upload'; }
+          });
+        }).catch(function(err){
+          if (status){ status.style.color = 'var(--red)'; status.innerText = '❌ PDF parse error: ' + err.message; }
+        });
+      } catch(e){
+        if (status){ status.style.color = 'var(--red)'; status.innerText = '❌ ' + e.message; }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function onImportJson(){
+    var status = document.getElementById('thStatus');
+    var raw = document.getElementById('thJsonInput').value.trim();
+    if (!raw){ if (status){ status.style.color='var(--red)'; status.innerText='❌ Nothing to import'; } return; }
+    var data;
+    try { data = JSON.parse(raw); }
+    catch(e){
+      if (status){ status.style.color='var(--red)'; status.innerText='❌ Not valid JSON — see template'; }
+      return;
+    }
+    var entry = normalizeImport(data);
+    if (!entry){
+      if (status){ status.style.color='var(--red)'; status.innerText='❌ Missing fixture / teamA / teamB / innings1 / innings2'; }
+      return;
+    }
+    saveImportedMatch(entry).then(function(){
+      if (status){ status.style.color='var(--green)'; status.innerText='✅ Match uploaded to Firebase!'; }
+      document.getElementById('thJsonInput').value = '';
+    }).catch(function(err){
+      if (status){ status.style.color='var(--red)'; status.innerText='❌ Save failed: ' + err.message; }
+    });
+  }
+
+  function normalizeImport(d){
+    if (!d || typeof d !== 'object') return null;
+    if (!d.fixture || !d.teamA || !d.teamB) return null;
+    if (!d.innings1 || !d.innings2) return null;
+    var finalId = d.id || d.matchId;
+    if (!finalId) finalId = 'im_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    return {
+      id: String(finalId),
+      tournamentName: String(d.tournamentName || d.tournament || 'Tournament'),
+      fixture: String(d.fixture),
+      result: String(d.result || 'Match recorded'),
+      venue: String(d.venue || 'Local Stadium'),
+      date: String(d.date || new Date().toLocaleDateString()),
+      teamA: String(d.teamA),
+      teamB: String(d.teamB),
+      winner: String(d.winner || d.teamA),
+      innings1: normalizeInnings(d.innings1),
+      innings2: normalizeInnings(d.innings2),
+      importedAt: Date.now()
+    };
+  }
+
+  function normalizeInnings(inn){
+    var out = { team: String(inn.team || ''), runs: parseInt(inn.runs)||0, wickets: parseInt(inn.wickets)||0, balls: parseInt(inn.balls)||0, batters:{}, bowlers:{}, fielding:{} };
+    if (inn.batters) for (var k in inn.batters){ var b = inn.batters[k]||{};
+      out.batters[k] = { runs:parseInt(b.runs)||0, balls:parseInt(b.balls)||0, fours:parseInt(b.fours)||0, sixes:parseInt(b.sixes)||0, dots:parseInt(b.dots)||0, fifties:parseInt(b.fifties)||0, hundreds:parseInt(b.hundreds)||0, status:String(b.status || 'dnb') };
+    }
+    if (inn.bowlers) for (var k2 in inn.bowlers){ var bw = inn.bowlers[k2]||{};
+      out.bowlers[k2] = { balls:parseInt(bw.balls)||0, maidens:parseInt(bw.maidens)||0, runs:parseInt(bw.runs)||0, wickets:parseInt(bw.wickets)||0, dots:parseInt(bw.dots)||0 };
+    }
+    if (inn.fielding) for (var k3 in inn.fielding){ var f = inn.fielding[k3]||{};
+      out.fielding[k3] = { catches:parseInt(f.catches)||0, stumpings:parseInt(f.stumpings)||0, runOuts:parseInt(f.runOuts)||0 };
+    }
+    return out;
+  }
+
+  function saveImportedMatch(entry){
+    return new Promise(function(resolve, reject){
+      if (typeof firebase === 'undefined' || !firebase.database){ reject(new Error('Firebase not ready. Check internet.')); return; }
+      var code = '';
+      try { code = localStorage.getItem('currentMatchCode') || ''; } catch(e){}
+      var key = entry.id || ('im_' + Date.now());
+      var payload = Object.assign({}, entry, { sharedBy: code || 'host' });
+      firebase.database().ref(FB_MATCHES_PATH + '/' + key).set(payload).then(resolve).catch(reject);
+    });
+  }
+
+  function loadImportedMatches(){
+    if (typeof firebase === 'undefined' || !firebase.database) return;
+    if (__importUnsub){ try { __importUnsub(); } catch(e){} }
+    var ref = firebase.database().ref(FB_MATCHES_PATH);
+    var handler = function(snap){
+      var v = snap.val() || {};
+      __importedMatches = Object.keys(v).map(function(k){ return Object.assign({id:k}, v[k]); });
+      __importedMatches.sort(function(a,b){ return (b.importedAt||0) - (a.importedAt||0); });
+    };
+    ref.on('value', handler);
+    __importUnsub = function(){ ref.off('value', handler); };
+  }
+
+  function renderMatchesList(canDelete){
+    var box = document.getElementById('thMatchesList');
+    if (!box) return;
+    if (!__importedMatches.length){
+      box.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;font-style:italic;">No matches imported yet.</div>';
+      return;
+    }
+    var html = '';
+    __importedMatches.forEach(function(m){
+      var delBtn = canDelete ? '<button class="btn-ui" onclick="__thDeleteMatch(\'' + m.id + '\')" style="background:rgba(239,68,68,.15);border-color:var(--red);color:#fca5a5;font-size:10px;padding:5px 8px;">🗑</button>' : '';
+      html +=
+        '<div style="background:linear-gradient(145deg,rgba(30,41,59,.7),rgba(15,23,42,.9));border:1px solid var(--card-border);border-left:4px solid #fbbf24;border-radius:12px;padding:12px 14px;margin-bottom:8px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:14px;font-weight:900;color:#fff;">' + escapeHtml(m.fixture) + '</div>' +
+              '<div style="font-size:11px;color:var(--cyan);margin-top:3px;">' + escapeHtml(m.result) + '</div>' +
+              '<div style="font-size:10px;color:var(--muted);margin-top:4px;">' + escapeHtml(m.tournamentName) + ' • ' + escapeHtml(m.venue) + ' • ' + escapeHtml(m.date) + '</div>' +
+            '</div>' +
+            delBtn +
+          '</div>' +
+        '</div>';
+    });
+    box.innerHTML = html;
+  }
+
+  window.__thDeleteMatch = function(id){
+    if (!confirm('Delete this match permanently from Firebase?')) return;
+    firebase.database().ref(FB_MATCHES_PATH + '/' + id).remove();
+  };
+
+  function renderAggStats(){
+    var box = document.getElementById('thStatsAgg');
+    if (!box) return;
+    if (!__importedMatches.length){
+      box.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;font-style:italic;">No stats available.</div>';
+      return;
+    }
+    var players = aggregatePlayers(__importedMatches);
+    var arr = Object.keys(players).map(function(k){ return players[k]; });
+    arr.sort(function(a,b){ return (b.runs + b.wkts*20) - (a.runs + a.wkts*20); });
+    var html = '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:800;margin-bottom:8px;">' + __importedMatches.length + ' matches in database</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
+      '<thead><tr style="background:rgba(255,255,255,.04);">' +
+        '<th style="padding:8px 6px;text-align:left;color:var(--muted);font-size:9px;text-transform:uppercase;">Player</th>' +
+        '<th style="padding:8px 6px;text-align:right;color:var(--muted);font-size:9px;">M</th>' +
+        '<th style="padding:8px 6px;text-align:right;color:var(--muted);font-size:9px;">Runs</th>' +
+        '<th style="padding:8px 6px;text-align:right;color:var(--muted);font-size:9px;">SR</th>' +
+        '<th style="padding:8px 6px;text-align:right;color:var(--muted);font-size:9px;">Wkts</th>' +
+        '<th style="padding:8px 6px;text-align:right;color:var(--muted);font-size:9px;">Eco</th>' +
+      '</tr></thead><tbody>';
+    arr.forEach(function(p){
+      var sr = p.balls ? (p.runs/p.balls*100).toFixed(1) : '0.0';
+      var eco = p.bowlBalls ? (p.bowlRuns/(p.bowlBalls/6)).toFixed(2) : '—';
+      html += '<tr style="border-bottom:1px solid rgba(255,255,255,.04);">' +
+        '<td style="padding:8px 6px;"><a href="javascript:void(0)" onclick="__thShowPlayer(\'' + escapeJs(p.name) + '\')" style="color:#22d3ee;font-weight:900;text-decoration:underline;">' + escapeHtml(p.name) + '</a></td>' +
+        '<td style="padding:8px 6px;text-align:right;">' + p.matches + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;color:var(--green);font-weight:800;">' + p.runs + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;">' + sr + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;color:var(--red);font-weight:800;">' + p.wkts + '</td>' +
+        '<td style="padding:8px 6px;text-align:right;">' + eco + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    box.innerHTML = html;
+  }
+
+  window.__thShowPlayer = function(name){
+    var players = aggregatePlayers(__importedMatches);
+    var p = players[name];
+    if (!p) return;
+    var sr = p.balls ? (p.runs/p.balls*100).toFixed(1) : '0.0';
+    var eco = p.bowlBalls ? (p.bowlRuns/(p.bowlBalls/6)).toFixed(2) : '—';
+    var avg = p.dismissals ? (p.runs/p.dismissals).toFixed(1) : (p.runs + '*');
+    var msg = '🏏 ' + name + '\n\n' +
+      'Matches: ' + p.matches + '\n' +
+      'Runs: ' + p.runs + ' (HS ' + p.hs + ')\n' +
+      'Balls: ' + p.balls + ' | SR: ' + sr + '\n' +
+      '4s: ' + p.fours + ' | 6s: ' + p.sixes + '\n' +
+      '50s: ' + p.fifties + ' | 100s: ' + p.hundreds + '\n' +
+      'Average: ' + avg + '\n\n' +
+      'Wickets: ' + p.wkts + '\n' +
+      'Bowl Runs: ' + p.bowlRuns + ' | Econ: ' + eco + '\n' +
+      'Best Bowling: ' + p.best;
+    alert(msg);
+  };
+
+  function aggregatePlayers(matches){
+    var players = {};
+    function ensure(name){
+      if (!name) return null;
+      if (!players[name]) players[name] = {
+        name:name, matches:0, runs:0, balls:0, fours:0, sixes:0, notOuts:0, dismissals:0,
+        fifties:0, hundreds:0, hs:0, wkts:0, bowlRuns:0, bowlBalls:0, maidens:0,
+        bestWkts:0, bestRuns:9999, best:'—'
+      };
+      return players[name];
+    }
+    matches.forEach(function(m){
+      if (!m || (!m.innings1 && !m.innings2)) return;
+      var appeared = {};
+      [1,2].forEach(function(n){
+        var inn = m['innings' + n];
+        if (!inn) return;
+        if (inn.batters) Object.keys(inn.batters).forEach(function(name){
+          var b = inn.batters[name], p = ensure(name);
+          if (!p) return;
+          appeared[name] = true;
+          p.runs += b.runs||0; p.balls += b.balls||0;
+          p.fours += b.fours||0; p.sixes += b.sixes||0;
+          var s = String(b.status||'').toLowerCase();
+          var isOut = s && s !== 'dnb' && s.indexOf('not out') === -1 && s.indexOf('retired') === -1;
+          if (s && s !== 'dnb'){ if (isOut) p.dismissals++; else p.notOuts++; }
+          if ((b.runs||0) > p.hs) p.hs = b.runs;
+          if (b.runs >= 100) p.hundreds++; else if (b.runs >= 50) p.fifties++;
+        });
+        if (inn.bowlers) Object.keys(inn.bowlers).forEach(function(name){
+          var b = inn.bowlers[name], p = ensure(name);
+          if (!p) return;
+          appeared[name] = true;
+          p.wkts += b.wickets||0; p.bowlRuns += b.runs||0;
+          p.bowlBalls += b.balls||0; p.maidens += b.maidens||0;
+          if ((b.wickets||0) > p.bestWkts || ((b.wickets||0) === p.bestWkts && (b.runs||0) < p.bestRuns)){
+            p.bestWkts = b.wickets||0; p.bestRuns = b.runs||0;
+            p.best = p.bestWkts + '/' + p.bestRuns;
+          }
+        });
+      });
+      Object.keys(appeared).forEach(function(n){ if (players[n]) players[n].matches++; });
+    });
+    return players;
+  }
+
+  function loadExampleJson(){
+    document.getElementById('thJsonInput').value = JSON.stringify({
+      id: "custom_match_001",
+      tournamentName: "My Custom Tournament",
+      fixture: "Team A vs Team B",
+      result: "Team A won by 10 runs",
+      venue: "Local Stadium",
+      date: new Date().toLocaleDateString(),
+      teamA: "Team A",
+      teamB: "Team B",
+      winner: "Team A",
+      innings1: {
+        team: "Team A", runs: 120, wickets: 4, balls: 60,
+        batters: {}, bowlers: {}, fielding: {}
+      },
+      innings2: {
+        team: "Team B", runs: 110, wickets: 10, balls: 58,
+        batters: {}, bowlers: {}, fielding: {}
+      }
+    }, null, 2);
+  }
+
+  function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function escapeJs(s){ return String(s==null?'':s).replace(/['\\]/g, '\\$&'); }
+
+  function init(){
+    if (typeof pdfjsLib !== 'undefined' && pdfjsLib.GlobalWorkerOptions){
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    addFab();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+  window.addEventListener('load', function(){ setTimeout(init, 400); });
+})();
+</script>
 </body>
 </html>
