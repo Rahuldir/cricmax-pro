@@ -3064,6 +3064,7 @@ html.cm-embed-boot body {
     el.innerHTML = keys.map(function(id, idx){
       var m = list[id] || {};
       var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+      var safeId = String(id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       return '<div class="mlib-row">'
         + '<div class="mlib-row-hd">'
         +   '<div class="mlib-info">'
@@ -3071,13 +3072,102 @@ html.cm-embed-boot body {
         +     '<div class="mlib-result">'+esc(m.result||'—')+'</div>'
         +     '<div class="mlib-meta">'+(i1.team||'T1')+' '+(i1.runs||0)+'/'+(i1.wickets||0)+' · '+(i2.team||'T2')+' '+(i2.runs||0)+'/'+(i2.wickets||0)+' · '+esc(m.date||'')+'</div>'
         +   '</div>'
-        +   '<button class="mlib-btn" onclick="window.toggleMlibDrawer('+idx+',this)">📊 Scorecard</button>'
+        +   '<div class="mlib-actions">'
+        +     '<button class="mlib-btn" onclick="window.toggleMlibDrawer('+idx+',this)">📊 Scorecard</button>'
+        +     '<button class="mlib-act edit" onclick="window.renameMlibMatch(\''+safeId+'\')">✏️ Rename</button>'
+        +     '<button class="mlib-act del" onclick="window.deleteMlibMatch(\''+safeId+'\')">🗑 Delete</button>'
+        +   '</div>'
         + '</div>'
         + '<div class="mlib-drawer" id="mlibDrawer'+idx+'">'+renderDrawer(m)+'</div>'
         + '</div>';
     }).join('');
   };
 
+  /* Rename a match */
+  window.renameMlibMatch = function(id){
+    var list = getImported();
+    var m = list[id];
+    if (!m){ alert('Match not found'); return; }
+
+    var currentName = m.fixture || '';
+    var newName = prompt('Rename match (e.g. "Ravi 11 vs Vivek 11"):', currentName);
+    if (newName === null) return;
+    newName = newName.trim();
+    if (!newName){ alert('Name cannot be empty'); return; }
+
+    // Also offer to edit result
+    var newResult = prompt('Edit result (or leave unchanged):', m.result || '');
+    if (newResult === null) newResult = m.result || '';
+    newResult = newResult.trim();
+
+    // Update local
+    m.fixture = newName;
+    m.result = newResult;
+    m.renamedAt = Date.now();
+
+    window.__importedMatches = window.__importedMatches || {};
+    window.__importedMatches[id] = m;
+    try{ localStorage.setItem('cricmax_importedMatches', JSON.stringify(window.__importedMatches)); }catch(e){}
+
+    // Update JSON editor
+    var ed = document.getElementById('jsonEditor');
+    if (ed){
+      try{
+        var j = JSON.parse(ed.value || '{}');
+        j[id] = m;
+        ed.value = JSON.stringify(j, null, 2);
+      }catch(e){}
+    }
+
+    // Push to Firebase
+    if (window.fbDb){
+      window.fbDb.ref('cricmax/importedMatches/'+id).update({
+        fixture: newName,
+        result: newResult,
+        renamedAt: Date.now()
+      }).catch(function(err){
+        alert('Local rename OK · Firebase update failed: ' + (err.message||err));
+      });
+    }
+
+    window.renderMatchLibrary();
+    if (typeof window.renderMatchList === 'function') window.renderMatchList();
+  };
+
+  /* Delete a match */
+  window.deleteMlibMatch = function(id){
+    var list = getImported();
+    var m = list[id] || {};
+    if (!confirm('Delete "' + (m.fixture||id) + '"? This removes it from Firebase too.')) return;
+
+    delete window.__importedMatches[id];
+    try{ localStorage.setItem('cricmax_importedMatches', JSON.stringify(window.__importedMatches)); }catch(e){}
+
+    // Update JSON editor
+    var ed = document.getElementById('jsonEditor');
+    if (ed){
+      try{
+        var j = JSON.parse(ed.value || '{}');
+        delete j[id];
+        ed.value = JSON.stringify(j, null, 2);
+      }catch(e){}
+    }
+
+    // Remove from Firebase
+    if (window.fbDb){
+      window.fbDb.ref('cricmax/importedMatches/'+id).remove().catch(function(){});
+    }
+
+    // Remove from scorer MATCHES if present
+    if (typeof MATCHES !== 'undefined' && MATCHES[id]){
+      delete MATCHES[id];
+      if (typeof buildAggregates === 'function') buildAggregates();
+      if (typeof renderMatchList === 'function') renderMatchList();
+      if (typeof renderStats === 'function') renderStats();
+    }
+
+    window.renderMatchLibrary();
+  };
   window.toggleMlibDrawer = function(idx, btn){
     var d = document.getElementById('mlibDrawer'+idx);
     if (!d) return;
