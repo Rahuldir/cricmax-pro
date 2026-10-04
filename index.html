@@ -4490,10 +4490,218 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     window.selectSubPane.__tdWrapped=true;
   })();
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);});
+   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(boot,900);});
   else setTimeout(boot,900);
   window.addEventListener('load',function(){setTimeout(boot,500);setTimeout(boot,1500);setTimeout(boot,3000);});
 })();
 </script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   TOURNAMENT LIST → DETAIL NAVIGATION
+   Shows list of all tournaments. Click any → opens detail view
+   (Ravi Cup style with Matches/Stats/Import tabs).
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  var SELECTED = null;
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+  function getTournaments(){
+    var tours = [];
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      if(raw){
+        var d = JSON.parse(raw);
+        if(d.currentTourn && d.currentTourn.name){
+          var cur = Object.assign({}, d.currentTourn);
+          cur._current = true;
+          tours.push(cur);
+        }
+        if(Array.isArray(d.pastTournaments)){
+          d.pastTournaments.forEach(function(t){
+            if(t && t.name && !tours.some(function(x){return x.name===t.name;})) tours.push(t);
+          });
+        }
+      }
+    } catch(e){}
+
+    /* Merge tournaments discovered from imported matches */
+    var all = window.__importedMatches || {};
+    if(!Object.keys(all).length){
+      try { var r = localStorage.getItem('cricmax_importedMatches'); if(r) all = JSON.parse(r); } catch(e){}
+    }
+    Object.keys(all).forEach(function(k){
+      var m = all[k] || {};
+      var tn = m.tournament || 'Ravi Cup 2026';
+      var existing = tours.find(function(t){ return t.name === tn; });
+      if(existing){
+        existing.matchIds = existing.matchIds || [];
+        if(existing.matchIds.indexOf(k) === -1) existing.matchIds.push(k);
+      } else {
+        tours.push({
+          name: tn,
+          venue: m.venue || 'Local Stadium',
+          overs: 20,
+          matchIds: [k],
+          _fromMatch: true
+        });
+      }
+    });
+
+    if(!tours.length){
+      tours.push({name:'Ravi Cup 2026', venue:'Local Stadium', overs:20, matchIds:[], _current:true});
+    }
+    return tours;
+  }
+
+  function renderList(){
+    var mount = document.getElementById('tdTournList');
+    if(!mount) return;
+    var tours = getTournaments();
+
+    var html = '<div class="td-tourn-hd">' +
+      '<div class="td-tourn-hd-title">🏆 Tournaments · ' + tours.length + '</div>' +
+      '<button class="td-hbtn gold" onclick="tdOpenNewTournPrompt()">✨ New Tournament</button>' +
+    '</div>';
+
+    if(!tours.length){
+      html += '<div class="td-tourn-empty">No tournaments yet — create one to begin</div>';
+    } else {
+      tours.forEach(function(t){
+        var mc = (t.matchIds && t.matchIds.length) || 0;
+        var isActive = (SELECTED && t.name === SELECTED);
+        var safeName = esc(t.name).replace(/'/g, "\\'");
+        html += '<div class="td-tourn-card' + (isActive ? ' active' : '') +
+          '" onclick="tdSelectTournament(\'' + safeName + '\')">' +
+          '<div class="td-tourn-badge">' + (t._current ? '★' : '🏆') + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div class="td-tourn-name">' + esc(t.name) + '</div>' +
+            '<div class="td-tourn-meta">📍 ' + esc(t.venue||'Local Stadium') +
+              ' · ' + (t.overs||20) + ' ov · ' + mc + ' match' + (mc===1?'':'es') + '</div>' +
+          '</div>' +
+          '<div class="td-tourn-action">OPEN →</div>' +
+        '</div>';
+      });
+    }
+    mount.innerHTML = html;
+  }
+  window.__tdRenderList = renderList;
+
+  function updateHeroName(name){
+    var tours = getTournaments();
+    var sel = tours.find(function(t){ return t.name === name; }) || tours[0];
+    if(!sel) return;
+    var nameEl = document.querySelector('#tdTournDetail .td-hero-name');
+    var metaEl = document.querySelector('#tdTournDetail .td-hero-meta');
+    if(nameEl) nameEl.textContent = sel.name;
+    if(metaEl){
+      var mc = (sel.matchIds && sel.matchIds.length) || 0;
+      metaEl.textContent = (sel.venue||'Local Stadium') + ' · ' + (sel.overs||20) + ' ov · ' + mc + ' match' + (mc===1?'':'es');
+    }
+    /* Update the base globals so hero refresh stays in sync */
+    var nameElOld = document.getElementById('tournNameDisplay');
+    if(nameElOld) nameElOld.textContent = sel.name;
+  }
+  window.__tdRefreshHero = updateHeroName;
+
+  window.tdSelectTournament = function(name){
+    SELECTED = name;
+    window.__tdSelectedTourn = name;
+    var listMount = document.getElementById('tdTournList');
+    var detailMount = document.getElementById('tdTournDetail');
+    if(listMount) listMount.style.display = 'none';
+    if(detailMount) detailMount.style.display = 'block';
+    /* Refresh the detail pane (rebuild hero/list/library/stats) */
+    if(typeof window.refreshTournamentPane === 'function'){
+      try { window.refreshTournamentPane(); } catch(e){}
+    }
+    setTimeout(function(){ updateHeroName(name); }, 30);
+  };
+
+  window.tdBackToList = function(){
+    SELECTED = null;
+    window.__tdSelectedTourn = null;
+    var listMount = document.getElementById('tdTournList');
+    var detailMount = document.getElementById('tdTournDetail');
+    if(listMount) listMount.style.display = 'block';
+    if(detailMount) detailMount.style.display = 'none';
+    renderList();
+    document.getElementById('pane-tournament').scrollIntoView({behavior:'smooth',block:'start'});
+  };
+
+  window.tdOpenNewTournPrompt = function(){
+    var name = prompt('Tournament name:', 'New Tournament');
+    if(!name || !name.trim()) return;
+    var venue = prompt('Venue:', 'Local Stadium') || 'Local Stadium';
+    var overs = parseInt(prompt('Overs per innings:', '20'), 10) || 20;
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      var d = raw ? JSON.parse(raw) : {};
+      if(d.currentTourn && d.currentTourn.name && d.currentTourn.name !== name){
+        d.pastTournaments = d.pastTournaments || [];
+        if(!d.pastTournaments.some(function(x){return x.name === d.currentTourn.name;})){
+          d.pastTournaments.push(d.currentTourn);
+        }
+      }
+      d.currentTourn = {id:'t-'+Date.now(), name:name.trim(), venue:venue.trim(), overs:overs, matchIds:[], createdAt:Date.now()};
+      localStorage.setItem('CricMax_Data', JSON.stringify(d));
+    } catch(e){}
+    if(window.fbDb){
+      try { window.fbDb.ref('cricmax/db/currentTourn').set({
+        id:'t-'+Date.now(), name:name.trim(), venue:venue.trim(), overs:overs, matchIds:[], createdAt:Date.now()
+      }); } catch(e){}
+    }
+    renderList();
+    if(typeof window.showToast === 'function') window.showToast('🏆 "' + name.trim() + '" created');
+    setTimeout(function(){ tdSelectTournament(name.trim()); }, 100);
+  };
+
+  /* Hook into refreshTournamentPane so hero picks up selected tournament */
+  (function hookBoot(){
+    if(typeof window.refreshTournamentPane !== 'function'){ setTimeout(hookBoot, 200); return; }
+    if(window.refreshTournamentPane.__tdListHooked) return;
+    var _orig = window.refreshTournamentPane;
+    window.refreshTournamentPane = function(){
+      renderList();
+      var listMount = document.getElementById('tdTournList');
+      var detailMount = document.getElementById('tdTournDetail');
+      if(window.__tdSelectedTourn){
+        if(listMount) listMount.style.display = 'none';
+        if(detailMount) detailMount.style.display = 'block';
+      } else {
+        if(listMount) listMount.style.display = 'block';
+        if(detailMount) detailMount.style.display = 'none';
+      }
+      var r = _orig ? _orig.apply(this, arguments) : undefined;
+      if(window.__tdSelectedTourn){
+        setTimeout(function(){ updateHeroName(window.__tdSelectedTourn); }, 20);
+      }
+      return r;
+    };
+    window.refreshTournamentPane.__tdListHooked = true;
+  })();
+
+  /* Initial render — wait for the pane to exist */
+  function init(){
+    var pane = document.getElementById('pane-tournament');
+    var listMount = document.getElementById('tdTournList');
+    if(!pane || !listMount){ setTimeout(init, 300); return; }
+    renderList();
+    listMount.style.display = 'block';
+    var detailMount = document.getElementById('tdTournDetail');
+    if(detailMount) detailMount.style.display = 'none';
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(init, 1200); });
+  } else {
+    setTimeout(init, 1200);
+  }
+  window.addEventListener('load', function(){ setTimeout(init, 800); setTimeout(init, 2000); });
+})();
+</script>
 </body>
+</html>
 </html>
