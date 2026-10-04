@@ -2862,39 +2862,21 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
   }
   function oversToBalls(s){ var p = String(s||'0').split('.'); return (parseInt(p[0],10)||0)*6 + (parseInt(p[1]||'0',10)||0); }
 
-  async function extractFast(file){
+   async function extractFast(file){
     var buf = await file.arrayBuffer();
-    var pdf = await pdfjsLib.getDocument({
-      data: buf, disableAutoFetch: true, disableStream: true, disableRange: true,
-      disableFontFace: true, isEvalSupported: false
-    }).promise;
-    var maxPages = Math.min(pdf.numPages, 30);
+    var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     var out = [];
-    var c = 4;
-    for (var i = 1; i <= maxPages; i += c){
-      var batch = [];
-      for (var j = 0; j < c && (i + j) <= maxPages; j++){
-        batch.push((async function(pn){
-          var p = await pdf.getPage(pn);
-          var tc = await p.getTextContent();
-          var lines = [], cur = '', lastY = null;
-          for (var k = 0; k < tc.items.length; k++){
-            var it = tc.items[k];
-            var y = it.transform[5];
-            if (lastY !== null && Math.abs(y - lastY) > 4){
-              if (cur.trim()) lines.push(cur.trim());
-              cur = it.str;
-            } else {
-              cur += (cur && !cur.endsWith(' ') && it.str ? ' ' : '') + it.str;
-            }
-            lastY = y;
-          }
-          if (cur.trim()) lines.push(cur.trim());
-          return lines.join('\n');
-        })(i + j));
+    for (var i = 1; i <= pdf.numPages; i++){
+      var p = await pdf.getPage(i);
+      var tc = await p.getTextContent();
+      var line = '';
+      for (var k = 0; k < tc.items.length; k++){
+        var s = tc.items[k].str;
+        if (!s) continue;
+        line += s;
+        if (!s.endsWith(' ') && !s.endsWith('\n')) line += ' ';
       }
-      var pages = await Promise.all(batch);
-      for (var m = 0; m < pages.length; m++) out.push(pages[m]);
+      out.push(line);
     }
     return out.join('\n');
   }
