@@ -2080,12 +2080,23 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
 (function(){
   'use strict';
 
-  var PLAYER_MAP = {
-    'vivek':'Vivek','vivek1':'Vivek','vivek 1':'Vivek','vivek 2':'Vivek','vivek2':'Vivek',
-    'shivam':'Shivam 1','shivam1':'Shivam 1','shivam 1':'Shivam 1',
-    'shivam2':'Shivam 2','shivam 2':'Shivam 2'
-    /* add more: 'wrong' : 'Canonical' */
-  };
+var PLAYER_MAP = {
+  /* Vivek family — 4 separate players */
+  'vivek':'Vivek',
+  'vivek 1':'Vivek 1',
+  'vivek 2':'Vivek 2',
+  'vivek 3':'Vivek 3',
+
+  /* Shivam family — 2 separate players */
+  'shivam':'Shivam 1',
+  'shivam 1':'Shivam 1',
+  'shivam 2':'Shivam 2',
+
+  /* Spelling merges — safe */
+  'sumeet':'Sumit',
+  'naseem':'Nasim',
+  'ritish':'Ritesh'
+};
   var TEAM_MAP = {
     'ravi':'Rajesh 11','ravi 11':'Rajesh 11','rajesh':'Rajesh 11',
     'rajesh 11':'Rajesh 11','rajesh ii':'Rajesh 11','rajesh 2':'Rajesh 11',
