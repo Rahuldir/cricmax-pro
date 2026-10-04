@@ -3910,6 +3910,25 @@ html.cm-embed-boot body {
   function getImported(){
     var all=window.__importedMatches||{};
     if(!Object.keys(all).length){try{var raw=localStorage.getItem('cricmax_importedMatches');if(raw){all=JSON.parse(raw);window.__importedMatches=all;}}catch(e){}}
+    try{
+      var raw2=localStorage.getItem('CricMax_Data');
+      if(raw2){
+        var d2=JSON.parse(raw2);
+        var ledger=(d2.currentTourn&&Array.isArray(d2.currentTourn.pastMatches))
+          ? d2.currentTourn.pastMatches
+          : (Array.isArray(d2.pastMatchesLedger)?d2.pastMatchesLedger:[]);
+        ledger.forEach(function(pm,i){
+          if(!pm||!pm.fixture)return;
+          var id='ledger-'+(pm.id||(pm.fixture+'-'+i).replace(/\s+/g,'_'));
+          if(!all[id]){
+            all[id]={id:id,fixture:pm.fixture,result:pm.result||'',venue:pm.venue||'',date:pm.date||'',tournament:(d2.currentTourn&&d2.currentTourn.name)||'',
+              innings1:pm.innings1||{team:(pm.teamA||'Team A'),runs:0,wickets:0,balls:0,batters:{},bowlers:{},fow:[]},
+              innings2:pm.innings2||{team:(pm.teamB||'Team B'),runs:0,wickets:0,balls:0,batters:{},bowlers:{},fow:[]}};
+          }
+        });
+      }
+    }catch(e){}
+    window.__importedMatches=all;
     return all;
   }
   function looksLikeTournament(o){
