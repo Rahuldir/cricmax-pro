@@ -4426,6 +4426,63 @@ html.cm-embed-boot body {
   console.log('[PDF FIX] ✅ ready');
 })();
 </script>
+     <script>
+/* ═══ PDF PARSING — REAL SPEED FIX ═══ */
+(function(){
+  'use strict';
+
+  function log(){ try{ console.log.apply(console, ['[PDF FAST]'].concat([].slice.call(arguments))); }catch(e){} }
+
+  /* 1. Pre-cache worker */
+  function preloadWorker(){
+    if(!window.pdfjsLib) return false;
+    try{
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      if(!window.__pdfWorkerPreloaded){
+        window.__pdfWorkerPreloaded = true;
+        fetch(pdfjsLib.GlobalWorkerOptions.workerSrc, {cache:'force-cache', mode:'cors'}).catch(function(){});
+      }
+      return true;
+    }catch(e){ return false; }
+  }
+  preloadWorker();
+  window.addEventListener('load', preloadWorker);
+
+  /* 2. Override getDocument with fast options */
+  function installFastGetDoc(){
+    if(!window.pdfjsLib || !pdfjsLib.getDocument || pdfjsLib.getDocument.__fast) return false;
+    var orig = pdfjsLib.getDocument.bind(pdfjsLib);
+    pdfjsLib.getDocument = function(opts){
+      opts = Object.assign({}, opts || {}, {
+        disableAutoFetch: true,
+        disableStream: true,
+        disableRange: true,
+        disableFontFace: true,
+        disableCreateObjectURL: true,
+        useSystemFonts: false,
+        isEvalSupported: false,
+        useWorkerFetch: false,
+        cMapPacked: true
+      });
+      return orig(opts);
+    };
+    pdfjsLib.getDocument.__fast = true;
+    log('getDocument overridden');
+    return true;
+  }
+  if(!installFastGetDoc()){
+    var tries = 0;
+    var t = setInterval(function(){
+      tries++;
+      if(installFastGetDoc() || tries > 50) clearInterval(t);
+    }, 200);
+  }
+
+  /* 3. Wrap getPage to use faster text extraction */
+  function installFastGetPage(){
+    if(!window.pdfjsLib) return false;
+    var proto = window.pdfjsLib.PDFDocumentProxy && window.pdfjsLib.PDFDocumentProxy.prototype;
+    if(!proto ||
 
 </body>
 </html>
