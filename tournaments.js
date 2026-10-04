@@ -66,10 +66,10 @@ function startNewTournamentFlow() {
   const ni = document.getElementById('tNameInput'); if (ni) ni.value = '';
   const oi = document.getElementById('tOversInput'); if (oi) oi.value = '20';
   const vi = document.getElementById('tVenueInput'); if (vi) vi.value = '';
-  autoPersist();
+   autoPersist();
+  syncTournMetaForUI();
   openTournamentModal();
 }
-
 function resumeTournament(id) {
   closeModal('tournamentPickerModal');
   if (id === currentTournId) { launchDashboard('tournament'); return; }
