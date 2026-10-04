@@ -2992,8 +2992,7 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
     try {
       var text = await extractFast(file);
       showProg(true, 'Parsing match data…', 60);
-      var matchObj = parseMatchFromText(text);
-      var matchId = matchObj.id;
+var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.id;
       window.__importedMatches = window.__importedMatches || {};
       window.__importedMatches[matchId] = matchObj;
       try { localStorage.setItem('cricmax_importedMatches', JSON.stringify(window.__importedMatches)); } catch(e){}
