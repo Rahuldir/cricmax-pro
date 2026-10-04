@@ -5658,7 +5658,177 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
   console.log('[CM-PREVIEW] ✅ Preview & Rename module loaded (auto-inject)');
 })();
 </script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   PLAYER NAME NORMALIZER
+   Merges variants like "Shivam2" → "Shivam 2", "Vivek1" → "Vivek 1"
+   Also merges aliases you explicitly list below.
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
 
+  /* ────────────────────────────────────────────────
+     EDIT THIS MAP for players that should merge.
+     Left side  = the "wrong" variants (any spelling)
+     Right side = the CANONICAL name to display
+     ──────────────────────────────────────────────── */
+  var ALIASES = {
+    /* Example entries — extend as needed */
+    'vivek':   'Vivek',      // Vivek, vivek, VIVEK → Vivek
+    'vivek1':  'Vivek',      // Vivek1 → Vivek (same person)
+    'vivek 1': 'Vivek',
+    /* Shivam variants: keep #1 and #2 as DIFFERENT players */
+    'shivam':   'Shivam 1',  // bare "Shivam" = first Shivam
+    'shivam1':  'Shivam 1',
+    'shivam 1': 'Shivam 1',
+    'shivam2':  'Shivam 2',  // "Shivam2" (no space) merges with "Shivam 2"
+    'shivam 2': 'Shivam 2'
+    /* Add more players here, e.g.:
+       'rajnish': 'Rajnish',
+       'rajnish1': 'Rajnish',
+    */
+  };
+
+  /* ────────────────────────────────────────────────
+     Normalize a single player name:
+       1. Trim + collapse whitespace
+       2. Insert space between letter and digit ("Shivam2" → "Shivam 2")
+       3. Look up in ALIASES (case-insensitive) → canonical
+     ──────────────────────────────────────────────── */
+  function normalizeName(raw){
+    if (!raw) return raw;
+    var n = String(raw).trim().replace(/\s+/g, ' ');
+    // Insert space between a letter and a digit: "Shivam2" → "Shivam 2"
+    n = n.replace(/([A-Za-z])(\d)/g, '$1 $2');
+    // Look up alias by lowercase
+    var key = n.toLowerCase();
+    if (ALIASES[key]) return ALIASES[key];
+    return n;
+  }
+  window.normalizePlayerName = normalizeName;
+
+  /* ────────────────────────────────────────────────
+     Rewrite all player-name keys inside a match object
+     ──────────────────────────────────────────────── */
+  function normalizeMatch(m){
+    if (!m || typeof m !== 'object') return m;
+    ['innings1','innings2'].forEach(function(k){
+      var inn = m[k];
+      if (!inn) return;
+      if (inn.batters && typeof inn.batters === 'object'){
+        var nb = {};
+        Object.keys(inn.batters).forEach(function(name){
+          var canon = normalizeName(name);
+          if (nb[canon]){                       // merge duplicates
+            var a = nb[canon], b = inn.batters[name];
+            a.runs  += (b.runs  || 0);
+            a.balls += (b.balls || 0);
+            a.fours += (b.fours || 0);
+            a.sixes += (b.sixes || 0);
+            a.dots  += (b.dots  || 0);
+            if ((b.status||'').indexOf('not out') === -1) a.status = b.status || a.status;
+          } else {
+            nb[canon] = Object.assign({}, inn.batters[name]);
+          }
+        });
+        inn.batters = nb;
+      }
+      if (inn.bowlers && typeof inn.bowlers === 'object'){
+        var nw = {};
+        Object.keys(inn.bowlers).forEach(function(name){
+          var canon = normalizeName(name);
+          if (nw[canon]){
+            var a = nw[canon], b = inn.bowlers[name];
+            a.balls    += (b.balls    || 0);
+            a.maidens  += (b.maidens  || 0);
+            a.runs     += (b.runs     || 0);
+            a.wickets  += (b.wickets  || 0);
+            a.dots     += (b.dots     || 0);
+            a.wides    += (b.wides    || 0);
+            a.noBalls  += (b.noBalls  || 0);
+          } else {
+            nw[canon] = Object.assign({}, inn.bowlers[name]);
+          }
+        });
+        inn.bowlers = nw;
+      }
+      // FOW & partnerships contain free text — replace known variants
+      if (Array.isArray(inn.fow)){
+        inn.fow = inn.fow.map(function(s){
+          return String(s).replace(/([A-Za-z]+)(\d)/g, '$1 $2');
+        });
+      }
+    });
+    return m;
+  }
+  window.normalizeMatch = normalizeMatch;
+
+  /* ────────────────────────────────────────────────
+     Hook 1: Normalize the in-memory cache every time
+             it's read from localStorage / Firebase
+     ──────────────────────────────────────────────── */
+  function normalizeCache(){
+    var all = window.__importedMatches || {};
+    if (!Object.keys(all).length){
+      try {
+        var r = localStorage.getItem('cricmax_importedMatches');
+        if (r) all = JSON.parse(r);
+      } catch(e){}
+    }
+    var changed = false;
+    Object.keys(all).forEach(function(id){
+      normalizeMatch(all[id]);
+      changed = true;
+    });
+    if (changed){
+      window.__importedMatches = all;
+      try { localStorage.setItem('cricmax_importedMatches', JSON.stringify(all)); } catch(e){}
+    }
+    return all;
+  }
+
+  /* ────────────────────────────────────────────────
+     Hook 2: Wrap stats renderers so they normalize
+             before aggregating
+     ──────────────────────────────────────────────── */
+  var origRefresh = window.refreshTournamentPane;
+  if (typeof origRefresh === 'function' && !origRefresh.__nameNorm){
+    window.refreshTournamentPane = function(){
+      normalizeCache();
+      return origRefresh.apply(this, arguments);
+    };
+    window.refreshTournamentPane.__nameNorm = true;
+  }
+
+  /* Also intercept the mlp career modal */
+  var origOpen = window.openMlibPlayer;
+  if (typeof origOpen === 'function' && !origOpen.__nameNorm){
+    window.openMlibPlayer = function(name){
+      return origOpen.call(this, normalizeName(name));
+    };
+    window.openMlibPlayer.__nameNorm = true;
+  }
+
+  /* ────────────────────────────────────────────────
+     Hook 3: Run once at boot + whenever Firebase data
+             arrives or JSON is applied
+     ──────────────────────────────────────────────── */
+  function boot(){
+    normalizeCache();
+    // Re-render every stats surface
+    try { window.renderMatchLibrary && window.renderMatchLibrary(); } catch(e){}
+    try { window.renderLibrary      && window.renderLibrary();      } catch(e){}
+    try { window.renderMatchList    && window.renderMatchList();    } catch(e){}
+    try { window.refreshTournamentPane && window.refreshTournamentPane(); } catch(e){}
+    try { window.tdPullFromFirebase && null; } catch(e){} // no auto-pull
+  }
+  setTimeout(boot, 1500);
+  setTimeout(boot, 3500);
+  window.addEventListener('load', function(){ setTimeout(boot, 800); });
+
+  console.log('[NameNorm] ✅ Player name normalizer active');
+})();
+</script>
 </body>
 </html>
 
