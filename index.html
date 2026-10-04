@@ -4743,12 +4743,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     var buf = await file.arrayBuffer();
     var pdf;
     try {
-      pdf = await pdfjsLib.getDocument({
-        data: buf,
-        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-        cMapPacked: true,
-        useSystemFonts: true
-      }).promise;
+      pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     } catch(err){
       console.error('[CricMax PDF] getDocument failed:', err);
       throw new Error('Cannot open PDF: ' + (err.message||err));
