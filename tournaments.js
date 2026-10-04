@@ -92,6 +92,7 @@ function resumeTournament(id) {
   }
   window.match = match;
   autoPersist();
+  syncTournMetaForUI();
   launchDashboard('tournament');
   showToast('▶ Resumed: ' + t.name);
 }
