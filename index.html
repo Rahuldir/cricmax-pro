@@ -3062,6 +3062,159 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
   console.log('[PDF FINAL] capture-phase interceptor ready');
 })();
 </script>
+ <script>
+/* ═══ CLOSE FIX — makes ✕ work + guarantees Add Match reads ledger ═══ */
+(function(){
+  'use strict';
 
+  /* 1) Override closeModal so it removes .on class (which has !important) */
+  var _close = window.closeModal;
+  window.closeModal = function(id){
+    try {
+      var el = (typeof id === 'string') ? document.getElementById(id) : id;
+      if (el){
+        el.classList.remove('on');
+        el.style.display = 'none';
+      }
+    } catch(e){}
+    if (typeof _close === 'function'){ try { _close.apply(this, arguments); } catch(e){} }
+  };
+
+  /* 2) Force-close on any ✕ click inside tpAddMatchModal (even if closeModal fails) */
+  document.addEventListener('click', function(e){
+    try {
+      var t = e.target;
+      if (!t) return;
+      var btn = t.closest && t.closest('#tpAddMatchModal button');
+      if (btn){
+        var txt = (btn.textContent||'').trim();
+        if (txt === '✕' || txt === '×'){
+          e.preventDefault(); e.stopPropagation();
+          var m = document.getElementById('tpAddMatchModal');
+          if (m){ m.classList.remove('on'); m.style.display = 'none'; }
+        }
+      }
+    } catch(err){}
+  }, true);
+
+  /* 3) Final override of Add Match picker — reads LEDGER + imported, never blocks ✕ */
+  function loadLedger(){
+    try{
+      var raw = localStorage.getItem('CricMax_Data'); if(!raw) return [];
+      var d = JSON.parse(raw);
+      if (d.currentTourn && Array.isArray(d.currentTourn.pastMatches) && d.currentTourn.pastMatches.length) return d.currentTourn.pastMatches.slice();
+      if (Array.isArray(d.pastMatchesLedger) && d.pastMatchesLedger.length) return d.pastMatchesLedger.slice();
+      if (Array.isArray(d.pastMatches) && d.pastMatches.length) return d.pastMatches.slice();
+      return [];
+    } catch(e){ return []; }
+  }
+  function loadTourn(){
+    try{ var raw = localStorage.getItem('CricMax_Data'); if(!raw) return null; var d = JSON.parse(raw); return d.currentTourn || null; } catch(e){ return null; }
+  }
+  function saveTourn(t){
+    try{ var raw = localStorage.getItem('CricMax_Data'); var d = raw ? JSON.parse(raw) : {}; d.currentTourn = t; localStorage.setItem('CricMax_Data', JSON.stringify(d)); } catch(e){}
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function pid(pm, i){ return pm.id || ('ledger_' + String(pm.fixture||'m').replace(/\s+/g,'_') + '_' + i); }
+
+  window.tpOpenAddMatchPicker = function(){
+    var modal = document.getElementById('tpAddMatchModal');
+    var listMount = document.getElementById('tpAddMatchList');
+    if (!modal || !listMount) return;
+
+    var tourn = loadTourn();
+    if (!tourn){
+      if (confirm('No tournament active. Create one now?') && typeof window.tpOpenNewTournamentPrompt === 'function'){
+        window.tpOpenNewTournamentPrompt();
+      }
+      return;
+    }
+
+    /* Gather all possible sources */
+    var ledger = loadLedger();
+    var imported = window.__importedMatches || {};
+    try { var r = localStorage.getItem('cricmax_importedMatches'); if (r) imported = JSON.parse(r); } catch(e){}
+    var combined = ledger.slice();
+    Object.keys(imported).forEach(function(k){
+      var m = imported[k];
+      if (!m || !m.fixture) return;
+      var dup = combined.some(function(x){ return x && x.fixture === m.fixture && x.date === m.date; });
+      if (!dup) combined.push(m);
+    });
+
+    if (!combined.length){
+      listMount.innerHTML = '<div style="text-align:center;padding:28px 14px;color:#7a8590;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;">NO COMPLETED MATCHES YET<br><br><span style="color:#00d2be;">Finish a live match or import one</span></div>';
+      modal.classList.add('on');
+      modal.style.display = 'flex';
+      return;
+    }
+
+    var existing = new Set(tourn.matchIds || []);
+    var html = '<div style="font-size:11px;color:#7a8590;margin-bottom:10px;">Adding to: <b style="color:#00d2be;">' + esc(tourn.name) + '</b></div>';
+    combined.forEach(function(pm, idx){
+      var id = pid(pm, idx);
+      var already = existing.has(id) || (pm.id && existing.has(pm.id));
+      var click = already ? '' : 'onclick="window.tpAttachMatch(\'' + String(id).replace(/'/g,"\\'") + '\',' + idx + ')"';
+      html += '<div class="tp-list-item" ' + (already ? 'style="opacity:.4;pointer-events:none;"' : click) + '>'
+        + '<div><div class="nm">' + esc(pm.fixture||'Match') + '</div>'
+        + '<div class="mt">' + esc(pm.result||'') + ' · ' + esc(pm.date||'') + '</div></div>'
+        + '<span class="bd">' + (already ? '✓ ADDED' : '+ ADD') + '</span></div>';
+    });
+    listMount.innerHTML = html;
+    modal.classList.add('on');
+    modal.style.display = 'flex';
+  };
+
+  window.tpAttachMatch = function(matchId, idx){
+    var tourn = loadTourn(); if (!tourn) return;
+    var ledger = loadLedger();
+    var imported = window.__importedMatches || {};
+    try { var r = localStorage.getItem('cricmax_importedMatches'); if (r) imported = JSON.parse(r); } catch(e){}
+    var pm = ledger[idx] || null;
+    if (!pm){
+      var keys = Object.keys(imported);
+      for (var i = 0; i < keys.length; i++){ if (pid(imported[keys[i]], i) === matchId){ pm = imported[keys[i]]; break; } }
+    }
+    if (!pm) return;
+
+    tourn.matchIds = tourn.matchIds || [];
+    if (tourn.matchIds.indexOf(matchId) === -1) tourn.matchIds.push(matchId);
+    tourn.pastMatches = tourn.pastMatches || [];
+    var dup = tourn.pastMatches.some(function(x){ return x && x.fixture === pm.fixture && x.date === pm.date; });
+    if (!dup) tourn.pastMatches.push(pm);
+    saveTourn(tourn);
+
+    if (window.fbDb){ try { window.fbDb.ref('cricmax/db/currentTourn').set(tourn); } catch(e){} }
+
+    var m = document.getElementById('tpAddMatchModal');
+    if (m){ m.classList.remove('on'); m.style.display = 'none'; }
+
+    if (typeof window.refreshTournamentPane === 'function') window.refreshTournamentPane();
+    if (typeof window.renderPastMatchesList === 'function') try { window.renderPastMatchesList(); } catch(e){}
+  };
+
+  /* 4) Pre-populate __importedMatches from ledger for View button */
+  (function(){
+    try{
+      var ledger = loadLedger();
+      var all = window.__importedMatches || {};
+      ledger.forEach(function(pm, idx){
+        if (!pm || !pm.fixture) return;
+        var id = pid(pm, idx);
+        if (!all[id]){
+          all[id] = {
+            id: id, fixture: pm.fixture, result: pm.result, venue: pm.venue, date: pm.date,
+            innings1: pm.innings1 || { team: pm.teamA||'Team A', runs:0, wickets:0, balls:0, batters:{}, bowlers:{}, fow:[] },
+            innings2: pm.innings2 || { team: pm.teamB||'Team B', runs:0, wickets:0, balls:0, batters:{}, bowlers:{}, fow:[] }
+          };
+        }
+      });
+      window.__importedMatches = all;
+    } catch(e){}
+  })();
+
+  console.log('[CLOSE FIX] ✅ ready');
+})();
+</script>
 </body>
 </html>
