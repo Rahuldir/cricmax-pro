@@ -461,5 +461,20 @@ function viewPastMatchSummary(idx) {
   let msg = `${pm.fixture}\nResult: ${pm.result}\nVenue: ${pm.venue}\nDate: ${pm.date}\n\n`;
   if (inn1) msg += `1st Innings — ${inn1.team}: ${inn1.runs}/${inn1.wickets} (${Math.floor((inn1.balls || 0) / 6)}.${(inn1.balls || 0) % 6} ov)\n`;
   if (inn2) msg += `2nd Innings — ${inn2.team}: ${inn2.runs}/${inn2.wickets} (${Math.floor((inn2.balls || 0) / 6)}.${(inn2.balls || 0) % 6} ov)\n`;
+  if (typeof window.openFullMatchViewer === 'function') {
+    const id = 'ledger-' + (pm.id || (pm.fixture + '-' + idx).replace(/\s+/g, '_'));
+    const all = window.__importedMatches || {};
+    if (!all[id]) {
+      all[id] = {
+        id: id,
+        fixture: pm.fixture, result: pm.result, venue: pm.venue, date: pm.date,
+        innings1: pm.innings1 || { team: (pm.teamA || 'Team A'), runs: 0, wickets: 0, balls: 0, batters: {}, bowlers: {}, fow: [] },
+        innings2: pm.innings2 || { team: (pm.teamB || 'Team B'), runs: 0, wickets: 0, balls: 0, batters: {}, bowlers: {}, fow: [] }
+      };
+      window.__importedMatches = all;
+    }
+    window.openFullMatchViewer(id);
+    return;
+  }
   alert(msg);
 }
