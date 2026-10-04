@@ -4917,7 +4917,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     /* PASS 2 — walk every line, track section + innings */
     for (var i = 0; i < lines.length; i++){
       var line = lines[i].trim();
-      if (!line) continue;
+      if (!line) continue; line = line.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
 
       /* Innings boundary with score: "1st Innings - Vivek 11 78/3 (12.0)" */
       var innFull = line.match(/^(1st|2nd|first|second)\s+Innings\s*[-–:]\s*(.+?)\s+(\d{1,3})\s*\/\s*(\d{1,2})(?:\s*\(([\d.]+)\))?/i);
@@ -4943,7 +4943,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       }
 
       /* Section markers */
-      if (/^Batting\b/i.test(line) && line.length < 40){ currentSection='bat'; continue; }
+      if (/^(?:Batting|Batter)\b/i.test(line)){ currentSection='bat'; continue; } if (/^(?:Bowling|Bowler)\b/i.test(line)){ currentSection='bowl'; continue; }
       if (/^Bowling\b/i.test(line) && line.length < 40){ currentSection='bowl'; continue; }
       if (/^Fall of Wickets/i.test(line)){ currentSection='fow'; continue; }
       if (/^Partnerships/i.test(line)){ currentSection='pship'; continue; }
@@ -4981,13 +4981,13 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
 
       /* ── BOWLING ── */
       if (currentSection === 'bowl'){
-        var wm = line.match(/^([A-Za-z][A-Za-z0-9\s.'-]+?)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s*$/);
+        var wm = line.match(/^([A-Za-z][A-Za-z0-9\s.'-]+?)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+([\d.]+)(?:\s+([\d.]+))?\s*$/);
         if (wm){
           var ovParts = wm[2].split('.');
           inn.bowlers[wm[1].trim()] = {
             balls: (parseInt(ovParts[0],10)||0)*6 + (parseInt(ovParts[1]||'0',10)||0),
-            maidens:+wm[3], runs:+wm[4], wickets:+wm[5],
-            eco: parseFloat(wm[6]),
+            maidens: wm[6] !== undefined ? +wm[3] : 0, runs: wm[6] !== undefined ? +wm[4] : +wm[3], wickets: wm[6] !== undefined ? +wm[5] : +wm[4],
+            eco: wm[6] !== undefined ? parseFloat(wm[6]) : parseFloat(wm[5]),
             dots:0, wides:0, noBalls:0
           };
         }
