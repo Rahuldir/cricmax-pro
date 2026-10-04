@@ -478,3 +478,61 @@ function viewPastMatchSummary(idx) {
   }
   alert(msg);
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Sync tournament metadata to CricMax_Data in the shape the new
+   Tournament Dashboard UI reads (currentTourn + pastTournaments).
+   ────────────────────────────────────────────────────────────── */
+function syncTournMetaForUI() {
+  try {
+    var raw = localStorage.getItem('CricMax_Data');
+    var d = raw ? JSON.parse(raw) : {};
+
+    /* Current tournament */
+    if (currentTourn && currentTourn.name) {
+      d.currentTourn = {
+        id: currentTournId || ('t_' + currentTourn.name.replace(/\s+/g, '_')),
+        name: currentTourn.name,
+        venue: currentTourn.venue || 'Local Stadium',
+        overs: currentTourn.overs || 20,
+        matchIds: (pastMatchesLedger || []).map(function(pm){
+          return pm.id || ('ledger_' + (pm.fixture || 'm').replace(/\s+/g, '_'));
+        }),
+        matchCount: (pastMatchesLedger || []).length
+      };
+    } else {
+      delete d.currentTourn;
+    }
+
+    /* Past tournaments */
+    d.pastTournaments = (tournamentsHistory || []).map(function(t){
+      return {
+        id: t.id,
+        name: t.name,
+        venue: t.venue || 'Local Stadium',
+        overs: t.overs || 20,
+        matchIds: (t.pastMatches || []).map(function(pm){
+          return pm.id || ('ledger_' + (pm.fixture || 'm').replace(/\s+/g, '_'));
+        }),
+        matchCount: (t.pastMatches || []).length
+      };
+    });
+
+    localStorage.setItem('CricMax_Data', JSON.stringify(d));
+
+    /* Also expose for the new UI to attach ledger matches into __importedMatches */
+    window.__cricmaxLedger = pastMatchesLedger || [];
+  } catch(e){ console.warn('[CricMax] syncTournMetaForUI failed:', e); }
+}
+
+/* Auto-run whenever the tournament picker opens (safety net) */
+(function(){
+  var orig = window.openTournamentPicker;
+  if (typeof orig === 'function' && !orig.__synced) {
+    window.openTournamentPicker = function(){
+      syncTournMetaForUI();
+      return orig.apply(this, arguments);
+    };
+    window.openTournamentPicker.__synced = true;
+  }
+})();
