@@ -968,7 +968,10 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
     <div class="tab-btn" onclick="selectSubPane('import')">Import</div>
   </nav>
 
-   <div class="sub-pane" id="pane-tournament">
+    <div class="sub-pane" id="pane-tournament">
+    <div id="tdTournList"></div>
+    <div id="tdTournDetail" style="display:none;">
+    <button class="td-back" onclick="tdBackToList()">← All Tournaments</button>
     <div class="td-hero" id="tdHero"></div>
 
     <div class="td-tabs">
