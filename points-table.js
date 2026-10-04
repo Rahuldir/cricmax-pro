@@ -1,8 +1,49 @@
-/* points-table.js — Team standings for the selected tournament */
+/* points-table.js — Team standings with name normalization */
 (function(){
   'use strict';
 
-  function ovStr(b){ b=b||0; return Math.floor(b/6)+'.'+(b%6); }
+  /* ══════════════════════════════════════════════════════════
+     ✏️ EDIT THIS MAP to merge team variants.
+     Left  = any spelling/case (lowercase it)
+     Right = canonical display name
+     ══════════════════════════════════════════════════════════ */
+  var TEAM_ALIASES = {
+    /* Ravi / Rajesh — same team */
+    'ravi 11':    'Rajesh 11',
+    'ravi':       'Rajesh 11',
+    'rajesh 11':  'Rajesh 11',
+    'rajesh':     'Rajesh 11',
+    'rajesh ii':  'Rajesh 11',
+    'rajesh 2':   'Rajesh 11',
+
+    /* Vivek variants — same team */
+    'vivek 11':   'Vivek 11',
+    'vivek':      'Vivek 11',
+    'vivek ii':   'Vivek 11',
+    'vivek 2':    'Vivek 11',
+    'vivek iii':  'Vivek 11',
+    'vivek 3':    'Vivek 11'
+  };
+  /* ══════════════════════════════════════════════════════════ */
+
+  function normalizeTeamName(raw){
+    if (!raw) return raw;
+    var n = String(raw).trim().replace(/\s+/g, ' ');
+    /* Roman numerals → digits */
+    n = n.replace(/\bIII\b/gi,'3').replace(/\bII\b/gi,'2')
+         .replace(/\bIV\b/gi,'4').replace(/\bVI\b/gi,'6')
+         .replace(/\bV\b/gi,'5');
+    /* "Vivek11" → "Vivek 11" */
+    n = n.replace(/([A-Za-z])(\d)/g, '$1 $2');
+    /* Collapse whitespace again */
+    n = n.replace(/\s+/g, ' ').trim();
+    /* Alias lookup (case-insensitive) */
+    var key = n.toLowerCase();
+    if (TEAM_ALIASES[key]) return TEAM_ALIASES[key];
+    return n;
+  }
+  window.normalizeTeamName = normalizeTeamName;
+
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -17,20 +58,21 @@
   function computePoints(matches){
     var teams = {};
     function ensure(n){
-      if(!n) return null;
-      if(!teams[n]) teams[n] = {
-        name:n, played:0, won:0, lost:0, tied:0, nr:0, pts:0,
+      var key = normalizeTeamName(n);
+      if(!key) return null;
+      if(!teams[key]) teams[key] = {
+        name:key, played:0, won:0, lost:0, tied:0, pts:0,
         rf:0, bf:0, ra:0, ba:0
       };
-      return teams[n];
+      return teams[key];
     }
     matches.forEach(function(m){
       var i1 = m.innings1||{}, i2 = m.innings2||{};
-      var t1 = i1.team, t2 = i2.team;
-      if(!t1 || !t2) return;
+      if (!i1.team || !i2.team) return;
       var r1 = i1.runs||0, r2 = i2.runs||0;
       var b1 = i1.balls||0, b2 = i2.balls||0;
-      var A = ensure(t1), B = ensure(t2);
+      var A = ensure(i1.team), B = ensure(i2.team);
+      if (!A || !B || A === B) return;   /* skip if same team */
       A.played++; B.played++;
       A.rf += r1; A.bf += b1; A.ra += r2; A.ba += b2;
       B.rf += r2; B.bf += b2; B.ra += r1; B.ba += b1;
@@ -52,7 +94,6 @@
     var detail = document.getElementById('tdTournDetail');
     if (!detail || detail.style.display === 'none') return;
 
-    /* Ensure the points container exists, right above the Matches list */
     var mount = document.getElementById('tdPointsTable');
     if (!mount){
       var matchesPane = document.getElementById('tdPane-matches');
@@ -62,31 +103,35 @@
       matchesPane.insertBefore(mount, matchesPane.firstChild);
     }
 
-    /* Find selected tournament */
     var selectedName = window.__tdSelectedTourn;
     var all = getImported();
+    var allMatches = Object.keys(all).map(function(k){ return all[k]; });
     var matches = [];
 
     if (selectedName){
-      /* Filter matches belonging to this tournament */
-      Object.keys(all).forEach(function(id){
-        var m = all[id];
-        var t = m.tournament || 'Ravi Cup 2026';
-        if (t === selectedName) matches.push(m);
+      matches = allMatches.filter(function(m){
+        return (m.tournament||'') === selectedName;
       });
+      if (!matches.length) matches = allMatches;
     } else {
-      matches = Object.keys(all).map(function(k){ return all[k]; });
+      matches = allMatches;
     }
 
     if (!matches.length){
-      mount.innerHTML = '<div style="padding:16px;text-align:center;font-family:var(--td-mono);font-size:10px;letter-spacing:1.6px;color:#7a8590;text-transform:uppercase;background:rgba(0,0,0,.4);border:1px dashed var(--td-line2);margin-bottom:12px;">No completed matches in this tournament yet</div>';
+      mount.innerHTML = '<div style="padding:16px;text-align:center;font-family:var(--td-mono);font-size:10px;letter-spacing:1.6px;color:#7a8590;text-transform:uppercase;background:rgba(0,0,0,.4);border:1px dashed var(--td-line2);margin-bottom:12px;">No completed matches found</div>';
       return;
     }
 
     var rows = computePoints(matches);
+    if (!rows.length){
+      mount.innerHTML = '<div style="padding:16px;text-align:center;font-family:var(--td-mono);font-size:10px;letter-spacing:1.6px;color:#7a8590;text-transform:uppercase;background:rgba(0,0,0,.4);border:1px dashed var(--td-line2);margin-bottom:12px;">No team data</div>';
+      return;
+    }
 
     var html = '';
-    html += '<div class="td-sec gold" style="margin-top:0"><span class="bar"></span>🏆 Points Table · '+esc(selectedName||'All Matches')+'</div>';
+    var label = selectedName || 'All Matches';
+    html += '<div class="td-sec gold" style="margin-top:0"><span class="bar"></span>🏆 Points Table · '+esc(label)+
+      ' <small style="color:#7a8590;font-weight:600;letter-spacing:1px;">('+matches.length+' matches)</small></div>';
     html += '<div class="td-tbl-wrap"><table class="td-tbl"><thead><tr>'+
       '<th style="width:26px"></th><th>Team</th>'+
       '<th class="r">P</th><th class="r">W</th><th class="r">L</th>'+
@@ -112,7 +157,6 @@
     mount.innerHTML = html;
   }
 
-  /* Re-render whenever the tournament detail is refreshed or a match is opened/closed */
   function hookAll(){
     if (!window.refreshTournamentPane || window.refreshTournamentPane.__ptsHooked) return true;
     var orig = window.refreshTournamentPane;
@@ -125,7 +169,6 @@
     return true;
   }
 
-  /* Also render after user picks a tournament card */
   function hookSelect(){
     if (!window.tdSelectTournament || window.tdSelectTournament.__ptsHooked) return true;
     var orig = window.tdSelectTournament;
