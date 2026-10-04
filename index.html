@@ -4373,8 +4373,59 @@ html.cm-embed-boot body {
 
   console.log('[LAST FIX] ✅ Add Match + ✕ close ready');
 })();
+</script> 
+     <script>
+/* ═══ PDF Speed Fix ═══ */
+(function(){
+  'use strict';
+
+  /* 1. Preload the pdf.js worker so first parse is instant */
+  try{
+    if(window.pdfjsLib){
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      fetch(pdfjsLib.GlobalWorkerOptions.workerSrc, {cache:'force-cache'}).catch(function(){});
+    }
+  }catch(e){}
+
+  /* 2. Cap pages + parallel but chunked extraction */
+  window.__pdfExtractFast = function(file){
+    return file.arrayBuffer().then(function(buf){
+      if(!window.pdfjsLib) throw new Error('PDF.js not loaded');
+      return pdfjsLib.getDocument({data:buf, disableAutoFetch:true, disableStream:true}).promise;
+    }).then(function(pdf){
+      var total = pdf.numPages;
+      var maxPages = Math.min(total, 30);   /* cap to avoid freezes */
+      var tasks = [];
+      var concurrency = 4;
+      var idx = 1;
+      function next(){
+        if(idx > maxPages) return Promise.resolve();
+        var batch = [];
+        for(var i=0; i<concurrency && idx<=maxPages; i++, idx++){
+          (function(pageNum){
+            batch.push(pdf.getPage(pageNum).then(function(p){
+              return p.getTextContent().then(function(c){
+                var out='', lastY=null;
+                for(var k=0; k<c.items.length; k++){
+                  var it = c.items[k];
+                  var y = it.transform[5];
+                  if(lastY!==null && Math.abs(y-lastY)>4) out += '\n';
+                  out += it.str; lastY = y;
+                }
+                return out;
+              });
+            }));
+          })(idx);
+        }
+        return Promise.all(batch).then(function(res){ tasks = tasks.concat(res); return next(); });
+      }
+      return next().then(function(){ return tasks.join('\n'); });
+    });
+  };
+
+  console.log('[PDF FIX] ✅ ready');
+})();
 </script>
-</body>
-</html>
+
 </body>
 </html>
