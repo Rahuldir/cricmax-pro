@@ -5162,5 +5162,199 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
   window.__tdHandlePdf = tdHandlePdf;
 })();
 </script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   TOURNAMENT IMPORT — JSON bridge
+   Mirrors the main Import tab's JSON editor/actions into the
+   tournament detail's Import tab. Same Firebase path, same cache.
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  var FB_BASE = 'cricmax/importedMatches';
+
+  function setTdStat(msg, kind){
+    var el = document.getElementById('tdImpStatus2');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'imp-status' + (kind ? ' ' + kind : '');
+  }
+  function refreshAll(){
+    try { if (typeof window.renderLibrary === 'function') window.renderLibrary(); } catch(e){}
+    try { if (typeof window.renderMatchList === 'function') window.renderMatchList(); } catch(e){}
+    try { if (typeof window.renderMatchLibrary === 'function') window.renderMatchLibrary(); } catch(e){}
+    try { if (typeof window.refreshTournamentPane === 'function') window.refreshTournamentPane(); } catch(e){}
+  }
+  function getImported(){
+    var all = window.__importedMatches || {};
+    if (!Object.keys(all).length){
+      try { var r = localStorage.getItem('cricmax_importedMatches'); if (r) all = JSON.parse(r); } catch(e){}
+    }
+    return all;
+  }
+  function saveCache(all){
+    window.__importedMatches = all;
+    try { localStorage.setItem('cricmax_importedMatches', JSON.stringify(all)); } catch(e){}
+  }
+  function syncEditors(all){
+    var v = JSON.stringify(all, null, 2);
+    var e1 = document.getElementById('tdJsonEditor'); if (e1 && document.activeElement !== e1) e1.value = v;
+    var e2 = document.getElementById('jsonEditor');   if (e2 && document.activeElement !== e2) e2.value = v;
+  }
+
+  window.tdApplyImportJSON = function(){
+    var ed = document.getElementById('tdJsonEditor');
+    if (!ed){ setTdStat('JSON editor missing','err'); return; }
+    var txt = ed.value.trim();
+    if (!txt){ setTdStat('JSON is empty','err'); return; }
+    var parsed;
+    try { parsed = JSON.parse(txt); } catch(e){ setTdStat('Invalid JSON: ' + e.message,'err'); return; }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)){
+      setTdStat('JSON must be an object of matches','err'); return;
+    }
+    var keys = Object.keys(parsed);
+    if (!keys.length){ setTdStat('No matches found','err'); return; }
+
+    /* Merge with existing cache — never drop already-imported matches */
+    var merged = getImported();
+    keys.forEach(function(id){
+      merged[id] = Object.assign({}, parsed[id], {id: id, importedAt: Date.now()});
+    });
+    saveCache(merged);
+    syncEditors(merged);
+
+    if (window.fbDb){
+      setTdStat('Pushing ' + keys.length + ' match' + (keys.length===1?'':'es') + ' to Firebase…');
+      var promises = keys.map(function(id){
+        return window.fbDb.ref(FB_BASE + '/' + id).set(merged[id]);
+      });
+      Promise.all(promises).then(function(){
+        setTdStat('✔ ' + keys.length + ' match' + (keys.length===1?'':'es') + ' pushed to Firebase','ok');
+        refreshAll();
+        if (typeof window.showToast === 'function') window.showToast('✅ Pushed to Firebase');
+      }).catch(function(err){
+        setTdStat('Local OK · Firebase failed: ' + (err.message||err),'err');
+        refreshAll();
+      });
+    } else {
+      setTdStat('Saved locally · Firebase not ready');
+      refreshAll();
+    }
+  };
+
+  window.tdPullFromFirebase = function(){
+    if (!window.fbDb){ setTdStat('Firebase not ready','err'); return; }
+    setTdStat('Pulling from Firebase…');
+    window.fbDb.ref(FB_BASE).once('value').then(function(snap){
+      var v = snap.val() || {};
+      var keys = Object.keys(v);
+      if (!keys.length){ setTdStat('No matches in Firebase yet','err'); return; }
+      saveCache(v);
+      syncEditors(v);
+      setTdStat('✔ Pulled ' + keys.length + ' match' + (keys.length===1?'':'es'),'ok');
+      refreshAll();
+      if (typeof window.showToast === 'function') window.showToast('✔ Pulled from Firebase');
+    }).catch(function(err){
+      setTdStat('Pull failed: ' + (err.message||err),'err');
+    });
+  };
+
+  window.tdDownloadImportJSON = function(){
+    var data = JSON.stringify(getImported(), null, 2);
+    var blob = new Blob([data], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'cricmax-imported-matches.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    setTdStat('JSON downloaded','ok');
+  };
+
+  window.tdLoadImportSample = function(){
+    if (!confirm('Replace editor with a sample match?')) return;
+    var sample = { "sample-1": {
+      id:"sample-1", fixture:"Alpha 11 vs Bravo 11", tournament:"Ravi Cup 2026",
+      venue:"Local Stadium", date:"01/07/2026", result:"Alpha 11 won by 4 wickets", winner:"Alpha 11",
+      innings1:{ team:"Bravo 11", runs:98, wickets:6, balls:72,
+        extras:{b:0,lb:2,w:1,nb:0,total:3}, dnb:[],
+        batters:{ "Player 1":{runs:24,balls:18,fours:2,sixes:1,dots:5,status:"c X b Y"},
+                  "Player 2":{runs:31,balls:24,fours:3,sixes:1,dots:6,status:"not out"} },
+        bowlers:{ "Bowler 1":{balls:18,maidens:0,runs:22,wickets:1,dots:6,wides:0,noBalls:0},
+                  "Bowler 2":{balls:18,maidens:0,runs:30,wickets:2,dots:5,wides:1,noBalls:0} },
+        fielding:{}, fow:[], partnerships:[] },
+      innings2:{ team:"Alpha 11", runs:102, wickets:4, balls:66,
+        extras:{b:0,lb:1,w:0,nb:0,total:1}, dnb:[],
+        batters:{ "Batter A":{runs:44,balls:30,fours:5,sixes:1,dots:6,status:"not out"},
+                  "Batter B":{runs:28,balls:22,fours:2,sixes:1,dots:5,status:"b Bowler 1"} },
+        bowlers:{ "Bowler 3":{balls:18,maidens:0,runs:28,wickets:2,dots:5,wides:0,noBalls:0},
+                  "Bowler 4":{balls:18,maidens:0,runs:32,wickets:1,dots:4,wides:0,noBalls:0} },
+        fielding:{}, fow:[], partnerships:[] }
+    }};
+    var ed = document.getElementById('tdJsonEditor');
+    if (ed) ed.value = JSON.stringify(sample, null, 2);
+    setTdStat('Sample loaded — click Apply to push it','ok');
+  };
+
+  window.tdClearImportAll = function(){
+    if (!confirm('⚠️ Clear ALL imported matches?\n\nThis will:\n• Remove matches from Firebase path cricmax/importedMatches\n• Clear the local cache\n\nThis CANNOT be undone. Continue?')) return;
+    window.__importedMatches = {};
+    try { localStorage.removeItem('cricmax_importedMatches'); } catch(e){}
+    if (window.fbDb){ window.fbDb.ref(FB_BASE).remove().catch(function(){}); }
+    var e1 = document.getElementById('tdJsonEditor'); if (e1) e1.value = '';
+    var e2 = document.getElementById('jsonEditor');   if (e2) e2.value = '';
+    var lib = document.getElementById('tdMatchLibrary');   if (lib) lib.innerHTML = '';
+    var lib2 = document.getElementById('matchLibraryList'); if (lib2) lib2.innerHTML = '';
+    setTdStat('All cleared','ok');
+    refreshAll();
+  };
+
+  /* Hydrate the td JSON editor whenever the tournament Import tab opens */
+  function hydrateTd(){
+    var ed = document.getElementById('tdJsonEditor');
+    if (!ed) return;
+    var all = getImported();
+    if (Object.keys(all).length && !ed.value.trim()){
+      ed.value = JSON.stringify(all, null, 2);
+    }
+  }
+
+  /* Wrap tdShowTab so hydrate runs on tab switch */
+  (function wrap(){
+    if (typeof window.tdShowTab !== 'function'){ setTimeout(wrap, 200); return; }
+    if (window.tdShowTab.__jsonWrapped) return;
+    var orig = window.tdShowTab;
+    window.tdShowTab = function(tab, btn){
+      var r = orig.apply(this, arguments);
+      if (tab === 'import') setTimeout(hydrateTd, 60);
+      return r;
+    };
+    window.tdShowTab.__jsonWrapped = true;
+  })();
+
+  /* Keep the two JSON editors in sync when the main one changes */
+  window.addEventListener('storage', function(e){
+    if (e.key === 'cricmax_importedMatches'){
+      try {
+        var v = JSON.parse(e.newValue || '{}');
+        window.__importedMatches = v;
+        syncEditors(v);
+      } catch(err){}
+    }
+  });
+
+  /* Hydrate on load */
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(hydrateTd, 1800); });
+  } else {
+    setTimeout(hydrateTd, 1800);
+  }
+  window.addEventListener('load', function(){
+    setTimeout(hydrateTd, 1000);
+    setTimeout(hydrateTd, 2500);
+  });
+
+  console.log('[TD-IMPORT] JSON bridge ready');
+})();
+</script>
 </body>
 </html>
