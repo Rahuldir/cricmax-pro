@@ -5763,22 +5763,20 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
      Left side  = the "wrong" variants (any spelling)
      Right side = the CANONICAL name to display
      ──────────────────────────────────────────────── */
-  var ALIASES = {
-    /* Example entries — extend as needed */
-    'vivek':   'Vivek',      // Vivek, vivek, VIVEK → Vivek
-    'vivek1':  'Vivek',      // Vivek1 → Vivek (same person)
-    'vivek 1': 'Vivek',
-    /* Shivam variants: keep #1 and #2 as DIFFERENT players */
-    'shivam':   'Shivam 1',  // bare "Shivam" = first Shivam
-    'shivam1':  'Shivam 1',
-    'shivam 1': 'Shivam 1',
-    'shivam2':  'Shivam 2',  // "Shivam2" (no space) merges with "Shivam 2"
-    'shivam 2': 'Shivam 2'
-    /* Add more players here, e.g.:
-       'rajnish': 'Rajnish',
-       'rajnish1': 'Rajnish',
-    */
-  };
+var ALIASES = {
+  'vivek':   'Vivek',      // bare "Vivek" is its own player
+  'vivek1':  'Vivek 1',    // "Vivek1" (no space) = Vivek 1
+  'vivek 1': 'Vivek 1',    // "Vivek 1" = Vivek 1
+  'vivek2':  'Vivek 2',
+  'vivek 2': 'Vivek 2',
+  'vivek3':  'Vivek 3',
+  'vivek 3': 'Vivek 3',
+  'shivam':   'Shivam 1',
+  'shivam1':  'Shivam 1',
+  'shivam 1': 'Shivam 1',
+  'shivam2':  'Shivam 2',
+  'shivam 2': 'Shivam 2'
+};
 
   /* ────────────────────────────────────────────────
      Normalize a single player name:
