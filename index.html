@@ -2075,6 +2075,87 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
 <script src="main.js"></script>
 <script src="stats-bridge.js"></script>
 <script src="points-table.js"></script>
+<script>
+/* ═══ UNIVERSAL NAME NORMALIZER — applied at parse time ═══ */
+(function(){
+  'use strict';
+
+  var PLAYER_MAP = {
+    'vivek':'Vivek','vivek1':'Vivek','vivek 1':'Vivek','vivek 2':'Vivek','vivek2':'Vivek',
+    'shivam':'Shivam 1','shivam1':'Shivam 1','shivam 1':'Shivam 1',
+    'shivam2':'Shivam 2','shivam 2':'Shivam 2'
+    /* add more: 'wrong' : 'Canonical' */
+  };
+  var TEAM_MAP = {
+    'ravi':'Rajesh 11','ravi 11':'Rajesh 11','rajesh':'Rajesh 11',
+    'rajesh 11':'Rajesh 11','rajesh ii':'Rajesh 11','rajesh 2':'Rajesh 11',
+    'vivek':'Vivek 11','vivek 11':'Vivek 11','vivek ii':'Vivek 11',
+    'vivek 2':'Vivek 11','vivek iii':'Vivek 11','vivek 3':'Vivek 11'
+  };
+
+  function normP(n){
+    if(!n) return n;
+    var s = String(n).trim().replace(/\s+/g,' ').replace(/([A-Za-z])(\d)/g,'$1 $2');
+    return PLAYER_MAP[s.toLowerCase()] || s;
+  }
+  function normT(n){
+    if(!n) return n;
+    var s = String(n).trim().replace(/\s+/g,' ')
+      .replace(/\bIII\b/gi,'3').replace(/\bII\b/gi,'2');
+    s = s.replace(/([A-Za-z])(\d)/g,'$1 $2').replace(/\s+/g,' ').trim();
+    return TEAM_MAP[s.toLowerCase()] || s;
+  }
+
+  window.__cmCleanMatch = function(m){
+    if(!m || typeof m !== 'object') return m;
+    /* Use currently-selected tournament name when possible */
+    if (window.__tdSelectedTourn) m.tournament = window.__tdSelectedTourn;
+
+    ['innings1','innings2'].forEach(function(k){
+      var inn = m[k]; if(!inn) return;
+      if (inn.team) inn.team = normT(inn.team);
+
+      if (inn.batters){
+        var nb = {};
+        Object.keys(inn.batters).forEach(function(name){
+          var c = normP(name);
+          if (nb[c]){
+            var a = nb[c], b = inn.batters[name];
+            a.runs+=b.runs||0; a.balls+=b.balls||0;
+            a.fours+=b.fours||0; a.sixes+=b.sixes||0; a.dots+=b.dots||0;
+            if((b.status||'').indexOf('not out')===-1) a.status = b.status || a.status;
+          } else nb[c] = Object.assign({}, inn.batters[name]);
+        });
+        inn.batters = nb;
+      }
+      if (inn.bowlers){
+        var nw = {};
+        Object.keys(inn.bowlers).forEach(function(name){
+          var c = normP(name);
+          if (nw[c]){
+            var a = nw[c], b = inn.bowlers[name];
+            a.balls+=b.balls||0; a.maidens+=b.maidens||0; a.runs+=b.runs||0;
+            a.wickets+=b.wickets||0; a.dots+=b.dots||0;
+            a.wides+=b.wides||0; a.noBalls+=b.noBalls||0;
+          } else nw[c] = Object.assign({}, inn.bowlers[name]);
+        });
+        inn.bowlers = nw;
+      }
+      if (Array.isArray(inn.fow)){
+        inn.fow = inn.fow.map(function(s){
+          return String(s).replace(/([A-Za-z]+)(\d)/g,'$1 $2');
+        });
+      }
+    });
+    if (m.fixture){
+      var parts = m.fixture.split(/\s+vs\.?\s+/i);
+      if (parts.length === 2) m.fixture = normT(parts[0]) + ' vs ' + normT(parts[1]);
+    }
+    return m;
+  };
+  console.log('[ParseNorm] ✅ ready — new PDF imports will be auto-cleaned');
+})();
+</script>
   
 <script>
 (function(){
@@ -3422,7 +3503,7 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
       }
     });
 
-    return {
+    var __m = {
       id: 'pdf-' + Date.now(),
       fixture: (innings[0].team || 'Team A') + ' vs ' + (innings[1].team || 'Team B'),
       tournament: 'Ravi Cup 2026',
@@ -3433,6 +3514,7 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
       innings1: innings[0],
       innings2: innings[1]
     };
+    return (window.__cmCleanMatch ? window.__cmCleanMatch(__m) : __m);
   }
 
   async function handle(file){
@@ -4422,7 +4504,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       }
     });
 
-    return {
+    var __m = {
       id:'pdf-'+Date.now(),
       fixture:(innings[0].team||'Team A')+' vs '+(innings[1].team||'Team B'),
       tournament:'Ravi Cup 2026',
@@ -4433,6 +4515,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       innings1:innings[0],
       innings2:innings[1]
     };
+    return (window.__cmCleanMatch ? window.__cmCleanMatch(__m) : __m);
   }
 
   async function handlePdfFile(file){
