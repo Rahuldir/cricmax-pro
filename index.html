@@ -4739,30 +4739,62 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
      STEP 1 — Position-aware PDF text extraction
      Groups text items into rows (by Y) and joins columns (by X)
      ───────────────────────────────────────────────────────────── */
-  async function tdExtractLines(file){
+   async function tdExtractLines(file){
     var buf = await file.arrayBuffer();
-    var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    var pdf;
+    try {
+      pdf = await pdfjsLib.getDocument({
+        data: buf,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+        useSystemFonts: true
+      }).promise;
+    } catch(err){
+      console.error('[CricMax PDF] getDocument failed:', err);
+      throw new Error('Cannot open PDF: ' + (err.message||err));
+    }
+
     var allLines = [];
+    var totalItems = 0, totalWithStr = 0;
+    console.log('[CricMax PDF] file:', file.name, '| size:', file.size, '| pages:', pdf.numPages);
 
     for (var pi = 1; pi <= pdf.numPages; pi++){
       var page = await pdf.getPage(pi);
       var content = await page.getTextContent();
-      var items = content.items;
+      var items = content.items || [];
+      totalItems += items.length;
 
-      /* Collect valid items with positions */
       var valid = [];
       for (var i = 0; i < items.length; i++){
         var it = items[i];
-        if (!it.str || !it.str.trim()) continue;
+        if (!it) continue;
+        var raw = it.str;
+        if (raw === undefined || raw === null) continue;
+        var s = String(raw);
+        if (!s.trim()) continue;
+        totalWithStr++;
+        var x = 0, y = 0;
+        var tf = it.transform;
+        if (tf && tf.length >= 6){ x = tf[4]; y = tf[5]; }
+        else if (typeof it.x === 'number'){ x = it.x; y = it.y || 0; }
         valid.push({
-          str: it.str,
-          x: it.transform[4],
-          y: it.transform[5],
-          w: it.width || (it.str.length * 5)
+          str: s,
+          x: x,
+          y: y,
+          w: it.width || (s.length * 5)
         });
       }
 
-      /* Group items into rows by Y-bucket (3.5 px tolerance) */
+      if (pi === 1){
+        console.log('[CricMax PDF] page 1 → items:', items.length, '| with text:', valid.length);
+        if (valid.length){
+          console.log('[CricMax PDF] sample item:', JSON.stringify(valid[0]));
+          console.log('[CricMax PDF] sample items (first 12):', valid.slice(0,12).map(function(v){return v.str;}).join(' | '));
+        }
+      }
+
+      if (!valid.length) continue;
+
       var rows = [];
       valid.forEach(function(it){
         var placed = false;
@@ -4776,10 +4808,8 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
         if (!placed) rows.push({y: it.y, items: [it]});
       });
 
-      /* Top-to-bottom */
       rows.sort(function(a,b){ return b.y - a.y; });
 
-      /* Within each row: left-to-right, insert space when gap > 2.5 px */
       rows.forEach(function(row){
         row.items.sort(function(a,b){ return a.x - b.x; });
         var txt = '';
@@ -4795,6 +4825,50 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
         if (txt.trim()) allLines.push(txt);
       });
     }
+
+    console.log('[CricMax PDF] total items:', totalItems, '| with text:', totalWithStr, '| lines:', allLines.length);
+
+    /* FALLBACK: if position-aware gave nothing, use flat concat + smart chunking */
+    if (allLines.length === 0){
+      console.warn('[CricMax PDF] Position-aware extractor yielded 0 lines — falling back to flat mode');
+      for (var pj = 1; pj <= pdf.numPages; pj++){
+        var pg = await pdf.getPage(pj);
+        var tc = await pg.getTextContent();
+        var flat = '';
+        for (var k = 0; k < tc.items.length; k++){
+          var s2 = tc.items[k] && tc.items[k].str;
+          if (!s2) continue;
+          flat += s2;
+          if (!/\s$/.test(s2)) flat += ' ';
+        }
+        /* Split on natural line boundaries — ball markers, headers */
+        var chunks = flat
+          .replace(/\s+/g,' ')
+          .split(/(?=\[\d+\.\d+\])/g)   /* split before each [X.Y] */
+          .map(function(c){ return c.trim(); })
+          .filter(Boolean);
+        /* If still one giant chunk, split further on word boundaries every ~60 chars */
+        if (chunks.length === 1 && chunks[0].length > 200){
+          var words = chunks[0].split(' ');
+          var cur = '';
+          words.forEach(function(w){
+            if ((cur + ' ' + w).length > 80){ chunks.push(cur); cur = w; }
+            else cur = cur ? cur + ' ' + w : w;
+          });
+          if (cur) chunks.push(cur);
+          chunks.shift();
+        }
+        chunks.forEach(function(c){ if (c) allLines.push(c); });
+      }
+      console.log('[CricMax PDF] Fallback produced', allLines.length, 'chunks');
+      if (allLines.length) console.log('[CricMax PDF] fallback sample (first 20):');
+      if (allLines.length) allLines.slice(0, 20).forEach(function(l,i){ console.log('  ', i, l.slice(0,120)); });
+    }
+
+    if (allLines.length === 0){
+      throw new Error('PDF contains no extractable text (scanned image? Try a text-based PDF).');
+    }
+
     return allLines;
   }
 
