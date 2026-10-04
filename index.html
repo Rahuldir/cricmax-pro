@@ -4702,6 +4702,444 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
   window.addEventListener('load', function(){ setTimeout(init, 800); setTimeout(init, 2000); });
 })();
 </script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   CricMax — Position-Aware PDF Extractor + Robust Parser
+   ✔ Preserves column/row structure from PDF
+   ✔ Pushes ONLY the JSON match object to Firebase (no PDF blob)
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  var FB_BASE = 'cricmax/importedMatches';
+
+  function ovStr(b){ b=b||0; return Math.floor(b/6)+'.'+(b%6); }
+
+  /* ─────────────────────────────────────────────────────────────
+     STEP 1 — Position-aware PDF text extraction
+     Groups text items into rows (by Y) and joins columns (by X)
+     ───────────────────────────────────────────────────────────── */
+  async function tdExtractLines(file){
+    var buf = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    var allLines = [];
+
+    for (var pi = 1; pi <= pdf.numPages; pi++){
+      var page = await pdf.getPage(pi);
+      var content = await page.getTextContent();
+      var items = content.items;
+
+      /* Collect valid items with positions */
+      var valid = [];
+      for (var i = 0; i < items.length; i++){
+        var it = items[i];
+        if (!it.str || !it.str.trim()) continue;
+        valid.push({
+          str: it.str,
+          x: it.transform[4],
+          y: it.transform[5],
+          w: it.width || (it.str.length * 5)
+        });
+      }
+
+      /* Group items into rows by Y-bucket (3.5 px tolerance) */
+      var rows = [];
+      valid.forEach(function(it){
+        var placed = false;
+        for (var r = 0; r < rows.length; r++){
+          if (Math.abs(rows[r].y - it.y) < 3.5){
+            rows[r].items.push(it);
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) rows.push({y: it.y, items: [it]});
+      });
+
+      /* Top-to-bottom */
+      rows.sort(function(a,b){ return b.y - a.y; });
+
+      /* Within each row: left-to-right, insert space when gap > 2.5 px */
+      rows.forEach(function(row){
+        row.items.sort(function(a,b){ return a.x - b.x; });
+        var txt = '';
+        var lastEnd = null;
+        row.items.forEach(function(it){
+          if (lastEnd !== null){
+            var gap = it.x - lastEnd;
+            if (gap > 2.5) txt += ' ';
+          }
+          txt += it.str;
+          lastEnd = it.x + it.w;
+        });
+        if (txt.trim()) allLines.push(txt);
+      });
+    }
+    return allLines;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     STEP 2 — State-machine parser for the Ravi Cup PDF layout
+     ───────────────────────────────────────────────────────────── */
+  function tdParseMatch(lines, fileName){
+    function emptyInn(){
+      return {team:'', runs:0, wickets:0, balls:120,
+        extras:{b:0,lb:0,w:0,nb:0,total:0},
+        dnb:[], batters:{}, bowlers:{}, fielding:{},
+        fow:[], partnerships:[], events:[]};
+    }
+    var match = {
+      id: 'pdf-' + Date.now(),
+      fixture: '', tournament: 'Ravi Cup 2026', venue: 'Local Stadium',
+      date: new Date().toLocaleDateString('en-GB'),
+      result: 'Result pending', winner: '',
+      innings1: emptyInn(), innings2: emptyInn()
+    };
+    var headers = [null, null];
+    var currentInn = -1, currentSection = null;
+
+    function cleanTeam(s){
+      return String(s||'').replace(/\s+innings.*$/i,'').trim().replace(/\s{2,}/g,' ');
+    }
+
+    /* PASS 1 — find team headers */
+    lines.forEach(function(line){
+      var t = line.trim();
+      /* "Vivek 11 1st INNINGS 78 / 3" */
+      var m1 = t.match(/^([A-Za-z][A-Za-z0-9\s]{1,30}?)\s+(?:1st|2nd|first|second)\s+INNINGS\s+(\d{1,3})\s*\/\s*(\d{1,2})/i);
+      if (m1){
+        var team = cleanTeam(m1[1]);
+        var slot = !headers[0] ? 0 : (!headers[1] && headers[0].team !== team ? 1 : -1);
+        if (slot >= 0) headers[slot] = {team:team, runs:+m1[2], wickets:+m1[3]};
+        return;
+      }
+      /* "1st Innings - Vivek 11 78/3 (12.0)" */
+      var m2 = t.match(/^(1st|2nd|first|second)\s+Innings\s*[-–:]\s*(.+?)\s+(\d{1,3})\s*\/\s*(\d{1,2})/i);
+      if (m2){
+        var idx = /2nd|second/i.test(m2[1]) ? 1 : 0;
+        headers[idx] = {team: cleanTeam(m2[2]), runs:+m2[3], wickets:+m2[4]};
+        return;
+      }
+    });
+
+    if (headers[0]){ match.innings1.team = headers[0].team; match.innings1.runs = headers[0].runs; match.innings1.wickets = headers[0].wickets; }
+    if (headers[1]){ match.innings2.team = headers[1].team; match.innings2.runs = headers[1].runs; match.innings2.wickets = headers[1].wickets; }
+
+    /* PASS 2 — walk every line, track section + innings */
+    for (var i = 0; i < lines.length; i++){
+      var line = lines[i].trim();
+      if (!line) continue;
+
+      /* Innings boundary with score: "1st Innings - Vivek 11 78/3 (12.0)" */
+      var innFull = line.match(/^(1st|2nd|first|second)\s+Innings\s*[-–:]\s*(.+?)\s+(\d{1,3})\s*\/\s*(\d{1,2})(?:\s*\(([\d.]+)\))?/i);
+      if (innFull){
+        currentInn = /2nd|second/i.test(innFull[1]) ? 1 : 0;
+        var innKey = 'innings' + (currentInn+1);
+        match[innKey].team = cleanTeam(innFull[2]);
+        match[innKey].runs = +innFull[3];
+        match[innKey].wickets = +innFull[4];
+        if (innFull[5]){
+          var p = innFull[5].split('.');
+          match[innKey].balls = (parseInt(p[0],10)||0)*6 + (parseInt(p[1]||'0',10)||0);
+        }
+        currentSection = null;
+        continue;
+      }
+      /* Bare innings marker */
+      var innBare = line.match(/^(1st|2nd|first|second)\s+Innings\b/i);
+      if (innBare && !/commentary/i.test(line)){
+        currentInn = /2nd|second/i.test(innBare[1]) ? 1 : 0;
+        currentSection = null;
+        continue;
+      }
+
+      /* Section markers */
+      if (/^Batting\b/i.test(line) && line.length < 40){ currentSection='bat'; continue; }
+      if (/^Bowling\b/i.test(line) && line.length < 40){ currentSection='bowl'; continue; }
+      if (/^Fall of Wickets/i.test(line)){ currentSection='fow'; continue; }
+      if (/^Partnerships/i.test(line)){ currentSection='pship'; continue; }
+      if (/Commentary/i.test(line) && line.length < 80){ currentSection='comm'; continue; }
+
+      /* Skip header rows */
+      if (/^Batter\s+Status/i.test(line)) continue;
+      if (/^Bowler\s+O\s+M/i.test(line)) continue;
+      if (/^Wkt\s+Runs/i.test(line)) continue;
+
+      if (currentInn < 0) continue;
+      var inn = match['innings' + (currentInn+1)];
+      if (!inn) continue;
+
+      /* ── BATTING ── */
+      if (currentSection === 'bat'){
+        var bm = line.match(/^([A-Za-z][A-Za-z0-9\s.'-]+?)\s{1,}((?:c\s|b\s|lbw|not out|run out|st\s|hit wicket|retired|absent|caught|stumped).+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s*$/i);
+        if (bm){
+          inn.batters[bm[1].trim()] = {
+            runs:+bm[3], balls:+bm[4], fours:+bm[5], sixes:+bm[6],
+            dots:0, status: bm[2].trim()
+          };
+          continue;
+        }
+        /* Alternative split: name status R B 4s 6s (no SR) */
+        var bm2 = line.match(/^([A-Za-z][A-Za-z0-9\s.'-]+?)\s{1,}((?:c\s|b\s|lbw|not out|run out|st\s|hit wicket|retired).+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$/i);
+        if (bm2){
+          inn.batters[bm2[1].trim()] = {
+            runs:+bm2[3], balls:+bm2[4], fours:+bm2[5], sixes:+bm2[6],
+            dots:0, status: bm2[2].trim()
+          };
+        }
+        continue;
+      }
+
+      /* ── BOWLING ── */
+      if (currentSection === 'bowl'){
+        var wm = line.match(/^([A-Za-z][A-Za-z0-9\s.'-]+?)\s+([\d.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s*$/);
+        if (wm){
+          var ovParts = wm[2].split('.');
+          inn.bowlers[wm[1].trim()] = {
+            balls: (parseInt(ovParts[0],10)||0)*6 + (parseInt(ovParts[1]||'0',10)||0),
+            maidens:+wm[3], runs:+wm[4], wickets:+wm[5],
+            eco: parseFloat(wm[6]),
+            dots:0, wides:0, noBalls:0
+          };
+        }
+        continue;
+      }
+
+      /* ── FALL OF WICKETS ── */
+      if (currentSection === 'fow'){
+        var fm = line.match(/(\d+)-(\d+)\s*\(([^,]+),\s*([\d.]+)\s*ov\)/);
+        if (fm) inn.fow.push(fm[0]);
+        continue;
+      }
+
+      /* ── PARTNERSHIPS ── */
+      if (currentSection === 'pship'){
+        var pm = line.match(/^(\d+)\s+(\d+)\s*\((\d+)\)\s+(.+)$/);
+        if (pm){
+          inn.partnerships.push({
+            wicket:+pm[1], runs:+pm[2], balls:+pm[3],
+            contrib: pm[4].replace(/\s+/g,' ').trim()
+          });
+        }
+        continue;
+      }
+
+      /* ── COMMENTARY ── */
+      if (currentSection === 'comm'){
+        var cm = line.match(/^\[?(\d+\.\d+)\]?\s+(.+)$/);
+        if (!cm) continue;
+        var ball = cm[1], rest = cm[2];
+
+        var wkm = rest.match(/^WICKET!?\s+(.+?)\s+out\.?\s*(.*)$/i);
+        if (wkm){
+          var bat = wkm[1].trim(), how = wkm[2].trim()||'out';
+          if (!inn.batters[bat]) inn.batters[bat] = {runs:0,balls:0,fours:0,sixes:0,dots:0,status:'out'};
+          if (!inn.batters[bat].status || inn.batters[bat].status === 'not out') inn.batters[bat].status = how;
+          inn.events.push({ball:ball, wicket:true, batsman:bat, text:how});
+          continue;
+        }
+        var nbm = rest.match(/^([A-Za-z][A-Za-z0-9\s.'-]+?)\s+to\s+([A-Za-z][A-Za-z0-9\s.'-]+?),\s*(.+)$/);
+        if (nbm){
+          var bowler = nbm[1].trim(), batter = nbm[2].trim(), outcome = nbm[3].trim();
+          var runs = 0;
+          if (/SIX/i.test(outcome)) runs = 6;
+          else if (/FOUR/i.test(outcome)) runs = 4;
+          else { var rm = outcome.match(/(\d+)\s*runs?/i); if (rm) runs = parseInt(rm[1],10); }
+          if (!inn.batters[batter]) inn.batters[batter] = {runs:0,balls:0,fours:0,sixes:0,dots:0,status:'not out'};
+          if (!inn.bowlers[bowler]) inn.bowlers[bowler] = {balls:0,maidens:0,runs:0,wickets:0,dots:0,wides:0,noBalls:0};
+          var batE = inn.batters[batter], bwlE = inn.bowlers[bowler];
+          batE.balls++; bwlE.balls++;
+          batE.runs += runs; bwlE.runs += runs;
+          if (runs === 4) batE.fours++;
+          if (runs === 6) batE.sixes++;
+          if (runs === 0){ batE.dots++; bwlE.dots++; }
+          inn.events.push({ball:ball, bowler:bowler, batsman:batter, bat:runs, text: outcome});
+        }
+        continue;
+      }
+    }
+
+    /* Post-process: balls, runs, fixture, result */
+    [0,1].forEach(function(ii){
+      var inn = match['innings' + (ii+1)];
+      if (inn.events.length){
+        var legal = 0;
+        inn.events.forEach(function(ev){ if (!ev.wicket) legal++; });
+        if (legal > 0) inn.balls = legal;
+      }
+      if (!inn.balls || inn.balls === 120){
+        var sum = 0;
+        Object.keys(inn.bowlers).forEach(function(k){ sum += inn.bowlers[k].balls||0; });
+        if (sum > 0) inn.balls = sum;
+      }
+      if (!inn.runs){
+        var rsum = 0;
+        Object.keys(inn.batters).forEach(function(k){ rsum += inn.batters[k].runs||0; });
+        if (rsum > 0) inn.runs = rsum;
+      }
+    });
+
+    /* Fixture */
+    if (headers[0] && headers[1]){
+      match.fixture = headers[0].team + ' vs ' + headers[1].team;
+    } else if (fileName){
+      var parts = fileName.replace(/\.pdf$/i,'').split(/\s+vs\.?\s+/i);
+      if (parts.length >= 2) match.fixture = parts[0].trim() + ' vs ' + parts[1].trim();
+    }
+    if (!match.fixture && match.innings1.team && match.innings2.team){
+      match.fixture = match.innings1.team + ' vs ' + match.innings2.team;
+    }
+
+    /* Result — search every line for "X WON BY ..." */
+    for (var j = 0; j < lines.length; j++){
+      var rm = lines[j].match(/([A-Za-z][A-Za-z0-9\s]*?)\s+WON\s+BY\s+([A-Za-z0-9\s]+?(?:runs?|wickets?|wkt|wkts))/i);
+      if (rm){ match.result = rm[1].trim() + ' won by ' + rm[2].trim(); match.winner = rm[1].trim(); break; }
+    }
+    if (match.result === 'Result pending' && match.innings1.runs && match.innings2.runs){
+      if (match.innings1.runs > match.innings2.runs){
+        match.result = match.innings1.team + ' won by ' + (match.innings1.runs - match.innings2.runs) + ' runs';
+        match.winner = match.innings1.team;
+      } else if (match.innings2.runs > match.innings1.runs){
+        var left = Math.max(1, 10 - match.innings2.wickets);
+        match.result = match.innings2.team + ' won by ' + left + ' wickets';
+        match.winner = match.innings2.team;
+      } else if (match.innings1.runs > 0 && match.innings1.runs === match.innings2.runs){
+        match.result = 'Match tied';
+      }
+    }
+
+    return match;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     STEP 3 — Handler: extract → parse → save to Firebase (JSON only)
+     ───────────────────────────────────────────────────────────── */
+  function setStat(msg, kind){
+    var el = document.getElementById('tdImpStatus'); if (!el) return;
+    el.textContent = msg;
+    el.style.color = kind === 'err' ? '#fca5a5' : (kind === 'ok' ? '#7effd2' : '');
+  }
+  function showProg(on, label, pct){
+    var w = document.getElementById('tdProgress'); if (!w) return;
+    w.style.display = on ? 'block' : 'none';
+    if (label !== undefined){ var a = document.getElementById('tdStatusTxt'); if (a) a.textContent = label; }
+    if (pct !== undefined){
+      var b = document.getElementById('tdPct'); if (b) b.textContent = Math.round(pct) + '%';
+      var c = document.getElementById('tdFill'); if (c) c.style.width = pct + '%';
+    }
+  }
+
+  async function tdHandlePdf(file){
+    if (!file) return;
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf'){ setStat('Please choose a PDF file','err'); return; }
+    if (file.size > 25*1024*1024){ setStat('File too large (25 MB max)','err'); return; }
+    showProg(true, 'Reading PDF…', 10);
+    setStat('Parsing ' + file.name);
+
+    try {
+      var lines = await tdExtractLines(file);
+      console.log('[CricMax PDF] Extracted ' + lines.length + ' lines');
+      showProg(true, 'Extracting match data…', 55);
+
+      var match = tdParseMatch(lines, file.name);
+      console.log('[CricMax PDF] Parsed match:', match);
+
+      var bCount = Object.keys(match.innings1.batters).length + Object.keys(match.innings2.batters).length;
+      var wCount = Object.keys(match.innings1.bowlers).length + Object.keys(match.innings2.bowlers).length;
+
+      /* Save locally (JSON only — no PDF blob) */
+      var all = window.__importedMatches || {};
+      if (!Object.keys(all).length){
+        try { var r = localStorage.getItem('cricmax_importedMatches'); if (r) all = JSON.parse(r); } catch(e){}
+      }
+      all[match.id] = match;
+      window.__importedMatches = all;
+      try { localStorage.setItem('cricmax_importedMatches', JSON.stringify(all)); } catch(e){}
+
+      /* Refresh every relevant UI */
+      if (typeof window.renderMatchLibrary === 'function') window.renderMatchLibrary();
+      if (typeof window.renderLibrary === 'function') window.renderLibrary();
+      var je = document.getElementById('jsonEditor');
+      if (je) je.value = JSON.stringify(all, null, 2);
+
+      /* Push ONLY the JSON match object to Firebase */
+      if (window.fbDb){
+        showProg(true, 'Pushing to Firebase…', 85);
+        try {
+          await window.fbDb.ref(FB_BASE + '/' + match.id).set(match);
+          showProg(true, '✔ Done', 100);
+          setTimeout(function(){ showProg(false); }, 900);
+          setStat('✔ ' + match.fixture + ' — ' + bCount + ' bat, ' + wCount + ' bowl → Firebase','ok');
+          if (typeof window.showToast === 'function') window.showToast('✅ Match saved to Firebase');
+        } catch(err){
+          showProg(false);
+          setStat('Parsed locally · Firebase failed: ' + (err.message || err),'err');
+        }
+      } else {
+        showProg(true, '✔ Parsed (Firebase not ready)', 100);
+        setTimeout(function(){ showProg(false); }, 900);
+        setStat('✔ ' + match.fixture + ' — ' + bCount + ' bat, ' + wCount + ' bowl (local only)','ok');
+      }
+
+      /* Force tournament pane refresh */
+      if (typeof window.refreshTournamentPane === 'function'){
+        setTimeout(function(){ try { window.refreshTournamentPane(); } catch(e){} }, 200);
+      }
+    } catch(err){
+      console.error('[CricMax PDF] Parse error:', err);
+      showProg(false);
+      setStat('Parse failed: ' + (err.message || err),'err');
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     STEP 4 — Rewire the input & dropzone (clone strips old listeners)
+     ───────────────────────────────────────────────────────────── */
+  function initWire(){
+    var oldDrop = document.getElementById('tdDrop');
+    if (!oldDrop || oldDrop.__tdV2) return;
+
+    /* Clone the dropzone (contains the file input) — old listeners die with the old element */
+    var newDrop = oldDrop.cloneNode(true);
+    newDrop.id = 'tdDrop';
+    newDrop.__tdV2 = true;
+    oldDrop.parentNode.replaceChild(newDrop, oldDrop);
+
+    /* Wire input */
+    var inp = newDrop.querySelector('input[type=file]');
+    if (inp){
+      inp.id = 'tdPdfInput';
+      inp.addEventListener('change', function(e){
+        var f = e.target.files && e.target.files[0];
+        if (f) tdHandlePdf(f);
+        e.target.value = '';
+      });
+    }
+
+    /* Wire drag & drop */
+    ['dragenter','dragover'].forEach(function(ev){
+      newDrop.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); newDrop.classList.add('drag'); });
+    });
+    ['dragleave','drop'].forEach(function(ev){
+      newDrop.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); newDrop.classList.remove('drag'); });
+    });
+    newDrop.addEventListener('drop', function(e){
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) tdHandlePdf(f);
+    });
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(initWire, 1500); });
+  } else {
+    setTimeout(initWire, 1500);
+  }
+  window.addEventListener('load', function(){ setTimeout(initWire, 800); setTimeout(initWire, 2500); });
+
+  /* Expose for console debugging */
+  window.__tdExtractLines = tdExtractLines;
+  window.__tdParseMatch = tdParseMatch;
+  window.__tdHandlePdf = tdHandlePdf;
+})();
+</script>
 </body>
-</html>
 </html>
