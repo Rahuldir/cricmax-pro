@@ -1059,6 +1059,26 @@ function endMatchAndDeclareWinner(skipConfirm = false) {
   } : null;
 
   pastMatchesLedger.unshift(entry);
+  /* ── Mirror to imported matches so Tournament "Add Match" picker sees it ── */
+  try {
+    var __imp = window.__importedMatches || {};
+    try {
+      var __raw = localStorage.getItem('cricmax_importedMatches');
+      if (__raw) __imp = JSON.parse(__raw);
+    } catch(e){}
+    var __mid = 'scored-' + Date.now() + '-' + Math.floor(Math.random()*9999);
+    entry.id = __mid;
+    __imp[__mid] = entry;
+    window.__importedMatches = __imp;
+    localStorage.setItem('cricmax_importedMatches', JSON.stringify(__imp));
+    if (window.fbDb) {
+      try { window.fbDb.ref('cricmax/importedMatches/' + __mid).set(entry); } catch(e){}
+    }
+    if (typeof window.renderMatchLibrary === 'function') { try { window.renderMatchLibrary(); } catch(e){} }
+    if (typeof window.refreshTournamentPane === 'function') { try { window.refreshTournamentPane(); } catch(e){} }
+    if (typeof window.buildAggregates === 'function') { try { window.buildAggregates(); } catch(e){} }
+    if (typeof window.renderStats === 'function') { try { window.renderStats(); } catch(e){} }
+  } catch(e) { console.warn('[CricMax] mirror to imported failed', e); }
   match.isActive = false;
 
   if (isCommentaryVoiceActive) speak(`Match finished! ${margin}. Congratulations!`);
