@@ -1,11 +1,11 @@
 /* ============================================================
-    main.js — Boot, loading screen, keyboard, wagon attach,
-              cross-frame message bus, visibility handler
-    ============================================================ */
+   main.js — Boot, loading screen, keyboard, wagon attach,
+             cross-frame message bus, visibility handler
+   ============================================================ */
 
 /* ═══════════════════════════════════════════════════════════
-    LOADING SCREEN
-    ═══════════════════════════════════════════════════════════ */
+   LOADING SCREEN
+   ═══════════════════════════════════════════════════════════ */
 var _cmLoaderBarEl = null;
 var _cmLoaderSubEl = null;
 var _cmLoaderEl    = null;
@@ -49,8 +49,8 @@ function cmAdvanceStage() {
 setTimeout(function () { if (!_cmLoaderDone) cmHideLoader(); }, 4500);
 
 /* ═══════════════════════════════════════════════════════════
-    CANVAS roundRect POLYFILL
-    ═══════════════════════════════════════════════════════════ */
+   CANVAS roundRect POLYFILL
+   ═══════════════════════════════════════════════════════════ */
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
     if (w < 2 * r) r = w / 2;
@@ -67,8 +67,8 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-    BOOT
-    ═══════════════════════════════════════════════════════════ */
+   BOOT
+   ═══════════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
 
   cmSetProgress(5, 'Initializing…');
@@ -207,8 +207,8 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-    CLEANUP ON UNLOAD
-    ═══════════════════════════════════════════════════════════ */
+   CLEANUP ON UNLOAD
+   ═══════════════════════════════════════════════════════════ */
 window.addEventListener('beforeunload', () => {
   if (viewerUnsubscribe) { try { viewerUnsubscribe(); } catch (e) {} }
   if (viewerCountUnsub)  { try { viewerCountUnsub();  } catch (e) {} }
@@ -218,8 +218,8 @@ window.addEventListener('beforeunload', () => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-    KEYBOARD SHORTCUTS
-    ═══════════════════════════════════════════════════════════ */
+   KEYBOARD SHORTCUTS
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
   const tag = (e.target && e.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -229,11 +229,11 @@ document.addEventListener('keydown', e => {
 
   if (k === 'Escape') {
     ['wicketTypeModal','nextBatterModal','bowlerModal','retireModal',
-      'settingsModal','extrasModal','moreOptionsModal','tournConfigModal',
-      'teamSelectionModal','openingRolesModal','i2Modal','endInningsModal',
-      'inningsBreakModal','resultModal','wideRunsModal','nbRunsModal',
-      'wagonModal','tournamentPickerModal','matchPickerModal',
-      'playerCareerModal'].forEach(id => {
+     'settingsModal','extrasModal','moreOptionsModal','tournConfigModal',
+     'teamSelectionModal','openingRolesModal','i2Modal','endInningsModal',
+     'inningsBreakModal','resultModal','wideRunsModal','nbRunsModal',
+     'wagonModal','tournamentPickerModal','matchPickerModal',
+     'playerCareerModal'].forEach(id => {
       const el = document.getElementById(id);
       if (el && el.style.display === 'flex') el.style.display = 'none';
     });
@@ -255,8 +255,8 @@ document.addEventListener('keydown', e => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-    AUTO-CAPITALIZE ALL TEXT INPUTS
-    ═══════════════════════════════════════════════════════════ */
+   AUTO-CAPITALIZE ALL TEXT INPUTS
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('input', function (e) {
   const el = e.target;
   if (!el) return;
@@ -285,8 +285,8 @@ document.addEventListener('input', function (e) {
 }, true);
 
 /* ═══════════════════════════════════════════════════════════
-    3D VIEWER → MAIN APP NAVIGATION BUS
-    ═══════════════════════════════════════════════════════════ */
+   3D VIEWER → MAIN APP NAVIGATION BUS
+   ═══════════════════════════════════════════════════════════ */
 window.addEventListener('message', function (ev) {
   if (!ev.data || ev.data.type !== 'CM_NAV_TO') return;
   const pane = ev.data.pane;
@@ -303,8 +303,8 @@ window.addEventListener('message', function (ev) {
 });
 
 /* ═══════════════════════════════════════════════════════════
-    VISIBILITY RESUME HANDLER — SAFE VERSION
-    ═══════════════════════════════════════════════════════════ */
+   VISIBILITY RESUME HANDLER — SAFE VERSION
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   if (!match || !match.isActive || isViewerMode) return;
@@ -331,8 +331,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* ═══════════════════════════════════════════════════════════
-    BACKUP COMMENTARY RENDERER (safety net)
-    ═══════════════════════════════════════════════════════════ */
+   BACKUP COMMENTARY RENDERER (safety net)
+   ═══════════════════════════════════════════════════════════ */
 (function () {
   var lastLen = -1, lastFirst = '';
   function safeRender() {
@@ -356,17 +356,13 @@ document.addEventListener('visibilitychange', () => {
         continue;
       }
       var tc = comm.type === 'w' ? 'w' : comm.type === 'four' ? 'four' : comm.type === 'six' ? 'six' : '';
-      html += '<div class="comm-item' + (i === 0 ? ' newest' : '') + ">' +
+      html += '<div class="comm-item' + (i === 0 ? ' newest' : '') + '">' +
                 '<div class="comm-ball ' + tc + '">' + comm.ball + '</div>' +
                 '<div class="comm-body"><div class="comm-over">Over ' + comm.ball + '</div>' +
                 '<div class="comm-text">' + comm.desc + '</div></div></div>';
     }
     c.innerHTML = html;
   }
-  function tick() {
-    safeRender();
-    setTimeout(tick, 1000);
-  }
-  setTimeout(tick, 1000);
+  setInterval(safeRender, 500);
   console.log('[CricMax] 📝 Backup commentary renderer armed');
 })();
