@@ -690,7 +690,178 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 .v-wagon-legend > div{display:flex;align-items:center;gap:5px;}
 .v-leg-line{display:inline-block;width:22px;height:2px;border-radius:1px;}
 .v-wagon-summary{font-family:ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.5);text-align:center;padding:0 10px 12px;text-transform:uppercase;}
-  </style>
+  /* ═══════════════════════════════════════════════════════════════
+     RAVI CUP TOURNAMENT DASHBOARD (viewer, read-only)
+     ═══════════════════════════════════════════════════════════════ */
+  #viewerTournamentPane{
+    --td-red:#e10600; --td-red-b:#ff2d20; --td-neon:#00ffa3;
+    --td-cyan:#00e0ff; --td-amber:#ffb800; --td-violet:#b14aff;
+    --td-magenta:#ff00aa; --td-lime:#c8ff00;
+    --td-dim:#8e8e9c; --td-dim2:#54545f;
+    --td-line:rgba(255,255,255,.06); --td-line2:rgba(255,255,255,.12);
+    --td-mono:'JetBrains Mono',ui-monospace,monospace;
+    font-family:'Titillium Web',system-ui,sans-serif;
+  }
+  .td-hero{position:relative;padding:16px 18px;margin-bottom:14px;background:linear-gradient(90deg,rgba(225,6,0,.22),rgba(0,0,0,.7) 35%,rgba(0,0,0,.85));border:1px solid var(--td-line2);border-left:5px solid var(--td-red);overflow:hidden;}
+  .td-hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(115deg,transparent 0 28px,rgba(225,6,0,.14) 28px 30px,transparent 30px 58px);opacity:.55;}
+  .td-hero-inner{position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .td-hero-logo{width:48px;height:48px;flex-shrink:0;display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,var(--td-red),#8a0300);color:#fff;clip-path:polygon(15% 0,100% 0,100% 85%,85% 100%,0 100%,0 15%);box-shadow:0 0 0 1px rgba(255,255,255,.15),0 8px 24px rgba(225,6,0,.45);}
+  .td-hero-txt{flex:1;min-width:180px;}
+  .td-hero-name{font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:3px;text-transform:uppercase;line-height:1;margin:0;background:linear-gradient(100deg,#ff2d20,#ffb800 50%,#00ffa3);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 10px rgba(255,45,32,.4));}
+  .td-hero-meta{font-family:var(--td-mono);font-size:9px;letter-spacing:2.4px;font-weight:700;color:var(--td-dim);text-transform:uppercase;margin-top:5px;}
+  .td-hero-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;position:relative;z-index:1;}
+  .td-hbtn{font-family:inherit;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;padding:7px 12px;border:1px solid var(--td-line2);background:rgba(255,255,255,.05);color:var(--td-dim);cursor:pointer;transition:.15s;clip-path:polygon(8% 0,100% 0,100% 100%,0 100%,0 22%);}
+  .td-hbtn:hover{background:rgba(255,255,255,.1);color:#fff;border-color:var(--td-red);}
+  .td-hbtn.gold{background:linear-gradient(140deg,rgba(255,184,0,.22),rgba(255,184,0,.06));border-color:rgba(255,184,0,.5);color:var(--td-amber);}
+  .td-hbtn.green{background:rgba(0,255,163,.12);border-color:rgba(0,255,163,.4);color:var(--td-neon);}
+  .td-hbtn.cy{background:rgba(0,224,255,.12);border-color:rgba(0,224,255,.4);color:var(--td-cyan);}
+  .td-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(0,0,0,.55);border:1px solid var(--td-line2);margin-bottom:14px;}
+  .td-tab{position:relative;padding:13px 10px;border:none;background:transparent;font-family:inherit;font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--td-dim2);cursor:pointer;transition:.18s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .td-tab:hover{color:var(--td-dim);background:rgba(255,255,255,.02);}
+  .td-tab.on{color:#fff;background:linear-gradient(180deg,rgba(225,6,0,.22),rgba(225,6,0,.05));}
+  .td-tab.on::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--td-red),var(--td-amber));box-shadow:0 0 16px rgba(225,6,0,.85);}
+  .td-pane{display:none;} .td-pane.on{display:block;animation:tdSlide .25s cubic-bezier(.2,.9,.3,1);}
+  @keyframes tdSlide{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .td-mlist{display:grid;gap:8px;}
+  .td-mhd{display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(0,0,0,.5);border:1px solid var(--td-line2);font-family:var(--td-mono);font-size:8.5px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--td-dim);}
+  .td-mc{position:relative;display:block;width:100%;text-align:left;background:linear-gradient(100deg,rgba(255,255,255,.03),rgba(255,255,255,.008));border:1px solid var(--td-line);padding:0;cursor:pointer;font-family:inherit;color:inherit;transition:.18s;overflow:hidden;clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%);}
+  .td-mc:hover{background:linear-gradient(100deg,rgba(225,6,0,.14),rgba(255,255,255,.03));border-color:rgba(225,6,0,.4);transform:translateX(2px);box-shadow:-8px 0 32px rgba(225,6,0,.25);}
+  .td-mc-inner{display:flex;align-items:stretch;}
+  .td-mc-pos{width:56px;flex-shrink:0;padding:14px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:linear-gradient(135deg,rgba(225,6,0,.22),rgba(225,6,0,.04));border-right:1px solid var(--td-line2);font-weight:900;color:var(--td-red-b);}
+  .td-mc-pos .n{font-size:20px;line-height:1;text-shadow:0 0 12px rgba(225,6,0,.6);}
+  .td-mc-pos .lbl{font-family:var(--td-mono);font-size:7px;letter-spacing:1.2px;color:var(--td-dim);font-weight:700;}
+  .td-mc-body{flex:1;padding:12px 16px;min-width:0;}
+  .td-mc-fixture{font-size:15px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase;color:#fff;line-height:1.15;margin-bottom:6px;}
+  .td-mc-result{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--td-neon);margin-bottom:8px;}
+  .td-mc-meta{display:flex;flex-wrap:wrap;gap:12px;font-family:var(--td-mono);font-size:8.5px;font-weight:700;letter-spacing:1.4px;color:var(--td-dim);text-transform:uppercase;margin-bottom:10px;}
+  .td-mc-score{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid var(--td-line);}
+  .td-mc-team{display:flex;flex-direction:column;gap:3px;padding-left:9px;border-left:3px solid var(--td-amber);}
+  .td-mc-team.t2{border-left-color:var(--td-cyan);}
+  .td-mc-team .tt{font-family:var(--td-mono);font-size:8.5px;font-weight:800;letter-spacing:1.4px;color:var(--td-dim);text-transform:uppercase;}
+  .td-mc-team .ss{font-size:16px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;line-height:1;}
+  .td-mc-team .ss small{font-family:var(--td-mono);font-size:9px;font-weight:600;color:var(--td-dim);margin-left:5px;letter-spacing:.5px;}
+  .td-back{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;margin-bottom:14px;background:rgba(255,255,255,.035);border:1px solid var(--td-line2);color:var(--td-cyan);font-family:inherit;font-size:10.5px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;cursor:pointer;transition:.15s;clip-path:polygon(8% 0,100% 0,100% 100%,0 100%,0 22%);}
+  .td-back:hover{background:rgba(0,224,255,.14);border-color:var(--td-cyan);color:#fff;}
+  .td-banner{position:relative;padding:18px 20px;margin-bottom:16px;background:linear-gradient(100deg,rgba(225,6,0,.22),rgba(0,0,0,.5) 60%);border:1px solid rgba(225,6,0,.35);overflow:hidden;}
+  .td-banner::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,var(--td-red),var(--td-amber),var(--td-neon));box-shadow:0 0 22px rgba(225,6,0,.6);}
+  .td-banner-tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--td-mono);font-size:8px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;padding:5px 10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.14);color:var(--td-dim);margin-bottom:10px;}
+  .td-banner h2{font-size:clamp(16px,2.6vw,22px);font-weight:900;letter-spacing:2.4px;text-transform:uppercase;color:#fff;line-height:1.15;margin:0;}
+  .td-banner h2 .vs{color:var(--td-red-b);margin:0 8px;font-size:.8em;}
+  .td-banner .res{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--td-neon);}
+  .td-banner .meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:var(--td-mono);font-size:8.5px;font-weight:700;letter-spacing:1.6px;color:var(--td-dim);text-transform:uppercase;}
+  .td-sec{display:flex;align-items:center;gap:11px;margin:20px 0 12px;font-size:11px;font-weight:900;letter-spacing:3.2px;text-transform:uppercase;color:var(--td-dim);}
+  .td-sec::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--td-line2),transparent);}
+  .td-sec .bar{width:4px;height:18px;background:var(--c,var(--td-red));box-shadow:0 0 10px var(--c,var(--td-red));}
+  .td-sec.lime{--c:var(--td-neon);} .td-sec.cyan{--c:var(--td-cyan);}
+  .td-sec.red{--c:var(--td-red-b);} .td-sec.gold{--c:var(--td-amber);}
+  .td-inntabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 12px;}
+  .td-inntab{position:relative;padding:12px 14px;text-align:left;background:rgba(255,255,255,.02);border:1px solid var(--td-line);cursor:pointer;font-family:inherit;color:var(--td-dim);transition:.18s;overflow:hidden;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);}
+  .td-inntab:hover{background:rgba(255,255,255,.05);color:#fff;}
+  .td-inntab .tag{font-family:var(--td-mono);font-size:8px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--td-dim2);}
+  .td-inntab .team{font-size:14px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;margin-top:6px;color:#fff;line-height:1.2;}
+  .td-inntab .scr{font-size:16px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums;color:#fff;display:flex;align-items:baseline;gap:8px;}
+  .td-inntab .scr small{font-family:var(--td-mono);font-size:9px;font-weight:600;color:var(--td-dim);}
+  .td-inntab.on{background:linear-gradient(120deg,rgba(225,6,0,.24),rgba(225,6,0,.03));border-color:var(--td-red);color:#fff;box-shadow:0 0 30px rgba(225,6,0,.22);}
+  .td-inntab.on::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--td-red),var(--td-amber));box-shadow:0 0 14px rgba(225,6,0,.7);}
+  .td-inntab.cy.on{background:linear-gradient(120deg,rgba(0,224,255,.2),rgba(0,224,255,.03));border-color:var(--td-cyan);box-shadow:0 0 30px rgba(0,224,255,.22);}
+  .td-inntab.cy.on::after{background:linear-gradient(90deg,#0891b2,var(--td-cyan));}
+  .td-innpane{display:none;} .td-innpane.on{display:block;animation:tdSlide .22s ease;}
+  .td-tbl-wrap{border:1px solid var(--td-line2);background:rgba(0,0,0,.35);overflow-x:auto;margin-bottom:14px;}
+  .td-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:540px;}
+  .td-tbl thead tr{background:linear-gradient(90deg,rgba(225,6,0,.14),rgba(255,255,255,.02) 60%,transparent);}
+  .td-tbl th{padding:10px;text-align:left;font-family:var(--td-mono);font-size:8px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--td-dim);white-space:nowrap;border-bottom:1px solid var(--td-line2);}
+  .td-tbl th.r{text-align:right;}
+  .td-tbl td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.045);vertical-align:middle;white-space:nowrap;}
+  .td-tbl td.r{text-align:right;font-family:var(--td-mono);font-variant-numeric:tabular-nums;font-weight:700;}
+  .td-tbl tbody tr:hover{background:rgba(225,6,0,.08);}
+  .td-tbl td.pos{font-weight:900;font-size:11px;color:var(--td-dim2);width:24px;text-align:center;border-right:1px solid var(--td-line);}
+  .td-tbl td.pos.p1{color:var(--td-amber);text-shadow:0 0 8px rgba(255,184,0,.6);}
+  .td-tbl td.pos.p2{color:#d8d8d8;} .td-tbl td.pos.p3{color:#c88b3f;}
+  .td-nm{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--td-cyan);letter-spacing:.4px;cursor:pointer;border-bottom:1px dashed rgba(0,224,255,.35);transition:.14s;}
+  .td-nm:hover{color:#fff;border-bottom-color:#fff;text-shadow:0 0 8px rgba(0,224,255,.5);}
+  .td-v-g{color:var(--td-neon);font-weight:800;} .td-v-c{color:var(--td-cyan);font-weight:800;}
+  .td-v-a{color:var(--td-amber);font-weight:800;} .td-v-r{color:var(--td-red-b);font-weight:800;}
+  .td-v-p{color:var(--td-violet);font-weight:800;} .td-v-o{color:#ff8a2b;font-weight:800;}
+  .td-v-hi{color:#fff;font-weight:800;font-size:12.5px;} .td-v-dim{color:var(--td-dim);}
+  .td-status{font-size:10px;color:var(--td-dim);}
+  .td-status.no{color:var(--td-neon);font-weight:700;}
+  .td-status.out{color:#ff9e96;}
+  .td-tbl-total{background:linear-gradient(90deg,rgba(225,6,0,.14),transparent) !important;}
+  .td-tbl-total td{padding:11px 10px;border-top:1px solid var(--td-line2);border-bottom:none !important;font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;}
+  .td-tbl-total .ttl{color:var(--td-dim);font-family:var(--td-mono);font-size:9px;letter-spacing:2px;}
+  .td-tbl-total .big{font-size:17px;color:#fff;}
+  .td-dnb{padding:10px 14px;background:rgba(255,255,255,.02);border-top:1px solid var(--td-line);font-size:11px;color:var(--td-dim);font-family:var(--td-mono);letter-spacing:.6px;margin-bottom:14px;}
+  .td-dnb b{color:var(--td-dim2);font-weight:700;letter-spacing:1.4px;font-size:9.5px;text-transform:uppercase;margin-right:8px;}
+  .td-dnb span{color:#b8b8c8;font-weight:600;font-size:11.5px;}
+  .td-fow-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .td-fow-pill{font-family:var(--td-mono);font-size:10px;font-weight:700;padding:6px 10px;background:rgba(255,45,32,.1);border:1px solid rgba(255,45,32,.3);color:#ffb3b3;clip-path:polygon(7% 0,100% 0,100% 100%,0 100%,0 30%);display:flex;align-items:center;gap:7px;}
+  .td-fow-pill .wn{font-weight:900;color:var(--td-red-b);}
+  .td-fow-pill b{color:#fff;font-weight:800;}
+  .td-pship-list{display:grid;gap:4px;margin-bottom:14px;}
+  .td-pship{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 12px;background:rgba(255,255,255,.018);border-left:3px solid var(--td-line2);transition:.14s;font-size:11.5px;}
+  .td-pship:hover{background:rgba(255,255,255,.05);border-left-color:var(--td-amber);}
+  .td-pship .left{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+  .td-pship .wn{font-family:var(--td-mono);font-size:10px;font-weight:900;color:var(--td-amber);letter-spacing:1px;padding:3px 7px;background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);flex-shrink:0;}
+  .td-pship .contrib{color:#c8c8d2;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .td-pship .score{font-size:12.5px;font-weight:900;color:var(--td-neon);flex-shrink:0;font-variant-numeric:tabular-nums;}
+  .td-pship .score small{font-family:var(--td-mono);font-size:9px;color:var(--td-dim);margin-left:3px;}
+  .td-radio{background:rgba(0,0,0,.4);border:1px solid var(--td-line2);overflow:hidden;margin-bottom:14px;}
+  .td-radio-hd{display:flex;align-items:center;gap:12px;padding:12px 14px;background:linear-gradient(90deg,rgba(225,6,0,.18),transparent);border-bottom:1px solid var(--td-line2);}
+  .td-radio-hd .live{display:flex;align-items:center;gap:7px;font-family:var(--td-mono);font-size:8.5px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--td-red-b);}
+  .td-radio-hd .ttl{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#fff;}
+  .td-radio-hd .cnt{margin-left:auto;font-family:var(--td-mono);font-size:8.5px;font-weight:700;letter-spacing:1.4px;color:var(--td-dim);}
+  .td-radio-body{max-height:400px;overflow-y:auto;}
+  .td-radio-body::-webkit-scrollbar{width:6px;}
+  .td-radio-body::-webkit-scrollbar-thumb{background:rgba(225,6,0,.5);}
+  .td-ov-div{display:flex;align-items:center;gap:10px;padding:8px 14px;background:linear-gradient(90deg,rgba(255,255,255,.055),transparent);border-top:1px solid var(--td-line);border-bottom:1px solid var(--td-line);font-family:var(--td-mono);font-size:9px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--td-dim);}
+  .td-ov-div .num{color:var(--td-red-b);}
+  .td-ov-div .tot{margin-left:auto;color:var(--td-dim2);}
+  .td-ball{display:grid;grid-template-columns:56px 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;line-height:1.5;transition:.12s;}
+  .td-ball .badge{display:flex;align-items:flex-start;justify-content:center;padding:11px 4px 11px 0;font-family:var(--td-mono);font-size:10px;font-weight:900;color:var(--td-dim);border-right:1px solid var(--td-line);}
+  .td-ball .txt{padding:10px 14px 10px 12px;color:#c8c8d2;}
+  .td-ball .txt b{color:#fff;font-weight:700;}
+  .td-ball .txt .bwl{color:#a8a8bb;font-weight:700;}
+  .td-ball .txt .bat{color:var(--td-cyan);font-weight:700;}
+  .td-ball .txt .runs{color:var(--td-amber);font-weight:800;}
+  .td-ball.b-w{background:rgba(255,45,32,.08);}
+  .td-ball.b-w .badge{background:rgba(255,45,32,.28);color:#fff;}
+  .td-ball.b-w .txt{color:#ffb3b3;} .td-ball.b-w .txt b{color:var(--td-red-b);}
+  .td-ball.b-f .badge{background:rgba(0,224,255,.22);color:#fff;}
+  .td-ball.b-f .txt b{color:var(--td-cyan);}
+  .td-ball.b-s .badge{background:rgba(255,138,43,.24);color:#fff;}
+  .td-ball.b-s .txt b{color:#ff8a2b;}
+  .td-ball.b-os{background:rgba(255,255,255,.035);}
+  .td-ball.b-os .badge{background:rgba(255,255,255,.05);color:var(--td-dim2);font-size:9px;}
+  .td-ball.b-os .txt{color:var(--td-dim);font-style:italic;font-size:11.5px;}
+  .td-tourn-empty{padding:32px 20px;text-align:center;color:var(--td-dim);font-family:var(--td-mono);font-size:10px;letter-spacing:1.8px;text-transform:uppercase;background:rgba(0,0,0,.4);border:1px dashed var(--td-line2);}
+  /* Player popup (viewer) */
+  .mlp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(12px);z-index:9999999;display:none;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;}
+  .mlp-overlay.on{display:flex;}
+  .mlp-card{width:min(94vw,680px);position:relative;margin:auto;background:linear-gradient(155deg,#111118,#080810);border:1px solid rgba(225,6,0,.4);border-radius:10px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.9);}
+  .mlp-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,.08);background:linear-gradient(100deg,rgba(225,6,0,.14),transparent 55%);}
+  .mlp-hd h3{font-family:ui-monospace,monospace;font-size:clamp(20px,3.4vw,26px);font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#fff;margin:0;}
+  .mlp-hd .sub{font-family:ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;color:#7a8590;margin-top:8px;}
+  .mlp-close{width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#7a8590;border-radius:8px;cursor:pointer;font-size:16px;font-weight:900;}
+  .mlp-close:hover{background:rgba(225,6,0,.3);color:#fff;}
+  .mlp-body{padding:18px 22px 24px;max-height:calc(100vh - 180px);overflow-y:auto;}
+  .mlp-sec{font-size:10px;font-weight:900;letter-spacing:2.4px;text-transform:uppercase;color:#fbbf24;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+  .mlp-sec::before{content:'';width:4px;height:14px;background:#fbbf24;box-shadow:0 0 8px #fbbf24;}
+  .mlp-sec:first-child{margin-top:0;}
+  .mlp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;}
+  .mlp-cell{background:linear-gradient(180deg,#0f0f17,#080810);padding:10px 12px;}
+  .mlp-cell .l{font-family:ui-monospace,monospace;font-size:8.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.45);}
+  .mlp-cell .v{font-family:ui-monospace,monospace;font-size:17px;font-weight:900;color:#fff;margin-top:4px;}
+  .mlp-cell .v.g{color:#00d2be;}.mlp-cell .v.c{color:#22d3ee;}.mlp-cell .v.a{color:#fbbf24;}.mlp-cell .v.r{color:#ff2d20;}
+  .mlp-log-item{padding:10px 12px;background:linear-gradient(100deg,rgba(255,255,255,.04),transparent);border-left:3px solid #22d3ee;border-radius:4px;margin-bottom:6px;}
+  .mlp-log-item .fx{font-weight:900;color:#fff;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;}
+  .mlp-log-item .fx small{font-family:ui-monospace,monospace;color:#fbbf24;margin-left:6px;font-size:9px;letter-spacing:1.2px;}
+  .mlp-log-item .ln{font-family:ui-monospace,monospace;font-size:9px;color:#7a8590;letter-spacing:1.2px;margin-top:4px;text-transform:uppercase;}
+  .mlp-log-item .st{display:flex;gap:12px;margin-top:6px;font-family:ui-monospace,monospace;font-size:11px;font-weight:800;flex-wrap:wrap;}
+  .mlp-log-item .st .bat{color:#00d2be;}
+  .mlp-log-item .st .bowl{color:#ff2d20;}
+  .mlp-tchip{display:inline-block;font-family:ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:.8px;padding:3px 8px;text-transform:uppercase;background:rgba(0,210,190,.1);border:1px solid rgba(0,210,190,.35);color:#00d2be;border-radius:4px;margin-right:4px;}
+  @media(max-width:520px){.mlp-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
 </head>
 <body>
 
@@ -995,7 +1166,7 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       <button type="button" class="sheet-tab" data-sheet="live" onclick="showSheet('live')">Live</button>
       <button type="button" class="sheet-tab" data-sheet="analytics" onclick="showSheet('analytics')">Analysis</button>
       <button type="button" class="sheet-tab" data-sheet="leaderboards" onclick="showSheet('leaderboards')">Stats</button>
-      <button type="button" class="sheet-tab" data-sheet="matches" onclick="showSheet('matches')">📚 Matches</button>
+      <button type="button" class="sheet-tab" data-sheet="matches" onclick="showSheet('matches')">🏆 Tournament</button>
     </div>
     <button type="button" class="sheet-close" id="sheetClose"><svg class="ico ico-s" viewBox="0 0 24 24" style="stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
   </div>
@@ -1124,29 +1295,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       </div>
     </div>
 
-    <!-- MATCHES (read-only imported matches) -->
+    <!-- TOURNAMENT (read-only Ravi Cup dashboard) -->
     <div class="sheet-pane" data-pane="matches">
-      <div class="f1-panel gold">
-        <div class="f1-panel-head">
-          <span class="f1-panel-title">📚 Imported Matches</span>
-          <span class="f1-panel-sub" id="viewerMatchesSub">--</span>
-        </div>
-        <div id="viewerMatchesList" style="padding:10px 12px;">
-          <div class="f1-empty">Loading matches…</div>
-        </div>
-      </div>
-
-      <div class="f1-panel purple">
-        <div class="f1-panel-head">
-          <span class="f1-panel-title">📊 Aggregated Stats</span>
-          <span class="f1-panel-sub" id="viewerAggSub">--</span>
-        </div>
-        <table class="f1-table">
-          <thead><tr>
-            <th>#</th><th>Player</th><th>M</th><th>R</th><th>SR</th><th>W</th><th>Eco</th>
-          </tr></thead>
-          <tbody id="viewerAggBody"></tbody>
-        </table>
+      <div id="viewerTournamentPane">
+        <div class="td-tourn-empty">Loading tournament data…</div>
       </div>
     </div>
 
@@ -1161,6 +1313,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   <div class="tv-meta" id="tvMeta">Overs: 0.0 • CRR: 0.00</div>
   <div class="tv-batters" id="tvBatters"></div>
   <div class="tv-recent" id="tvRecent"></div>
+</div>
+
+<div class="mlp-overlay" id="vTdPlayerOverlay" onclick="if(event.target===this)vTdClosePlayer()">
+  <div class="mlp-card" id="vTdPlayerCard"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1785,8 +1941,9 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   /* ═══ VIEWER WAGON WHEEL / SPIDER / CATCH MAP ═══ */   var __vWagonTeam = 1;   var __vWagonMode = 'wagon';    window.vSwitchWagonTeam = function(team){     __vWagonTeam = team;     var t1 = document.getElementById('vTeamToggle1');     var t2 = document.getElementById('vTeamToggle2');     if (t1) t1.classList.toggle('active', team === 1);     if (t2) t2.classList.toggle('active', team === 2);     drawViewerWagon();   };    window.vSwitchWagonMode = function(mode){     __vWagonMode = mode;     var ids = { wagon:'vWagonTabWagon', spider:'vWagonTabSpider', catch:'vWagonTabCatch' };     Object.keys(ids).forEach(function(k){       var el = document.getElementById(ids[k]);       if (el) el.classList.toggle('active', k === mode);     });     drawViewerWagon();   };    function drawViewerWagon(){     var cv = document.getElementById('viewerWagonCanvas');     if (!cv) return;     var ctx = cv.getContext('2d');     if (!ctx) return;     var W = cv.width, H = cv.height;     var cx = W/2, cy = H/2;     var R = W/2 - 20;      ctx.clearRect(0, 0, W, H);     ctx.setLineDash([]);     ctx.shadowBlur = 0;     ctx.globalAlpha = 1;      var fieldGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);     fieldGrad.addColorStop(0,   '#1f4a24');     fieldGrad.addColorStop(0.55,'#143419');     fieldGrad.addColorStop(0.85,'#0e2511');     fieldGrad.addColorStop(1,   '#071808');     ctx.fillStyle = fieldGrad;     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();      ctx.save();     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();     ctx.globalAlpha = 0.08;     for (var i = -R; i < R; i += 22){       ctx.fillStyle = (Math.floor(i/22) % 2 === 0) ? '#ffffff' : '#000000';       ctx.fillRect(cx - R, cy + i, R*2, 11);     }     ctx.globalAlpha = 1;     ctx.restore();      ctx.strokeStyle = 'rgba(255,255,255,.4)';     ctx.lineWidth = 2;     ctx.setLineDash([10, 8]);     ctx.beginPath(); ctx.arc(cx, cy, R*0.58, 0, Math.PI*2); ctx.stroke();     ctx.setLineDash([]);      var pitchW = 26, pitchLen = R * 1.55;     var pitchGrad = ctx.createLinearGradient(cx - pitchW/2, 0, cx + pitchW/2, 0);     pitchGrad.addColorStop(0,   'rgba(140,110,70,.35)');     pitchGrad.addColorStop(0.5, 'rgba(196,168,130,.75)');     pitchGrad.addColorStop(1,   'rgba(140,110,70,.35)');     ctx.fillStyle = pitchGrad;     ctx.fillRect(cx - pitchW/2, cy - pitchLen/2, pitchW, pitchLen);      ctx.strokeStyle = 'rgba(255,255,255,.7)';     ctx.lineWidth = 1.5;     ctx.beginPath();     ctx.moveTo(cx - 22, cy - R*0.62); ctx.lineTo(cx + 22, cy - R*0.62);     ctx.moveTo(cx - 22, cy + R*0.62); ctx.lineTo(cx + 22, cy + R*0.62);     ctx.stroke();      ctx.strokeStyle = '#f8fafc';     ctx.lineWidth = 3;     ctx.shadowBlur = 14;     ctx.shadowColor = 'rgba(248,250,252,.5)';     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();     ctx.shadowBlur = 0;      var m = __viewerMatch();     var allShots = m ? __toArr(m.shotLog) : [];     var shots = allShots.filter(function(s){       if (!s) return false;       var inn = Number(s.inns) || 1;       return inn === __vWagonTeam;     });      if (__vWagonMode === 'catch'){       drawViewerCatchMap(ctx, cx, cy, R, shots);     } else {       drawViewerShots(ctx, cx, cy, R, shots, __vWagonMode === 'spider');     }      ctx.shadowBlur = 16;     ctx.shadowColor = 'rgba(0,230,118,.9)';     ctx.fillStyle = '#00e676';     ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI*2); ctx.fill();     ctx.shadowBlur = 0;     ctx.fillStyle = '#0a0e1a';     ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();     ctx.fillStyle = '#00e676';     ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, Math.PI*2); ctx.fill();      var runsTotal = shots.reduce(function(a, s){ return a + (Number(s.runs) || 0); }, 0);     var boundaries = shots.filter(function(s){ return (Number(s.runs) || 0) >= 4; }).length;     var sumEl = document.getElementById('viewerWagonSummary');     var subEl = document.getElementById('wagonSub');     if (sumEl) sumEl.textContent = shots.length + ' balls · ' + runsTotal + ' runs · ' + boundaries + ' boundaries';     if (subEl) subEl.textContent = shots.length + ' SHOTS';   }    function drawViewerShots(ctx, cx, cy, R, shots, spiderMode){     shots.forEach(function(s){       var runs = Number(s.runs) || 0;       var isWkt = !!(s.isWicket || s.isOut);       var angle = (typeof s.angle === 'number') ? s.angle : parseFloat(s.angle);       if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;        if (runs === 0 && !isWkt){         var dx = cx + Math.sin(angle) * 20;         var dy = cy - Math.cos(angle) * 20;         ctx.fillStyle = 'rgba(148,163,184,.7)';         ctx.beginPath(); ctx.arc(dx, dy, 2.5, 0, Math.PI*2); ctx.fill();         return;       }        var lenFraction;       if (runs >= 6) lenFraction = 0.95;       else if (runs === 4) lenFraction = 0.86;       else if (runs === 3) lenFraction = 0.62;       else if (runs === 2) lenFraction = 0.46;       else if (runs === 1) lenFraction = 0.32;       else lenFraction = 0.14;        var len = R * lenFraction;       var ex = cx + Math.sin(angle) * len;       var ey = cy - Math.cos(angle) * len;        var col;       if (runs >= 6) col = '#d946ef';       else if (runs === 4) col = '#22d3ee';       else if (runs > 0) col = '#94a3b8';       else col = '#ef4444';        ctx.strokeStyle = col;       ctx.lineWidth = runs >= 6 ? 4 : runs >= 4 ? 3.5 : 2.2;       ctx.lineCap = 'round';       ctx.shadowBlur = spiderMode ? 5 : 10;       ctx.shadowColor = col;        ctx.beginPath();       ctx.moveTo(cx, cy);       ctx.lineTo(ex, ey);       ctx.stroke();        ctx.fillStyle = col;       ctx.beginPath(); ctx.arc(ex, ey, runs >= 4 ? 4 : 3, 0, Math.PI*2); ctx.fill();        ctx.shadowBlur = 0;     });   }    function drawViewerCatchMap(ctx, cx, cy, R, shots){     var catches = shots.filter(function(s){       if (!s) return false;       return s.isCatch || (s.isWicket && /catch/i.test(String(s.wicketType || s.method || '')));     });      catches.forEach(function(s){       var angle = (typeof s.angle === 'number') ? s.angle : parseFloat(s.angle);       if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;        var px = cx + Math.sin(angle) * R * 0.88;       var py = cy - Math.cos(angle) * R * 0.88;        ctx.strokeStyle = 'rgba(239,68,68,.35)';       ctx.lineWidth = 1.5;       ctx.setLineDash([4, 4]);       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();       ctx.setLineDash([]);        ctx.fillStyle = '#ef4444';       ctx.shadowBlur = 12;       ctx.shadowColor = 'rgba(239,68,68,.9)';       ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();       ctx.shadowBlur = 0;        ctx.fillStyle = '#fff';       ctx.font = 'bold 10px sans-serif';       ctx.textAlign = 'center';       ctx.textBaseline = 'middle';       ctx.fillText('C', px, py + 0.5);     });      if (!catches.length){       ctx.fillStyle = 'rgba(255,255,255,.35)';       ctx.font = 'bold 12px ui-monospace, monospace';       ctx.textAlign = 'center';       ctx.textBaseline = 'middle';       ctx.fillText('NO CATCHES', cx, cy + R * 0.35);     }   }
 
-  /* ═══ IMPORTED MATCHES (read-only viewer) ═══ */
+  /* ═══ TOURNAMENT (read-only Ravi Cup dashboard) ═══ */
   function renderViewerMatches(){
+    if (typeof renderViewerTournament === 'function'){ renderViewerTournament(); return; }
     var listEl  = document.getElementById('viewerMatchesList');
     var subEl   = document.getElementById('viewerMatchesSub');
     var aggBody = document.getElementById('viewerAggBody');
@@ -1888,6 +2045,366 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
       listEl.innerHTML = '<div class="f1-empty">Failed to load: '+__esc(err.message||'error')+'</div>';
     });
   }
+
+  function renderViewerTournament(){
+    var mount = document.getElementById('viewerTournamentPane');
+    if (!mount) return;
+    if (typeof firebase === 'undefined' || !firebase.database){
+      mount.innerHTML = '<div class="td-tourn-empty">Firebase not ready</div>';
+      return;
+    }
+    mount.innerHTML = '<div class="td-tourn-empty">Loading tournament…</div>';
+    firebase.database().ref('cricmax/importedMatches').once('value').then(function(snap){
+      var v = snap.val() || {};
+      var keys = Object.keys(v);
+      var all = {};
+      keys.forEach(function(k){ all[k] = Object.assign({id:k}, v[k]); });
+      if (!keys.length){
+        mount.innerHTML = '<div class="td-tourn-empty">No matches yet</div>';
+        return;
+      }
+      var tourns = {};
+      keys.forEach(function(k){
+        var m = all[k];
+        var tn = m.tournament || 'Ravi Cup 2026';
+        if (!tourns[tn]) tourns[tn] = { name:tn, venue:m.venue||'Local Stadium', overs:20, matchIds:[] };
+        tourns[tn].matchIds.push(k);
+      });
+      var tKeys = Object.keys(tourns);
+      var current = tourns[tKeys[0]];
+      var mc = current.matchIds.length;
+      var html = '';
+      html += '<div class="td-hero"><div class="td-hero-inner">'
+            + '<div class="td-hero-logo">🏆</div>'
+            + '<div class="td-hero-txt">'
+            + '<h2 class="td-hero-name">' + __esc(current.name) + '</h2>'
+            + '<div class="td-hero-meta">' + __esc(current.venue) + ' · ' + current.overs + ' ov · ' + mc + ' match' + (mc===1?'':'es') + '</div>'
+            + '</div></div></div>';
+      html += '<div class="td-tabs">'
+            + '<button class="td-tab on" onclick="vTdShowSub(\'matches\',this)">📋 Matches</button>'
+            + '<button class="td-tab" onclick="vTdShowSub(\'stats\',this)">📊 Stats</button>'
+            + '</div>';
+      html += '<div class="td-pane on" id="vTdPaneMatches">' + vTdMatchList(current, all) + '</div>';
+      html += '<div class="td-pane" id="vTdPaneStats">' + vTdStatsPane(all) + '</div>';
+      mount.innerHTML = html;
+    }).catch(function(err){
+      mount.innerHTML = '<div class="td-tourn-empty">Load failed: ' + __esc(err.message||err) + '</div>';
+    });
+  }
+
+  function vTdMatchList(t, all){
+    var html = '<div class="td-mlist">';
+    t.matchIds.forEach(function(id, idx){
+      var m = all[id] || {};
+      var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+      var ov1 = Math.floor((i1.balls||0)/6)+'.'+((i1.balls||0)%6);
+      var ov2 = Math.floor((i2.balls||0)/6)+'.'+((i2.balls||0)%6);
+      html += '<button class="td-mc" onclick="vTdOpenMatch(\'' + String(id).replace(/'/g,"\\'") + '\')">'
+            + '<div class="td-mc-inner">'
+            + '<div class="td-mc-pos"><div class="n">' + String(idx+1).padStart(2,'0') + '</div><div class="lbl">MATCH</div></div>'
+            + '<div class="td-mc-body">'
+            + '<div class="td-mc-fixture">' + __esc(m.fixture||id) + '</div>'
+            + '<div class="td-mc-result">🏆 ' + __esc(m.result||'Result pending') + '</div>'
+            + '<div class="td-mc-meta">'
+            + '<span>🏆 ' + __esc(m.tournament||'Tournament') + '</span>'
+            + '<span>📍 ' + __esc(m.venue||'') + '</span>'
+            + '<span>📅 ' + __esc(m.date||'') + '</span>'
+            + '</div>'
+            + '<div class="td-mc-score">'
+            + '<div class="td-mc-team"><div class="tt">' + __esc(i1.team||'Team A') + '</div><div class="ss">' + (i1.runs||0) + '/' + (i1.wickets||0) + '<small>' + ov1 + ' ov</small></div></div>'
+            + '<div class="td-mc-team t2"><div class="tt">' + __esc(i2.team||'Team B') + '</div><div class="ss">' + (i2.runs||0) + '/' + (i2.wickets||0) + '<small>' + ov2 + ' ov</small></div></div>'
+            + '</div></div></div></button>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function vTdStatsPane(all){
+    var P = {};
+    function ens(n){
+      if (!n) return null;
+      if (!P[n]) P[n] = { name:n, teams:{}, matchesSet:{}, runs:0, balls:0, fours:0, sixes:0, innings:0, fifties:0, hundreds:0, hs:0, dismissals:0, notOuts:0, bowlBalls:0, bowlRuns:0, wkts:0, maidens:0, bestWkts:0, bestRuns:9999 };
+      return P[n];
+    }
+    Object.keys(all).forEach(function(id){
+      var m = all[id];
+      [m.innings1, m.innings2].forEach(function(inn){
+        if (!inn) return;
+        Object.keys(inn.batters||{}).forEach(function(n){
+          var b = inn.batters[n]; var p = ens(n); if (!p) return;
+          p.teams[inn.team||''] = true; p.matchesSet[id] = true;
+          p.runs += b.runs||0; p.balls += b.balls||0; p.fours += b.fours||0; p.sixes += b.sixes||0;
+          p.innings++;
+          if ((b.runs||0) > p.hs) p.hs = b.runs;
+          if (b.runs >= 100) p.hundreds++; else if (b.runs >= 50) p.fifties++;
+          var st = String(b.status||'').toLowerCase();
+          var out = st && st !== 'dnb' && st.indexOf('not out') === -1 && st.indexOf('retired') === -1;
+          if (out) p.dismissals++; else p.notOuts++;
+        });
+        Object.keys(inn.bowlers||{}).forEach(function(n){
+          var b = inn.bowlers[n]; var p = ens(n); if (!p) return;
+          p.teams[inn.team||''] = true; p.matchesSet[id] = true;
+          p.bowlBalls += b.balls||0; p.bowlRuns += b.runs||0; p.wkts += b.wickets||0; p.maidens += b.maidens||0;
+          if (b.wickets > p.bestWkts || (b.wickets === p.bestWkts && b.runs < p.bestRuns)) { p.bestWkts = b.wickets; p.bestRuns = b.runs; }
+        });
+      });
+    });
+    var arr = Object.keys(P).map(function(k){ return P[k]; });
+    var bat = arr.slice().sort(function(a,b){ return b.runs - a.runs || b.balls - a.balls; });
+    var bowl = arr.filter(function(p){ return p.bowlBalls > 0; }).sort(function(a,b){ return b.wkts - a.wkts || (a.bowlRuns/(a.bowlBalls/6)) - (b.bowlRuns/(b.bowlBalls/6)); });
+    function ovs(b){ b=b||0; return Math.floor(b/6)+'.'+(b%6); }
+    var h = '';
+    h += '<div class="td-sec lime" style="margin-top:0"><span class="bar"></span>🏏 Batting Leaderboard</div>';
+    h += '<div class="td-tbl-wrap"><table class="td-tbl"><thead><tr><th style="width:26px"></th><th>Player</th><th class="r">M</th><th class="r">Inn</th><th class="r">Runs</th><th class="r">Balls</th><th class="r">4s</th><th class="r">6s</th><th class="r">50</th><th class="r">100</th><th class="r">HS</th><th class="r">Avg</th><th class="r">SR</th></tr></thead><tbody>';
+    if (!bat.length) h += '<tr><td colspan="13" style="text-align:center;padding:24px;color:#7a8590;">No data</td></tr>';
+    else bat.forEach(function(p, i){
+      var M = Object.keys(p.matchesSet).length;
+      var avg = p.dismissals ? (p.runs/p.dismissals).toFixed(1) : (p.runs>0 ? p.runs+'*' : '0.0');
+      var sr = p.balls ? (p.runs/p.balls*100).toFixed(1) : '0.0';
+      var pc = i===0?'p1':(i===1?'p2':(i===2?'p3':''));
+      h += '<tr><td class="pos ' + pc + '">' + (i+1) + '</td>'
+        + '<td><span class="td-nm" onclick="vTdOpenPlayer(\'' + String(p.name).replace(/'/g,"\\'") + '\')">' + __esc(p.name) + '</span></td>'
+        + '<td class="r td-v-dim">' + M + '</td><td class="r td-v-dim">' + p.innings + '</td>'
+        + '<td class="r td-v-g">' + p.runs + '</td><td class="r td-v-dim">' + p.balls + '</td>'
+        + '<td class="r td-v-c">' + p.fours + '</td><td class="r td-v-o">' + p.sixes + '</td>'
+        + '<td class="r td-v-a">' + p.fifties + '</td><td class="r td-v-p">' + p.hundreds + '</td>'
+        + '<td class="r td-v-a">' + p.hs + '</td><td class="r td-v-hi">' + avg + '</td>'
+        + '<td class="r td-v-c">' + sr + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    h += '<div class="td-sec cyan"><span class="bar"></span>⚾ Bowling Leaderboard</div>';
+    h += '<div class="td-tbl-wrap"><table class="td-tbl"><thead><tr><th style="width:26px"></th><th>Player</th><th class="r">M</th><th class="r">Inn</th><th class="r">Wkts</th><th class="r">Overs</th><th class="r">Runs</th><th class="r">Best</th><th class="r">Avg</th><th class="r">Eco</th></tr></thead><tbody>';
+    if (!bowl.length) h += '<tr><td colspan="10" style="text-align:center;padding:24px;color:#7a8590;">No data</td></tr>';
+    else bowl.forEach(function(p, i){
+      var M = Object.keys(p.matchesSet).length;
+      var eco = p.bowlBalls ? (p.bowlRuns/(p.bowlBalls/6)).toFixed(2) : '—';
+      var avg = p.wkts ? (p.bowlRuns/p.wkts).toFixed(1) : '—';
+      var best = p.bestWkts > 0 ? (p.bestWkts + '/' + p.bestRuns) : '—';
+      var pc = i===0?'p1':(i===1?'p2':(i===2?'p3':''));
+      h += '<tr><td class="pos ' + pc + '">' + (i+1) + '</td>'
+        + '<td><span class="td-nm" onclick="vTdOpenPlayer(\'' + String(p.name).replace(/'/g,"\\'") + '\')">' + __esc(p.name) + '</span></td>'
+        + '<td class="r td-v-dim">' + M + '</td><td class="r td-v-dim">' + p.innings + '</td>'
+        + '<td class="r td-v-r">' + p.wkts + '</td><td class="r td-v-dim">' + ovs(p.bowlBalls) + '</td>'
+        + '<td class="r td-v-dim">' + p.bowlRuns + '</td><td class="r td-v-p">' + best + '</td>'
+        + '<td class="r td-v-hi">' + avg + '</td><td class="r td-v-c">' + eco + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    return h;
+  }
+
+  window.vTdShowSub = function(tab, btn){
+    var mp = document.getElementById('vTdPaneMatches');
+    var sp = document.getElementById('vTdPaneStats');
+    if (mp) mp.classList.toggle('on', tab === 'matches');
+    if (sp) sp.classList.toggle('on', tab === 'stats');
+    var tabs = document.querySelectorAll('#viewerTournamentPane .td-tab');
+    for (var i=0; i<tabs.length; i++) tabs[i].classList.remove('on');
+    if (btn) btn.classList.add('on');
+  };
+
+  window.vTdOpenMatch = function(id){
+    var mount = document.getElementById('viewerTournamentPane');
+    if (!mount) return;
+    firebase.database().ref('cricmax/importedMatches/' + id).once('value').then(function(snap){
+      var m = snap.val() || {};
+      var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+      var h = '';
+      h += '<button class="td-back" onclick="vTdBackToList()">← Back to Matches</button>';
+      h += '<div class="td-banner">'
+        + '<div class="td-banner-tag">🎯 Match Report · ' + __esc(m.date||'') + '</div>'
+        + '<h2>' + __esc(i1.team||'Team A') + '<span class="vs">VS</span>' + __esc(i2.team||'Team B') + '</h2>'
+        + '<div class="res">🏆 ' + __esc(m.result||'—') + '</div>'
+        + '<div class="meta"><span>🏆 ' + __esc(m.tournament||'') + '</span><span>📍 ' + __esc(m.venue||'') + '</span></div>'
+        + '</div>';
+      h += '<div class="td-inntabs">'
+        + '<button class="td-inntab on" id="vTdInnTab1" onclick="vTdSwitchInn(1)">'
+        + '<div class="tag">1st Innings</div><div class="team">' + __esc(i1.team||'Team A') + '</div>'
+        + '<div class="scr">' + (i1.runs||0) + '/' + (i1.wickets||0) + '<small>' + Math.floor((i1.balls||0)/6)+'.'+((i1.balls||0)%6) + ' ov</small></div></button>'
+        + '<button class="td-inntab cy" id="vTdInnTab2" onclick="vTdSwitchInn(2)">'
+        + '<div class="tag">2nd Innings</div><div class="team">' + __esc(i2.team||'Team B') + '</div>'
+        + '<div class="scr">' + (i2.runs||0) + '/' + (i2.wickets||0) + '<small>' + Math.floor((i2.balls||0)/6)+'.'+((i2.balls||0)%6) + ' ov</small></div></button>'
+        + '</div>';
+      h += '<div class="td-innpane on" id="vTdInnPane1">' + vTdRenderInn(i1) + '</div>';
+      h += '<div class="td-innpane" id="vTdInnPane2">' + vTdRenderInn(i2) + '</div>';
+      mount.innerHTML = h;
+      mount.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  };
+
+  window.vTdBackToList = function(){ renderViewerTournament(); };
+
+  window.vTdSwitchInn = function(n){
+    var t1 = document.getElementById('vTdInnTab1'), t2 = document.getElementById('vTdInnTab2');
+    var p1 = document.getElementById('vTdInnPane1'), p2 = document.getElementById('vTdInnPane2');
+    if (!t1 || !t2) return;
+    if (n === 2){ t1.classList.remove('on'); t2.classList.add('on'); p1.classList.remove('on'); p2.classList.add('on'); }
+    else { t1.classList.add('on'); t2.classList.remove('on'); p1.classList.add('on'); p2.classList.remove('on'); }
+  };
+
+  function vTdRenderInn(inn){
+    if (!inn) return '';
+    var h = '';
+    var batters = inn.batters || {}, bowlers = inn.bowlers || {};
+    h += '<div class="td-sec lime"><span class="bar"></span>🏏 Batting · ' + __esc(inn.team||'Team') + '</div>';
+    h += '<div class="td-tbl-wrap"><table class="td-tbl"><thead><tr><th style="width:26px"></th><th>Batter</th><th>Status</th><th class="r">R</th><th class="r">B</th><th class="r">4s</th><th class="r">6s</th><th class="r">SR</th></tr></thead><tbody>';
+    var bk = Object.keys(batters);
+    if (!bk.length){ h += '<tr><td colspan="8" style="text-align:center;padding:14px;color:#7a8590;">No batting data</td></tr>'; }
+    else bk.forEach(function(n, i){
+      var b = batters[n]||{};
+      var sr = b.balls ? ((b.runs||0)/b.balls*100).toFixed(1) : '0.0';
+      var no = String(b.status||'').indexOf('not out') >= 0;
+      h += '<tr><td class="pos">' + (i+1) + '</td>'
+        + '<td><span class="td-nm" onclick="vTdOpenPlayer(\'' + String(n).replace(/'/g,"\\'") + '\')">' + __esc(n) + '</span>' + (no?'<span style="color:#ffb800;font-weight:900;">*</span>':'') + '</td>'
+        + '<td class="td-status ' + (no?'no':'out') + '">' + __esc(b.status||'') + '</td>'
+        + '<td class="r td-v-g">' + (b.runs||0) + '</td><td class="r td-v-dim">' + (b.balls||0) + '</td>'
+        + '<td class="r td-v-c">' + (b.fours||0) + '</td><td class="r td-v-o">' + (b.sixes||0) + '</td>'
+        + '<td class="r td-v-c">' + sr + '</td></tr>';
+    });
+    var e = inn.extras || {b:0,lb:0,w:0,nb:0,total:0};
+    h += '<tr class="td-tbl-total"><td></td><td class="ttl" colspan="2">Extras</td><td class="r big" colspan="2">' + (e.total||0) + '</td><td colspan="3" class="ttl" style="text-align:right;">b ' + e.b + ' · lb ' + e.lb + ' · w ' + e.w + ' · nb ' + e.nb + '</td></tr>';
+    h += '<tr class="td-tbl-total"><td></td><td class="ttl" colspan="2">Total</td><td class="r big" colspan="2">' + (inn.runs||0) + '/' + (inn.wickets||0) + '</td><td colspan="3" class="ttl" style="text-align:right;">' + Math.floor((inn.balls||0)/6)+'.'+((inn.balls||0)%6) + ' ov</td></tr>';
+    h += '</tbody></table></div>';
+    h += '<div class="td-sec cyan"><span class="bar"></span>⚾ Bowling</div>';
+    h += '<div class="td-tbl-wrap"><table class="td-tbl"><thead><tr><th style="width:26px"></th><th>Bowler</th><th class="r">O</th><th class="r">M</th><th class="r">R</th><th class="r">W</th><th class="r">Eco</th></tr></thead><tbody>';
+    var wk = Object.keys(bowlers);
+    if (!wk.length){ h += '<tr><td colspan="7" style="text-align:center;padding:14px;color:#7a8590;">No bowling data</td></tr>'; }
+    else wk.forEach(function(n, i){
+      var b = bowlers[n]||{};
+      var eco = b.balls ? ((b.runs||0)/(b.balls/6)).toFixed(2) : '0.00';
+      h += '<tr><td class="pos">' + (i+1) + '</td>'
+        + '<td><span class="td-nm" onclick="vTdOpenPlayer(\'' + String(n).replace(/'/g,"\\'") + '\')">' + __esc(n) + '</span></td>'
+        + '<td class="r td-v-dim">' + Math.floor((b.balls||0)/6)+'.'+((b.balls||0)%6) + '</td>'
+        + '<td class="r td-v-dim">' + (b.maidens||0) + '</td>'
+        + '<td class="r td-v-hi">' + (b.runs||0) + '</td>'
+        + '<td class="r td-v-r">' + (b.wickets||0) + '</td>'
+        + '<td class="r td-v-c">' + eco + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    if (inn.fow && inn.fow.length){
+      h += '<div class="td-sec red"><span class="bar"></span>🎯 Fall of Wickets</div>';
+      h += '<div class="td-fow-grid">';
+      inn.fow.forEach(function(f, i){ h += '<div class="td-fow-pill"><span class="wn">W' + (i+1) + '</span><b>' + __esc(f) + '</b></div>'; });
+      h += '</div>';
+    }
+    if (inn.partnerships && inn.partnerships.length){
+      h += '<div class="td-sec gold"><span class="bar"></span>🤝 Partnerships</div>';
+      h += '<div class="td-pship-list">';
+      inn.partnerships.forEach(function(p){
+        h += '<div class="td-pship"><div class="left"><span class="wn">W' + p.wicket + '</span><span class="contrib">' + __esc(p.contrib||'') + '</span></div><span class="score">' + p.runs + '<small>(' + p.balls + ')</small></span></div>';
+      });
+      h += '</div>';
+    }
+    if (inn.events && inn.events.length){
+      h += '<div class="td-sec cyan"><span class="bar"></span>🎙️ Ball-by-Ball Commentary</div>';
+      h += '<div class="td-radio"><div class="td-radio-hd"><div class="live"><span style="width:7px;height:7px;border-radius:50%;background:#ff2d20;box-shadow:0 0 12px #ff2d20;display:inline-block;"></span>Live</div><div class="ttl">' + __esc(inn.team||'') + ' Innings</div><div class="cnt">' + (inn.balls||0) + ' balls · ' + Math.floor((inn.balls||0)/6)+'.'+((inn.balls||0)%6) + ' ov</div></div><div class="td-radio-body">';
+      var lastOver = -1;
+      inn.events.forEach(function(ev){
+        var over = parseInt(String(ev.ball||'').split('.')[0], 10) || 0;
+        if (over !== lastOver){ lastOver = over; h += '<div class="td-ov-div"><span class="num">OVER ' + over + '</span></div>'; }
+        var cls = 'td-ball';
+        var txt = '';
+        if (ev.wicket){
+          cls += ' b-w';
+          txt = '<span class="bwl">' + __esc(ev.bowler||'') + '</span> to <span class="bat">' + __esc(ev.batsman||'') + '</span>, <b>OUT!</b> ' + __esc(ev.text||'');
+        } else if (ev.bat === 4){
+          cls += ' b-f';
+          txt = '<span class="bwl">' + __esc(ev.bowler||'') + '</span> to <span class="bat">' + __esc(ev.batsman||'') + '</span>, <b>FOUR!</b>';
+        } else if (ev.bat === 6){
+          cls += ' b-s';
+          txt = '<span class="bwl">' + __esc(ev.bowler||'') + '</span> to <span class="bat">' + __esc(ev.batsman||'') + '</span>, <b>SIX!</b>';
+        } else {
+          var r = ev.bat || 0;
+          txt = '<span class="bwl">' + __esc(ev.bowler||'') + '</span> to <span class="bat">' + __esc(ev.batsman||'') + '</span>, ' + (r > 0 ? '<span class="runs">' + r + ' run' + (r===1?'':'s') + '</span>' : 'no run');
+        }
+        h += '<div class="' + cls + '"><div class="badge">' + __esc(ev.ball||'') + '</div><div class="txt">' + txt + '</div></div>';
+      });
+      h += '</div></div>';
+    }
+    return h;
+  }
+
+  window.vTdOpenPlayer = function(name){
+    firebase.database().ref('cricmax/importedMatches').once('value').then(function(snap){
+      var all = snap.val() || {};
+      var p = { name:name, teams:{}, matches:0, innings:0, runs:0, balls:0, fours:0, sixes:0, dismissals:0, notOuts:0, fifties:0, hundreds:0, hs:0, bowlBalls:0, bowlRuns:0, wkts:0, maidens:0, bestWkts:0, bestRuns:9999, matchLog:[] };
+      var seen = {};
+      Object.keys(all).forEach(function(id){
+        var m = all[id];
+        var appeared = false;
+        [m.innings1, m.innings2].forEach(function(inn){
+          if (!inn) return;
+          var team = inn.team || '';
+          if (inn.batters && inn.batters[name]){
+            var b = inn.batters[name]; appeared = true; p.innings++;
+            p.runs += b.runs||0; p.balls += b.balls||0; p.fours += b.fours||0; p.sixes += b.sixes||0;
+            if ((b.runs||0) > p.hs) p.hs = b.runs;
+            if (b.runs >= 100) p.hundreds++; else if (b.runs >= 50) p.fifties++;
+            var st = String(b.status||'').toLowerCase();
+            if (st && st !== 'dnb' && st.indexOf('not out') === -1 && st.indexOf('retired') === -1) p.dismissals++; else p.notOuts++;
+            if (team) p.teams[team] = true;
+            p.matchLog.push({ fixture:m.fixture||id, team:team, date:m.date||'', batRuns:b.runs||0, batBalls:b.balls||0, batSR:b.balls?(b.runs/b.balls*100).toFixed(1):'0.0' });
+          }
+          if (inn.bowlers && inn.bowlers[name]){
+            var bw = inn.bowlers[name]; appeared = true;
+            var w = bw.wickets||0, r = bw.runs||0;
+            p.bowlBalls += bw.balls||0; p.bowlRuns += r; p.wkts += w; p.maidens += bw.maidens||0;
+            if (w > p.bestWkts || (w === p.bestWkts && r < p.bestRuns)) { p.bestWkts = w; p.bestRuns = r; }
+            if (team) p.teams[team] = true;
+            var log = p.matchLog.find(function(x){ return x.fixture === (m.fixture||'') && x.team === team; });
+            var oS = Math.floor((bw.balls||0)/6)+'.'+((bw.balls||0)%6);
+            var eC = bw.balls ? (r/(bw.balls/6)).toFixed(2) : '0.00';
+            if (log){ log.bowlOvers = oS; log.bowlRuns = r; log.bowlWkts = w; log.bowlEco = eC; }
+            else { p.matchLog.push({ fixture:m.fixture||id, team:team, date:m.date||'', bowlOvers:oS, bowlRuns:r, bowlWkts:w, bowlEco:eC }); }
+          }
+        });
+        if (appeared) seen[id] = true;
+      });
+      p.matches = Object.keys(seen).length;
+      var batAvg = p.dismissals ? (p.runs/p.dismissals).toFixed(1) : (p.runs>0 ? p.runs+'*' : '0.0');
+      var batSR = p.balls ? (p.runs/p.balls*100).toFixed(1) : '0.0';
+      var bowlAvg = p.wkts ? (p.bowlRuns/p.wkts).toFixed(1) : '—';
+      var bowlEco = p.bowlBalls ? (p.bowlRuns/(p.bowlBalls/6)).toFixed(2) : '—';
+      var bowlSR = p.wkts ? (p.bowlBalls/p.wkts).toFixed(1) : '—';
+      var bowlBest = p.bestWkts > 0 ? (p.bestWkts + '/' + p.bestRuns) : '—';
+      function ovs(b){ b=b||0; return Math.floor(b/6)+'.'+(b%6); }
+      function cell(l, v, c){ return '<div class="mlp-cell"><div class="l">' + l + '</div><div class="v ' + (c||'') + '">' + v + '</div></div>'; }
+      var h = '';
+      h += '<div class="mlp-hd"><div><h3>' + __esc(name) + '</h3><div class="sub">Career · ' + p.matches + ' match' + (p.matches===1?'':'es') + ' · ' + p.innings + ' innings</div></div><button class="mlp-close" onclick="vTdClosePlayer()">✕</button></div>';
+      h += '<div class="mlp-body">';
+      var teams = Object.keys(p.teams);
+      if (teams.length){ h += '<div class="mlp-sec">Teams</div><div>'; teams.forEach(function(t){ h += '<span class="mlp-tchip">' + __esc(t) + '</span>'; }); h += '</div>'; }
+      h += '<div class="mlp-sec">🏏 Batting Career</div><div class="mlp-grid">'
+        + cell('Innings', p.innings) + cell('Runs', p.runs, 'g') + cell('Balls', p.balls)
+        + cell('Fours', p.fours, 'c') + cell('Sixes', p.sixes, 'a') + cell('High Score', p.hs, 'a')
+        + cell('Average', batAvg) + cell('Strike Rate', batSR, 'c') + cell('Not Outs', p.notOuts)
+        + cell('Fifties', p.fifties, 'a') + cell('Hundreds', p.hundreds, 'a') + cell('Dismissals', p.dismissals)
+        + '</div>';
+      h += '<div class="mlp-sec">⚾ Bowling Career</div><div class="mlp-grid">'
+        + cell('Overs', ovs(p.bowlBalls)) + cell('Wickets', p.wkts, 'r') + cell('Runs Conceded', p.bowlRuns)
+        + cell('Best Bowling', bowlBest, 'a') + cell('Average', bowlAvg) + cell('Economy', bowlEco, 'c')
+        + cell('Strike Rate', bowlSR) + cell('Maidens', p.maidens) + cell('Dot Balls', 0)
+        + '</div>';
+      h += '<div class="mlp-sec">📋 Match Log</div>';
+      if (!p.matchLog.length){ h += '<div style="padding:14px;text-align:center;color:#7a8590;font-size:11px;">No matches recorded</div>'; }
+      else {
+        var shown = {};
+        p.matchLog.forEach(function(l){
+          var key = (l.fixture||'') + '|' + (l.team||''); if (shown[key]) return; shown[key] = true;
+          var batLine = (l.batRuns !== undefined) ? '<span class="bat">🏏 ' + l.batRuns + ' (' + l.batBalls + ') SR ' + l.batSR + '</span>' : '';
+          var bowlLine = (l.bowlWkts !== undefined) ? '<span class="bowl">⚾ ' + l.bowlWkts + '/' + l.bowlRuns + ' (' + l.bowlOvers + ') Eco ' + l.bowlEco + '</span>' : '';
+          h += '<div class="mlp-log-item"><div class="fx">' + __esc(l.fixture) + '<small>' + __esc(l.team) + '</small></div><div class="ln">' + __esc(l.date) + '</div><div class="st">' + batLine + bowlLine + '</div></div>';
+        });
+      }
+      h += '</div>';
+      document.getElementById('vTdPlayerCard').innerHTML = h;
+      document.getElementById('vTdPlayerOverlay').classList.add('on');
+    });
+  };
+
+  window.vTdClosePlayer = function(){
+    var o = document.getElementById('vTdPlayerOverlay');
+    if (o) o.classList.remove('on');
+  };
 
   function renderViewerStats(){
     var m = __viewerMatch(); if(!m) return;
