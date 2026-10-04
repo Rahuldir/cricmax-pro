@@ -14,12 +14,13 @@ function archiveCurrentTournament() {
     pastMatches: JSON.parse(JSON.stringify(pastMatchesLedger || [])),
     currentMatch: (match && match.isActive) ? JSON.parse(JSON.stringify(match)) : null,
     matchCode: matchCode || '',
-    savedAt: new Date().toISOString()
+     savedAt: new Date().toISOString()
   };
   const idx = tournamentsHistory.findIndex(t => t.id === currentTournId);
   if (idx >= 0) tournamentsHistory[idx] = snapshot;
   else tournamentsHistory.push(snapshot);
   autoPersist();
+  syncTournMetaForUI();
 }
 
 function openTournamentPicker() {
