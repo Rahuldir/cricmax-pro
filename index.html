@@ -40,14 +40,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>CricMax Pro — F1 Edition</title> 
-     <!-- Favicon -->
+<title>CricMax Pro — F1 Edition</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="shortcut icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/favicon.ico">
 <meta name="application-name" content="CricMax Pro">
 <meta name="apple-mobile-web-app-title" content="CricMax">
-
 <link rel="dns-prefetch" href="//cricket-8cb1b-default-rtdb.asia-southeast1.firebasedatabase.app">
 <link rel="preconnect" href="https://www.gstatic.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -445,6 +443,62 @@ html.cm-embed-boot body {
 .mlp-log-item .st .bowl{color:#ff2d20;}
 .mlp-tchip{display:inline-block;font-family:ui-monospace,monospace;font-size:9px;font-weight:800;letter-spacing:.8px;padding:3px 8px;text-transform:uppercase;background:rgba(0,210,190,.1);border:1px solid rgba(0,210,190,.35);color:#00d2be;border-radius:4px;margin-right:4px;}
 @media(max-width:520px){.mlp-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ═══════════════════════════════════════════════════════════
+   ═══ NEW: FULL MATCH VIEWER (1st/2nd inn + ball-by-ball) ═══
+   ═══════════════════════════════════════════════════════════ */
+.fmv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(14px);z-index:999998;display:none;align-items:flex-start;justify-content:center;padding:20px 12px;overflow-y:auto;}
+.fmv-overlay.on{display:flex;}
+.fmv-card{width:min(96vw,860px);margin:auto;background:linear-gradient(155deg,#0f1218,#07090d);border:1px solid rgba(225,6,0,.35);border-radius:12px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.95);}
+.fmv-card::before{content:'';display:block;height:4px;background:linear-gradient(90deg,#e10600,#fbbf24,#00d2be,#22d3ee);background-size:300% 100%;animation:mlibShift 5s linear infinite;}
+.fmv-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 20px;background:linear-gradient(100deg,rgba(225,6,0,.18),transparent 60%);border-bottom:1px solid rgba(255,255,255,.08);}
+.fmv-hd h3{margin:0;font-size:18px;font-weight:900;color:#fff;letter-spacing:.6px;}
+.fmv-hd .sub{font-family:ui-monospace,monospace;font-size:9.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#00d2be;margin-top:6px;}
+.fmv-hd .sub .badge-res{color:#fbbf24;}
+.fmv-x{width:38px;height:38px;flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#7a8590;border-radius:8px;cursor:pointer;font-size:16px;font-weight:900;}
+.fmv-x:hover{background:rgba(225,6,0,.3);color:#fff;border-color:var(--f1-red);}
+.fmv-tabs{display:flex;gap:0;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.08);overflow-x:auto;scrollbar-width:none;}
+.fmv-tabs::-webkit-scrollbar{display:none;}
+.fmv-tab{flex:0 0 auto;padding:12px 18px;font-size:10.5px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:#7a8590;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;}
+.fmv-tab:hover{color:#fff;background:rgba(255,255,255,.03);}
+.fmv-tab.active{color:#fff;border-bottom-color:var(--f1-red);background:linear-gradient(180deg,rgba(225,6,0,.18),transparent);}
+.fmv-body{padding:16px 18px 24px;max-height:calc(100vh - 200px);overflow-y:auto;}
+.fmv-inn-summary{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;margin-bottom:14px;background:linear-gradient(100deg,rgba(225,6,0,.12),transparent);border:1px solid rgba(225,6,0,.35);border-radius:8px;}
+.fmv-inn-summary .team{font-weight:900;color:#fff;font-size:15px;}
+.fmv-inn-summary .score{font-family:ui-monospace,monospace;font-size:20px;font-weight:900;color:#00d2be;}
+.fmv-inn-summary .meta{font-family:ui-monospace,monospace;font-size:10px;color:#7a8590;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+.fmv-table{width:100%;border-collapse:collapse;font-family:ui-monospace,monospace;font-size:11.5px;margin-bottom:16px;}
+.fmv-table th{padding:7px 8px;font-size:8.5px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.5);text-align:right;background:rgba(0,0,0,.4);border-bottom:1px solid rgba(255,255,255,.08);}
+.fmv-table th:first-child{text-align:left;}
+.fmv-table td{padding:7px 8px;color:#e2e8f0;text-align:right;border-bottom:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;}
+.fmv-table td:first-child{text-align:left;}
+.fmv-table tbody tr:hover{background:rgba(255,255,255,.03);}
+.fmv-bbb-over{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.06);}
+.fmv-bbb-over:last-child{border-bottom:0;}
+.fmv-ov-lbl{flex:0 0 70px;font-family:ui-monospace,monospace;font-size:10px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#fbbf24;padding-top:6px;}
+.fmv-balls{display:flex;gap:5px;flex-wrap:wrap;}
+.fmv-ball{min-width:34px;height:34px;padding:0 9px;border-radius:50px;display:inline-flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:12px;font-weight:900;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;}
+.fmv-ball.four{background:rgba(0,210,190,.15);border-color:rgba(0,210,190,.55);color:#00d2be;}
+.fmv-ball.six{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.55);color:#fbbf24;}
+.fmv-ball.w{background:rgba(225,6,0,.18);border-color:rgba(225,6,0,.55);color:#ff8a80;}
+.fmv-ball.ex{background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.45);color:#22d3ee;}
+.fmv-empty{padding:30px 20px;text-align:center;font-family:ui-monospace,monospace;font-size:11px;color:#7a8590;text-transform:uppercase;letter-spacing:1.6px;}
+
+/* ═══════════════════════════════════════════════════════════
+   ═══ NEW: TOURNAMENT PANE enhancements ═══
+   ═══════════════════════════════════════════════════════════ */
+.tp-hero{position:relative;padding:18px 20px;margin-bottom:14px;background:linear-gradient(100deg,rgba(225,6,0,.22),rgba(0,0,0,.5) 70%);border:1px solid rgba(225,6,0,.4);border-left:4px solid var(--f1-red);border-radius:12px;overflow:hidden;}
+.tp-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--f1-red),var(--f1-green),var(--f1-red));}
+.tp-hero .name{font-size:22px;font-weight:900;color:#fff;letter-spacing:.4px;}
+.tp-hero .meta{font-family:ui-monospace,monospace;font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:#00d2be;margin-top:6px;}
+.tp-hero .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.tp-list-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(0,0,0,.35));border:1px solid rgba(255,255,255,.1);border-left:3px solid var(--f1-green);border-radius:10px;cursor:pointer;transition:.15s;}
+.tp-list-item:hover{background:linear-gradient(135deg,rgba(0,210,190,.1),rgba(0,0,0,.35));border-left-color:var(--f1-green);}
+.tp-list-item.active{border-left-color:var(--f1-red);background:linear-gradient(135deg,rgba(225,6,0,.14),rgba(0,0,0,.35));}
+.tp-list-item .nm{font-weight:900;color:#fff;font-size:13.5px;}
+.tp-list-item .mt{font-family:ui-monospace,monospace;font-size:9.5px;color:#7a8590;letter-spacing:1.2px;text-transform:uppercase;margin-top:4px;}
+.tp-list-item .bd{font-family:ui-monospace,monospace;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;background:rgba(0,210,190,.12);color:#00d2be;border:1px solid rgba(0,210,190,.35);letter-spacing:1.2px;}
+.tp-list-item.active .bd{background:rgba(225,6,0,.15);color:#ff8a80;border-color:rgba(225,6,0,.45);}
 </style>
 </head>
 <body>
@@ -789,6 +843,7 @@ html.cm-embed-boot body {
   </nav>
   <div class="sub-pane" id="pane-tournament">
     <div class="pad-title">Tournament Profile</div>
+    <div id="tpHeroMount"></div>
     <div class="panel-card" style="border:1px solid rgba(0,230,118,.4);">
       <div style="font-size:20px;font-weight:900;" id="tournNameDisplay">Tournament Not Set</div>
       <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="tournMetaDisplay">Tap Edit to configure</div>
@@ -797,6 +852,7 @@ html.cm-embed-boot body {
         <button class="btn-ui btn-primary" style="padding:12px;font-size:12px;" id="btnContinueTourn" onclick="continueFromTournament()">▶ Continue</button>
       </div>
       <button class="btn-ui btn-primary" id="btnStartNewMatch" style="width:100%;margin-top:8px;padding:12px;font-size:12px;" onclick="startNewMatchFlow()">🏏 Start New Match</button>
+      <button class="btn-ui" id="btnAddMatchToTourn" style="width:100%;margin-top:8px;padding:12px;font-size:12px;background:rgba(0,210,190,.12);border-color:rgba(0,210,190,.45);color:#00d2be;" onclick="tpOpenAddMatchPicker()">➕ Add Match to Tournament</button>
       <div id="continueHint" style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center;font-style:italic;"></div>
     </div>
     <div class="section-header-banner"><span>📊</span> Points Table</div>
@@ -1000,16 +1056,11 @@ html.cm-embed-boot body {
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       IMPORT PANE — JSON (Firebase sync) + PDF (local)
-       ═══════════════════════════════════════════════════════════ -->
   <div class="sub-pane" id="pane-import">
     <div class="imp-card gr">
       <h3>📦 Match Data (JSON)</h3>
       <div class="desc">Paste a map of matches — each one is pushed to Firebase so your viewer can show them.</div>
-
       <textarea class="json-editor" id="jsonEditor" spellcheck="false" placeholder='{"m1":{"fixture":"A vs B","innings1":{...},"innings2":{...}}}'></textarea>
-
       <div class="json-actions">
         <button class="btn-ui btn-primary" onclick="applyImportJSON()">✅ Apply &amp; Push to Firebase</button>
         <button class="btn-ui" onclick="pullFromFirebase()">⬇ Pull from Firebase</button>
@@ -1017,9 +1068,7 @@ html.cm-embed-boot body {
         <button class="btn-ui" onclick="loadImportSample()">👁 Load Sample</button>
         <button class="btn-ui" onclick="clearImportAll()" style="background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5;">🗑 Clear All</button>
       </div>
-
       <div class="imp-status" id="impStatus">Ready.</div>
-
       <div class="hint">
         <b>Firebase path</b> <code>cricmax/importedMatches/&lt;id&gt;</code><br>
         <b>Viewer reads</b> from the same path — no extra wiring needed.
@@ -1027,28 +1076,22 @@ html.cm-embed-boot body {
     </div>
 
     <div class="imp-card">
-          <h3>📄 Match PDF · Auto-Parse → Firebase</h3>
+      <h3>📄 Match PDF · Auto-Parse → Firebase</h3>
       <div class="desc">Drop the PDF → match data extracted and pushed to Firebase → viewer sees it instantly</div>
-
       <label class="dropzone" id="impDropzone">
         <input type="file" id="impPdfInput" accept="application/pdf,.pdf">
         <div class="dz-ic">⬆</div>
         <div class="dz-t">Drop PDF Here</div>
         <div class="dz-s">or click to browse · max 25 MB</div>
       </label>
-
       <div class="upload-progress" id="impProgress">
         <div class="lbl"><span id="impStatusTxt">Reading…</span><span id="impPct">0%</span></div>
         <div class="bar"><div class="fill" id="impFill"></div></div>
       </div>
-
-        <div id="impPdfInfo"></div>
+      <div id="impPdfInfo"></div>
       <div class="pdf-viewer" id="impPdfViewer"><iframe id="impPdfFrame" title="PDF"></iframe></div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════
-         MATCH LIBRARY — click match → scorecard → click player → career
-         ═══════════════════════════════════════════════════════════ -->
     <div class="imp-card">
       <h3>📚 Match Library</h3>
       <div class="desc">Tap "Scorecard" on any match below, then tap a player name to see their career aggregate across every imported match.</div>
@@ -1059,9 +1102,23 @@ html.cm-embed-boot body {
   </div>
 </section>
 
-<!-- ═══ IMPORTED PLAYER CAREER POPUP ═══ -->
 <div class="mlp-overlay" id="mlpOverlay" onclick="if(event.target===this)window.closeMlibPlayer()">
   <div class="mlp-card" id="mlpCard"></div>
+</div>
+
+<!-- ═══ NEW: FULL MATCH VIEWER MODAL ═══ -->
+<div class="fmv-overlay" id="fmvOverlay" onclick="if(event.target===this)window.closeFullMatchViewer()">
+  <div class="fmv-card" id="fmvCard"></div>
+</div>
+
+<!-- ═══ NEW: TOURNAMENT +ADD-MATCH PICKER MODAL ═══ -->
+<div class="modal-overlay" id="tpAddMatchModal">
+  <div class="modal-card" style="width:min(94vw,620px);">
+    <button class="btn-ui" onclick="closeModal('tpAddMatchModal')" style="position:absolute;top:14px;right:14px;width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;">✕</button>
+    <h3 style="font-size:16px;font-weight:900;margin-bottom:4px;">➕ Add Match to Tournament</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:14px;">Pick an imported or completed match to attach to the current tournament. Points table updates instantly.</p>
+    <div id="tpAddMatchList"></div>
+  </div>
 </div>
 
 <nav class="bottom-match-nav" id="bottomMatchNav">
@@ -1177,7 +1234,7 @@ html.cm-embed-boot body {
       <button class="btn-ui" style="text-align:left;padding:12px;" onclick="closeModal('moreOptionsModal');selectSubPane('teams');"><b>👥 Teams</b></button>
       <button class="btn-ui" style="text-align:left;padding:12px;" onclick="closeModal('moreOptionsModal');toggleTVMode();"><b>📺 TV Mode</b></button>
       <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(34,211,238,.15);border-color:var(--cyan);" onclick="closeModal('moreOptionsModal');openSettingsModal();"><b>⚙️ Scoring Settings</b></button>
-          <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(168,85,247,.15);border-color:var(--purple);" onclick="closeModal('moreOptionsModal');openExtrasModal();"><b>➕ Match Extras</b></button>
+      <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(168,85,247,.15);border-color:var(--purple);" onclick="closeModal('moreOptionsModal');openExtrasModal();"><b>➕ Match Extras</b></button>
       <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(0,210,190,.15);border-color:var(--f1-green);" onclick="closeModal('moreOptionsModal');selectSubPane('import');"><b>📥 Import Match Data</b></button>
       <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(255,109,0,.15);border-color:var(--orange);" onclick="closeModal('moreOptionsModal');endInningsPrompt();"><b>🏁 End Innings</b></button>
       <button class="btn-ui" style="text-align:left;padding:12px;background:rgba(239,68,68,.15);border-color:var(--red);" onclick="closeModal('moreOptionsModal');endMatchAndDeclareWinner();"><b>🎯 End Match</b></button>
@@ -1748,13 +1805,6 @@ html.cm-embed-boot body {
    function renderStatsScope(){
     var players, subtitle;
 
-    /* ── EMBED / VIEWER MODE ──
-       When the sheet iframe is opened by viewer.html, it passes
-       ?embed=1&code=XYZ. In that case, we should NOT read the
-       local user's CricMax_Data — we should aggregate from the
-       live match object that viewer.js has already hydrated
-       from Firebase. Otherwise the Stats pane shows whichever
-       match happens to be in this browser's localStorage. */
     var __inEmbed = false;
     var __embedCode = '';
     try {
@@ -1767,7 +1817,6 @@ html.cm-embed-boot body {
                     : (window.__cricmaxLastMatch || null);
 
     if (__inEmbed && __liveMatch && __liveMatch.teamBatting){
-      /* Live scope — aggregate only the current match. */
       players = aggregateMatches([__liveMatch]);
       subtitle = '📺 ' + (__liveMatch.teamBatting || 'Match') +
                  ' vs ' + (__liveMatch.teamBowling || 'Opponent') +
@@ -2207,12 +2256,6 @@ html.cm-embed-boot body {
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     EMBED MODE — when loaded inside viewer.html's sheet iframe,
-     hide the scoring shell and jump straight to the requested pane.
-     Once the pane is rendered, remove the .cm-embed-boot class
-     (added in <head>) so the page becomes visible.
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -2292,7 +2335,6 @@ html.cm-embed-boot body {
 
       console.log('[EmbedMode] ✅ Render pane:', target);
 
-      // Reveal the page now that the pane is ready
       document.documentElement.classList.remove('cm-embed-boot');
     } catch(err){
       console.warn('[EmbedMode] applyEmbedView failed:', err);
@@ -2317,16 +2359,12 @@ html.cm-embed-boot body {
     setTimeout(applyEmbedView, 800);
   });
 
-  // Failsafe — never leave the page hidden for more than 3 seconds
   setTimeout(function(){
     document.documentElement.classList.remove('cm-embed-boot');
   }, 3000);
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SHARE BUTTON → COPY TO CLIPBOARD (override)
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -2405,14 +2443,6 @@ html.cm-embed-boot body {
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     WAGON WHEEL TOGGLE
-     - Persists to localStorage (survives reloads)
-     - Syncs live across tabs/iframes via 'storage' event
-     - When OFF, 1/2/3/4/6 buttons record the ball directly
-       (same recordBall() call, same data, just no shot prompt)
-     - Zero changes to any other element or data shape
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -2448,7 +2478,6 @@ html.cm-embed-boot body {
     try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch(e){}
     refreshBtn();
 
-    /* Tiny inline toast so the user gets feedback */
     var t = document.getElementById('ww-toast');
     if (!t){
       t = document.createElement('div');
@@ -2477,16 +2506,12 @@ html.cm-embed-boot body {
     }, 1400);
   };
 
-  /* Cross-tab / cross-iframe sync */
   window.addEventListener('storage', function(e){
     if (e.key !== KEY) return;
     enabled = (e.newValue === '1');
     refreshBtn();
   });
 
-  /* Override promptWagonWheel once scoring.js has defined it.
-     When OFF, we simply defer to recordBall(runs) — same payload,
-     same data shape, so nothing downstream breaks. */
   var wrapped = false;
   function tryWrap(){
     if (wrapped) return false;
@@ -2506,8 +2531,6 @@ html.cm-embed-boot body {
   function init(){
     refreshBtn();
     if (tryWrap()) return;
-
-    /* Poll briefly in case scoring.js loads a tick late */
     var tries = 0;
     var t = setInterval(function(){
       tries++;
@@ -2525,14 +2548,10 @@ html.cm-embed-boot body {
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     IMPORT LOGIC — Firebase sync + local PDF storage
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
 
-  /* ─── IndexedDB for PDFs ─── */
   var IDB_NAME='cricmaxImports', IDB_STORE='pdfs', IDB_KEY='matchPdf';
   var MEM={};
   function idbOpen(){
@@ -2547,33 +2566,6 @@ html.cm-embed-boot body {
         req.onsuccess=function(e){res(e.target.result);};
         req.onerror=function(){res(null);};
       }catch(e){res(null);}
-    });
-  }
-  function idbPut(key,val){
-    return idbOpen().then(function(db){
-      if(!db){MEM[key]=val;return;}
-      return new Promise(function(res){
-        try{
-          var tx=db.transaction(IDB_STORE,'readwrite');
-          tx.objectStore(IDB_STORE).put({id:key,value:val});
-          tx.oncomplete=function(){db.close();res();};
-          tx.onerror=function(){MEM[key]=val;res();};
-        }catch(e){MEM[key]=val;res();}
-      });
-    });
-  }
-  function idbGet(key){
-    return idbOpen().then(function(db){
-      if(!db)return MEM[key]||null;
-      return new Promise(function(res){
-        try{
-          var tx=db.transaction(IDB_STORE,'readonly');
-          var r=tx.objectStore(IDB_STORE).get(key);
-          r.onsuccess=function(e){res(e.target.result||null);};
-          r.onerror=function(){res(MEM[key]||null);};
-          tx.oncomplete=function(){db.close();};
-        }catch(e){res(MEM[key]||null);}
-      });
     });
   }
   function idbDelete(key){
@@ -2591,7 +2583,6 @@ html.cm-embed-boot body {
     });
   }
 
-  /* ─── UI helpers ─── */
   function setStatus(msg,kind){
     var el=document.getElementById('impStatus');
     if(!el)return;
@@ -2614,7 +2605,6 @@ html.cm-embed-boot body {
     return (b/1048576).toFixed(2)+' MB';
   }
 
-  /* ─── JSON apply → local + Firebase ─── */
   window.applyImportJSON=function(){
     var ed=document.getElementById('jsonEditor');
     if(!ed)return;
@@ -2733,7 +2723,6 @@ html.cm-embed-boot body {
     setStatus('All cleared','ok');
   };
 
-  /* ─── PDF auto-parse → Firebase (no file storage) ─── */
   function extractPdfText(file){
     return file.arrayBuffer().then(function(buf){
       if(!window.pdfjsLib) throw new Error('PDF.js not loaded');
@@ -2961,7 +2950,6 @@ html.cm-embed-boot body {
         if(ed && !ed.value.trim())ed.value=JSON.stringify(v,null,2);
       }
     }catch(e){}
-     /* PDF caching removed — old stored PDFs are ignored */
     idbDelete(IDB_KEY).catch(function(){});
   }
 
@@ -2985,9 +2973,6 @@ html.cm-embed-boot body {
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MATCH LIBRARY — clickable players + aggregated career popup
-     ═══════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
@@ -3016,7 +3001,6 @@ html.cm-embed-boot body {
       var inn = m[pair[0]];
       if (!inn) return;
       out += '<div class="mlib-inn-hd"><span>'+esc(inn.team||'Team')+' — '+pair[1]+'</span><small>'+(inn.runs||0)+'/'+(inn.wickets||0)+' ('+ovStr(inn.balls)+')</small></div>';
-
       out += '<div class="mlib-sub">🏏 Batting</div>';
       out += '<table class="mlib-table"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
       var batters = inn.batters || {}, bkeys = Object.keys(batters);
@@ -3032,7 +3016,6 @@ html.cm-embed-boot body {
         });
       }
       out += '</tbody></table>';
-
       out += '<div class="mlib-sub">⚾ Bowling</div>';
       out += '<table class="mlib-table"><thead><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Eco</th></tr></thead><tbody>';
       var bowlers = inn.bowlers || {}, wkeys = Object.keys(bowlers);
@@ -3073,9 +3056,11 @@ html.cm-embed-boot body {
         +     '<div class="mlib-meta">'+(i1.team||'T1')+' '+(i1.runs||0)+'/'+(i1.wickets||0)+' · '+(i2.team||'T2')+' '+(i2.runs||0)+'/'+(i2.wickets||0)+' · '+esc(m.date||'')+'</div>'
         +   '</div>'
         +   '<div class="mlib-actions">'
-        +     '<button class="mlib-btn" onclick="window.toggleMlibDrawer('+idx+',this)">📊 Scorecard</button>'
-        +     '<button class="mlib-act edit" onclick="window.renameMlibMatch(\''+safeId+'\')">✏️ Rename</button>'
-        +     '<button class="mlib-act del" onclick="window.deleteMlibMatch(\''+safeId+'\')">🗑 Delete</button>'
+        +     '<button class="mlib-btn" onclick="window.openFullMatchViewer(\''+safeId+'\')">📖 View</button>'
+        +     '<button class="mlib-act" onclick="window.toggleMlibDrawer('+idx+',this)">📊 Drawer</button>'
+        +     '<button class="mlib-act edit" onclick="window.renameMlibMatch(\''+safeId+'\')">✏️ Name</button>'
+        +     '<button class="mlib-act edit" onclick="window.editMlibScore(\''+safeId+'\')">🎯 Score</button>'
+        +     '<button class="mlib-act del" onclick="window.deleteMlibMatch(\''+safeId+'\')">🗑</button>'
         +   '</div>'
         + '</div>'
         + '<div class="mlib-drawer" id="mlibDrawer'+idx+'">'+renderDrawer(m)+'</div>'
@@ -3083,33 +3068,24 @@ html.cm-embed-boot body {
     }).join('');
   };
 
-  /* Rename a match */
   window.renameMlibMatch = function(id){
     var list = getImported();
     var m = list[id];
     if (!m){ alert('Match not found'); return; }
-
     var currentName = m.fixture || '';
     var newName = prompt('Rename match (e.g. "Ravi 11 vs Vivek 11"):', currentName);
     if (newName === null) return;
     newName = newName.trim();
     if (!newName){ alert('Name cannot be empty'); return; }
-
-    // Also offer to edit result
     var newResult = prompt('Edit result (or leave unchanged):', m.result || '');
     if (newResult === null) newResult = m.result || '';
     newResult = newResult.trim();
-
-    // Update local
     m.fixture = newName;
     m.result = newResult;
     m.renamedAt = Date.now();
-
     window.__importedMatches = window.__importedMatches || {};
     window.__importedMatches[id] = m;
     try{ localStorage.setItem('cricmax_importedMatches', JSON.stringify(window.__importedMatches)); }catch(e){}
-
-    // Update JSON editor
     var ed = document.getElementById('jsonEditor');
     if (ed){
       try{
@@ -3118,32 +3094,64 @@ html.cm-embed-boot body {
         ed.value = JSON.stringify(j, null, 2);
       }catch(e){}
     }
-
-    // Push to Firebase
     if (window.fbDb){
       window.fbDb.ref('cricmax/importedMatches/'+id).update({
-        fixture: newName,
-        result: newResult,
-        renamedAt: Date.now()
-      }).catch(function(err){
-        alert('Local rename OK · Firebase update failed: ' + (err.message||err));
-      });
+        fixture: newName, result: newResult, renamedAt: Date.now()
+      }).catch(function(err){ console.warn('fb rename', err); });
     }
-
     window.renderMatchLibrary();
     if (typeof window.renderMatchList === 'function') window.renderMatchList();
+    if (typeof window.refreshTournamentPane === 'function') window.refreshTournamentPane();
   };
 
-  /* Delete a match */
+  window.editMlibScore = function(id){
+    var list = getImported();
+    var m = list[id];
+    if (!m) return;
+    var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+    var r1 = prompt('1st Innings — '+ (i1.team||'Team A') +' runs:', i1.runs || 0);
+    if (r1 === null) return;
+    var w1 = prompt('1st Innings — wickets:', i1.wickets || 0);
+    if (w1 === null) return;
+    var r2 = prompt('2nd Innings — '+ (i2.team||'Team B') +' runs:', i2.runs || 0);
+    if (r2 === null) return;
+    var w2 = prompt('2nd Innings — wickets:', i2.wickets || 0);
+    if (w2 === null) return;
+    i1.runs = parseInt(r1,10) || 0;
+    i1.wickets = parseInt(w1,10) || 0;
+    i2.runs = parseInt(r2,10) || 0;
+    i2.wickets = parseInt(w2,10) || 0;
+    m.innings1 = i1; m.innings2 = i2;
+    if (i1.runs > i2.runs) m.result = (i1.team||'Team A') + ' won by ' + (i1.runs - i2.runs) + ' runs';
+    else if (i2.runs > i1.runs) m.result = (i2.team||'Team B') + ' won by ' + (10 - (i2.wickets||0)) + ' wickets';
+    else m.result = 'Match tied';
+    window.__importedMatches[id] = m;
+    try{ localStorage.setItem('cricmax_importedMatches', JSON.stringify(window.__importedMatches)); }catch(e){}
+    if (window.fbDb){
+      window.fbDb.ref('cricmax/importedMatches/'+id).update({
+        innings1: i1, innings2: i2, result: m.result, renamedAt: Date.now()
+      }).catch(function(){});
+    }
+    var ed = document.getElementById('jsonEditor');
+    if (ed){
+      try{
+        var j = JSON.parse(ed.value || '{}');
+        j[id] = m;
+        ed.value = JSON.stringify(j, null, 2);
+      }catch(e){}
+    }
+    window.renderMatchLibrary();
+    if (typeof window.refreshTournamentPane === 'function') window.refreshTournamentPane();
+    if (typeof window.buildAggregates === 'function') window.buildAggregates();
+    if (typeof window.renderStats === 'function') window.renderStats();
+  };
+
   window.deleteMlibMatch = function(id){
     var list = getImported();
     var m = list[id] || {};
     if (!confirm('Delete "' + (m.fixture||id) + '"? This removes it from Firebase too.')) return;
-
     delete window.__importedMatches[id];
     try{ localStorage.setItem('cricmax_importedMatches', JSON.stringify(window.__importedMatches)); }catch(e){}
-
-    // Update JSON editor
     var ed = document.getElementById('jsonEditor');
     if (ed){
       try{
@@ -3152,30 +3160,24 @@ html.cm-embed-boot body {
         ed.value = JSON.stringify(j, null, 2);
       }catch(e){}
     }
-
-    // Remove from Firebase
     if (window.fbDb){
       window.fbDb.ref('cricmax/importedMatches/'+id).remove().catch(function(){});
     }
-
-    // Remove from scorer MATCHES if present
     if (typeof MATCHES !== 'undefined' && MATCHES[id]){
       delete MATCHES[id];
       if (typeof buildAggregates === 'function') buildAggregates();
       if (typeof renderMatchList === 'function') renderMatchList();
       if (typeof renderStats === 'function') renderStats();
     }
-
     window.renderMatchLibrary();
   };
   window.toggleMlibDrawer = function(idx, btn){
     var d = document.getElementById('mlibDrawer'+idx);
     if (!d) return;
     d.classList.toggle('open');
-    btn.textContent = d.classList.contains('open') ? '▲ Hide' : '📊 Scorecard';
+    btn.textContent = d.classList.contains('open') ? '▲ Hide' : '📊 Drawer';
   };
 
-  /* ═══ CAREER AGGREGATION ═══ */
   function aggregatePlayer(name){
     var list = getImported();
     var matches = Object.keys(list).map(function(k){ return list[k]; });
@@ -3341,7 +3343,6 @@ html.cm-embed-boot body {
     if (e.key === 'Escape') window.closeMlibPlayer();
   });
 
-  /* ─── Auto-render hooks ─── */
   (function initialRender(){
     var tries = 0;
     var t = setInterval(function(){
@@ -3365,7 +3366,6 @@ html.cm-embed-boot body {
     window.selectSubPane.__mlibWrapped = true;
   })();
 
-  /* Cross-tab sync */
   window.addEventListener('storage', function(e){
     if (e.key === 'cricmax_importedMatches'){
       try { window.__importedMatches = JSON.parse(e.newValue||'{}'); } catch(err){}
@@ -3373,7 +3373,6 @@ html.cm-embed-boot body {
     }
   });
 
-  /* Same-tab watcher (JSON was applied in this tab) */
   var lastSnapshot = '';
   setInterval(function(){
     try {
@@ -3389,7 +3388,6 @@ html.cm-embed-boot body {
     } catch(e){}
   }, 1200);
 
-  /* Also re-render right after Apply/Pull/Clear complete (via setTimeout) */
   var _apply = window.applyImportJSON;
   if (typeof _apply === 'function' && !_apply.__mlibPatched){
     window.applyImportJSON = function(){ var r = _apply.apply(this, arguments); setTimeout(window.renderMatchLibrary, 300); return r; };
@@ -3407,6 +3405,491 @@ html.cm-embed-boot body {
   }
 
   console.log('[Match Library] ✅ Ready');
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ═══ NEW: FULL MATCH VIEWER + BALL-BY-BALL + TOURNAMENT ═══
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  'use strict';
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function ovStr(b){b=b||0;return Math.floor(b/6)+'.'+(b%6);}
+
+  function getImported(id){
+    var all = window.__importedMatches || {};
+    if (!Object.keys(all).length){
+      try {
+        var raw = localStorage.getItem('cricmax_importedMatches');
+        if (raw){ all = JSON.parse(raw); window.__importedMatches = all; }
+      } catch(e){}
+    }
+    return id ? all[id] : all;
+  }
+
+  /* ─── Build ball-by-ball list from events if available, else from batters/bowlers ─── */
+  function reconstructBalls(inn){
+    if (!inn) return { events: [], hasEvents: false };
+    // If explicit events exist, use them
+    if (Array.isArray(inn.events) && inn.events.length){
+      return { events: inn.events.map(function(e){
+        return { bat: e.bat||0, extra: e.extra||null, wicket: e.wicket||null, bowler: e.bowler||'', batsman: e.batsman||'' };
+      }), hasEvents: true };
+    }
+    // Otherwise reconstruct minimal display from batters/bowlers (aggregate view only)
+    return { events: [], hasEvents: false, agg: true };
+  }
+
+  function ballLabel(e){
+    var v = e.bat || 0;
+    if (e.wicket) return e.wicket === 'Run Out' ? 'R' : 'W';
+    if (e.extra === 'wd') return v ? 'wd+' + v : 'wd';
+    if (e.extra === 'nb') return v ? 'nb+' + v : 'nb';
+    if (e.extra === 'b')  return v + 'b';
+    if (e.extra === 'lb') return v + 'lb';
+    return String(v);
+  }
+  function ballClass(e){
+    if (e.wicket) return 'w';
+    if (e.extra) return 'ex';
+    if (e.bat === 4) return 'four';
+    if (e.bat === 6) return 'six';
+    return '';
+  }
+
+  /* ─── Render innings tab ─── */
+  function renderInnings(inn){
+    if (!inn) return '<div class="fmv-empty">No innings data</div>';
+    var out = '';
+    out += '<div class="fmv-inn-summary">'
+        + '<div><div class="team">'+esc(inn.team || 'Team')+'</div>'
+        + '<div class="meta">'+(inn.balls||0)+' balls · '+(inn.wickets||0)+' wickets</div></div>'
+        + '<div class="score">'+(inn.runs||0)+'/'+(inn.wickets||0)+'</div>'
+        + '</div>';
+
+    out += '<div class="mlib-sub">🏏 Batting</div>';
+    out += '<table class="fmv-table"><thead><tr><th>Batter</th><th>Status</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
+    var batters = inn.batters || {}, bkeys = Object.keys(batters);
+    if (!bkeys.length){
+      out += '<tr><td colspan="7" style="text-align:center;padding:14px;color:#7a8590;">No batting data</td></tr>';
+    } else {
+      bkeys.forEach(function(name){
+        var b = batters[name];
+        var sr = b.balls ? (b.runs/b.balls*100).toFixed(1) : '0.0';
+        out += '<tr>'
+          + '<td><button class="mlib-link" onclick="window.openMlibPlayer(\''+String(name).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+esc(name)+'</button></td>'
+          + '<td style="text-align:left;color:#7a8590;font-size:10px;">'+esc(b.status||'')+'</td>'
+          + '<td>'+(b.runs||0)+'</td><td>'+(b.balls||0)+'</td><td>'+(b.fours||0)+'</td><td>'+(b.sixes||0)+'</td><td>'+sr+'</td></tr>';
+      });
+    }
+    out += '</tbody></table>';
+
+    out += '<div class="mlib-sub">⚾ Bowling</div>';
+    out += '<table class="fmv-table"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th></tr></thead><tbody>';
+    var bowlers = inn.bowlers || {}, wkeys = Object.keys(bowlers);
+    if (!wkeys.length){
+      out += '<tr><td colspan="6" style="text-align:center;padding:14px;color:#7a8590;">No bowling data</td></tr>';
+    } else {
+      wkeys.forEach(function(name){
+        var b = bowlers[name];
+        var eco = b.balls ? (b.runs/(b.balls/6)).toFixed(2) : '0.00';
+        out += '<tr>'
+          + '<td><button class="mlib-link" onclick="window.openMlibPlayer(\''+String(name).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'+esc(name)+'</button></td>'
+          + '<td>'+ovStr(b.balls)+'</td><td>'+(b.maidens||0)+'</td><td>'+(b.runs||0)+'</td><td>'+(b.wickets||0)+'</td><td>'+eco+'</td></tr>';
+      });
+    }
+    out += '</tbody></table>';
+
+    if (inn.fow && inn.fow.length){
+      out += '<div class="mlib-sub">📉 Fall of Wickets</div>';
+      out += '<div style="font-family:ui-monospace,monospace;font-size:11px;color:#c8c8d2;line-height:1.8;padding:8px 12px;background:rgba(0,0,0,.35);border-radius:6px;border:1px solid rgba(255,255,255,.06);">'+inn.fow.map(esc).join('<br>')+'</div>';
+    }
+
+    return out;
+  }
+
+  /* ─── Render ball-by-ball tab ─── */
+  function renderBallByBall(inn){
+    if (!inn) return '<div class="fmv-empty">No innings data</div>';
+    var rec = reconstructBalls(inn);
+    if (!rec.hasEvents){
+      // no explicit events — show aggregate-only notice + reconstructed per-over from bowlers
+      var out = '<div class="fmv-empty" style="text-align:left;font-size:11px;line-height:1.8;padding:16px 18px;">'
+             + '⚠️ <b style="color:#fbbf24;">No ball-by-ball data available for this innings.</b><br>'
+             + 'This match was imported as a summary scorecard (batters + bowlers only).<br><br>'
+             + '<b style="color:#00d2be;">Bowling breakdown by bowler:</b><br>';
+      var bowlers = inn.bowlers || {};
+      Object.keys(bowlers).forEach(function(name){
+        var b = bowlers[name];
+        out += '• '+esc(name)+' — '+ovStr(b.balls)+' ov, '+(b.maidens||0)+' M, '+(b.runs||0)+' R, '+(b.wickets||0)+' W<br>';
+      });
+      out += '</div>';
+      return out;
+    }
+    var events = rec.events;
+    var overs = [];
+    var cur = [];
+    events.forEach(function(e, i){
+      cur.push({ e: e, idx: i });
+      var legal = !e.extra || (e.extra !== 'wd' && e.extra !== 'nb');
+      if (legal && cur.filter(function(x){ return !x.e.extra || (x.e.extra !== 'wd' && x.e.extra !== 'nb'); }).length === 6){
+        overs.push(cur); cur = [];
+      }
+    });
+    if (cur.length) overs.push(cur);
+
+    var out = '<div class="fmv-inn-summary">'
+        + '<div><div class="team">'+esc(inn.team || 'Team')+'</div>'
+        + '<div class="meta">'+(inn.balls||0)+' balls · '+(inn.wickets||0)+' wickets</div></div>'
+        + '<div class="score">'+(inn.runs||0)+'/'+(inn.wickets||0)+'</div>'
+        + '</div>';
+    out += '<div class="mlib-sub">🎙️ Ball-by-Ball Commentary</div>';
+    overs.forEach(function(o, oi){
+      out += '<div class="fmv-bbb-over">';
+      out += '<div class="fmv-ov-lbl">Ov '+oi+'</div>';
+      out += '<div class="fmv-balls">';
+      o.forEach(function(item){
+        out += '<span class="fmv-ball '+ballClass(item.e)+'" title="'+esc(item.e.bowler||'')+' to '+esc(item.e.batsman||'')+'">'+esc(ballLabel(item.e))+'</span>';
+      });
+      out += '</div></div>';
+    });
+    return out;
+  }
+
+  /* ─── Full Match Viewer ─── */
+  var currentFmvId = null, currentFmvTab = 'i1';
+
+  window.openFullMatchViewer = function(id){
+    var m = getImported(id);
+    if (!m){ alert('Match not found'); return; }
+    currentFmvId = id;
+    currentFmvTab = 'i1';
+    renderFmv();
+    document.getElementById('fmvOverlay').classList.add('on');
+  };
+
+  window.closeFullMatchViewer = function(){
+    document.getElementById('fmvOverlay').classList.remove('on');
+  };
+
+  window.fmvSwitchTab = function(tab){
+    currentFmvTab = tab;
+    renderFmv();
+  };
+
+  function renderFmv(){
+    var m = getImported(currentFmvId);
+    if (!m) return;
+    var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+    var h = '';
+    h += '<div class="fmv-hd">'
+       +   '<div>'
+       +     '<h3>'+esc(m.fixture || (i1.team || 'Team A')+' vs '+(i2.team || 'Team B'))+'</h3>'
+       +     '<div class="sub">'+esc(m.date||'')+' · '+esc(m.venue||'')+' · <span class="badge-res">'+esc(m.result||'Result pending')+'</span></div>'
+       +   '</div>'
+       +   '<button class="fmv-x" onclick="window.closeFullMatchViewer()">✕</button>'
+       + '</div>';
+    h += '<div class="fmv-tabs">'
+       +   '<button class="fmv-tab '+(currentFmvTab==='i1'?'active':'')+'" onclick="window.fmvSwitchTab(\'i1\')">1st Innings</button>'
+       +   '<button class="fmv-tab '+(currentFmvTab==='i2'?'active':'')+'" onclick="window.fmvSwitchTab(\'i2\')">2nd Innings</button>'
+       +   '<button class="fmv-tab '+(currentFmvTab==='bbb1'?'active':'')+'" onclick="window.fmvSwitchTab(\'bbb1\')">Ball-by-Ball 1st</button>'
+       +   '<button class="fmv-tab '+(currentFmvTab==='bbb2'?'active':'')+'" onclick="window.fmvSwitchTab(\'bbb2\')">Ball-by-Ball 2nd</button>'
+       + '</div>';
+    h += '<div class="fmv-body">';
+    if (currentFmvTab === 'i1')  h += renderInnings(i1);
+    if (currentFmvTab === 'i2')  h += renderInnings(i2);
+    if (currentFmvTab === 'bbb1') h += renderBallByBall(i1);
+    if (currentFmvTab === 'bbb2') h += renderBallByBall(i2);
+    h += '</div>';
+    document.getElementById('fmvCard').innerHTML = h;
+  }
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') window.closeFullMatchViewer();
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     TOURNAMENT PANE enhancement — Ravi Cup style
+     ═══════════════════════════════════════════════════════════ */
+  function getTournaments(){
+    var out = [];
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      if (raw){
+        var d = JSON.parse(raw);
+        if (d.currentTourn && d.currentTourn.name){
+          out.push(Object.assign({}, d.currentTourn, { _isCurrent: true }));
+        }
+        if (Array.isArray(d.pastTournaments)){
+          d.pastTournaments.forEach(function(t){ if (t && t.name) out.push(t); });
+        }
+      }
+    } catch(e){}
+    return out;
+  }
+
+  function buildTournamentPoints(matchIds){
+    var rows = {};
+    function ensure(name){
+      if (!name) return null;
+      if (!rows[name]) rows[name] = { name:name, p:0, w:0, l:0, t:0, pts:0, rf:0, bf:0, ra:0, ba:0 };
+      return rows[name];
+    }
+    var list = getImported();
+    (matchIds || []).forEach(function(id){
+      var m = list[id];
+      if (!m) return;
+      var i1 = m.innings1 || {}, i2 = m.innings2 || {};
+      var A = ensure(i1.team), B = ensure(i2.team);
+      if (!A || !B) return;
+      A.p++; B.p++;
+      A.rf += i1.runs||0; A.bf += i1.balls||0;
+      A.ra += i2.runs||0; A.ba += i2.balls||0;
+      B.rf += i2.runs||0; B.bf += i2.balls||0;
+      B.ra += i1.runs||0; B.ba += i1.balls||0;
+      var rA = i1.runs||0, rB = i2.runs||0;
+      if (rA > rB){ A.w++; B.l++; A.pts += 2; }
+      else if (rB > rA){ B.w++; A.l++; B.pts += 2; }
+      else { A.t++; B.t++; A.pts++; B.pts++; }
+    });
+    var arr = Object.keys(rows).map(function(k){
+      var r = rows[k];
+      var orf = r.bf ? (r.rf / r.bf) * 6 : 0;
+      var ora = r.ba ? (r.ra / r.ba) * 6 : 0;
+      r.nrr = orf - ora;
+      return r;
+    });
+    arr.sort(function(a,b){ return b.pts - a.pts || b.nrr - a.nrr; });
+    return arr;
+  }
+
+  window.refreshTournamentPane = function(){
+    var heroMount = document.getElementById('tpHeroMount');
+    if (!heroMount) return;
+    var tours = getTournaments();
+    var current = tours.find(function(t){ return t._isCurrent; }) || tours[0] || null;
+
+    // Hero card
+    if (current){
+      var matchCount = (current.matchIds||[]).length;
+      var hero = '<div class="tp-hero">'
+        + '<div class="name">🏆 '+esc(current.name)+'</div>'
+        + '<div class="meta">'+esc(current.venue||'Local Stadium')+' · '+(current.overs||20)+' ov · '+matchCount+' match'+(matchCount===1?'':'es')+'</div>'
+        + '<div class="actions">'
+        +   '<button class="btn-ui btn-primary" style="padding:10px 16px;font-size:11px;" onclick="tpOpenAddMatchPicker()">➕ Add Match</button>'
+        +   '<button class="btn-ui" style="padding:10px 16px;font-size:11px;" onclick="tpOpenNewTournamentPrompt()">✨ New</button>'
+        + '</div>'
+        + '</div>';
+      heroMount.innerHTML = hero;
+    } else {
+      heroMount.innerHTML = '<div class="tp-hero">'
+        + '<div class="name">No Tournament Active</div>'
+        + '<div class="meta">Create a tournament to track points & past matches</div>'
+        + '<div class="actions"><button class="btn-ui btn-primary" style="padding:10px 16px;font-size:11px;" onclick="tpOpenNewTournamentPrompt()">✨ Create Tournament</button></div>'
+        + '</div>';
+    }
+
+    // Tournament list (past tournaments)
+    var listHtml = '';
+    if (tours.length){
+      listHtml = '<div class="pad-title" style="margin-top:14px;">All Tournaments</div>';
+      tours.forEach(function(t, i){
+        var mc = (t.matchIds||[]).length;
+        listHtml += '<div class="tp-list-item '+(t._isCurrent?'active':'')+'" onclick="tpSelectTournament(\''+esc(t.id||('t'+i))+'\')">'
+          +   '<div>'
+          +     '<div class="nm">'+esc(t.name)+'</div>'
+          +     '<div class="mt">'+esc(t.venue||'—')+' · '+(t.overs||20)+' ov · '+mc+' match'+(mc===1?'':'es')+'</div>'
+          +   '</div>'
+          +   '<span class="bd">'+(t._isCurrent?'ACTIVE':'VIEW')+'</span>'
+          + '</div>';
+      });
+    }
+    var listMount = document.getElementById('tpTournListMount');
+    if (!listMount){
+      var extra = document.createElement('div');
+      extra.id = 'tpTournListMount';
+      var ptsSection = document.querySelector('#pane-tournament .section-header-banner');
+      if (ptsSection && ptsSection.parentNode){
+        ptsSection.parentNode.insertBefore(extra, ptsSection);
+      }
+    }
+    var mount2 = document.getElementById('tpTournListMount');
+    if (mount2) mount2.innerHTML = listHtml;
+
+    // Points table
+    var ptsBody = document.getElementById('pointsTableBody');
+    if (ptsBody){
+      var pts = current ? buildTournamentPoints(current.matchIds || []) : [];
+      if (!pts.length){
+        ptsBody.innerHTML = '<div style="padding:14px;text-align:center;font-family:ui-monospace,monospace;font-size:10px;color:#7a8590;letter-spacing:1.2px;">NO COMPLETED MATCHES</div>';
+      } else {
+        ptsBody.innerHTML = pts.map(function(r, i){
+          return '<div class="points-table-row" style="display:grid;grid-template-columns:32px 1fr repeat(5,40px);padding:8px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;">'
+            + '<div style="font-weight:900;color:'+(i===0?'#fbbf24':'#7a8590')+';">'+(i+1)+'</div>'
+            + '<div style="font-weight:800;color:#fff;">'+esc(r.name)+'</div>'
+            + '<div style="text-align:right;">'+r.p+'</div>'
+            + '<div style="text-align:right;">'+r.w+'</div>'
+            + '<div style="text-align:right;">'+r.l+'</div>'
+            + '<div style="text-align:right;font-weight:900;color:#00d2be;">'+r.pts+'</div>'
+            + '<div style="text-align:right;font-family:ui-monospace,monospace;font-size:11px;">'+(r.nrr>=0?'+':'')+r.nrr.toFixed(3)+'</div>'
+            + '</div>';
+        }).join('');
+      }
+    }
+
+    // Past matches list
+    var pastMount = document.getElementById('pastMatchesContainer');
+    if (pastMount){
+      if (!current || !(current.matchIds||[]).length){
+        pastMount.innerHTML = '<div class="panel-card" style="text-align:center;font-family:ui-monospace,monospace;font-size:10px;color:#7a8590;letter-spacing:1.2px;">NO PAST MATCHES · TAP "+ ADD MATCH" ABOVE</div>';
+      } else {
+        var list = getImported();
+        pastMount.innerHTML = current.matchIds.map(function(id){
+          var m = list[id];
+          if (!m) return '';
+          var i1 = m.innings1||{}, i2 = m.innings2||{};
+          return '<div class="mlib-row">'
+            + '<div class="mlib-row-hd">'
+            +   '<div class="mlib-info">'
+            +     '<div class="mlib-fixture">'+esc(m.fixture||id)+'</div>'
+            +     '<div class="mlib-result">'+esc(m.result||'—')+'</div>'
+            +     '<div class="mlib-meta">'+(i1.team||'T1')+' '+(i1.runs||0)+'/'+(i1.wickets||0)+' · '+(i2.team||'T2')+' '+(i2.runs||0)+'/'+(i2.wickets||0)+'</div>'
+            +   '</div>'
+            +   '<div class="mlib-actions">'
+            +     '<button class="mlib-btn" onclick="window.openFullMatchViewer(\''+String(id).replace(/'/g,"\\'")+'\')">📖 View</button>'
+            +   '</div>'
+            + '</div>'
+            + '</div>';
+        }).join('');
+      }
+    }
+  };
+
+  /* ═══ Add Match to Tournament picker ═══ */
+  window.tpOpenAddMatchPicker = function(){
+    var modal = document.getElementById('tpAddMatchModal');
+    var listMount = document.getElementById('tpAddMatchList');
+    var tours = getTournaments();
+    var current = tours.find(function(t){ return t._isCurrent; }) || tours[0];
+    if (!current){ alert('Create a tournament first'); return; }
+    var existing = new Set(current.matchIds || []);
+    var all = getImported();
+    var keys = Object.keys(all).filter(function(k){ return !existing.has(k); });
+    if (!keys.length){
+      listMount.innerHTML = '<div class="fmv-empty">All imported matches are already in this tournament.</div>';
+      modal.classList.add('on');
+      return;
+    }
+    listMount.innerHTML = keys.map(function(k){
+      var m = all[k] || {};
+      return '<div class="tp-list-item" onclick="tpAttachMatch(\''+String(k).replace(/'/g,"\\'")+'\')">'
+        + '<div><div class="nm">'+esc(m.fixture||k)+'</div>'
+        + '<div class="mt">'+esc(m.result||'')+' · '+esc(m.date||'')+'</div></div>'
+        + '<span class="bd">+ ADD</span></div>';
+    }).join('');
+    modal.classList.add('on');
+  };
+
+  window.tpAttachMatch = function(matchId){
+    var tours = getTournaments();
+    var current = tours.find(function(t){ return t._isCurrent; }) || tours[0];
+    if (!current) return;
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      var d = raw ? JSON.parse(raw) : {};
+      if (!d.currentTourn) d.currentTourn = current;
+      d.currentTourn.matchIds = d.currentTourn.matchIds || [];
+      if (d.currentTourn.matchIds.indexOf(matchId) === -1) d.currentTourn.matchIds.push(matchId);
+      localStorage.setItem('CricMax_Data', JSON.stringify(d));
+    } catch(e){ console.warn('attach failed', e); }
+    if (window.fbDb){
+      window.fbDb.ref('cricmax/db/currentTourn').set(current).catch(function(){});
+    }
+    document.getElementById('tpAddMatchModal').classList.remove('on');
+    window.refreshTournamentPane();
+    if (typeof window.renderTournaments === 'function') try { window.renderTournaments(); } catch(e){}
+  };
+
+  window.tpOpenNewTournamentPrompt = function(){
+    if (typeof window.startNewTournamentFlow === 'function'){
+      try { window.startNewTournamentFlow(); return; } catch(e){}
+    }
+    if (typeof window.openTournamentModal === 'function'){
+      try { window.openTournamentModal(); return; } catch(e){}
+    }
+    var name = prompt('Tournament name:'); if (!name) return;
+    var venue = prompt('Venue:', 'Local Stadium') || 'Local Stadium';
+    var overs = parseInt(prompt('Overs per innings:', '20'), 10) || 20;
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      var d = raw ? JSON.parse(raw) : {};
+      var t = { id: 't-'+Date.now(), name: name, venue: venue, overs: overs, matchIds: [], createdAt: Date.now() };
+      if (d.currentTourn && !d.currentTourn._archived){
+        d.pastTournaments = d.pastTournaments || [];
+        d.pastTournaments.push(d.currentTourn);
+      }
+      d.currentTourn = t;
+      localStorage.setItem('CricMax_Data', JSON.stringify(d));
+    } catch(e){}
+    window.refreshTournamentPane();
+  };
+
+  window.tpSelectTournament = function(id){
+    // no-op in this extended view; could switch active — kept minimal
+    window.refreshTournamentPane();
+  };
+
+  /* ═══ Auto-refresh on any change ═══ */
+  function autoRefresh(){
+    try { window.refreshTournamentPane(); } catch(e){}
+  }
+
+  // Initial + periodic
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(autoRefresh, 800); });
+  } else {
+    setTimeout(autoRefresh, 800);
+  }
+  window.addEventListener('load', function(){ setTimeout(autoRefresh, 1200); });
+
+  // Hook selectSubPane so opening tournament refreshes it
+  (function wrapSelectSubPane(){
+    if (typeof window.selectSubPane !== 'function'){ setTimeout(wrapSelectSubPane, 250); return; }
+    if (window.selectSubPane.__tpWrapped) return;
+    var orig = window.selectSubPane;
+    window.selectSubPane = function(name){
+      var r = orig.apply(this, arguments);
+      if (name === 'tournament') setTimeout(autoRefresh, 80);
+      return r;
+    };
+    window.selectSubPane.__tpWrapped = true;
+  })();
+
+  // Hook imported-match updates
+  ['applyImportJSON','pullFromFirebase','clearImportAll'].forEach(function(fnName){
+    var fn = window[fnName];
+    if (typeof fn === 'function' && !fn.__tpPatched){
+      window[fnName] = function(){ var r = fn.apply(this, arguments); setTimeout(autoRefresh, 400); return r; };
+      window[fnName].__tpPatched = true;
+    }
+  });
+
+  window.addEventListener('storage', function(e){
+    if (e.key === 'CricMax_Data' || e.key === 'cricmax_importedMatches'){
+      setTimeout(autoRefresh, 200);
+    }
+  });
+
+  // Also poll lightly (matches ongoing scoring)
+  setInterval(autoRefresh, 5000);
+
+  console.log('[CricMax Extended] ✅ Full Match Viewer + Ball-by-Ball + Tournament ready');
 })();
 </script>
 
