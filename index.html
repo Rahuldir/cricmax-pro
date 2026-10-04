@@ -4695,7 +4695,12 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
         if(listMount) listMount.style.display = 'block';
         if(detailMount) detailMount.style.display = 'none';
       }
-      var r = _orig ? _orig.apply(this, arguments) : undefined;
+      var md = document.getElementById('tdMatchDetail');
+      var matchDetailOpen = md && md.style.display === 'block';
+      var r;
+      if (!matchDetailOpen){
+        r = _orig ? _orig.apply(this, arguments) : undefined;
+      }
       if(window.__tdSelectedTourn){
         setTimeout(function(){ updateHeroName(window.__tdSelectedTourn); }, 20);
       }
