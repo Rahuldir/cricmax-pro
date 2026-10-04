@@ -2922,10 +2922,17 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
       ];
     }
 
-    var result = '';
-    var rm2 = flat.match(/([A-Za-z0-9 .'&-]+?)\s+won\s+by\s+([^!\.]+)/i);
-    if (rm2) result = rm2[1].trim() + ' won by ' + rm2[2].trim();
-    else if (/\btied\b/i.test(flat)) result = 'Match tied';
+   var result = '';
+    // Specifically looks for "runs" or "wickets" and cleans up lingering bowling figures
+    var rm2 = flat.match(/([A-Za-z0-9\s.'&-]{2,35})\s+won\s+by\s+([A-Za-z0-9\s]+(?:runs?|wickets?|wkt|wkts))/i);
+    if (rm2){
+      var rTeam = rm2[1].replace(/.*?(?:\d+\/\d+|\d+\-\d+|innings|overs?)\s*/i, '').trim();
+      rTeam = rTeam.replace(/^[\d\-\s|]+/, '').trim();
+      if (!rTeam) rTeam = rm2[1].trim();
+      result = rTeam + ' won by ' + rm2[2].trim();
+    } else if (/\btied\b/i.test(flat)) {
+      result = 'Match tied';
+    }
 
     var innings = headers.map(function(h){
       return {
