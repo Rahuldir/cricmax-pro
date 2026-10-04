@@ -159,6 +159,7 @@ function saveTournamentAndProceed() {
   updateTournamentProfileCard();
   closeModal('tournConfigModal');
   autoPersist();
+  syncTournMetaForUI();
   openTeamSelectionModal();
 }
 
