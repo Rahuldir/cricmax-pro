@@ -4354,6 +4354,88 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 })();
 </script>
 <script>
+/* ═══ VIEWER NORMALIZER — auto-cleans names on the fly ═══ */
+(function(){
+  'use strict';
+  var PLAYER_MAP = {
+    'vivek':'Vivek','vivek1':'Vivek','vivek 1':'Vivek','vivek 2':'Vivek','vivek2':'Vivek',
+    'shivam':'Shivam 1','shivam1':'Shivam 1','shivam 1':'Shivam 1',
+    'shivam2':'Shivam 2','shivam 2':'Shivam 2'
+  };
+  var TEAM_MAP = {
+    'ravi':'Rajesh 11','ravi 11':'Rajesh 11','rajesh':'Rajesh 11',
+    'rajesh 11':'Rajesh 11','rajesh ii':'Rajesh 11','rajesh 2':'Rajesh 11',
+    'vivek':'Vivek 11','vivek 11':'Vivek 11','vivek ii':'Vivek 11',
+    'vivek 2':'Vivek 11','vivek iii':'Vivek 11','vivek 3':'Vivek 11'
+  };
+  function normP(n){
+    if(!n) return n;
+    var s=String(n).trim().replace(/\s+/g,' ').replace(/([A-Za-z])(\d)/g,'$1 $2');
+    return PLAYER_MAP[s.toLowerCase()] || s;
+  }
+  function normT(n){
+    if(!n) return n;
+    var s=String(n).trim().replace(/\s+/g,' ')
+      .replace(/\bIII\b/gi,'3').replace(/\bII\b/gi,'2');
+    s=s.replace(/([A-Za-z])(\d)/g,'$1 $2').replace(/\s+/g,' ').trim();
+    return TEAM_MAP[s.toLowerCase()] || s;
+  }
+  function clean(m){
+    if(!m || typeof m !== 'object') return m;
+    ['innings1','innings2'].forEach(function(k){
+      var inn = m[k]; if(!inn) return;
+      if (inn.team) inn.team = normT(inn.team);
+      if (inn.batters){
+        var nb={};
+        Object.keys(inn.batters).forEach(function(name){
+          var c=normP(name);
+          if(nb[c]){
+            var a=nb[c], b=inn.batters[name];
+            a.runs+=b.runs||0; a.balls+=b.balls||0;
+            a.fours+=b.fours||0; a.sixes+=b.sixes||0; a.dots+=b.dots||0;
+            if((b.status||'').indexOf('not out')===-1) a.status=b.status||a.status;
+          } else nb[c]=Object.assign({},inn.batters[name]);
+        });
+        inn.batters=nb;
+      }
+      if (inn.bowlers){
+        var nw={};
+        Object.keys(inn.bowlers).forEach(function(name){
+          var c=normP(name);
+          if(nw[c]){
+            var a=nw[c], b=inn.bowlers[name];
+            a.balls+=b.balls||0; a.maidens+=b.maidens||0; a.runs+=b.runs||0;
+            a.wickets+=b.wickets||0; a.dots+=b.dots||0;
+            a.wides+=b.wides||0; a.noBalls+=b.noBalls||0;
+          } else nw[c]=Object.assign({},inn.bowlers[name]);
+        });
+        inn.bowlers=nw;
+      }
+    });
+    if (m.fixture){
+      var parts = m.fixture.split(/\s+vs\.?\s+/i);
+      if (parts.length === 2) m.fixture = normT(parts[0]) + ' vs ' + normT(parts[1]);
+    }
+    return m;
+  }
+  /* Expose for the tournament pane to use */
+  window.__cmCleanMatchViewer = clean;
+
+  /* Hook handleNewMatchData (the single live-data entry point) */
+  function hook(){
+    if (typeof window.handleNewMatchData !== 'function') return false;
+    var orig = window.handleNewMatchData;
+    window.handleNewMatchData = function(m){ return orig(clean(m)); };
+    return true;
+  }
+  if (!hook()){ var t=setInterval(function(){ if(hook()) clearInterval(t); }, 300); }
+  setTimeout(function(){ try{ hook(); }catch(e){} }, 1500);
+
+  console.log('[ViewerNorm] ✅ active');
+})();
+</script>
+
+<script>
 (function(){
   'use strict';
   function buildViewerUrl(){
