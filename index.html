@@ -4739,20 +4739,29 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
      STEP 1 — Position-aware PDF text extraction
      Groups text items into rows (by Y) and joins columns (by X)
      ───────────────────────────────────────────────────────────── */
-   async function tdExtractLines(file){
+  /* ─────────────────────────────────────────────────────────────
+     OCR support (Tesseract.js) — lazy-loaded on first scanned PDF
+     ───────────────────────────────────────────────────────────── */
+  function tdEnsureTesseract(){
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    return new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js';
+      s.onload = function(){ resolve(window.Tesseract); };
+      s.onerror = function(){ reject(new Error('Cannot load Tesseract.js — check internet connection')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function tdExtractLines(file){
     var buf = await file.arrayBuffer();
-    var pdf;
-    try {
-      pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    } catch(err){
-      console.error('[CricMax PDF] getDocument failed:', err);
-      throw new Error('Cannot open PDF: ' + (err.message||err));
-    }
+    var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
     var allLines = [];
     var totalItems = 0, totalWithStr = 0;
     console.log('[CricMax PDF] file:', file.name, '| size:', file.size, '| pages:', pdf.numPages);
 
+    /* ── STEP A: try text-layer extraction first ── */
     for (var pi = 1; pi <= pdf.numPages; pi++){
       var page = await pdf.getPage(pi);
       var content = await page.getTextContent();
@@ -4763,57 +4772,31 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       for (var i = 0; i < items.length; i++){
         var it = items[i];
         if (!it) continue;
-        var raw = it.str;
-        if (raw === undefined || raw === null) continue;
-        var s = String(raw);
+        if (it.str === undefined || it.str === null) continue;
+        var s = String(it.str);
         if (!s.trim()) continue;
         totalWithStr++;
         var x = 0, y = 0;
         var tf = it.transform;
         if (tf && tf.length >= 6){ x = tf[4]; y = tf[5]; }
-        else if (typeof it.x === 'number'){ x = it.x; y = it.y || 0; }
-        valid.push({
-          str: s,
-          x: x,
-          y: y,
-          w: it.width || (s.length * 5)
-        });
+        valid.push({ str: s, x: x, y: y, w: it.width || (s.length * 5) });
       }
-
-      if (pi === 1){
-        console.log('[CricMax PDF] page 1 → items:', items.length, '| with text:', valid.length);
-        if (valid.length){
-          console.log('[CricMax PDF] sample item:', JSON.stringify(valid[0]));
-          console.log('[CricMax PDF] sample items (first 12):', valid.slice(0,12).map(function(v){return v.str;}).join(' | '));
-        }
-      }
-
       if (!valid.length) continue;
 
       var rows = [];
       valid.forEach(function(it){
         var placed = false;
         for (var r = 0; r < rows.length; r++){
-          if (Math.abs(rows[r].y - it.y) < 3.5){
-            rows[r].items.push(it);
-            placed = true;
-            break;
-          }
+          if (Math.abs(rows[r].y - it.y) < 3.5){ rows[r].items.push(it); placed = true; break; }
         }
-        if (!placed) rows.push({y: it.y, items: [it]});
+        if (!placed) rows.push({ y: it.y, items: [it] });
       });
-
       rows.sort(function(a,b){ return b.y - a.y; });
-
       rows.forEach(function(row){
         row.items.sort(function(a,b){ return a.x - b.x; });
-        var txt = '';
-        var lastEnd = null;
+        var txt = '', lastEnd = null;
         row.items.forEach(function(it){
-          if (lastEnd !== null){
-            var gap = it.x - lastEnd;
-            if (gap > 2.5) txt += ' ';
-          }
+          if (lastEnd !== null && it.x - lastEnd > 2.5) txt += ' ';
           txt += it.str;
           lastEnd = it.x + it.w;
         });
@@ -4821,52 +4804,70 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       });
     }
 
-    console.log('[CricMax PDF] total items:', totalItems, '| with text:', totalWithStr, '| lines:', allLines.length);
+    console.log('[CricMax PDF] text layer → items:', totalItems, '| with str:', totalWithStr, '| lines:', allLines.length);
 
-    /* FALLBACK: if position-aware gave nothing, use flat concat + smart chunking */
-    if (allLines.length === 0){
-      console.warn('[CricMax PDF] Position-aware extractor yielded 0 lines — falling back to flat mode');
-      for (var pj = 1; pj <= pdf.numPages; pj++){
-        var pg = await pdf.getPage(pj);
-        var tc = await pg.getTextContent();
-        var flat = '';
-        for (var k = 0; k < tc.items.length; k++){
-          var s2 = tc.items[k] && tc.items[k].str;
-          if (!s2) continue;
-          flat += s2;
-          if (!/\s$/.test(s2)) flat += ' ';
-        }
-        /* Split on natural line boundaries — ball markers, headers */
-        var chunks = flat
-          .replace(/\s+/g,' ')
-          .split(/(?=\[\d+\.\d+\])/g)   /* split before each [X.Y] */
-          .map(function(c){ return c.trim(); })
-          .filter(Boolean);
-        /* If still one giant chunk, split further on word boundaries every ~60 chars */
-        if (chunks.length === 1 && chunks[0].length > 200){
-          var words = chunks[0].split(' ');
-          var cur = '';
-          words.forEach(function(w){
-            if ((cur + ' ' + w).length > 80){ chunks.push(cur); cur = w; }
-            else cur = cur ? cur + ' ' + w : w;
-          });
-          if (cur) chunks.push(cur);
-          chunks.shift();
-        }
-        chunks.forEach(function(c){ if (c) allLines.push(c); });
+    /* If we got a usable text layer, return it */
+    if (allLines.length >= 5) return allLines;
+
+    /* ── STEP B: OCR fallback (scanned/image PDFs) ── */
+    console.warn('[CricMax PDF] No usable text layer — running OCR on ' + pdf.numPages + ' page(s)');
+    setStat('Loading OCR engine (first time only, ~10s)…');
+    showProg(true, 'Loading OCR engine…', 5);
+
+    var T = await tdEnsureTesseract();
+    var worker = await T.createWorker('eng', 1, {
+      logger: function(m){
+        if (m.status === 'loading tesseract core') setStat('Loading OCR core…');
+        else if (m.status === 'loading language traineddata') setStat('Loading OCR language data…');
       }
-      console.log('[CricMax PDF] Fallback produced', allLines.length, 'chunks');
-      if (allLines.length) console.log('[CricMax PDF] fallback sample (first 20):');
-      if (allLines.length) allLines.slice(0, 20).forEach(function(l,i){ console.log('  ', i, l.slice(0,120)); });
+    });
+
+    var ocrLines = [];
+    var totalPages = pdf.numPages;
+
+    for (var pj = 1; pj <= totalPages; pj++){
+      var pctBase = 10 + Math.floor(((pj - 1) / totalPages) * 85);
+      showProg(true, 'OCR page ' + pj + ' / ' + totalPages + '…', pctBase);
+      setStat('OCR page ' + pj + ' / ' + totalPages + '…');
+
+      var pg = await pdf.getPage(pj);
+      var vp = pg.getViewport({ scale: 2.4 });   /* higher scale = better accuracy */
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.min(Math.floor(vp.width), 2400);
+      canvas.height = Math.min(Math.floor(vp.height), 3200);
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await pg.render({ canvasContext: ctx, viewport: vp }).promise;
+
+      try {
+        var res = await worker.recognize(canvas);
+        var text = (res && res.data && res.data.text) || '';
+        text.split(/\r?\n/).forEach(function(l){
+          var t = l.trim();
+          if (t) ocrLines.push(t);
+        });
+      } catch(err){
+        console.warn('[CricMax PDF] OCR failed on page ' + pj + ':', err);
+      }
+
+      canvas.width = canvas.height = 0;   /* free memory */
     }
 
-    if (allLines.length === 0){
-      throw new Error('PDF contains no extractable text (scanned image? Try a text-based PDF).');
+    try { await worker.terminate(); } catch(e){}
+    showProg(true, '✔ OCR complete', 100);
+    setTimeout(function(){ showProg(false); }, 800);
+
+    console.log('[CricMax PDF] OCR produced ' + ocrLines.length + ' lines');
+    if (ocrLines.length){
+      console.log('[CricMax PDF] OCR sample (first 25):');
+      ocrLines.slice(0, 25).forEach(function(l,i){ console.log('  ', i, l.slice(0, 140)); });
     }
 
-    return allLines;
+    if (!ocrLines.length) throw new Error('OCR produced no text. The PDF may be unreadable.');
+
+    return ocrLines;
   }
-
   /* ─────────────────────────────────────────────────────────────
      STEP 2 — State-machine parser for the Ravi Cup PDF layout
      ───────────────────────────────────────────────────────────── */
