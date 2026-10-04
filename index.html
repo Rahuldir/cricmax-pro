@@ -2913,15 +2913,24 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
       seen[k] = true;
       headers.push({ team:t, runs:+runs, wickets:+wkts, balls: balls||120 });
     }
-    var reA = /([A-Za-z][A-Za-z0-9 .'&-]*?)\s*(\d)(?:st|nd|rd|th)\s*INNINGS?\s*(\d+)\s*\/\s*(\d+)(?:\s*\(\s*(\d+)[\.:](\d+)\s*\))?/gi;
-    while ((m = reA.exec(flat)) !== null){
-      var ballsA = m[5] !== undefined ? (+m[5])*6 + (+m[6]) : 120;
-      pushHeader(m[1], m[3], m[4], ballsA);
-    }
-    var reB = /(\d)(?:st|nd|rd|th)\s+innings?\s*[-–—:]?\s*([A-Za-z][A-Za-z0-9 .'&-]*?\d)\s+(\d+)\s*\/\s*(\d+)(?:\s*\(\s*(\d+)[\.:](\d+)\s*\))?/gi;
-    while ((m = reB.exec(flat)) !== null){
-      var ballsB = m[5] !== undefined ? (+m[5])*6 + (+m[6]) : 120;
-      pushHeader(m[2], m[3], m[4], ballsB);
+       var reScore = /(\d{1,3})\s*\/\s*(\d{1,2})(?:\s*\(\s*(\d+)[\.:](\d+)\s*\))?/g;
+    var sm;
+    while ((sm = reScore.exec(flat)) !== null){
+      var before = flat.substring(Math.max(0, sm.index - 80), sm.index);
+      if (!/INNINGS/i.test(before)) continue;
+      var stripped = before.replace(/\d(?:st|nd|rd|th)\s*INNINGS?\s*[-–—:]?\s*/i, '').replace(/\s+$/, '');
+      var words = stripped.split(/\s+/).filter(Boolean);
+      if (words.length < 1) continue;
+      var team;
+      if (words.length >= 2 && /^\d+$/.test(words[words.length - 1])){
+        team = words[words.length - 2] + ' ' + words[words.length - 1];
+      } else {
+        team = words[words.length - 1];
+      }
+      if (team.length < 2) continue;
+      var ballsX = sm[3] !== undefined ? (+sm[3]) * 6 + (+sm[4]) : 120;
+      pushHeader(team, sm[1], sm[2], ballsX);
+      if (headers.length >= 2) break;
     }
     if (headers.length < 2) throw new Error('Could not find two innings headers');
     var result = '';
