@@ -2057,8 +2057,12 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     firebase.database().ref('cricmax/importedMatches').once('value').then(function(snap){
       var v = snap.val() || {};
       var keys = Object.keys(v);
-      var all = {};
-      keys.forEach(function(k){ all[k] = Object.assign({id:k}, v[k]); });
+           var all = {};
+      var __cleanFn = window.__cmCleanMatchViewer;
+      keys.forEach(function(k){
+        var raw = v[k];
+        all[k] = Object.assign({id:k}, (__cleanFn ? __cleanFn(raw) : raw));
+      });
       if (!keys.length){
         mount.innerHTML = '<div class="td-tourn-empty">No matches yet</div>';
         return;
