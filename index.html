@@ -928,27 +928,77 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
     <div class="tab-btn" onclick="selectSubPane('import')">Import</div>
   </nav>
 
-  <div class="sub-pane" id="pane-tournament">
-    <div class="pad-title">Tournament Profile</div>
-    <div id="tpHeroMount"></div>
-    <div class="panel-card" style="border:1px solid rgba(0,230,118,.4);">
-      <div style="font-size:20px;font-weight:900;" id="tournNameDisplay">Tournament Not Set</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="tournMetaDisplay">Tap Edit to configure</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
-        <button class="btn-ui" style="padding:12px;font-size:12px;" onclick="openTournamentModal()">✎ Edit</button>
-        <button class="btn-ui btn-primary" style="padding:12px;font-size:12px;" id="btnContinueTourn" onclick="continueFromTournament()">▶ Continue</button>
+   <div class="sub-pane" id="pane-tournament">
+    <div class="td-hero" id="tdHero"></div>
+
+    <div class="td-tabs">
+      <button class="td-tab on" onclick="tdShowTab('matches',this)">📋 Matches</button>
+      <button class="td-tab" onclick="tdShowTab('stats',this)">📊 Stats</button>
+      <button class="td-tab" onclick="tdShowTab('import',this)">📥 Import</button>
+    </div>
+
+    <!-- MATCHES TAB -->
+    <div class="td-pane on" id="tdPane-matches">
+      <div class="td-mlist" id="tdMatchList"></div>
+      <div id="tdMatchDetail" style="display:none;"></div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="td-pane" id="tdPane-stats">
+      <div class="td-sec lime" style="margin-top:0"><span class="bar"></span>🏏 Batting Leaderboard</div>
+      <div class="td-tbl-wrap"><table class="td-tbl">
+        <thead><tr>
+          <th style="width:26px"></th><th>Player</th>
+          <th class="r">M</th><th class="r">Inn</th>
+          <th class="r">Runs</th><th class="r">Balls</th>
+          <th class="r">4s</th><th class="r">6s</th>
+          <th class="r">50</th><th class="r">100</th>
+          <th class="r">HS</th><th class="r">Avg</th><th class="r">SR</th>
+        </tr></thead>
+        <tbody id="tdBattingBody"></tbody>
+      </table></div>
+
+      <div class="td-sec cyan"><span class="bar"></span>⚾ Bowling Leaderboard</div>
+      <div class="td-tbl-wrap"><table class="td-tbl">
+        <thead><tr>
+          <th style="width:26px"></th><th>Player</th>
+          <th class="r">M</th><th class="r">Inn</th>
+          <th class="r">Wkts</th><th class="r">Overs</th>
+          <th class="r">Runs</th><th class="r">Best</th>
+          <th class="r">Avg</th><th class="r">Eco</th>
+        </tr></thead>
+        <tbody id="tdBowlingBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- IMPORT TAB -->
+    <div class="td-pane" id="tdPane-import">
+      <div class="td-imp-card">
+        <h3>📄 Upload Match PDF</h3>
+        <div class="desc">Parse the PDF scorecard & push to Firebase — viewer sees it instantly</div>
+        <label class="td-drop" id="tdDrop">
+          <input type="file" id="tdPdfInput" accept="application/pdf,.pdf">
+          <div class="dz-ic">⬆</div>
+          <div class="dz-t">Drop PDF Here</div>
+          <div class="dz-s">or click to browse · max 25 MB</div>
+        </label>
+        <div class="upload-progress" id="tdProgress" style="display:none;margin-top:14px;">
+          <div class="lbl" style="display:flex;justify-content:space-between;font-family:var(--td-mono);font-size:9px;font-weight:800;letter-spacing:2px;color:var(--td-dim);margin-bottom:8px;text-transform:uppercase;">
+            <span id="tdStatusTxt">Reading…</span><span id="tdPct">0%</span>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,.08);overflow:hidden;">
+            <div id="tdFill" style="height:100%;width:0;background:linear-gradient(90deg,#e10600,#ffb800,#00ffa3);transition:width .25s;box-shadow:0 0 14px rgba(225,6,0,.6);"></div>
+          </div>
+        </div>
+        <div class="imp-status" id="tdImpStatus" style="margin-top:14px;">Ready.</div>
       </div>
-      <button class="btn-ui btn-primary" id="btnStartNewMatch" style="width:100%;margin-top:8px;padding:12px;font-size:12px;" onclick="startNewMatchFlow()">🏏 Start New Match</button>
-      <button class="btn-ui" id="btnAddMatchToTourn" style="width:100%;margin-top:8px;padding:12px;font-size:12px;background:rgba(0,210,190,.12);border-color:rgba(0,210,190,.45);color:#00d2be;" onclick="tpOpenAddMatchPicker()">➕ Add Match to Tournament</button>
-      <div id="continueHint" style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center;font-style:italic;"></div>
+
+      <div class="td-imp-card gr">
+        <h3>📚 Match Library</h3>
+        <div class="desc">All parsed matches stored in Firebase · click any to preview</div>
+        <div id="tdMatchLibrary"></div>
+      </div>
     </div>
-    <div class="section-header-banner"><span>📊</span> Points Table</div>
-    <div class="panel-card" style="padding:8px;overflow-x:auto;">
-      <div class="points-table-row header"><div>#</div><div>Team</div><div>P</div><div>W</div><div>L</div><div>Pts</div><div>NRR</div></div>
-      <div id="pointsTableBody"></div>
-    </div>
-    <div class="section-header-banner"><span>📜</span> Past Matches</div>
-    <div id="pastMatchesContainer"></div>
   </div>
 
   <div class="sub-pane active" id="pane-live">
