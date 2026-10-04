@@ -2932,8 +2932,7 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
       pushHeader(team, sm[1], sm[2], ballsX);
       if (headers.length >= 2) break;
     }
-    if (headers.length < 2) throw new Error('Could not find two innings headers');
-    var result = '';
+    if (headers.length < 2) throw new Error('Found ' + headers.length + ' header(s). RAW: ' + flat.substring(0, 400));    var result = '';
     var rm2 = flat.match(/([A-Za-z0-9 .'&-]+?)\s+won\s+by\s+([^!\.]+)/i);
     if (rm2) result = rm2[1].trim() + ' won by ' + rm2[2].trim();
     else if (/\btied\b/i.test(flat)) result = 'Match tied';
