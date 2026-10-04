@@ -9,6 +9,12 @@
        π = left (off square)    -π/2 = up (behind batsman)
     ============================================================ */
 
+var _cmRenderDomCache = {};
+function _cachedEl(id) {
+  if (!_cmRenderDomCache[id]) _cmRenderDomCache[id] = document.getElementById(id);
+  return _cmRenderDomCache[id];
+}
+
 /* ═══════════════════════════════════════════════════════════
    PLAYER LINK HELPER — clickable names everywhere
    ═══════════════════════════════════════════════════════════ */
@@ -21,10 +27,9 @@ function _playerLink(name) {
 }
 
 function renderCommentary() {
-  var c = document.getElementById('commentaryContainer');
+  var c = _cachedEl('commentaryContainer');
   if (!c) return;
 
-  /* ⚡ Self-heal */
   if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
   var arr = Array.isArray(match.commentary) ? match.commentary : [];
@@ -54,9 +59,9 @@ function renderSummary() {
   var cp = match.currentPartnership || { runs: 0, balls: 0, batters: [] };
   var st = match.batters[match.striker] || { runs: 0, balls: 0 };
   var nst = match.batters[match.nonStriker] || { runs: 0, balls: 0 };
-  var pr = document.getElementById('partRuns');
-  var pd = document.getElementById('partDetails');
-  var fw = document.getElementById('fowContainer');
+  var pr = _cachedEl('partRuns');
+  var pd = _cachedEl('partDetails');
+  var fw = _cachedEl('fowContainer');
 
   if (pr) pr.innerText = (cp.runs || 0) + ' runs (' + (cp.balls || 0) + ' balls)';
   if (pd) pd.innerHTML = _playerLink(match.striker) + ': ' + st.runs + ' (' + st.balls + ') | ' +
@@ -78,12 +83,12 @@ function renderScorecard() {
   try {
     if (typeof normalizeMatch === 'function') normalizeMatch(match);
 
-    var bt = document.getElementById('battingTeamTitle');
+    var bt = _cachedEl('battingTeamTitle');
     if (bt) bt.innerText = 'Batting — ' + (match.teamBatting || '');
-    var bwt = document.getElementById('bowlingTeamTitle');
+    var bwt = _cachedEl('bowlingTeamTitle');
     if (bwt) bwt.innerText = 'Bowling — ' + (match.teamBowling || '');
 
-    var bb = document.getElementById('battingTableBody');
+    var bb = _cachedEl('battingTableBody');
     if (bb) {
       var battingRows = [];
       for (var n in match.batters) {
@@ -103,7 +108,7 @@ function renderScorecard() {
       bb.innerHTML = battingRows.join('');
     }
 
-    var bl = document.getElementById('bowlingTableBody');
+    var bl = _cachedEl('bowlingTableBody');
     if (bl) {
       var bowlingRows = [];
       for (var n2 in match.bowlers) {
