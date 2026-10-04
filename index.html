@@ -2903,22 +2903,25 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
     var text = String(raw).replace(/\r/g, '\n');
     var flat = text.replace(/\s+/g, ' ');
     var headers = [];
-    var re1 = /(\d)(?:st|nd|rd|th)\s+innings\s*[-–—]?\s*([A-Za-z][A-Za-z0-9 .'&-]{1,40}?)\s+(\d+)\s*\/\s*(\d+)\s*\(\s*(\d+)[\.:](\d+)/gi;
-    var m;
-    while ((m = re1.exec(flat)) !== null){
-      var nm = m[2].trim();
-      if (!headers.some(function(h){ return h.team.toLowerCase() === nm.toLowerCase(); })){
-        headers.push({ team: nm, runs: +m[3], wickets: +m[4], balls: oversToBalls(m[5] + '.' + m[6]) });
-      }
+      var m;
+    var seen = {};
+    function pushHeader(team, runs, wkts, balls){
+      var t = String(team||'').trim().replace(/\s+/g,' ');
+      if (!t || t.length < 2) return;
+      var k = t.toLowerCase();
+      if (seen[k]) return;
+      seen[k] = true;
+      headers.push({ team:t, runs:+runs, wickets:+wkts, balls: balls||120 });
     }
-    if (headers.length < 2){
-      var re2 = /([A-Za-z][A-Za-z0-9 .'&-]{1,40}?)\s+(\d)(?:st|nd|rd|th)\s+innings\b[^\d]{0,30}?(\d+)\s*\/\s*(\d+)/gi;
-      while ((m = re2.exec(flat)) !== null){
-        var nm2 = m[1].trim();
-        if (!headers.some(function(h){ return h.team.toLowerCase() === nm2.toLowerCase(); })){
-          headers.push({ team: nm2, runs: +m[3], wickets: +m[4], balls: 120 });
-        }
-      }
+    var reA = /([A-Za-z][A-Za-z0-9 .'&-]*?)\s*(\d)(?:st|nd|rd|th)\s*INNINGS?\s*(\d+)\s*\/\s*(\d+)(?:\s*\(\s*(\d+)[\.:](\d+)\s*\))?/gi;
+    while ((m = reA.exec(flat)) !== null){
+      var ballsA = m[5] !== undefined ? (+m[5])*6 + (+m[6]) : 120;
+      pushHeader(m[1], m[3], m[4], ballsA);
+    }
+    var reB = /(\d)(?:st|nd|rd|th)\s+innings?\s*[-–—:]?\s*([A-Za-z][A-Za-z0-9 .'&-]*?\d)\s+(\d+)\s*\/\s*(\d+)(?:\s*\(\s*(\d+)[\.:](\d+)\s*\))?/gi;
+    while ((m = reB.exec(flat)) !== null){
+      var ballsB = m[5] !== undefined ? (+m[5])*6 + (+m[6]) : 120;
+      pushHeader(m[2], m[3], m[4], ballsB);
     }
     if (headers.length < 2) throw new Error('Could not find two innings headers');
     var result = '';
