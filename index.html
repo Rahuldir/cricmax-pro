@@ -1015,6 +1015,27 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
 
     <!-- IMPORT TAB -->
     <div class="td-pane" id="tdPane-import">
+
+      <!-- JSON EDITOR — mirrors main Import tab -->
+      <div class="td-imp-card gr">
+        <h3>📦 Match Data (JSON)</h3>
+        <div class="desc">Paste a map of matches — each one is pushed to Firebase so your viewer can show them.</div>
+        <textarea class="json-editor" id="tdJsonEditor" spellcheck="false" placeholder='{"m1":{"fixture":"A vs B","innings1":{...},"innings2":{...}}}'></textarea>
+        <div class="json-actions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+          <button class="btn-ui btn-primary" onclick="tdApplyImportJSON()" style="padding:9px 14px;font-size:11px;font-weight:900;">✅ Apply &amp; Push to Firebase</button>
+          <button class="btn-ui" onclick="tdPullFromFirebase()" style="padding:9px 14px;font-size:11px;font-weight:900;">⬇ Pull from Firebase</button>
+          <button class="btn-ui" onclick="tdDownloadImportJSON()" style="padding:9px 14px;font-size:11px;font-weight:900;">📤 Export JSON</button>
+          <button class="btn-ui" onclick="tdLoadImportSample()" style="padding:9px 14px;font-size:11px;font-weight:900;">👁 Load Sample</button>
+          <button class="btn-ui" onclick="tdClearImportAll()" style="padding:9px 14px;font-size:11px;font-weight:900;background:rgba(239,68,68,.15);border-color:#ef4444;color:#fca5a5;">🗑 Clear All</button>
+        </div>
+        <div class="imp-status" id="tdImpStatus2" style="margin-top:14px;">Ready.</div>
+        <div class="hint" style="font-family:ui-monospace,monospace;font-size:9.5px;color:#7a8590;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);padding:10px 12px;margin-top:12px;line-height:1.9;border-radius:6px;">
+          <b style="color:#fbbf24;font-weight:800;text-transform:uppercase;font-size:8.5px;letter-spacing:1px;">Firebase path</b> <code style="color:var(--f1-green);background:rgba(0,210,190,.08);padding:1px 5px;border-radius:3px;">cricmax/importedMatches/&lt;id&gt;</code><br>
+          <b style="color:#fbbf24;font-weight:800;text-transform:uppercase;font-size:8.5px;letter-spacing:1px;">Viewer reads</b> from the same path — no extra wiring needed.
+        </div>
+      </div>
+
+      <!-- PDF DROPZONE -->
       <div class="td-imp-card">
         <h3>📄 Upload Match PDF</h3>
         <div class="desc">Parse the PDF scorecard & push to Firebase — viewer sees it instantly</div>
@@ -1035,7 +1056,8 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
         <div class="imp-status" id="tdImpStatus" style="margin-top:14px;">Ready.</div>
       </div>
 
-            <div class="td-imp-card gr">
+      <!-- LIBRARY -->
+      <div class="td-imp-card">
         <h3>📚 Match Library</h3>
         <div class="desc">All parsed matches stored in Firebase · click any to preview</div>
         <div id="tdMatchLibrary"></div>
