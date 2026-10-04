@@ -4350,7 +4350,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
         if(!inn.bowlers[bowler])inn.bowlers[bowler]={balls:0,maidens:0,runs:0,wickets:0,dots:0,wides:0,noBalls:0};
         inn.bowlers[bowler].noBalls++;
         inn.bowlers[bowler].runs+=runs;
-        inn.extras.nb+=runs; inn.extras.total+=runs;
+        inn.extras.nb+=runs;
         inn.events.push({ball:nm[1],extra:'nb',bowler:bowler,runs:runs,text:'no ball'});
         return;
       }
@@ -4361,7 +4361,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       if(!inn.bowlers[bowler])inn.bowlers[bowler]={balls:0,maidens:0,runs:0,wickets:0,dots:0,wides:0,noBalls:0};
       var bat=inn.batters[batter], bowl=inn.bowlers[bowler];
       if(/wide|wd/i.test(outcome)){
-        bowl.wides++;bowl.runs+=1;inn.extras.w+=1;inn.extras.total+=1;
+        bowl.wides++;inn.extras.w+=1;
         inn.events.push({ball:ball,extra:'wd',bowler:bowler,batsman:batter,text:'wide'});
         return;
       }
@@ -4739,19 +4739,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
      STEP 1 — Position-aware PDF text extraction
      Groups text items into rows (by Y) and joins columns (by X)
      ───────────────────────────────────────────────────────────── */
-  /* ─────────────────────────────────────────────────────────────
-     OCR support (Tesseract.js) — lazy-loaded on first scanned PDF
-     ───────────────────────────────────────────────────────────── */
-  function tdEnsureTesseract(){
-    if (window.Tesseract) return Promise.resolve(window.Tesseract);
-    return new Promise(function(resolve, reject){
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js';
-      s.onload = function(){ resolve(window.Tesseract); };
-      s.onerror = function(){ reject(new Error('Cannot load Tesseract.js — check internet connection')); };
-      document.head.appendChild(s);
-    });
-  }
+  /* OCR removed */
 
   async function tdExtractLines(file){
     var buf = await file.arrayBuffer();
@@ -4806,67 +4794,11 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
 
     console.log('[CricMax PDF] text layer → items:', totalItems, '| with str:', totalWithStr, '| lines:', allLines.length);
 
-    /* If we got a usable text layer, return it */
-    if (allLines.length >= 5) return allLines;
-
-    /* ── STEP B: OCR fallback (scanned/image PDFs) ── */
-    console.warn('[CricMax PDF] No usable text layer — running OCR on ' + pdf.numPages + ' page(s)');
-    setStat('Loading OCR engine (first time only, ~10s)…');
-    showProg(true, 'Loading OCR engine…', 5);
-
-    var T = await tdEnsureTesseract();
-    var worker = await T.createWorker('eng', 1, {
-      logger: function(m){
-        if (m.status === 'loading tesseract core') setStat('Loading OCR core…');
-        else if (m.status === 'loading language traineddata') setStat('Loading OCR language data…');
-      }
-    });
-
-    var ocrLines = [];
-    var totalPages = pdf.numPages;
-
-    for (var pj = 1; pj <= totalPages; pj++){
-      var pctBase = 10 + Math.floor(((pj - 1) / totalPages) * 85);
-      showProg(true, 'OCR page ' + pj + ' / ' + totalPages + '…', pctBase);
-      setStat('OCR page ' + pj + ' / ' + totalPages + '…');
-
-      var pg = await pdf.getPage(pj);
-      var vp = pg.getViewport({ scale: 2.4 });   /* higher scale = better accuracy */
-      var canvas = document.createElement('canvas');
-      canvas.width = Math.min(Math.floor(vp.width), 2400);
-      canvas.height = Math.min(Math.floor(vp.height), 3200);
-      var ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await pg.render({ canvasContext: ctx, viewport: vp }).promise;
-
-      try {
-        var res = await worker.recognize(canvas);
-        var text = (res && res.data && res.data.text) || '';
-        text.split(/\r?\n/).forEach(function(l){
-          var t = l.trim();
-          if (t) ocrLines.push(t);
-        });
-      } catch(err){
-        console.warn('[CricMax PDF] OCR failed on page ' + pj + ':', err);
-      }
-
-      canvas.width = canvas.height = 0;   /* free memory */
+    if (!allLines.length){
+      throw new Error('PDF has no readable text layer — only text-based PDFs can be parsed. This PDF is a scanned image.');
     }
 
-    try { await worker.terminate(); } catch(e){}
-    showProg(true, '✔ OCR complete', 100);
-    setTimeout(function(){ showProg(false); }, 800);
-
-    console.log('[CricMax PDF] OCR produced ' + ocrLines.length + ' lines');
-    if (ocrLines.length){
-      console.log('[CricMax PDF] OCR sample (first 25):');
-      ocrLines.slice(0, 25).forEach(function(l,i){ console.log('  ', i, l.slice(0, 140)); });
-    }
-
-    if (!ocrLines.length) throw new Error('OCR produced no text. The PDF may be unreadable.');
-
-    return ocrLines;
+    return allLines;
   }
   /* ─────────────────────────────────────────────────────────────
      STEP 2 — State-machine parser for the Ravi Cup PDF layout
