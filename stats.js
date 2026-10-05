@@ -209,8 +209,27 @@ function renderStatsCategory(cat, btnEl) {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   CAREER MODAL
+   ✅ Routes to imported-match career popup when available
+   ═══════════════════════════════════════════════════════════ */
 function openPlayerCareerModal(playerName) {
   if (!playerName) return;
+
+  /* ═══ NEW: prefer Firebase-imported aggregate when available ═══ */
+  var __imported = window.__importedMatches || {};
+  if (!Object.keys(__imported).length) {
+    try {
+      var __raw = localStorage.getItem('cricmax_importedMatches');
+      if (__raw) __imported = JSON.parse(__raw);
+    } catch(e){}
+  }
+  if (Object.keys(__imported).length > 0 && typeof window.openMlibPlayer === 'function'){
+    window.openMlibPlayer(playerName);
+    return;
+  }
+  /* ═══ END NEW ═══ */
+
   document.getElementById('careerPlayerName').innerText = playerName;
   const teamAbbr = match.playerTeamMap[playerName] || '';
   document.getElementById('careerPlayerTeam').innerText = teamAbbr ? `Playing for ${teamAbbr} • Career` : 'Career performance';
