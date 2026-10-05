@@ -3,6 +3,7 @@
    ✅ Self-contained
    ✅ normalizeMatch() runs at top of recordBall
    ✅ No auto-deletion of pastMatchesLedger
+   ✅ FOW reset between innings (fixed)
    ============================================================ */
 
 var _SCORING_MAX_UNDO = 100;
@@ -804,6 +805,7 @@ function transitionToInnings2() {
   match.previousBowler = '';
   match.isFreeHit = false;
   match.partnerRuns = [];
+  match.fow = [];                      /* ← FIXED: reset FOW between innings */
   match.currentPartnership = { runs: 0, balls: 0, batters: [] };
   match.lastBowlerWkts = [];
   usedPhrases = {};
