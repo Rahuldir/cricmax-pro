@@ -216,7 +216,7 @@ function renderStatsCategory(cat, btnEl) {
 function openPlayerCareerModal(playerName) {
   if (!playerName) return;
 
-  /* ═══ NEW: prefer Firebase-imported aggregate when available ═══ */
+  /* ═══ Prefer Firebase-imported aggregate when available ═══ */
   var __imported = window.__importedMatches || {};
   if (!Object.keys(__imported).length) {
     try {
@@ -228,7 +228,7 @@ function openPlayerCareerModal(playerName) {
     window.openMlibPlayer(playerName);
     return;
   }
-  /* ═══ END NEW ═══ */
+  /* ═══ END ═══ */
 
   document.getElementById('careerPlayerName').innerText = playerName;
   const teamAbbr = match.playerTeamMap[playerName] || '';
