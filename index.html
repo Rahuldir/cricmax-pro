@@ -3512,7 +3512,7 @@ var PLAYER_MAP = {
     var __m = {
       id: 'pdf-' + Date.now(),
       fixture: (innings[0].team || 'Team A') + ' vs ' + (innings[1].team || 'Team B'),
-      tournament: 'Ravi Cup 2026',
+      tournament: '',
       venue: 'Local Stadium',
       date: new Date().toLocaleDateString('en-GB'),
       result: result || 'Result pending',
@@ -3793,8 +3793,8 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     var mount=document.getElementById('tdHero'); if(!mount)return;
     var nEl=document.getElementById('tournNameDisplay');
     var mEl=document.getElementById('tournMetaDisplay');
-    var name=(nEl&&nEl.textContent.trim())||'Ravi Cup 2026';
-    if(name==='Tournament Not Set')name='Ravi Cup 2026';
+    var name=(nEl&&nEl.textContent.trim())||'Tournament';
+    if(name==='Tournament Not Set')name='Tournament';
     var meta=(mEl&&mEl.textContent.trim())||'Local Stadium · 20 ov';
     var all=getImported();
     var count=Object.keys(all).length;
@@ -3834,7 +3834,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
             '<div class="td-mc-fixture">'+esc(m.fixture||id)+'</div>'+
             '<div class="td-mc-result">🏆 '+esc(m.result||'Result pending')+'</div>'+
             '<div class="td-mc-meta">'+
-              '<span>🏆 '+esc(m.tournament||'Ravi Cup 2026')+'</span>'+
+              '<span>🏆 '+esc(m.tournament||'Unassigned')+'</span>'+
               '<span>📍 '+esc(m.venue||'Local Stadium')+'</span>'+
               '<span>📅 '+esc(m.date||'')+'</span>'+
             '</div>'+
@@ -3879,7 +3879,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       '<h2>'+esc(i1.team||'Team A')+'<span class="vs">VS</span>'+esc(i2.team||'Team B')+'</h2>'+
       '<div class="res">🏆 '+esc(m.result||'—')+'</div>'+
       '<div class="meta">'+
-        '<span>🏆 '+esc(m.tournament||'Ravi Cup 2026')+'</span>'+
+        '<span>🏆 '+esc(m.tournament||'Unassigned')+'</span>'+
         '<span>📍 '+esc(m.venue||'Local Stadium')+'</span>'+
       '</div>'+
     '</div>';
@@ -4513,7 +4513,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     var __m = {
       id:'pdf-'+Date.now(),
       fixture:(innings[0].team||'Team A')+' vs '+(innings[1].team||'Team B'),
-      tournament:'Ravi Cup 2026',
+      tournament:'',
       venue:'Local Stadium',
       date:new Date().toLocaleDateString('en-GB'),
       result:result||'Result pending',
@@ -4646,7 +4646,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     }
     Object.keys(all).forEach(function(k){
       var m = all[k] || {};
-      var tn = m.tournament || 'Ravi Cup 2026';
+      var tn = m.tournament || 'Unassigned';
       var existing = tours.find(function(t){ return t.name === tn; });
       if(existing){
         existing.matchIds = existing.matchIds || [];
@@ -4662,9 +4662,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
       }
     });
 
-    if(!tours.length){
-      tours.push({name:'Ravi Cup 2026', venue:'Local Stadium', overs:20, matchIds:[], _current:true});
-    }
+    /* No phantom default — return empty array */
     return tours;
   }
 
@@ -4694,6 +4692,8 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
               ' · ' + (t.overs||20) + ' ov · ' + mc + ' match' + (mc===1?'':'es') + '</div>' +
           '</div>' +
           '<div class="td-tourn-action">OPEN →</div>' +
+          '<button class="td-tourn-del" onclick="event.stopPropagation();window.tdDeleteTournament(\'' + safeName + '\')" title="Delete tournament" ' +
+            'style="margin-left:8px;flex-shrink:0;width:34px;height:34px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#fca5a5;font-size:15px;cursor:pointer;font-family:inherit;clip-path:polygon(15% 0,100% 0,100% 100%,0 100%,0 22%);display:flex;align-items:center;justify-content:center;">🗑</button>' +
         '</div>';
       });
     }
@@ -4908,7 +4908,7 @@ var matchObj = parseMatchFromText(text, file.name);      var matchId = matchObj.
     }
     var match = {
       id: 'pdf-' + Date.now(),
-      fixture: '', tournament: 'Ravi Cup 2026', venue: 'Local Stadium',
+      fixture: '', tournament: '', venue: 'Local Stadium',
       date: new Date().toLocaleDateString('en-GB'),
       result: 'Result pending', winner: '',
       innings1: emptyInn(), innings2: emptyInn()
@@ -5917,7 +5917,164 @@ var ALIASES = {
 
   console.log('[NameNorm] ✅ Player name normalizer active');
 })();
+</script>   
+<script>
+/* ═══════════════════════════════════════════════════════════
+   TOURNAMENT DELETE — purges name from local + Firebase
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  function getData(){
+    try { return JSON.parse(localStorage.getItem('CricMax_Data') || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveData(d){
+    try { localStorage.setItem('CricMax_Data', JSON.stringify(d)); } catch(e){}
+  }
+
+  window.tdDeleteTournament = function(name){
+    if (!name){ alert('No tournament selected'); return; }
+
+    /* Count affected matches first */
+    var all = window.__importedMatches || {};
+    if (!Object.keys(all).length){
+      try { all = JSON.parse(localStorage.getItem('cricmax_importedMatches') || '{}'); } catch(e){}
+    }
+    var matchCount = 0;
+    Object.keys(all).forEach(function(id){
+      if ((all[id].tournament || '') === name) matchCount++;
+    });
+
+    var msg = '⚠️ DELETE TOURNAMENT?\n\n' +
+              'Name: "' + name + '"\n' +
+              'Matches to delete: ' + matchCount + '\n\n' +
+              'Removes from:\n' +
+              '• currentTourn (if active)\n' +
+              '• pastTournaments\n' +
+              '• Firebase: cricmax/importedMatches/*\n' +
+              '• Firebase: cricmax/db/currentTourn\n\n' +
+              'CANNOT be undone. Continue?';
+    if (!confirm(msg)) return;
+
+    /* 1. Clean CricMax_Data */
+    var d = getData();
+    if (d.currentTourn && d.currentTourn.name === name) d.currentTourn = null;
+    if (Array.isArray(d.pastTournaments))
+      d.pastTournaments = d.pastTournaments.filter(function(t){ return !t || t.name !== name; });
+    if (Array.isArray(d.pastMatchesLedger))
+      d.pastMatchesLedger = d.pastMatchesLedger.filter(function(m){ return !m || (m.tournament || '') !== name; });
+    if (Array.isArray(d.pastMatches))
+      d.pastMatches = d.pastMatches.filter(function(m){ return !m || (m.tournament || '') !== name; });
+    saveData(d);
+
+    /* 2. currentTournament shortcut */
+    try {
+      var cur = JSON.parse(localStorage.getItem('CricMax_currentTournament') || 'null');
+      if (cur && cur.name === name) localStorage.removeItem('CricMax_currentTournament');
+    } catch(e){}
+
+    /* 3. Other localStorage tournament keys */
+    for (var i = localStorage.length - 1; i >= 0; i--){
+      var k = localStorage.key(i);
+      if (!k || k === 'CricMax_Data' || k === 'CricMax_currentTournament') continue;
+      if (!/tourn/i.test(k)) continue;
+      try {
+        var v = JSON.parse(localStorage.getItem(k));
+        if (v && v.name === name) localStorage.removeItem(k);
+      } catch(e){}
+    }
+
+    /* 4. Firebase — delete matching matches */
+    if (window.fbDb){
+      window.fbDb.ref('cricmax/importedMatches').once('value').then(function(snap){
+        var fbAll = snap.val() || {};
+        var del = {};
+        Object.keys(fbAll).forEach(function(id){
+          if ((fbAll[id].tournament || '') === name) del['cricmax/importedMatches/' + id] = null;
+        });
+        if (Object.keys(del).length) window.fbDb.ref().update(del);
+      }).catch(function(){});
+
+      /* 5. Firebase — delete currentTourn doc if it matches */
+      window.fbDb.ref('cricmax/db/currentTourn').once('value').then(function(snap){
+        var cur = snap.val();
+        if (cur && cur.name === name) window.fbDb.ref('cricmax/db/currentTourn').remove();
+      }).catch(function(){});
+    }
+
+    /* 6. Wipe in-memory cache */
+    if (window.__importedMatches && typeof window.__importedMatches === 'object'){
+      Object.keys(window.__importedMatches).forEach(function(id){
+        var m = window.__importedMatches[id];
+        if (m && (m.tournament || '') === name) delete window.__importedMatches[id];
+      });
+      try {
+        localStorage.setItem('cricmax_importedMatches',
+          JSON.stringify(window.__importedMatches));
+      } catch(e){}
+    }
+
+    /* 7. Refresh UI */
+    if (typeof window.__tdRenderList === 'function') window.__tdRenderList();
+    if (typeof window.refreshTournamentPane === 'function') window.refreshTournamentPane();
+
+    /* 8. Toast */
+    var t = document.getElementById('cm-del-toast');
+    if (!t){
+      t = document.createElement('div');
+      t.id = 'cm-del-toast';
+      t.style.cssText = 'position:fixed;left:50%;bottom:110px;transform:translateX(-50%);' +
+        'padding:12px 22px;border-radius:10px;z-index:9999999;font-family:Titillium Web,sans-serif;' +
+        'font-size:13px;font-weight:900;letter-spacing:1.4px;text-transform:uppercase;color:#fff;' +
+        'background:linear-gradient(135deg,#b91c1c,#ef4444);' +
+        'box-shadow:0 8px 32px rgba(0,0,0,.6);opacity:0;transition:opacity .25s;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = '🗑 Deleted "' + name + '"';
+    requestAnimationFrame(function(){ t.style.opacity = '1'; });
+    setTimeout(function(){ t.style.opacity = '0'; }, 2200);
+  };
+
+  /* Fallback poller — in case the inline button ever misses rendering */
+  function injectDeleteButtons(){
+    var cards = document.querySelectorAll('#tdTournList .td-tourn-card');
+    for (var i = 0; i < cards.length; i++){
+      var card = cards[i];
+      if (card.querySelector('.td-tourn-del')) continue;
+      var nameEl = card.querySelector('.td-tourn-name');
+      if (!nameEl) continue;
+      var tourName = nameEl.textContent.trim();
+      var btn = document.createElement('button');
+      btn.className = 'td-tourn-del';
+      btn.innerHTML = '🗑';
+      btn.title = 'Delete tournament';
+      btn.style.cssText =
+        'margin-left:8px;flex-shrink:0;width:34px;height:34px;' +
+        'background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);' +
+        'color:#fca5a5;font-size:15px;cursor:pointer;font-family:inherit;' +
+        'clip-path:polygon(15% 0,100% 0,100% 100%,0 100%,0 22%);' +
+        'display:flex;align-items:center;justify-content:center;';
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        window.tdDeleteTournament(tourName);
+      });
+      var action = card.querySelector('.td-tourn-action');
+      if (action) card.insertBefore(btn, action);
+      else card.appendChild(btn);
+    }
+  }
+  setInterval(injectDeleteButtons, 1200);
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(injectDeleteButtons, 1500); });
+  } else {
+    setTimeout(injectDeleteButtons, 1500);
+  }
+
+  console.log('[TD-DELETE] ✅ ready');
+})();
 </script>
+
 </body>
 </html>
 
