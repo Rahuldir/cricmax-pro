@@ -631,6 +631,59 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
   .td-ball{grid-template-columns:46px 1fr;}
 }
 </style>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   FIX STATS TABLE COLUMN ALIGNMENT
+   Keeps Player column compact so numeric columns cluster close
+   ═══════════════════════════════════════════════════════════ */
+
+/* Force fixed layout so explicit widths are respected */
+#statsMainTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Rank column — narrow, centered */
+#statsMainTable thead th:first-child,
+#statsMainTable tbody td:first-child {
+  width: 48px;
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* Player column — capped width, ellipsis if name overflows */
+#statsMainTable thead th:nth-child(2),
+#statsMainTable tbody td:nth-child(2) {
+  width: 260px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* All numeric columns — fixed, right-aligned */
+#statsMainTable thead th:nth-child(n+3),
+#statsMainTable tbody td:nth-child(n+3) {
+  width: 96px;
+  text-align: right;
+  padding-right: 14px;
+}
+
+/* If a table has fewer than 6 columns, the last one absorbs the slack */
+#statsMainTable thead th:last-child,
+#statsMainTable tbody td:last-child {
+  width: auto;
+  min-width: 96px;
+}
+
+/* Keep the horizontal scroll working for the Full Batting / Full Bowling tables */
+#statsMainTable {
+  min-width: 100%;
+}
+</style>
+  
 </head>
 <body>
 
