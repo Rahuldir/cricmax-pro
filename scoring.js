@@ -932,8 +932,9 @@ function recordBall(runs = 0, extra = null, isWicket = false, region = "", dista
   const dismissedStats = match.batters[dismissedName];
 
   let tag = runs.toString();
-  const desc = genComm(runs, extra, isWicket, region, distance, dd);
-
+const desc = (typeof genCommContextual === 'function')
+  ? genCommContextual(runs, extra, isWicket, region, distance, dd)
+  : genComm(runs, extra, isWicket, region, distance, dd);
   if (extra !== 'WD' && extra !== 'NB') {
     if (!match.currentPartnership) match.currentPartnership = { runs: 0, balls: 0, batters: [match.striker, match.nonStriker] };
     match.currentPartnership.balls = (match.currentPartnership.balls || 0) + 1;
