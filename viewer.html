@@ -4328,10 +4328,15 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
 
   window.__cmProgress(20,'LOADING STADIUM');
   
-  // We removed the setStadiumView(false,true) calls so it doesn't force the wagon wheel open.
+  // Initialize the background view (Wagon Wheel/3D) so it's ready when the sheet closes
+  setStadiumView(false, true);
+  
   requestAnimationFrame(animate);
   
   bootStadiumModule().then(function(){
+    // Ensure background is ready
+    setStadiumView(false, true);
+    
     // Automatically open the Tournament tab after a short delay
     setTimeout(function() {
         if (typeof window.showSheet === 'function') {
@@ -4340,7 +4345,10 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
     }, 800);
   }).catch(function(err){
     console.warn('[CricMax] stadium load failed:',err);
-    // Even if stadium fails, still open the Tournament tab
+    // Ensure background is ready even if 3D fails
+    setStadiumView(false, true);
+    
+    // Still open the Tournament tab
     setTimeout(function() {
         if (typeof window.showSheet === 'function') {
             window.showSheet('matches');
