@@ -6212,6 +6212,117 @@ var ALIASES = {
   });
 })();
 </script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   VOICE FIX — every ball speaks when the 🔊 button is ON
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  /* ── 1. Force density to "all" on every load ── */
+  try {
+    /* Override whatever is in localStorage */
+    localStorage.setItem('CricMax_VoiceDensity', 'all');
+    if (typeof window.commentaryDensity !== 'undefined') {
+      window.commentaryDensity = 'all';
+    }
+  } catch(e){}
+
+  /* ── 2. When the speaker button is toggled ON, force density = all ── */
+  function installToggleHook(){
+    if (typeof window.toggleCommentaryVoice !== 'function') return false;
+    if (window.toggleCommentaryVoice.__forceAll) return true;
+
+    var orig = window.toggleCommentaryVoice;
+    window.toggleCommentaryVoice = function(){
+      /* If turning ON, force density to 'all' */
+      var isActive = !!window.isCommentaryVoiceActive;
+      var willBeOn = !isActive;
+
+      if (willBeOn){
+        try { localStorage.setItem('CricMax_VoiceDensity', 'all'); } catch(e){}
+        window.commentaryDensity = 'all';
+        /* Update the density dropdown if it exists */
+        var sel = document.getElementById('cfgVoiceDensity');
+        if (sel) sel.value = 'all';
+      }
+
+      var result = orig.apply(this, arguments);
+      return result;
+    };
+    window.toggleCommentaryVoice.__forceAll = true;
+    console.log('[VoiceFix] ✅ Toggle hooked — density forced to ALL');
+    return true;
+  }
+
+  /* ── 3. Bypass the density filter entirely inside recordBall ──
+     We wrap recordBall so that any call to speak() inside it
+     gets through regardless of density. */
+  function installRecordHook(){
+    if (typeof window.recordBall !== 'function') return false;
+    if (window.recordBall.__voiceFix) return true;
+
+    /* Just force density every time a ball is recorded */
+    var orig = window.recordBall;
+    window.recordBall = function(){
+      /* Force density so speech always fires */
+      if (window.isCommentaryVoiceActive) {
+        window.commentaryDensity = 'all';
+      }
+      return orig.apply(this, arguments);
+    };
+    window.recordBall.__voiceFix = true;
+    console.log('[VoiceFix] ✅ recordBall hooked');
+    return true;
+  }
+
+  /* ── 4. Poll until both are installed ── */
+  function tryInstall(){
+    installToggleHook();
+    installRecordHook();
+  }
+
+  var tries = 0;
+  var t = setInterval(function(){
+    tries++;
+    tryInstall();
+    if (tries > 60) clearInterval(t);
+  }, 250);
+
+  window.addEventListener('load', function(){
+    setTimeout(tryInstall, 500);
+    setTimeout(tryInstall, 1500);
+    setTimeout(tryInstall, 3000);
+  });
+
+  /* ── 5. Auto-enable voice + speak "voice ready" when user first interacts ── */
+  function ensureVoiceUnlocked(){
+    if (!window.speechSynthesis) return;
+    try {
+      /* Speech synthesis needs a user gesture to unlock */
+      var u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+      window.speechSynthesis.cancel();
+    } catch(e){}
+  }
+  document.addEventListener('pointerdown', ensureVoiceUnlocked, { once: true });
+  document.addEventListener('touchstart', ensureVoiceUnlocked, { once: true });
+
+  /* ── 6. Sanity check the speak() pipeline ── */
+  window.__testVoice = function(){
+    console.log('[VoiceFix] Test — density:', window.commentaryDensity,
+                '| active:', window.isCommentaryVoiceActive,
+                '| speak type:', typeof window.speak);
+    if (typeof window.speak === 'function'){
+      window.isCommentaryVoiceActive = true;
+      window.speak('Voice test successful. One run scored.');
+    }
+  };
+
+  console.log('[VoiceFix] ✅ Module loaded');
+})();
+</script>
   
 </body>
 </html>
