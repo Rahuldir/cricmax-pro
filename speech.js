@@ -1,13 +1,35 @@
 /* ============================================================
    speech.js — Enhanced commentary engine (v2)
    Rich phrases + ball speed + context awareness
+   NOTE: speechSynth / preferredVoice / speechVoicesReady /
+         isCommentaryVoiceActive / commentaryDensity are declared
+         in state.js — do NOT redeclare them here.
    ============================================================ */
 
-var speechSynth = window.speechSynthesis || null;
-var preferredVoice = null;
-var speechVoicesReady = false;
-var isCommentaryVoiceActive = (typeof isCommentaryVoiceActive !== 'undefined') ? isCommentaryVoiceActive : false;
-var commentaryDensity = (typeof commentaryDensity !== 'undefined') ? commentaryDensity : 'all';
+/* Safe init only — never re-declare globals */
+if (typeof speechSynth === 'undefined' || !speechSynth){
+  window.speechSynth = window.speechSynthesis || null;
+}
+if (typeof preferredVoice === 'undefined'){
+  window.preferredVoice = null;
+}
+if (typeof speechVoicesReady === 'undefined'){
+  window.speechVoicesReady = false;
+}
+if (typeof isCommentaryVoiceActive === 'undefined'){
+  window.isCommentaryVoiceActive = false;
+}
+if (typeof commentaryDensity === 'undefined'){
+  window.commentaryDensity = 'all';
+}
+
+/* Local aliases — read from window so we never clash */
+function _getSynth(){ return window.speechSynth; }
+function _setSynth(v){ window.speechSynth = v; }
+function _getActive(){ return window.isCommentaryVoiceActive; }
+function _setActive(v){ window.isCommentaryVoiceActive = v; }
+function _getDensity(){ return window.commentaryDensity; }
+function _setDensity(v){ window.commentaryDensity = v; }
 
 /* Phrase memory — avoid immediate repeats */
 var __lastPhrase = {};
