@@ -4327,22 +4327,25 @@ canvas#three-canvas{display:block;position:absolute;inset:0;width:100%;height:10
   window.handleNewMatchData=handleNewMatchData;
 
   window.__cmProgress(20,'LOADING STADIUM');
-  setStadiumView(false,true);
-  requestAnimationFrame(function(){
-    setStadiumView(false,true);
-    try{drawWagonWheel();}catch(e){}
-  });
-  setTimeout(function(){setStadiumView(false,true);try{drawWagonWheel();}catch(e){}},250);
-  setTimeout(function(){setStadiumView(false,true);},1000);
-  setTimeout(function(){setStadiumView(false,true);},2500);
+  
+  // We removed the setStadiumView(false,true) calls so it doesn't force the wagon wheel open.
   requestAnimationFrame(animate);
+  
   bootStadiumModule().then(function(){
-    setStadiumView(false,true);
-    setTimeout(function(){setStadiumView(false,true);try{drawWagonWheel();}catch(e){}},300);
-    setTimeout(function(){setStadiumView(false,true);},1200);
+    // Automatically open the Tournament tab after a short delay
+    setTimeout(function() {
+        if (typeof window.showSheet === 'function') {
+            window.showSheet('matches');
+        }
+    }, 800);
   }).catch(function(err){
     console.warn('[CricMax] stadium load failed:',err);
-    setStadiumView(false,true);
+    // Even if stadium fails, still open the Tournament tab
+    setTimeout(function() {
+        if (typeof window.showSheet === 'function') {
+            window.showSheet('matches');
+        }
+    }, 800);
   });
 
   /* Failsafe — re-render commentary every 3s while Live pane is visible */
