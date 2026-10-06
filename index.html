@@ -6213,6 +6213,50 @@ var ALIASES = {
 })();
 </script>
 
+<script>
+/* ═══════════════════════════════════════════════════════════
+   VOICE SYNC — one-time bridge between
+     state.js `let isCommentaryVoiceActive` (top-level lexical)
+     and speech.js `window.isCommentaryVoiceActive`
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  /* If a VoiceFix script already created window.isCommentaryVoiceActive
+     as a data property, force-remove it so we can redefine as proxy */
+  try { delete window.isCommentaryVoiceActive; } catch(e){}
+
+  /* Live proxy: reads/writes go to the top-level `let` */
+  try {
+    Object.defineProperty(window, 'isCommentaryVoiceActive', {
+      configurable: true,
+      enumerable: true,
+      get: function(){
+        try { return !!isCommentaryVoiceActive; }
+        catch(e){ return false; }
+      },
+      set: function(v){
+        try { isCommentaryVoiceActive = !!v; }
+        catch(e){}
+      }
+    });
+  } catch(e){
+    console.warn('[VoiceSync] defineProperty failed:', e);
+  }
+
+  /* Force density to ALL so every ball speaks */
+  try {
+    if (typeof commentaryDensity !== 'undefined') commentaryDensity = 'all';
+    window.commentaryDensity = 'all';
+    localStorage.setItem('CricMax_VoiceDensity', 'all');
+    var sel = document.getElementById('cfgVoiceDensity');
+    if (sel) sel.value = 'all';
+  } catch(e){}
+
+  console.log('[VoiceSync] ✅ proxy installed');
+})();
+</script>
+
   
 </body>
 </html>
