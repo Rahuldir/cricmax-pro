@@ -6189,7 +6189,30 @@ var ALIASES = {
   console.log('[TD-DELETE] ✅ ready');
 })();
 </script>
-
+<script>
+/* ─── Alias: make openPlayerCareerModal use the existing MANOBAL modal ─── */
+(function(){
+  'use strict';
+  function link(){
+    if (typeof window.openMlibPlayer === 'function'){
+      window.openPlayerCareerModal = window.openMlibPlayer;
+      console.log('[CareerAlias] ✅ openPlayerCareerModal → openMlibPlayer');
+      return true;
+    }
+    return false;
+  }
+  if (!link()){
+    var n = 0;
+    var t = setInterval(function(){ n++; if (link() || n > 40) clearInterval(t); }, 250);
+  }
+  window.addEventListener('load', function(){
+    setTimeout(link, 500);
+    setTimeout(link, 1500);
+    setTimeout(link, 3000);
+  });
+})();
+</script>
+  
 </body>
 </html>
 
