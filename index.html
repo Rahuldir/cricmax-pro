@@ -630,6 +630,97 @@ html.cm-embed-boot body { opacity: 0 !important; pointer-events: none !important
   .td-tbl{font-size:11px;} .td-tbl th,.td-tbl td{padding:7px 6px;}
   .td-ball{grid-template-columns:46px 1fr;}
 }
+
+/* ═══ LIGHT THEME CONTRAST FIX ═══ */
+/* Targets standard theme class names added by the toggleTheme() function */
+body.light-theme, 
+body.light, 
+body.light-mode, 
+body.theme-light,
+html[data-theme="light"] body {
+    /* Override the F1 dark design tokens */
+    --f1-dark: #f8f9fa !important;
+    --f1-grey: #e9ecef !important;
+    --f1-carbon: none !important; /* Removes the dark carbon fiber texture */
+    
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+}
+
+/* Force white backgrounds on cards and panels */
+body.light-theme .panel-card, body.light .panel-card, body.light-mode .panel-card,
+body.light-theme .inplay-card, body.light .inplay-card, body.light-mode .inplay-card,
+body.light-theme .score-banner, body.light .score-banner, body.light-mode .score-banner,
+body.light-theme .modal-card, body.light .modal-card, body.light-mode .modal-card,
+body.light-theme .nzc-card, body.light .nzc-card, body.light-mode .nzc-card,
+body.light-theme .td-imp-card, body.light .td-imp-card, body.light-mode .td-imp-card {
+    background: #ffffff !important;
+    border-color: #dee2e6 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+}
+
+/* Fix Scoring Keypad (Pad Buttons) */
+body.light-theme .pad-btn, body.light .pad-btn, body.light-mode .pad-btn {
+    background: #e9ecef !important;
+    border-color: #ced4da !important;
+    color: #212529 !important;
+}
+body.light-theme .pad-btn:hover, body.light .pad-btn:hover { 
+    background: #dee2e6 !important; 
+    border-color: #adb5bd !important; 
+}
+body.light-theme .pad-btn:active, body.light .pad-btn:active { 
+    background: var(--f1-red) !important; 
+    color: #ffffff !important; 
+}
+
+/* Fix Text Colors */
+body.light-theme h1, body.light-theme h2, body.light-theme h3,
+body.light-theme .inplay-title, body.light-theme .score-num, 
+body.light-theme .team-name, body.light-theme .pad-title,
+body.light-theme .tab-btn.active {
+    color: #212529 !important;
+}
+
+/* Fix Muted/Secondary Text */
+body.light-theme .inplay-meta, body.light-theme .muted,
+body.light-theme .rates-box, body.light-theme .desc {
+    color: #6c757d !important;
+}
+
+/* Fix Top Navigation and Bottom Navigation */
+body.light-theme .top-bar, body.light-theme .tab-nav, 
+body.light-theme .bottom-match-nav {
+    background: #ffffff !important;
+    border-bottom-color: #dee2e6 !important;
+    border-top-color: #dee2e6 !important;
+}
+body.light-theme .tab-btn {
+    color: #6c757d !important;
+}
+body.light-theme .tab-btn.active {
+    background: var(--f1-red) !important;
+    color: #ffffff !important;
+}
+
+/* Fix Form Inputs */
+body.light-theme .form-control, body.light-theme .json-editor {
+    background: #ffffff !important;
+    border-color: #ced4da !important;
+    color: #212529 !important;
+}
+
+/* Fix Tables */
+body.light-theme .table-responsive th { 
+    background: #f1f3f5 !important; 
+    color: #495057 !important; 
+    border-bottom-color: #dee2e6 !important; 
+}
+body.light-theme .table-responsive td { 
+    border-bottom-color: #dee2e6 !important; 
+    color: #212529 !important; 
+}
+  
 </style>
 </head>
 <body>
