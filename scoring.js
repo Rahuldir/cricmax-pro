@@ -442,20 +442,332 @@ function fill(t, v) {
 }
 
 const P = {
-  DOT:   ["{STRIKER} defends into {REGION}, no run.", "Good length from {BOWLER}, defended.", "Beaten! Past the outside edge.", "Dot ball, pushed to {REGION}.", "Fielded at {REGION}.", "Straight to hand.", "Solid forward defence.", "Tight line from {BOWLER}."],
-  ONE:   ["Nudged into {REGION}, quick single.", "Worked off pads, one run.", "Pushed down to {REGION}, single.", "Driven into {REGION} for one."],
-  TWO:   ["Placed into {REGION}, brace.", "Flicked away, two runs.", "Couple taken."],
-  THREE: ["Drilled wide of {REGION}, three runs!", "Timed beautifully, three runs."],
-  FOUR:  ["FOUR! Cracking shot through {REGION}!", "FOUR! Races past the rope at {REGION}!", "FOUR! Pure timing through {REGION}!", "FOUR! Finds the fence at {REGION}!", "FOUR! Caressed through {REGION}!", "FOUR! Tracer bullet to {REGION}!"],
-  SIX:   ["SIX! {STRIKER} goes big over {REGION} {DIST}!", "SIX! Into the stands over {REGION}!", "SIX! Massive hit! {DIST}", "SIX! Out of the ground! {DIST}", "SIX! Enormous over {REGION}!"],
-  WB:    ["BOWLED! {BOWLER} through the gate! {STRIKER} gone!", "CLEANED HIM UP! {BOWLER} finds the timber!", "BOWLED! What a delivery!"],
-  WC:    ["CAUGHT! {STRIKER} has holed out!", "TAKEN! Great catch!", "CAUGHT! Straight down the throat!"],
-  WL:    ["LBW! {BOWLER} traps {STRIKER} plumb!", "LBW! Out!"],
-  WR:    ["RUN OUT! Direct hit!", "RUN OUT! Brilliant work!"],
-  WS:    ["STUMPED! Lightning glovework!"],
-  WD:    ["Wide! {BOWLER} strays down the side.", "That's a wide!"],
-  NB:    ["No ball! {BOWLER} overstepped!", "Front foot no ball!"],
-  LB:    ["Leg bye! Off the pad, they steal a run."]
+
+  /* ═══════════════════════════════════════════════════════════
+     DOT BALLS — 30 variations
+     ═══════════════════════════════════════════════════════════ */
+  DOT: [
+    "{STRIKER} defends into {REGION}, no run.",
+    "Good length from {BOWLER}, solidly defended.",
+    "Beaten! Past the outside edge!",
+    "Dot ball, pushed to {REGION}.",
+    "Fielded at {REGION}, no run.",
+    "Straight to hand at {REGION}.",
+    "Solid forward defence by {STRIKER}.",
+    "Tight line from {BOWLER}, no room.",
+    "Left alone, outside off.",
+    "Defended off the back foot.",
+    "Good bowling, dot ball.",
+    "{BOWLER} keeps it tight, no run.",
+    "Played into the ground, fielded.",
+    "Beaten by the away-swinger!",
+    "Blocked back down the pitch.",
+    "Squeezed out to {REGION}, no run.",
+    "Right in the corridor, {STRIKER} leaves it.",
+    "Beautiful shape on that one from {BOWLER}!",
+    "Kept low, {STRIKER} adjusts well.",
+    "Rapped on the pads, but going down leg.",
+    "Extra bounce, {STRIKER} does well to drop his hands.",
+    "Bowled full, driven to {REGION}, no run.",
+    "That one held up off the surface!",
+    "Good pressure from {BOWLER}.",
+    "Dot ball. Building the pressure here.",
+    "Played with soft hands, no run.",
+    "Fizzed past the stumps! So close!",
+    "Big shout for LBW... not out, sliding down.",
+    "Safely negotiated by {STRIKER}.",
+    "Well fielded at {REGION}, keeps it to nothing."
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     SINGLES — 15 variations
+     ═══════════════════════════════════════════════════════════ */
+  ONE: [
+    "Nudged into {REGION}, quick single.",
+    "Worked off the pads, one run.",
+    "Pushed down to {REGION}, single taken.",
+    "Driven into {REGION} for one.",
+    "Tucked off the hip for a single.",
+    "Soft hands into {REGION}, one run.",
+    "Gentle push and they scamper through.",
+    "Single to {REGION}, good running.",
+    "Dabbed into the gap, one run.",
+    "Rotates the strike with a single.",
+    "Smart cricket, just a single.",
+    "Pushed to cover, easy single.",
+    "One run. Keeps the scoreboard moving.",
+    "Quick single, direct hit would have been close!",
+    "Deflected to {REGION}, single taken."
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     TWOS — 12 variations
+     ═══════════════════════════════════════════════════════════ */
+  TWO: [
+    "Placed into {REGION}, they come back for two.",
+    "Flicked away, two runs.",
+    "Couple taken, good running.",
+    "Two runs, well placed into {REGION}.",
+    "Driven into the gap, back for the second.",
+    "Excellent running, brace taken.",
+    "Two runs, fielder cuts it off.",
+    "Pushed to {REGION}, comfortable two.",
+    "Two runs. Great understanding between the batsmen.",
+    "Well run, two runs to the total.",
+    "Two more, kept the scoreboard ticking.",
+    "Two runs. The fielder's throw was wide."
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     THREES — 8 variations
+     ═══════════════════════════════════════════════════════════ */
+  THREE: [
+    "Drilled wide of {REGION}, three runs!",
+    "Timed beautifully, three runs taken.",
+    "Three runs! Excellent running!",
+    "Split the field, three runs.",
+    "Deep into the gap, three runs taken.",
+    "They run hard, three runs!",
+    "Three runs. Top-class running between the wickets!",
+    "Three! The fielder gave chase but couldn't stop it."
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     FOURS — 25 variations
+     ═══════════════════════════════════════════════════════════ */
+  FOUR: [
+    "FOUR! Cracking shot through {REGION}!",
+    "FOUR! Races past the rope at {REGION}!",
+    "FOUR! Pure timing through {REGION}!",
+    "FOUR! Finds the fence at {REGION}!",
+    "FOUR! Caressed through {REGION}!",
+    "FOUR! Tracer bullet to {REGION}!",
+    "FOUR! {STRIKER} pierces the gap at {REGION}!",
+    "FOUR! That is a textbook stroke!",
+    "FOUR! No chance for the fielder!",
+    "FOUR! Races to the boundary!",
+    "FOUR! {STRIKER} makes it look easy!",
+    "FOUR! Threaded through {REGION}!",
+    "FOUR! What a shot! Beautifully played!",
+    "FOUR! Pierced the infield and away!",
+    "FOUR! Timing, placement, class!",
+    "FOUR! {STRIKER} is in sublime touch!",
+    "FOUR! That is a brilliant cover drive!",
+    "FOUR! Nothing wrong with that delivery!",
+    "FOUR! Gorgeous stroke through {REGION}!",
+    "FOUR! That'll hurt the bowler's figures!",
+    "FOUR! Runs hard, hits hard, FOUR!",
+    "FOUR! {BOWLER} will feel unlucky there!",
+    "FOUR! That's as good as it gets!",
+    "FOUR! Mid-off had no chance!",
+    "FOUR! Exquisite timing from {STRIKER}!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     SIXES — 25 variations
+     ═══════════════════════════════════════════════════════════ */
+  SIX: [
+    "SIX! {STRIKER} goes big over {REGION} {DIST}!",
+    "SIX! Into the stands over {REGION}!",
+    "SIX! Massive hit! {DIST}",
+    "SIX! Out of the ground! {DIST}",
+    "SIX! Enormous over {REGION}!",
+    "SIX! Clean strike by {STRIKER}!",
+    "SIX! That is huge!",
+    "SIX! Deposited over {REGION}!",
+    "SIX! Flat and fast over {REGION}!",
+    "SIX! {STRIKER} launches it! {DIST}",
+    "SIX! Picked the length early!",
+    "SIX! What a shot! Into the crowd!",
+    "SIX! That is a monster hit! {DIST}",
+    "SIX! Right out of the screws!",
+    "SIX! Take that, {BOWLER}!",
+    "SIX! The crowd is on their feet!",
+    "SIX! Absolutely launched over {REGION}!",
+    "SIX! That's gone into orbit! {DIST}",
+    "SIX! Sheer power from {STRIKER}!",
+    "SIX! Placed perfectly, gone for SIX!",
+    "SIX! What a strike! {DIST}",
+    "SIX! That's the shot of the day!",
+    "SIX! Effortless from {STRIKER}!",
+    "SIX! Maximum! The crowd goes wild!",
+    "SIX! That is an enormous blow! {DIST}"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     WICKET — BOWLED — 10 variations
+     ═══════════════════════════════════════════════════════════ */
+  WB: [
+    "BOWLED! {BOWLER} through the gate! {STRIKER} gone!",
+    "CLEANED HIM UP! {BOWLER} finds the timber!",
+    "BOWLED! What a delivery from {BOWLER}!",
+    "BOWLED HIM! {STRIKER} has to go!",
+    "TIMBER! {BOWLER} strikes!",
+    "BOWLED! Right through the defence!",
+    "BOWLED! Unplayable delivery from {BOWLER}!",
+    "BOWLED! {STRIKER} played all around it!",
+    "BOWLED! The stumps are in a mess!",
+    "THROUGH THE GATE! {BOWLER} is pumped!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     WICKET — CAUGHT — 12 variations
+     ═══════════════════════════════════════════════════════════ */
+  WC: [
+    "CAUGHT! {STRIKER} has holed out!",
+    "TAKEN! Great catch!",
+    "CAUGHT! Straight down the throat!",
+    "CAUGHT! {BOWLER} gets his man!",
+    "TAKEN! Safe hands in the deep!",
+    "CAUGHT! Superb catch by the fielder!",
+    "CAUGHT! {STRIKER} couldn't clear the fielder!",
+    "TAKEN! What a grab!",
+    "CAUGHT! Right at the boundary rope!",
+    "CAUGHT! Simple catch, well taken!",
+    "CAUGHT! The pressure told!",
+    "OUT! Caught! {STRIKER} goes aerial and pays the price!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     WICKET — LBW — 8 variations
+     ═══════════════════════════════════════════════════════════ */
+  WL: [
+    "LBW! {BOWLER} traps {STRIKER} plumb!",
+    "LBW! Given! Dead in front!",
+    "LBW! The finger goes up!",
+    "LBW! {STRIKER} has to go!",
+    "LBW! That looked absolutely plumb!",
+    "LBW! Hit on the knee roll, out!",
+    "LBW! {BOWLER} wins the battle!",
+    "LBW! No doubt about that one!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     WICKET — RUN OUT — 8 variations
+     ═══════════════════════════════════════════════════════════ */
+  WR: [
+    "RUN OUT! Direct hit!",
+    "RUN OUT! Brilliant work in the field!",
+    "RUN OUT! Poor running between the wickets!",
+    "RUN OUT! {STRIKER} is short of his ground!",
+    "RUN OUT! What a throw!",
+    "RUN OUT! Big mix-up in the middle!",
+    "RUN OUT! The fielder was lightning quick!",
+    "RUN OUT! Communication breakdown, and it costs them!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     WICKET — STUMPED — 6 variations
+     ═══════════════════════════════════════════════════════════ */
+  WS: [
+    "STUMPED! Lightning glovework!",
+    "STUMPED! Out of his crease!",
+    "STUMPED! The keeper does the rest!",
+    "STUMPED! {STRIKER} is well short!",
+    "STUMPED! Brilliant awareness by the keeper!",
+    "STUMPED! Down the track and beaten!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     WIDES — 10 variations
+     ═══════════════════════════════════════════════════════════ */
+  WD: [
+    "Wide! {BOWLER} strays down the side.",
+    "That's a wide, extra run.",
+    "Wide called by the umpire.",
+    "Down the leg side, wide.",
+    "Too wide outside off, wide called.",
+    "Wide! Unnecessary extra from {BOWLER}!",
+    "Sprayed down the leg, wide signalled.",
+    "That's a wide, poor line from {BOWLER}.",
+    "Wide! {BOWLER} will be disappointed with that.",
+    "Wide. That cost them a run."
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     NO BALLS — 10 variations
+     ═══════════════════════════════════════════════════════════ */
+  NB: [
+    "No ball! {BOWLER} overstepped!",
+    "Front foot no ball!",
+    "No ball called, free hit coming up!",
+    "Overstepped the line, no ball!",
+    "No ball! Extra run, free hit next!",
+    "No ball! {BOWLER} has overstepped the line!",
+    "Called a no ball! That's a free hit!",
+    "No ball! Costly error by {BOWLER}!",
+    "Front foot over the line, no ball!",
+    "No ball! And {STRIKER} gets a free hit!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     LEG BYES — 8 variations
+     ═══════════════════════════════════════════════════════════ */
+  LB: [
+    "Leg bye! Off the pad, they steal a run.",
+    "Leg bye taken, off the thigh pad.",
+    "Off the pads, leg bye signalled.",
+    "Leg bye, ball rolls fine.",
+    "Leg bye! Good running from the batsmen.",
+    "Leg bye. Not off the bat, but they take a run.",
+    "Deflected off the pad, leg bye.",
+    "Leg bye! {STRIKER} was beaten but they run anyway."
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     MILESTONE — FIFTY (called separately from recordBall)
+     ═══════════════════════════════════════════════════════════ */
+  FIFTY: [
+    "FIFTY! Well played, {STRIKER}!",
+    "FIFTY up! Superb knock by {STRIKER}!",
+    "FIFTY! A fantastic half-century from {STRIKER}!",
+    "FIFTY! Deserved milestone for {STRIKER}!",
+    "FIFTY! {STRIKER} reaches the landmark!",
+    "FIFTY! Classy innings from {STRIKER}!",
+    "FIFTY! Take a bow, {STRIKER}!",
+    "FIFTY! {STRIKER} raises the bat!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     MILESTONE — CENTURY
+     ═══════════════════════════════════════════════════════════ */
+  CENTURY: [
+    "CENTURY! Magnificent hundred for {STRIKER}!",
+    "CENTURY! Take a bow, {STRIKER}, what an innings!",
+    "CENTURY! A truly special knock by {STRIKER}!",
+    "CENTURY! Brilliant, brilliant hundred!",
+    "CENTURY! {STRIKER} reaches three figures!",
+    "CENTURY! The crowd rises for {STRIKER}!",
+    "CENTURY! A masterclass from {STRIKER}!",
+    "CENTURY! What a moment for {STRIKER}!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     MILESTONE — TEAM 50 / 100
+     ═══════════════════════════════════════════════════════════ */
+  TEAM_50: [
+    "Fifty up for {TEAM}!",
+    "The team fifty comes up for {TEAM}.",
+    "{TEAM} reach 50 — good platform being built.",
+    "Half century on the board for {TEAM}!"
+  ],
+
+  TEAM_100: [
+    "Hundred up for {TEAM}!",
+    "{TEAM} reach 100 — well played!",
+    "The 100 comes up for {TEAM}!",
+    "{TEAM} bring up the three-figure mark!"
+  ],
+
+  /* ═══════════════════════════════════════════════════════════
+     MILESTONE — FIVE-WICKET HAUL / HAT-TRICK
+     ═══════════════════════════════════════════════════════════ */
+  FIVE_FOR: [
+    "FIVE-FOR! {BOWLER} has been outstanding!",
+    "FIVE WICKETS! A brilliant spell from {BOWLER}!",
+    "{BOWLER} takes his fifth! Superb bowling!",
+    "Five-for for {BOWLER}! What a performance!"
+  ]
 };
 
 function genComm(runs, extra, isWkt, region, distance, dd) {
