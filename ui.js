@@ -318,9 +318,23 @@ function finalizeMatchStart() {
   match._currentOverRuns = 0; match._lastOverRuns = 0; match.motm = null;
   inningsTransitionLock = false;
 
-  if (typeof generateMatchCode === 'function') matchCode = generateMatchCode();
+   if (typeof generateMatchCode === 'function') matchCode = generateMatchCode();
   match.shareCode = matchCode;
   try { localStorage.setItem('currentMatchCode', matchCode); } catch (e) {}
+
+  /* ── Seed an opening line so the commentary feed isn't empty ── */
+  if (Array.isArray(match.commentary) && match.commentary.length === 0) {
+    match.commentary.push({
+      ball: '0.0',
+      desc: '<span class="sum-line"><b>Match Started</b> — <span class="sum-team">' +
+            escapeHtml(batName) + '</span> vs ' + escapeHtml(bowlName) +
+            ' · ' + lockedOvers + ' overs</span>' +
+            '<span class="sum-line">🏏 ' + escapeHtml(striker) + ' &amp; ' + escapeHtml(nonStriker) +
+            ' to open · ⚾ ' + escapeHtml(bowler) + ' with the ball</span>',
+      type: 'summary',
+      html: true
+    });
+  }
 
  const bT = savedTeams.find(t => t.name === batName) || { squad: [] };
 const wT = savedTeams.find(t => t.name === bowlName) || { squad: [] };
