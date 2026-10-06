@@ -800,6 +800,96 @@ function genComm(runs, extra, isWkt, region, distance, dd) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   BONUS — Context-aware commentary wrapper
+   Adds chase / powerplay / death-over flavor on top of genComm
+   ═══════════════════════════════════════════════════════════ */
+var __flavorLast = {};
+function __pickFlavor(arr){
+  if (!arr || !arr.length) return '';
+  var choice, tries = 0;
+  do { choice = arr[Math.floor(Math.random()*arr.length)]; tries++; }
+  while (choice === __flavorLast._ && tries < 6);
+  __flavorLast._ = choice;
+  return choice;
+}
+
+function genCommContextual(runs, extra, isWkt, region, distance, dd) {
+  const base = genComm(runs, extra, isWkt, region, distance, dd);
+
+  /* Only add flavor on boundaries/dots/wickets — 35% chance */
+  const addFlavor = (runs === 4 || runs === 6 || runs === 0 || isWkt) && Math.random() < 0.35;
+  if (!addFlavor) return base;
+
+  const innings   = match.innings || 1;
+  const ballsLeft = Math.max(0, (match.totalOvers || 20) * 6 - match.legalBalls);
+  const oversLeft = ballsLeft / 6;
+  const needed    = match.target > 0 ? Math.max(0, match.target - match.runs) : 0;
+  const rrr       = ballsLeft > 0 && needed > 0 ? (needed / ballsLeft) * 6 : 0;
+  const overNum   = Math.ceil(match.legalBalls / 6);
+  const isPP      = overNum <= 6;
+  const isDeath   = oversLeft <= 4;
+
+  var flavor = '';
+
+  /* Chase context — 2nd innings */
+  if (innings === 2 && needed > 0) {
+    if (needed <= 5 && needed > 0) {
+      flavor = __pickFlavor([
+        `Just ${needed} needed now!`,
+        `${needed} away from victory!`,
+        `Almost there — ${needed} to win!`
+      ]);
+    } else if (rrr > 12 && needed > 10) {
+      flavor = __pickFlavor([
+        `The required rate is climbing — ${needed} needed off ${ballsLeft}.`,
+        `${needed} to win off ${ballsLeft} balls. It's getting tight!`,
+        `Pressure building. ${needed} required, ${ballsLeft} balls left.`,
+        `The asking rate is ${rrr.toFixed(1)}. ${needed} needed.`
+      ]);
+    } else if (rrr < 6 && needed < 30) {
+      flavor = __pickFlavor([
+        `${needed} needed off ${ballsLeft}. Comfortable from here.`,
+        `Chasing side is well ahead of the rate.`,
+        `This looks done and dusted unless something dramatic happens.`
+      ]);
+    }
+  }
+
+  /* Powerplay context */
+  if (isPP && !flavor) {
+    if (runs === 4 || runs === 6) {
+      flavor = __pickFlavor([
+        `The powerplay is delivering!`,
+        `Making the most of the fielding restrictions!`,
+        `That's the platform being built.`
+      ]);
+    } else if (isWkt) {
+      flavor = __pickFlavor([
+        `Crucial breakthrough in the powerplay!`,
+        `Big wicket inside the fielding restrictions!`
+      ]);
+    }
+  }
+
+  /* Death overs context */
+  if (isDeath && !flavor) {
+    if (runs === 6) {
+      flavor = __pickFlavor([
+        `That's a massive hit in the death overs!`,
+        `Death bowling under pressure — that's gone!`
+      ]);
+    } else if (isWkt) {
+      flavor = __pickFlavor([
+        `Huge wicket in the death!`,
+        `Death overs — every wicket is gold!`
+      ]);
+    }
+  }
+
+  return flavor ? `${base} ${flavor}` : base;
+}
+
+/* ═══════════════════════════════════════════════════════════
    RECORD BALL — the scoring engine
    ⚡ normalizeMatch() runs first
    ═══════════════════════════════════════════════════════════ */
