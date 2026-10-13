@@ -6471,9 +6471,168 @@ var ALIASES = {
   function ovStr(b) { b = b || 0; return Math.floor(b / 6) + '.' + (b % 6); }
   function isOutStatus(s) { s = String(s || '').toLowerCase(); return s && s !== 'dnb' && s.indexOf('not out') === -1 && s.indexOf('retired') === -1; }
 
-  console.log('[Ultimate Fix] Applied. Global state synced with UI selection.');
+
+
+    console.log('[Ultimate Fix] Applied. Global state synced with UI selection.');
 })();
 </script>
+<script>
+(function(){
+  'use strict';
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function ovStr(b){ b=b||0; return Math.floor(b/6)+'.'+(b%6); }
+  function isOut(s){ s=String(s||'').toLowerCase(); return s && s!=='dnb' && s.indexOf('not out')===-1 && s.indexOf('retired')===-1; }
+  function getAll(){
+    var all = window.__importedMatches || {};
+    if (!Object.keys(all).length){ try { var r = localStorage.getItem('cricmax_importedMatches'); if(r) all = JSON.parse(r); } catch(e){} }
+    return all;
+  }
+  function filtered(){
+    var name = window.__tdSelectedTourn;
+    if (!name) return [];
+    var all = getAll();
+    var ids = [];
+    try {
+      var raw = localStorage.getItem('CricMax_Data');
+      if (raw){
+        var d = JSON.parse(raw);
+        var t = (d.currentTourn && d.currentTourn.name === name) ? d.currentTourn : (d.pastTournaments||[]).find(function(x){ return x.name === name; });
+        if (t && t.matchIds) ids = t.matchIds;
+      }
+    } catch(e){}
+    return Object.keys(all).map(function(id){
+      var m = all[id]; if (!m) return null;
+      var byId = ids.indexOf(id) !== -1 || ids.indexOf(id.replace('ledger_','')) !== -1;
+      var byTag = m.tournament === name;
+      return (byId || byTag) ? { id: id, data: m } : null;
+    }).filter(function(x){ return x !== null; });
+  }
+  window.tdShowTab = function(tab, btn){
+    ['matches','stats','import'].forEach(function(t){
+      var p = document.getElementById('tdPane-'+t); if (p) p.classList.toggle('on', t===tab);
+    });
+    var tabs = document.querySelectorAll('#pane-tournament .td-tab');
+    for (var i=0;i<tabs.length;i++) tabs[i].classList.remove('on');
+    if (btn) btn.classList.add('on');
+    if (tab === 'stats'){ window.renderStats(); window.renderPointsTable(); }
+    if (tab === 'import'){ if (typeof window.renderLibrary === 'function') window.renderLibrary(); }
+    if (tab === 'matches'){ window.renderMatchList(); window.renderPointsTable(); }
+  };
+  window.renderMatchList = function(){
+    var mount = document.getElementById('tdMatchList'); if (!mount) return;
+    var det = document.getElementById('tdMatchDetail'); if (det){ det.style.display='none'; det.innerHTML=''; }
+    mount.style.display = '';
+    var list = filtered();
+    if (!list.length){ mount.innerHTML = '<div class="td-mhd">No matches in ' + esc(window.__tdSelectedTourn) + '</div>'; return; }
+    var html = '<div class="td-mhd">Match Grid - ' + list.length + ' Match' + (list.length===1?'':'es') + '</div>';
+    list.forEach(function(item, idx){
+      var m = item.data, i1 = m.innings1||{}, i2 = m.innings2||{};
+      var sid = esc(item.id).replace(/'/g,"\\'");
+      html += '<button class="td-mc" onclick="tdOpenMatch(\''+sid+'\')"><div class="td-mc-inner">'+
+        '<div class="td-mc-pos"><div class="n">'+String(idx+1).padStart(2,'0')+'</div><div class="lbl">MATCH</div></div>'+
+        '<div class="td-mc-body"><div class="td-mc-fixture">'+esc(m.fixture||'Match')+'</div>'+
+        '<div class="td-mc-result">'+esc(m.result||'Result pending')+'</div>'+
+        '<div class="td-mc-meta"><span>'+esc(m.venue||'Local Stadium')+'</span><span>'+esc(m.date||'')+'</span></div>'+
+        '<div class="td-mc-score"><div class="td-mc-team"><div class="tt">'+esc(i1.team||'Team A')+'</div>'+
+        '<div class="ss">'+(i1.runs||0)+'/'+(i1.wickets||0)+'<small>'+ovStr(i1.balls||0)+' ov</small></div></div>'+
+        '<div class="td-mc-team t2"><div class="tt">'+esc(i2.team||'Team B')+'</div>'+
+        '<div class="ss">'+(i2.runs||0)+'/'+(i2.wickets||0)+'<small>'+ovStr(i2.balls||0)+' ov</small></div></div>'+
+        '</div></div></div></button>';
+    });
+    mount.innerHTML = html;
+  };
+  window.renderStats = function(){
+    var list = filtered();
+    var players = {};
+    function ensure(n){
+      if (!n) return null;
+      if (!players[n]) players[n] = { name:n, matchesSet:{}, runs:0,balls:0,fours:0,sixes:0,innings:0,fifties:0,hundreds:0,hs:0,dismissals:0,notOuts:0,bowlBalls:0,bowlRuns:0,wkts:0,maidens:0,bowlInnings:0,bestWkts:0,bestRuns:9999 };
+      return players[n];
+    }
+    list.forEach(function(item){
+      [item.data.innings1, item.data.innings2].forEach(function(inn){
+        if (!inn) return;
+        Object.keys(inn.batters||{}).forEach(function(n){
+          var b = inn.batters[n], p = ensure(n); if (!p) return;
+          p.matchesSet[item.id]=true; p.runs+=b.runs||0; p.balls+=b.balls||0; p.fours+=b.fours||0; p.sixes+=b.sixes||0; p.innings++;
+          if ((b.runs||0)>p.hs) p.hs=b.runs;
+          if (b.runs>=100) p.hundreds++; else if (b.runs>=50) p.fifties++;
+          if (isOut(b.status)) p.dismissals++; else p.notOuts++;
+        });
+        Object.keys(inn.bowlers||{}).forEach(function(n){
+          var b = inn.bowlers[n], p = ensure(n); if (!p) return;
+          p.matchesSet[item.id]=true; p.bowlBalls+=b.balls||0; p.bowlRuns+=b.runs||0; p.wkts+=b.wickets||0; p.maidens+=b.maidens||0; p.bowlInnings++;
+          if (b.wickets>p.bestWkts||(b.wickets===p.bestWkts&&b.runs<p.bestRuns)){ p.bestWkts=b.wickets; p.bestRuns=b.runs; }
+        });
+      });
+    });
+    var bArr = Object.keys(players).map(function(k){return players[k];}).sort(function(a,b){return b.runs-a.runs;});
+    var bm = document.getElementById('tdBattingBody');
+    if (bm){
+      if (!bArr.length) bm.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:24px;color:#7a8590;">No batting data</td></tr>';
+      else bm.innerHTML = bArr.map(function(p,i){
+        var m = Object.keys(p.matchesSet).length;
+        var avg = p.dismissals?(p.runs/p.dismissals).toFixed(1):(p.runs>0?p.runs+'*':'0.0');
+        var sr = p.balls?(p.runs/p.balls*100).toFixed(1):'0.0';
+        var pc = i===0?'p1':(i===1?'p2':(i===2?'p3':''));
+        return '<tr><td class="pos '+pc+'">'+(i+1)+'</td><td><span class="td-nm" onclick="tdShowPlayer(\''+esc(p.name).replace(/'/g,"\\'")+'\')">'+esc(p.name)+'</span></td><td class="r td-v-dim">'+m+'</td><td class="r td-v-dim">'+p.innings+'</td><td class="r td-v-g">'+p.runs+'</td><td class="r td-v-dim">'+p.balls+'</td><td class="r td-v-c">'+p.fours+'</td><td class="r td-v-o">'+p.sixes+'</td><td class="r td-v-a">'+p.fifties+'</td><td class="r td-v-p">'+p.hundreds+'</td><td class="r td-v-a">'+p.hs+'</td><td class="r td-v-hi">'+avg+'</td><td class="r td-v-c">'+sr+'</td></tr>';
+      }).join('');
+    }
+    var wArr = Object.keys(players).map(function(k){return players[k];}).filter(function(p){return p.bowlBalls>0;}).sort(function(a,b){
+      if (b.wkts!==a.wkts) return b.wkts-a.wkts;
+      return (a.bowlBalls?a.bowlRuns/(a.bowlBalls/6):999)-(b.bowlBalls?b.bowlRuns/(b.bowlBalls/6):999);
+    });
+    var wm = document.getElementById('tdBowlingBody');
+    if (wm){
+      if (!wArr.length) wm.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#7a8590;">No bowling data</td></tr>';
+      else wm.innerHTML = wArr.map(function(p,i){
+        var m = Object.keys(p.matchesSet).length;
+        var eco = p.bowlBalls?(p.bowlRuns/(p.bowlBalls/6)).toFixed(2):'-';
+        var avg = p.wkts?(p.bowlRuns/p.wkts).toFixed(1):'-';
+        var best = p.bestWkts>0?(p.bestWkts+'/'+p.bestRuns):'-';
+        var pc = i===0?'p1':(i===1?'p2':(i===2?'p3':''));
+        return '<tr><td class="pos '+pc+'">'+(i+1)+'</td><td><span class="td-nm" onclick="tdShowPlayer(\''+esc(p.name).replace(/'/g,"\\'")+'\')">'+esc(p.name)+'</span></td><td class="r td-v-dim">'+m+'</td><td class="r td-v-dim">'+p.bowlInnings+'</td><td class="r td-v-r">'+p.wkts+'</td><td class="r td-v-dim">'+ovStr(p.bowlBalls)+'</td><td class="r td-v-dim">'+p.bowlRuns+'</td><td class="r td-v-p">'+best+'</td><td class="r td-v-hi">'+avg+'</td><td class="r td-v-c">'+eco+'</td></tr>';
+      }).join('');
+    }
+  };
+  window.renderPointsTable = function(){
+    var pts = document.getElementById('pointsTableBody'); if (!pts) return;
+    var rows = {};
+    filtered().forEach(function(item){
+      var i1 = item.data.innings1||{}, i2 = item.data.innings2||{};
+      var A = i1.team, B = i2.team; if (!A||!B) return;
+      if (!rows[A]) rows[A] = { name:A, p:0,w:0,l:0,t:0,pts:0 };
+      if (!rows[B]) rows[B] = { name:B, p:0,w:0,l:0,t:0,pts:0 };
+      rows[A].p++; rows[B].p++;
+      var rA = i1.runs||0, rB = i2.runs||0;
+      if (rA>rB){ rows[A].w++; rows[B].l++; rows[A].pts+=2; }
+      else if (rB>rA){ rows[B].w++; rows[A].l++; rows[B].pts+=2; }
+      else { rows[A].t++; rows[B].t++; rows[A].pts++; rows[B].pts++; }
+    });
+    var arr = Object.keys(rows).map(function(k){return rows[k];}).sort(function(a,b){return b.pts-a.pts;});
+    if (!arr.length){ pts.innerHTML = '<div style="padding:14px;text-align:center;font-family:ui-monospace,monospace;font-size:10px;color:#7a8590;">NO COMPLETED MATCHES</div>'; return; }
+    pts.innerHTML = arr.map(function(r,i){
+      return '<div class="points-table-row" style="display:grid;grid-template-columns:32px 1fr repeat(5,40px);padding:8px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;"><div style="font-weight:900;color:'+(i===0?'#fbbf24':'#7a8590')+';">'+(i+1)+'</div><div style="font-weight:800;color:#fff;">'+esc(r.name)+'</div><div style="text-align:right;">'+r.p+'</div><div style="text-align:right;">'+r.w+'</div><div style="text-align:right;">'+r.l+'</div><div style="text-align:right;font-weight:900;color:#00d2be;">'+r.pts+'</div><div style="text-align:right;font-family:ui-monospace,monospace;font-size:11px;">0.000</div></div>';
+    }).join('');
+  };
+  window.tdSelectTournament = function(name){
+    window.__tdSelectedTourn = name;
+    if (typeof window.currentTourn !== 'undefined') window.currentTourn = { name:name, overs:20, venue:'Local Stadium' };
+    var lm = document.getElementById('tdTournList'); if (lm) lm.style.display = 'none';
+    var dm = document.getElementById('tdTournDetail'); if (dm) dm.style.display = 'block';
+    window.renderMatchList(); window.renderStats(); window.renderPointsTable();
+    var n = document.querySelector('#tdTournDetail .td-hero-name');
+    if (n) n.textContent = name;
+  };
+  window.tdBackToList = function(){
+    window.__tdSelectedTourn = null;
+    var lm = document.getElementById('tdTournList'); if (lm) lm.style.display = 'block';
+    var dm = document.getElementById('tdTournDetail'); if (dm) dm.style.display = 'none';
+  };
+  console.log('[Clean Override] Tournament isolation active');
+})();
+</script>
+
   
 </body>
 </html>
