@@ -6502,9 +6502,8 @@ var ALIASES = {
     } catch(e){}
     return Object.keys(all).map(function(id){
       var m = all[id]; if (!m) return null;
-      var byId = ids.indexOf(id) !== -1 || ids.indexOf(id.replace('ledger_','')) !== -1;
-      var byTag = m.tournament === name;
-      return (byId || byTag) ? { id: id, data: m } : null;
+         var byId = ids.indexOf(id) !== -1 || ids.indexOf(id.replace('ledger_','')) !== -1;
+      return byId ? { id: id, data: m } : null;
     }).filter(function(x){ return x !== null; });
   }
   window.tdShowTab = function(tab, btn){
