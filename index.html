@@ -6257,49 +6257,62 @@ var ALIASES = {
 })();
 </script>
 <script>
+<script>
 /* ══════════════════════════════════════════════════════════════════
-   CROSS-TOURNAMENT DATA ISOLATION FIX
-   Overrides renderMatchList and renderStats so they only show
-   matches belonging to the currently selected tournament.
+   ULTIMATE CROSS-TOURNAMENT DATA ISOLATION FIX
    ══════════════════════════════════════════════════════════════════ */
 (function(){
   'use strict';
 
-  // Helper to get the filtered matches for the selected tournament
-  function getFilteredMatches() {
-    var tournName = window.__tdSelectedTourn;
-    if (!tournName) return [];
+  // 1. Intercept tournament selection to properly switch the GLOBAL state
+  var originalTdSelectTournament = window.tdSelectTournament;
+  window.tdSelectTournament = function(name) {
+    window.__tdSelectedTourn = name;
 
-    var matchIds = [];
+    // Find the tournament data in CricMax_Data
+    var tournData = null;
     try {
       var raw = localStorage.getItem('CricMax_Data');
       if (raw) {
         var d = JSON.parse(raw);
-        var tourn = (d.currentTourn && d.currentTourn.name === tournName) ? d.currentTourn : 
-                    (d.pastTournaments || []).find(t => t.name === tournName);
-        if (tourn && tourn.matchIds) {
-          matchIds = tourn.matchIds;
+        if (d.currentTourn && d.currentTourn.name === name) {
+          tournData = d.currentTourn;
+        } else if (d.pastTournaments) {
+          tournData = d.pastTournaments.find(t => t.name === name);
         }
       }
     } catch(e) { console.warn('[Fix] Error reading CricMax_Data', e); }
 
-    var all = window.__importedMatches || {};
-    if (!Object.keys(all).length) {
-      try { var r = localStorage.getItem('cricmax_importedMatches'); if(r) all = JSON.parse(r); } catch(e){}
+    if (tournData) {
+      // CRITICAL: Update the global variables used by tournaments.js and state.js
+      if (typeof window.currentTourn !== 'undefined') {
+        window.currentTourn = { name: tournData.name, overs: tournData.overs, venue: tournData.venue };
+      }
+      if (typeof window.currentTournId !== 'undefined') {
+        window.currentTournId = tournData.id;
+      }
+      
+      // Sync the ledger from the tournament data (matchIds -> actual match objects)
+      var allMatches = window.__importedMatches || {};
+      try { 
+        var r = localStorage.getItem('cricmax_importedMatches'); 
+        if(r) allMatches = JSON.parse(r); 
+      } catch(e){}
+      
+      if (typeof window.pastMatchesLedger !== 'undefined') {
+        window.pastMatchesLedger = (tournData.matchIds || [])
+          .map(id => allMatches[id] || allMatches[id.replace('ledger_','')])
+          .filter(x => x);
+      }
     }
 
-    // Map matchIds to actual match objects
-    return matchIds.map(id => {
-      if (all[id]) return { id: id, data: all[id] };
-      // Fallback for ledger IDs or minor formatting differences
-      var foundId = Object.keys(all).find(k => 
-        k.includes(id.replace('ledger_', '')) || id.includes(k.replace('ledger_', ''))
-      );
-      return foundId ? { id: foundId, data: all[foundId] } : null;
-    }).filter(x => x !== null);
-  }
+    // Call the original function to toggle the UI panels
+    if (originalTdSelectTournament) {
+      originalTdSelectTournament.apply(this, arguments);
+    }
+  };
 
-  // Override the broken renderMatchList function
+  // 2. Override renderMatchList to ONLY use the filtered global ledger
   window.renderMatchList = function() {
     var mount = document.getElementById('tdMatchList'); 
     if (!mount) return;
@@ -6307,26 +6320,26 @@ var ALIASES = {
     if (det) { det.style.display = 'none'; det.innerHTML = ''; }
     mount.style.display = '';
 
-    var filtered = getFilteredMatches();
+    var ledger = window.pastMatchesLedger || [];
     var tournName = window.__tdSelectedTourn || 'Tournament';
 
-    if (!filtered.length) {
+    if (!ledger.length) {
       mount.innerHTML = '<div class="td-mhd">📋 Match Grid · 0 Matches for ' + tournName + '</div>';
       return;
     }
 
-    var html = '<div class="td-mhd">📋 Match Grid · ' + filtered.length + ' Match' + (filtered.length === 1 ? '' : 'es') + '</div>';
+    var html = '<div class="td-mhd">📋 Match Grid · ' + ledger.length + ' Match' + (ledger.length === 1 ? '' : 'es') + '</div>';
 
-    filtered.forEach(function(item, idx) {
-      var id = item.id;
-      var m = item.data;
+    ledger.forEach(function(m, idx) {
+      if (!m) return;
+      var id = m.id || 'ledger_' + idx;
       var i1 = m.innings1 || {}, i2 = m.innings2 || {};
       
-      html += '<button class="td-mc" onclick="tdOpenMatch(\'' + escapeHtml(id).replace(/'/g, "\\'") + '\')">' +
+      html += '<button class="td-mc" onclick="tdOpenMatch(\'' + String(id).replace(/'/g, "\\'") + '\')">' +
         '<div class="td-mc-inner">' +
           '<div class="td-mc-pos"><div class="n">' + String(idx + 1).padStart(2, '0') + '</div><div class="lbl">MATCH</div></div>' +
           '<div class="td-mc-body">' +
-            '<div class="td-mc-fixture">' + escapeHtml(m.fixture || id) + '</div>' +
+            '<div class="td-mc-fixture">' + escapeHtml(m.fixture || 'Match') + '</div>' +
             '<div class="td-mc-result">🏆 ' + escapeHtml(m.result || 'Result pending') + '</div>' +
             '<div class="td-mc-meta">' +
               '<span>🏆 ' + escapeHtml(tournName) + '</span>' +
@@ -6347,10 +6360,9 @@ var ALIASES = {
     mount.innerHTML = html;
   };
 
-  // Override the broken renderStats function
-  var _origRenderStats = window.renderStats;
+  // 3. Override renderStats to ONLY aggregate the filtered global ledger
   window.renderStats = function() {
-    var filtered = getFilteredMatches();
+    var ledger = window.pastMatchesLedger || [];
     var players = {};
 
     function ensure(n) {
@@ -6365,13 +6377,13 @@ var ALIASES = {
       return players[n];
     }
 
-    filtered.forEach(function(item) {
-      var m = item.data;
+    ledger.forEach(function(m) {
+      if (!m) return;
       [m.innings1, m.innings2].forEach(function(inn) {
         if (!inn) return;
         Object.keys(inn.batters || {}).forEach(function(n) {
           var b = inn.batters[n]; var p = ensure(n); if (!p) return;
-          p.teams[inn.team || ''] = true; p.matchesSet[item.id] = true;
+          p.teams[inn.team || ''] = true; p.matchesSet[m.id || ''] = true;
           p.runs += b.runs || 0; p.balls += b.balls || 0;
           p.fours += b.fours || 0; p.sixes += b.sixes || 0; p.dots += b.dots || 0;
           p.innings++;
@@ -6381,7 +6393,7 @@ var ALIASES = {
         });
         Object.keys(inn.bowlers || {}).forEach(function(n) {
           var b = inn.bowlers[n]; var p = ensure(n); if (!p) return;
-          p.teams[inn.team || ''] = true; p.matchesSet[item.id] = true;
+          p.teams[inn.team || ''] = true; p.matchesSet[m.id || ''] = true;
           p.bowlBalls += b.balls || 0; p.bowlRuns += b.runs || 0;
           p.wkts += b.wickets || 0; p.maidens += b.maidens || 0;
           p.bowlInnings++;
@@ -6392,7 +6404,6 @@ var ALIASES = {
       });
     });
 
-    // Render Batting Leaderboard
     var bArr = Object.keys(players).map(k => players[k]).sort((a, b) => b.runs - a.runs || b.balls - a.balls);
     var bm = document.getElementById('tdBattingBody');
     if (bm) {
@@ -6420,7 +6431,6 @@ var ALIASES = {
       }).join('');
     }
 
-    // Render Bowling Leaderboard
     var wArr = Object.keys(players).map(k => players[k]).filter(p => p.bowlBalls > 0).sort((a, b) => {
       if (b.wkts !== a.wkts) return b.wkts - a.wkts;
       var ea = a.bowlBalls ? a.bowlRuns / (a.bowlBalls / 6) : 999;
@@ -6452,26 +6462,16 @@ var ALIASES = {
     }
   };
 
-  // Helper to escape HTML safely
+  // Helpers
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function ovStr(b) { b = b || 0; return Math.floor(b / 6) + '.' + (b % 6); }
+  function isOutStatus(s) { s = String(s || '').toLowerCase(); return s && s !== 'dnb' && s.indexOf('not out') === -1 && s.indexOf('retired') === -1; }
 
-  // Helper to format overs
-  function ovStr(b) {
-    b = b || 0;
-    return Math.floor(b / 6) + '.' + (b % 6);
-  }
-
-  // Helper to check if a batter is out
-  function isOutStatus(s) {
-    s = String(s || '').toLowerCase();
-    return s && s !== 'dnb' && s.indexOf('not out') === -1 && s.indexOf('retired') === -1;
-  }
-
-  console.log('[CrossTournamentFix] ✅ Applied. Matches will now be filtered by tournament.');
+  console.log('[Ultimate Fix] Applied. Global state synced with UI selection.');
 })();
 </script>
   
