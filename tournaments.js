@@ -2,9 +2,20 @@
    tournaments.js — Tournaments, teams, points table, past matches, H2H
    ============================================================ */
 
+// Helper to generate a unique match ID
+function generateUniqueMatchId() {
+  return 'm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+}
+
 function archiveCurrentTournament() {
   if (!currentTourn) return;
   if (!currentTournId) currentTournId = 't_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+  
+  // Ensure all matches have a unique ID before archiving
+  (pastMatchesLedger || []).forEach(function(pm) {
+    if (!pm.id) pm.id = generateUniqueMatchId();
+  });
+
   const snapshot = {
     id: currentTournId,
     name: currentTourn.name,
@@ -14,7 +25,7 @@ function archiveCurrentTournament() {
     pastMatches: JSON.parse(JSON.stringify(pastMatchesLedger || [])),
     currentMatch: (match && match.isActive) ? JSON.parse(JSON.stringify(match)) : null,
     matchCode: matchCode || '',
-     savedAt: new Date().toISOString()
+    savedAt: new Date().toISOString()
   };
   const idx = tournamentsHistory.findIndex(t => t.id === currentTournId);
   if (idx >= 0) tournamentsHistory[idx] = snapshot;
@@ -66,10 +77,11 @@ function startNewTournamentFlow() {
   const ni = document.getElementById('tNameInput'); if (ni) ni.value = '';
   const oi = document.getElementById('tOversInput'); if (oi) oi.value = '20';
   const vi = document.getElementById('tVenueInput'); if (vi) vi.value = '';
-   autoPersist();
+  autoPersist();
   syncTournMetaForUI();
   openTournamentModal();
 }
+
 function resumeTournament(id) {
   closeModal('tournamentPickerModal');
   if (id === currentTournId) { launchDashboard('tournament'); return; }
@@ -220,6 +232,348 @@ function proceedToOpenersPopupDirectly() {
   document.getElementById('strikerCustom').value = '';
   document.getElementById('nonStrikerCustom').value = '';
   document.getElementById('bowlerCustom').value = '';
+  populatePlayerDropdowns();
+  document.getElementById('openingRolesModal').style.display = 'flex';
+  autoPersist();
+}
+
+function populatePlayerDropdowns() {
+  const bn = document.getElementById('battingTeamSelect').value;
+  const wn = bn === RESOLVED_TEAM_1 ? RESOLVED_TEAM_2 : RESOLVED_TEAM_1;
+  const bt = savedTeams.find(t => t.name === bn);
+  const wt = savedTeams.find(t => t.name === wn);
+  const sD = document.getElementById('strikerDropdown');
+  const nD = document.getElementById('nonStrikerDropdown');
+  const bD = document.getElementById('bowlerDropdown');
+  sD.innerHTML = '<option value="">-- From squad --</option>';
+  nD.innerHTML = '<option value="">-- From squad --</option>';
+  bD.innerHTML = '<option value="">-- From squad --</option>';
+  if (bt && bt.squad) bt.squad.forEach(p => {
+    sD.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+    nD.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+  });
+  if (wt && wt.squad) wt.squad.forEach(p => {
+    bD.innerHTML += `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`;
+  });
+}
+
+function updateTournamentProfileCard() {
+  const nameDisplay = document.getElementById('tournNameDisplay');
+  const metaDisplay = document.getElementById('tournMetaDisplay');
+  if (currentTourn) {
+    if (nameDisplay) nameDisplay.innerText = currentTourn.name;
+    if (metaDisplay) metaDisplay.innerText = `${currentTourn.overs} Overs • ${currentTourn.venue}`;
+  } else {
+    if (nameDisplay) nameDisplay.innerText = "Tournament Not Set";
+    if (metaDisplay) metaDisplay.innerText = "Tap Edit to configure";
+  }
+  updateContinueButton();
+}
+
+function updateContinueButton() {
+  const btn = document.getElementById('btnContinueTourn');
+  const nb = document.getElementById('btnStartNewMatch');
+  const hint = document.getElementById('continueHint');
+  if (!btn) return;
+  if (match.isActive) {
+    btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+    if (nb) { nb.disabled = true; nb.style.opacity = '0.35'; nb.style.cursor = 'not-allowed'; }
+    if (hint) hint.innerText = '▶ Resume match in progress';
+  } else {
+    btn.disabled = true; btn.style.opacity = '0.35'; btn.style.cursor = 'not-allowed';
+    if (nb) { nb.disabled = false; nb.style.opacity = '1'; nb.style.cursor = 'pointer'; }
+    if (hint) hint.innerText = currentTourn ? 'No match in progress — start a new match' : 'Set up the tournament first, then start a new match';
+  }
+}
+
+function continueFromTournament() {
+  if (match.isActive) { launchDashboard('live'); return; }
+  startNewMatchFlow();
+}
+
+function startNewMatchFlow() {
+  if (match.isActive) {
+    if (!confirm('A match is already in progress.\n\nStart a NEW match?')) return;
+  }
+  launchDashboard('tournament');
+  openTournamentModal();
+}
+
+/* Head-to-head (item 21) */
+function getHeadToHead(teamName) {
+  const map = {};
+  pastMatchesLedger.forEach(pm => {
+    if (!pm.teamA || !pm.teamB || !pm.winner) return;
+    if (pm.teamA !== teamName && pm.teamB !== teamName) return;
+    const opp = pm.teamA === teamName ? pm.teamB : pm.teamA;
+    if (!map[opp]) map[opp] = { opponent: opp, won: 0, lost: 0 };
+    if (pm.winner === teamName) map[opp].won++;
+    else if (pm.winner === opp) map[opp].lost++;
+  });
+  return Object.values(map).sort((a, b) => (b.won + b.lost) - (a.won + a.lost)).slice(0, 3);
+}
+
+function renderTeamsList() {
+  const c = document.getElementById('teamsListContainer');
+  if (!c) return;
+  if (!savedTeams || savedTeams.length === 0) {
+    c.innerHTML = `<div class="panel-card" style="text-align:center;color:var(--muted);font-size:12px;padding:20px;">No teams yet.</div>`;
+    return;
+  }
+  c.innerHTML = '';
+  savedTeams.forEach((team, idx) => {
+    const abbr = team.name.substring(0, 3).toUpperCase();
+    const squad = team.squad || [];
+    const chips = squad.length === 0 ? `<div class="empty-squad-msg">No players yet.</div>`
+      : squad.map(p => {
+        const safeName = escapeHtml(p).replace(/'/g, "\\'");
+        const bt = bowlerTypeMap[p];
+        const roleTag = bt ? `<span class="chip-role" onclick="togglePlayerType('${safeName}')">${bt === 'spin' ? '🌀Spin' : '🏏Pace'}</span>` : '';
+        return `<span class="player-chip">
+          <span class="chip-avatar">${escapeHtml(p.charAt(0).toUpperCase())}</span>
+          <span class="player-link" onclick="openPlayerCareerModal('${safeName}')">${escapeHtml(p)}</span>
+          ${roleTag}
+          <span class="chip-remove" onclick="removePlayerFromTeam(${idx},'${safeName}')">✕</span>
+        </span>`;
+      }).join('');
+
+    const h2h = getHeadToHead(team.name);
+    const h2hHtml = h2h.length === 0 ? '' :
+      `<div style="margin-top:8px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px;font-size:10.5px;color:var(--muted);">
+        <b style="color:var(--cyan);">Head-to-Head</b><br>
+        ${h2h.map(h => `${escapeHtml(h.opponent)}: <b>${h.won}W</b>-${h.lost}L`).join(' • ')}
+      </div>`;
+
+    c.innerHTML += `<div class="team-mgmt-card">
+      <div class="team-header-row">
+        <div class="team-name-display"><span>${escapeHtml(team.name)}</span><span class="team-abbr-badge">${abbr}</span></div>
+        <span class="team-squad-count">${squad.length} player${squad.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="player-chip-grid">${chips}</div>
+      <div class="add-player-inline">
+        <input type="text" class="form-control" placeholder="Add player" id="addPlayerInput-${idx}" onkeydown="if(event.key==='Enter')addPlayerToTeamInline(${idx})">
+        <button class="btn-ui btn-primary" onclick="addPlayerToTeamInline(${idx})">➕</button>
+      </div>
+      <div class="team-action-row">
+        <button class="btn-ui" onclick="renameTeam(${idx})">✎ Rename</button>
+        <button class="btn-ui" style="background:rgba(239,68,68,.18);border-color:var(--red);color:#fca5a5;" onclick="deleteTeam(${idx})">🗑 Delete</button>
+      </div>
+      ${h2hHtml}
+    </div>`;
+  });
+}
+
+function createNewTeamFromTab() {
+  const i = document.getElementById('newTeamNameInput');
+  const n = autoCapitalize(i.value.trim());
+  if (!n) return alert("Enter team name");
+  if (savedTeams.some(t => t.name.toLowerCase() === n.toLowerCase())) return alert("Team exists");
+  savedTeams.push({ name: n, squad: [] });
+  i.value = '';
+  renderTeamsList();
+  autoPersist();
+}
+
+function addPlayerToTeamInline(idx) {
+  const i = document.getElementById('addPlayerInput-' + idx);
+  const n = autoCapitalize(i.value.trim());
+  if (!n) return;
+  const t = savedTeams[idx];
+  if (!t.squad) t.squad = [];
+  if (t.squad.includes(n)) { i.value = ''; return; }
+  t.squad.push(n);
+  i.value = '';
+  renderTeamsList();
+  autoPersist();
+}
+
+function removePlayerFromTeam(ti, pn) {
+  const t = savedTeams[ti];
+  if (!t || !t.squad) return;
+  if (!confirm(`Remove "${pn}"?`)) return;
+  t.squad = t.squad.filter(p => p !== pn);
+  renderTeamsList();
+  autoPersist();
+}
+
+function renameTeam(idx) {
+  const t = savedTeams[idx];
+  const n = prompt(`Rename "${t.name}" to:`, t.name);
+  if (!n || !n.trim()) return;
+  const tr = autoCapitalize(n.trim());
+  if (savedTeams.some((x, i) => i !== idx && x.name.toLowerCase() === tr.toLowerCase())) return alert("Name in use");
+  t.name = tr;
+  renderTeamsList();
+  autoPersist();
+}
+
+function deleteTeam(idx) {
+  const t = savedTeams[idx];
+  if (!confirm(`Delete "${t.name}"?`)) return;
+  savedTeams.splice(idx, 1);
+  renderTeamsList();
+  autoPersist();
+}
+
+function togglePlayerType(name) {
+  const cur = bowlerTypeMap[name] || detectBowlerType(name);
+  bowlerTypeMap[name] = cur === 'pace' ? 'spin' : 'pace';
+  autoPersist();
+  renderTeamsList();
+}
+
+function renderPointsTable() {
+  const c = document.getElementById('pointsTableBody');
+  if (!c) return;
+  if (!savedTeams || savedTeams.length === 0) {
+    c.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;padding:16px;">No teams yet.</div>`;
+    return;
+  }
+  const stats = {};
+  savedTeams.forEach(t => { stats[t.name] = { name: t.name, P: 0, W: 0, L: 0, Pts: 0 }; });
+  pastMatchesLedger.forEach(pm => {
+    if (!pm.teamA || !pm.teamB || !pm.winner) return;
+    const A = stats[pm.teamA], B = stats[pm.teamB];
+    if (!A || !B) return;
+    A.P++; B.P++;
+    if (pm.winner === pm.teamA) { A.W++; B.L++; A.Pts += 2; }
+    else if (pm.winner === pm.teamB) { B.W++; A.L++; B.Pts += 2; }
+  });
+  const arr = Object.values(stats).sort((a, b) => b.Pts - a.Pts);
+  c.innerHTML = '';
+  arr.forEach((t, i) => {
+    c.innerHTML += `<div class="points-table-row">
+      <div>${i + 1}</div><div><b>${escapeHtml(t.name)}</b></div>
+      <div>${t.P}</div><div>${t.W}</div><div>${t.L}</div>
+      <div><b style="color:var(--green);">${t.Pts}</b></div><div>0.00</div>
+    </div>`;
+  });
+}
+
+function renderPastMatchesList() {
+  const c = document.getElementById('pastMatchesContainer');
+  if (!c) return;
+  if (!pastMatchesLedger || pastMatchesLedger.length === 0) {
+    c.innerHTML = `<div class="panel-card" style="text-align:center;color:var(--muted);font-size:12px;padding:20px;">No past matches yet.</div>`;
+    return;
+  }
+  c.innerHTML = '';
+  pastMatchesLedger.forEach((pm, idx) => {
+    c.innerHTML += `<div class="history-card">
+      <div>
+        <b style="font-size:13px;">${escapeHtml(pm.fixture)}</b><br>
+        <span style="font-size:11px;color:var(--cyan);">${escapeHtml(pm.result)}</span>
+      </div>
+      <button class="btn-ui" onclick="viewPastMatchSummary(${idx})">View</button>
+    </div>`;
+  });
+}
+
+function viewPastMatchSummary(idx) {
+  const pm = pastMatchesLedger[idx];
+  if (!pm) return;
+
+  // Ensure the match has a globally unique ID
+  if (!pm.id) {
+    pm.id = generateUniqueMatchId();
+  }
+
+  const inn1 = pm.innings1, inn2 = pm.innings2;
+  let msg = `${pm.fixture}\nResult: ${pm.result}\nVenue: ${pm.venue}\nDate: ${pm.date}\n\n`;
+  if (inn1) msg += `1st Innings — ${inn1.team}: ${inn1.runs}/${inn1.wickets} (${Math.floor((inn1.balls || 0) / 6)}.${(inn1.balls || 0) % 6} ov)\n`;
+  if (inn2) msg += `2nd Innings — ${inn2.team}: ${inn2.runs}/${inn2.wickets} (${Math.floor((inn2.balls || 0) / 6)}.${(inn2.balls || 0) % 6} ov)\n`;
+  
+  if (typeof window.openFullMatchViewer === 'function') {
+    const id = pm.id; // Use the unique ID
+    if (!window.__importedMatches) window.__importedMatches = {};
+    const all = window.__importedMatches;
+    if (!all[id]) {
+      all[id] = {
+        id: id,
+        fixture: pm.fixture, result: pm.result, venue: pm.venue, date: pm.date,
+        innings1: pm.innings1 || { team: (pm.teamA || 'Team A'), runs: 0, wickets: 0, balls: 0, batters: {}, bowlers: {}, fow: [] },
+        innings2: pm.innings2 || { team: (pm.teamB || 'Team B'), runs: 0, wickets: 0, balls: 0, batters: {}, bowlers: {}, fow: [] }
+      };
+    }
+    window.openFullMatchViewer(id);
+    return;
+  }
+  alert(msg);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Sync tournament metadata to CricMax_Data in the shape the new
+   Tournament Dashboard UI reads (currentTourn + pastTournaments).
+   ────────────────────────────────────────────────────────────── */
+function syncTournMetaForUI() {
+  try {
+    var raw = localStorage.getItem('CricMax_Data');
+    var d = raw ? JSON.parse(raw) : {};
+
+    // CRITICAL FIX: Ensure all matches in the current ledger have a unique ID
+    (pastMatchesLedger || []).forEach(function(pm) {
+      if (!pm.id) {
+        pm.id = generateUniqueMatchId();
+      }
+    });
+
+    // CRITICAL FIX: Ensure all archived matches also have unique IDs
+    (tournamentsHistory || []).forEach(function(t) {
+      (t.pastMatches || []).forEach(function(pm) {
+        if (!pm.id) {
+          pm.id = generateUniqueMatchId();
+        }
+      });
+    });
+
+    /* Current tournament */
+    if (currentTourn && currentTourn.name) {
+      d.currentTourn = {
+        id: currentTournId || ('t_' + currentTourn.name.replace(/\s+/g, '_')),
+        name: currentTourn.name,
+        venue: currentTourn.venue || 'Local Stadium',
+        overs: currentTourn.overs || 20,
+        matchIds: (pastMatchesLedger || []).map(function(pm){
+          return pm.id; // Use the guaranteed unique ID
+        }),
+        matchCount: (pastMatchesLedger || []).length
+      };
+    } else {
+      delete d.currentTourn;
+    }
+
+    /* Past tournaments */
+    d.pastTournaments = (tournamentsHistory || []).map(function(t){
+      return {
+        id: t.id,
+        name: t.name,
+        venue: t.venue || 'Local Stadium',
+        overs: t.overs || 20,
+        matchIds: (t.pastMatches || []).map(function(pm){
+          return pm.id; // Use the guaranteed unique ID
+        }),
+        matchCount: (t.pastMatches || []).length
+      };
+    });
+
+    localStorage.setItem('CricMax_Data', JSON.stringify(d));
+
+    /* Also expose for the new UI to attach ledger matches into __importedMatches */
+    window.__cricmaxLedger = pastMatchesLedger || [];
+  } catch(e){ console.warn('[CricMax] syncTournMetaForUI failed:', e); }
+}
+
+/* Auto-run whenever the tournament picker opens (safety net) */
+(function(){
+  var orig = window.openTournamentPicker;
+  if (typeof orig === 'function' && !orig.__synced) {
+    window.openTournamentPicker = function(){
+      syncTournMetaForUI();
+      return orig.apply(this, arguments);
+    };
+    window.openTournamentPicker.__synced = true;
+  }
+})();.value = '';
   populatePlayerDropdowns();
   document.getElementById('openingRolesModal').style.display = 'flex';
   autoPersist();
